@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertPostSchema } from "@shared/schema";
+import { insertPostSchema, type Restaurant } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -35,7 +35,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Image, Star } from "lucide-react";
+import { 
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X, Image, Star, Search, MapPin, Utensils, Check } from "lucide-react";
 
 // Extend the post schema with form validation
 const formSchema = insertPostSchema
@@ -55,10 +63,19 @@ export function CreatePostForm() {
   const [, navigate] = useLocation();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [dishesList, setDishesList] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
 
   // Get current user
   const { data: currentUser } = useQuery({
     queryKey: ["/api/me"],
+  });
+  
+  // Restaurant search query
+  const { data: searchResults, isLoading: isSearching } = useQuery({
+    queryKey: [`/api/restaurants?query=${encodeURIComponent(searchQuery)}`],
+    enabled: searchQuery.length > 2,
   });
 
   // Form definition
@@ -114,6 +131,32 @@ export function CreatePostForm() {
     },
   });
 
+  // Handle restaurant selection
+  const handleSelectRestaurant = (restaurant: Restaurant) => {
+    setSelectedRestaurant(restaurant);
+    setOpen(false);
+    
+    // Pre-fill the form with restaurant details
+    form.setValue("restaurantName", restaurant.name);
+    form.setValue("restaurantLocation", restaurant.location || restaurant.address || "");
+    form.setValue("restaurantCategory", restaurant.category || restaurant.cuisine || "");
+    form.setValue("restaurantPriceRange", restaurant.priceRange || "$$");
+    
+    // Reset the search
+    setSearchQuery("");
+  };
+  
+  // Handle search input change
+  const handleSearchInputChange = (value: string) => {
+    setSearchQuery(value);
+    if (value.length > 2) {
+      // Trigger search
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/restaurants?query=${encodeURIComponent(value)}`] 
+      });
+    }
+  };
+  
   // Add dish to the list
   const addDish = () => {
     const newDish = form.watch("newDish");
@@ -165,13 +208,36 @@ export function CreatePostForm() {
     }
 
     try {
-      // First create/get the restaurant
-      const restaurant = await createRestaurantMutation.mutateAsync({
-        name: values.restaurantName,
-        location: values.restaurantLocation,
-        category: values.restaurantCategory,
-        priceRange: values.restaurantPriceRange,
-      });
+      let restaurant;
+      
+      // If we've selected a restaurant from the dropdown that already exists in the database
+      if (selectedRestaurant && selectedRestaurant.id) {
+        console.log("Using selected restaurant:", selectedRestaurant);
+        restaurant = selectedRestaurant;
+      } 
+      // If we've selected a Google restaurant that hasn't been saved to the database yet
+      else if (selectedRestaurant && selectedRestaurant.googlePlaceId && !selectedRestaurant.id) {
+        console.log("Saving Google Place to database:", selectedRestaurant.googlePlaceId);
+        const response = await apiRequest("POST", "/api/google/places/save", { 
+          placeId: selectedRestaurant.googlePlaceId 
+        });
+        restaurant = await response.json();
+      } 
+      // Otherwise create a new restaurant with the provided details
+      else {
+        console.log("Creating new restaurant with name:", values.restaurantName);
+        restaurant = await createRestaurantMutation.mutateAsync({
+          name: values.restaurantName,
+          location: values.restaurantLocation,
+          category: values.restaurantCategory,
+          priceRange: values.restaurantPriceRange,
+        });
+      }
+
+      // Verify we have a valid restaurant with an ID
+      if (!restaurant || !restaurant.id) {
+        throw new Error("Failed to get or create restaurant");
+      }
 
       // Then create the post
       createPostMutation.mutate({
@@ -212,11 +278,77 @@ export function CreatePostForm() {
                 control={form.control}
                 name="restaurantName"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Restaurant Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Little Italy Trattoria" {...field} />
-                    </FormControl>
+                    <Popover open={open} onOpenChange={setOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search restaurants..."
+                              className="pl-8"
+                              value={field.value}
+                              onChange={(e) => {
+                                field.onChange(e.target.value);
+                                handleSearchInputChange(e.target.value);
+                              }}
+                              onFocus={() => setOpen(true)}
+                            />
+                          </div>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0" align="start" side="bottom" sideOffset={5} style={{ width: "var(--radix-popover-trigger-width)" }}>
+                        <Command className="w-full">
+                          <CommandInput
+                            placeholder="Search for restaurants..."
+                            value={searchQuery}
+                            onValueChange={handleSearchInputChange}
+                            className="h-9"
+                          />
+                          <CommandEmpty className="py-6 text-center text-sm">
+                            {searchQuery.length > 2 ? "No restaurants found" : "Type at least 3 characters to search"}
+                          </CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-auto">
+                            {searchResults && Array.isArray(searchResults) && searchResults.map((restaurant: Restaurant) => (
+                              <CommandItem
+                                key={restaurant.id || restaurant.googlePlaceId}
+                                value={restaurant.name}
+                                onSelect={() => handleSelectRestaurant(restaurant)}
+                                className="py-2 px-2"
+                              >
+                                <div className="flex flex-col">
+                                  <div className="flex items-center">
+                                    <span className="font-medium">{restaurant.name}</span>
+                                    {restaurant.googlePlaceId && !restaurant.id && (
+                                      <span className="ml-2 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                        Google
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center text-xs text-muted-foreground">
+                                    <MapPin className="h-3 w-3 mr-1" /> 
+                                    <span>{restaurant.location || restaurant.address}</span>
+                                  </div>
+                                  <div className="flex items-center mt-1">
+                                    <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                      <Utensils className="h-3 w-3 inline mr-1" />
+                                      {restaurant.category || restaurant.cuisine || "Restaurant"}
+                                    </span>
+                                    <span className="ml-1 text-xs text-muted-foreground">{restaurant.priceRange}</span>
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {selectedRestaurant && (
+                      <div className="mt-1 text-xs text-muted-foreground flex items-center">
+                        <Check className="h-3 w-3 mr-1 text-green-500" /> Restaurant selected
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
