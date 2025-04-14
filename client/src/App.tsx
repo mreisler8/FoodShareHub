@@ -8,6 +8,8 @@ import CreatePost from "@/pages/create-post";
 import HubDetails from "@/pages/hub-details";
 import Profile from "@/pages/profile";
 import Discover from "@/pages/discover";
+import ListDetails from "@/pages/list-details";
+import CreateList from "@/pages/create-list";
 
 function Router() {
   return (
@@ -17,6 +19,7 @@ function Router() {
       <Route path="/hubs/:id" component={HubDetails} />
       <Route path="/profile/:id?" component={Profile} />
       <Route path="/discover" component={Discover} />
+      <Route path="/lists/:id" component={ListDetails} />
       <Route component={NotFound} />
     </Switch>
   );

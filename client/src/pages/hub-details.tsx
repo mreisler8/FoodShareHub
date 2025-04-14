@@ -9,6 +9,7 @@ import { HubWithStats } from "@/lib/types";
 import { PostCard } from "@/components/home/PostCard";
 import { CreatePostButton } from "@/components/create-post/CreatePostButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
 
 export default function HubDetails() {
   const { id } = useParams();
@@ -95,6 +96,16 @@ export default function HubDetails() {
             </div>
           </div>
         ) : null}
+        
+        {/* Restaurant Lists */}
+        {hub && (
+          <RestaurantListsSection 
+            hubId={parseInt(id!)} 
+            title="Curated Restaurant Lists" 
+            showCreateButton={true} 
+            maxLists={4}
+          />
+        )}
         
         {/* Hub Posts */}
         <div className="mb-10">
