@@ -57,7 +57,11 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         console.log("Authenticating user:", username);
-        const user = await storage.getUserByUsername(username);
+        // Make username comparison case-insensitive
+        const normalizedUsername = username.toLowerCase();
+        console.log("Normalized username:", normalizedUsername);
+        
+        const user = await storage.getUserByUsername(normalizedUsername);
         if (!user) {
           console.log("User not found");
           return done(null, false, { message: "Invalid username or password" });
