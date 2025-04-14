@@ -153,7 +153,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!postDetails) {
         return res.status(404).json({ error: "Post not found" });
       }
-      res.json(postDetails);
+      
+      // Remove password hash from post author
+      let safePostDetails = { ...postDetails };
+      if (safePostDetails.author && safePostDetails.author.password) {
+        const { password, ...authorWithoutPassword } = safePostDetails.author;
+        safePostDetails.author = authorWithoutPassword;
+      }
+      
+      // Remove password hashes from comment authors
+      if (safePostDetails.comments && Array.isArray(safePostDetails.comments)) {
+        safePostDetails.comments = safePostDetails.comments.map(comment => {
+          if (comment.author && comment.author.password) {
+            const { password, ...authorWithoutPassword } = comment.author;
+            return { ...comment, author: authorWithoutPassword };
+          }
+          return comment;
+        });
+      }
+      
+      res.json(safePostDetails);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
