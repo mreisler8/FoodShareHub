@@ -9,7 +9,8 @@ import {
   savedRestaurants, type SavedRestaurant, type InsertSavedRestaurant,
   stories, type Story, type InsertStory,
   restaurantLists, type RestaurantList, type InsertRestaurantList,
-  restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem
+  restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem,
+  userFollowers, type UserFollower, type InsertUserFollower
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, like, desc, gt, or } from "drizzle-orm";
@@ -619,6 +620,81 @@ export class DatabaseStorage implements IStorage {
       [userId]
     );
     return result.rows;
+  }
+
+  // User Following operations
+  async followUser(followerId: number, followingId: number): Promise<UserFollower> {
+    // First check if the relationship already exists
+    const existing = await this.isUserFollowing(followerId, followingId);
+    if (existing) {
+      throw new Error("Already following this user");
+    }
+    
+    // Prevent users from following themselves
+    if (followerId === followingId) {
+      throw new Error("Users cannot follow themselves");
+    }
+    
+    // Create the follow relationship
+    const [userFollower] = await db.insert(userFollowers).values({
+      followerId,
+      followingId,
+    }).returning();
+    
+    return userFollower;
+  }
+  
+  async unfollowUser(followerId: number, followingId: number): Promise<void> {
+    await db.delete(userFollowers).where(
+      and(
+        eq(userFollowers.followerId, followerId),
+        eq(userFollowers.followingId, followingId)
+      )
+    );
+  }
+  
+  async isUserFollowing(followerId: number, followingId: number): Promise<boolean> {
+    const [follow] = await db.select().from(userFollowers).where(
+      and(
+        eq(userFollowers.followerId, followerId),
+        eq(userFollowers.followingId, followingId)
+      )
+    );
+    return !!follow;
+  }
+  
+  async getFollowers(userId: number): Promise<User[]> {
+    // Get all users who follow the specified user
+    const follows = await db.select().from(userFollowers)
+      .where(eq(userFollowers.followingId, userId));
+    
+    // Get user details for each follower
+    const followers = await Promise.all(
+      follows.map(async (follow) => {
+        const [user] = await db.select().from(users)
+          .where(eq(users.id, follow.followerId));
+        return user;
+      })
+    );
+    
+    return followers.filter(Boolean) as User[];
+  }
+  
+  async getFollowing(userId: number): Promise<User[]> {
+    // Get all users who the specified user follows
+    const follows = await db.select().from(userFollowers)
+      .where(eq(userFollowers.followerId, userId));
+    
+    // Get user details for each followed user
+    const following = await Promise.all(
+      follows.map(async (follow) => {
+        const [user] = await db.select().from(users)
+          .where(eq(users.id, follow.followingId));
+        return user;
+      })
+    );
+    
+    return following.filter(Boolean) as User[];
   }
 
   async getPopularContent(): Promise<any[]> {
