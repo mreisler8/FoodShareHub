@@ -12,8 +12,13 @@ import {
   restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem,
   sharedLists, type SharedList, type InsertSharedList
 } from "@shared/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
 
 export interface IStorage {
+  // Session store for authentication
+  sessionStore: session.Store;
+  
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -112,6 +117,8 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  public sessionStore: session.Store;
+  
   private users: Map<number, User>;
   private restaurants: Map<number, Restaurant>;
   private posts: Map<number, Post>;
@@ -139,6 +146,11 @@ export class MemStorage implements IStorage {
   private sharedListId: number;
 
   constructor() {
+    // Initialize session store for authentication
+    const MemoryStore = createMemoryStore(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // Prune expired entries every 24h
+    });
     this.users = new Map();
     this.restaurants = new Map();
     this.posts = new Map();
