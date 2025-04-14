@@ -12,8 +12,8 @@ import { Rating } from "@/components/ui/rating";
 import { CreatePostButton } from "@/components/create-post/CreatePostButton";
 import { Search, Filter, MapPin, Utensils, Users } from "lucide-react";
 import { Link } from "wouter";
-import { Restaurant, Hub } from "@shared/schema";
-import { HubWithStats } from "@/lib/types";
+import { Restaurant, Circle } from "@shared/schema";
+import { CircleWithStats } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Discover() {
@@ -26,7 +26,7 @@ export default function Discover() {
   });
   
   // Fetch circles
-  const { data: hubs, isLoading: isHubsLoading } = useQuery<HubWithStats[]>({
+  const { data: circles, isLoading: isCirclesLoading } = useQuery<CircleWithStats[]>({
     queryKey: ["/api/circles"],
   });
   
@@ -86,14 +86,14 @@ export default function Discover() {
               Restaurants
             </TabsTrigger>
             <TabsTrigger 
-              value="hubs"
+              value="circles"
               className={`rounded-none border-b-2 pb-2 pt-0 px-4 font-medium ${
-                activeTab === "hubs" 
+                activeTab === "circles" 
                   ? "border-primary text-primary" 
                   : "border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-200"
               }`}
             >
-              Food Hubs
+              Food Circles
             </TabsTrigger>
             <TabsTrigger 
               value="people"
@@ -167,8 +167,8 @@ export default function Discover() {
             )}
           </TabsContent>
           
-          {/* Food Hubs Tab */}
-          <TabsContent value="hubs" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
+          {/* Food Circles Tab */}
+          <TabsContent value="circles" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             {isHubsLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array(6).fill(0).map((_, i) => (
@@ -184,8 +184,7 @@ export default function Discover() {
             ) : hubs && hubs.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {hubs.map((hub) => (
-                  <Link key={hub.id} href={`/hubs/${hub.id}`}>
-                    <a className="block">
+                  <Link key={hub.id} href={`/circles/${hub.id}`} className="block">
                       <Card className="overflow-hidden transition-transform duration-200 hover:translate-y-[-4px]">
                         <div className="relative h-32">
                           <img 
@@ -206,7 +205,6 @@ export default function Discover() {
                           <Button variant="ghost" size="sm" className="text-secondary h-7 px-2">Join</Button>
                         </CardContent>
                       </Card>
-                    </a>
                   </Link>
                 ))}
               </div>
