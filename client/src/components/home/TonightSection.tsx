@@ -215,7 +215,7 @@ function RestaurantList({ restaurants }: { restaurants: PopularRestaurant[] }) {
     <div className="space-y-4">
       {restaurants.map((restaurant) => (
         <Link key={restaurant.id} href={`/restaurants/${restaurant.id}`}>
-          <a className="block">
+          <div className="block cursor-pointer">
             <div className="flex rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-muted">
                 <img 
@@ -248,7 +248,7 @@ function RestaurantList({ restaurants }: { restaurants: PopularRestaurant[] }) {
                 </div>
               </div>
             </div>
-          </a>
+          </div>
         </Link>
       ))}
     </div>

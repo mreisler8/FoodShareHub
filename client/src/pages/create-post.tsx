@@ -18,9 +18,9 @@ export default function CreatePost() {
         {/* Mobile Header */}
         <header className="flex items-center mb-6">
           <Link href="/">
-            <a className="mr-4 text-neutral-700">
+            <div className="mr-4 text-neutral-700 cursor-pointer">
               <ArrowLeft className="h-5 w-5" />
-            </a>
+            </div>
           </Link>
           <h1 className="text-xl font-heading font-bold text-neutral-900">Create Post</h1>
         </header>
