@@ -39,13 +39,25 @@ export interface IStorage {
   createComment(comment: InsertComment): Promise<Comment>;
   getCommentsByPost(postId: number): Promise<Comment[]>;
   
-  // Hub operations
+  // Circle operations
+  getCircle(id: number): Promise<Hub | undefined>;
+  createCircle(circle: InsertHub): Promise<Hub>;
+  getAllCircles(): Promise<Hub[]>;
+  getFeaturedCircles(): Promise<Hub[]>;
+  
+  // Circle Member operations
+  createCircleMember(circleMember: InsertHubMember): Promise<HubMember>;
+  getCircleMembers(circleId: number): Promise<HubMember[]>;
+  getCirclesByUser(userId: number): Promise<Hub[]>;
+  isUserMemberOfCircle(userId: number, circleId: number): Promise<boolean>;
+  
+  // Legacy Hub operations (for backward compatibility)
   getHub(id: number): Promise<Hub | undefined>;
   createHub(hub: InsertHub): Promise<Hub>;
   getAllHubs(): Promise<Hub[]>;
   getFeaturedHubs(): Promise<Hub[]>;
   
-  // Hub Member operations
+  // Legacy Hub Member operations (for backward compatibility)
   createHubMember(hubMember: InsertHubMember): Promise<HubMember>;
   getHubMembers(hubId: number): Promise<HubMember[]>;
   getHubsByUser(userId: number): Promise<Hub[]>;
@@ -492,21 +504,73 @@ export class MemStorage implements IStorage {
     );
   }
 
-  // Hub operations
-  async getHub(id: number): Promise<Hub | undefined> {
+  // Circle operations (using the same Hub table underneath)
+  async getCircle(id: number): Promise<Hub | undefined> {
     return this.hubs.get(id);
   }
 
-  async createHub(insertHub: InsertHub): Promise<Hub> {
+  async createCircle(circle: InsertHub): Promise<Hub> {
     const id = this.hubId++;
     const createdAt = new Date();
-    const hub: Hub = { ...insertHub, id, createdAt };
+    const hub: Hub = { ...circle, id, createdAt };
     this.hubs.set(id, hub);
     return hub;
   }
 
-  async getAllHubs(): Promise<Hub[]> {
+  async getAllCircles(): Promise<Hub[]> {
     return Array.from(this.hubs.values());
+  }
+
+  async getFeaturedCircles(): Promise<Hub[]> {
+    // Same implementation as getFeaturedHubs, using the existing Hub data
+    const circles = await this.getAllCircles();
+    // Return a subset of circles as featured (for demo purposes)
+    return circles.slice(0, 3);
+  }
+  
+  async getCircleMembers(circleId: number): Promise<HubMember[]> {
+    return Array.from(this.hubMembers.values()).filter(
+      member => member.hubId === circleId
+    );
+  }
+  
+  async getCirclesByUser(userId: number): Promise<Hub[]> {
+    const memberEntries = Array.from(this.hubMembers.values()).filter(
+      member => member.userId === userId
+    );
+    
+    const circleIds = memberEntries.map(entry => entry.hubId);
+    
+    return Array.from(this.hubs.values()).filter(
+      hub => circleIds.includes(hub.id)
+    );
+  }
+  
+  async createCircleMember(circleMember: InsertHubMember): Promise<HubMember> {
+    const id = this.hubMemberId++;
+    const joinedAt = new Date();
+    const hubMember: HubMember = { ...circleMember, id, joinedAt };
+    this.hubMembers.set(id, hubMember);
+    return hubMember;
+  }
+  
+  async isUserMemberOfCircle(userId: number, circleId: number): Promise<boolean> {
+    return Array.from(this.hubMembers.values()).some(
+      member => member.hubId === circleId && member.userId === userId
+    );
+  }
+  
+  // Hub operations (legacy implementations that delegate to Circle methods)
+  async getHub(id: number): Promise<Hub | undefined> {
+    return this.getCircle(id);
+  }
+
+  async createHub(insertHub: InsertHub): Promise<Hub> {
+    return this.createCircle(insertHub);
+  }
+
+  async getAllHubs(): Promise<Hub[]> {
+    return this.getAllCircles();
   }
 
   async getFeaturedHubs(): Promise<Hub[]> {

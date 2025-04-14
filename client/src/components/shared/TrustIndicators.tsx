@@ -11,9 +11,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface TrustIndicatorsProps {
   restaurantId?: number;
-  hubId?: number;
+  circleId?: number;
   userId?: number;
-  type?: 'restaurant' | 'hub' | 'user' | 'post';
+  type?: 'restaurant' | 'circle' | 'user' | 'post';
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
 }
@@ -45,7 +45,7 @@ const mockTrustData: TrustData = {
 
 export function TrustIndicators({
   restaurantId,
-  hubId,
+  circleId,
   userId,
   type = 'restaurant',
   size = 'md',
@@ -57,7 +57,7 @@ export function TrustIndicators({
   useEffect(() => {
     // Simulating API call with mock data
     setTrustData(mockTrustData);
-  }, [restaurantId, hubId, userId, type]);
+  }, [restaurantId, circleId, userId, type]);
   
   if (!trustData) {
     return null;

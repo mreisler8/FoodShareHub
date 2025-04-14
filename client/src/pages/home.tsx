@@ -2,7 +2,7 @@ import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { DesktopRightSidebar } from "@/components/navigation/DesktopRightSidebar";
 import { StoriesCarousel } from "@/components/home/StoriesCarousel";
-import { FeaturedHubs } from "@/components/home/FeaturedHubs";
+import { FeaturedCircles } from "@/components/home/FeaturedCircles";
 import { FeedSection } from "@/components/home/FeedSection";
 import { FriendActivityFeed } from "@/components/home/FriendActivityFeed";
 import { TonightSection } from "@/components/home/TonightSection";
@@ -55,8 +55,8 @@ export default function Home() {
         {/* Desktop - Two column layout */}
         <div className="hidden md:grid md:grid-cols-3 gap-6">
           <div className="col-span-2">
-            {/* Featured Hubs Section */}
-            <FeaturedHubs />
+            {/* Featured Circles Section */}
+            <FeaturedCircles />
             
             {/* Feed Section */}
             <FeedSection />
@@ -70,8 +70,8 @@ export default function Home() {
         
         {/* Mobile - Single column layout */}
         <div className="md:hidden space-y-8">
-          {/* Featured Hubs Section */}
-          <FeaturedHubs />
+          {/* Featured Circles Section */}
+          <FeaturedCircles />
           
           {/* Friend Activity Feed */}
           <FriendActivityFeed />

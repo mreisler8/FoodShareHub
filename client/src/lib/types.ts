@@ -1,4 +1,4 @@
-import { User, Restaurant, Post, Comment, Hub, Like, Story, RestaurantList as BaseRestaurantList, RestaurantListItem } from "@shared/schema";
+import { User, Restaurant, Post, Comment, Circle, Like, Story, RestaurantList as BaseRestaurantList, RestaurantListItem } from "@shared/schema";
 
 // Extended types for frontend use
 
@@ -30,9 +30,10 @@ export interface CommentWithAuthor extends Comment {
   author: User;
 }
 
-export interface HubWithStats extends Hub {
+export interface CircleWithStats extends Circle {
   memberCount: number;
   postCount?: number;
+  trending?: boolean;
 }
 
 export interface StoryGroup {
@@ -66,8 +67,9 @@ export interface PopularRestaurant {
 
 export interface RestaurantList extends BaseRestaurantList {
   restaurantCount?: number;
-  hubName?: string;
+  circleName?: string;
   creator?: User;
+  circle?: Circle;
   restaurants?: RestaurantListItemWithDetails[];
 }
 

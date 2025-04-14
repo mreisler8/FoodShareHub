@@ -82,8 +82,8 @@ export const insertCommentSchema = createInsertSchema(comments).pick({
   content: true,
 });
 
-// Hub/Community model
-export const hubs = pgTable("hubs", {
+// Circle model (social trust network for recommendations)
+export const circles = pgTable("circles", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
@@ -92,30 +92,34 @@ export const hubs = pgTable("hubs", {
   isPrivate: boolean("is_private").default(false),
   tags: text("tags").array(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  creatorId: integer("creator_id").references(() => users.id).notNull(),
 });
 
-export const insertHubSchema = createInsertSchema(hubs).pick({
+export const insertCircleSchema = createInsertSchema(circles).pick({
   name: true,
   description: true,
   category: true,
   image: true,
   isPrivate: true,
   tags: true,
+  creatorId: true,
 });
 
-// HubMember model
-export const hubMembers = pgTable("hub_members", {
+// CircleMember model
+export const circleMembers = pgTable("circle_members", {
   id: serial("id").primaryKey(),
-  hubId: integer("hub_id").notNull(),
-  userId: integer("user_id").notNull(),
+  circleId: integer("circle_id").references(() => circles.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
   role: text("role").default("member"), // Can be: "owner", "admin", "member"
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  invitedBy: integer("invited_by").references(() => users.id),
 });
 
-export const insertHubMemberSchema = createInsertSchema(hubMembers).pick({
-  hubId: true,
+export const insertCircleMemberSchema = createInsertSchema(circleMembers).pick({
+  circleId: true,
   userId: true,
   role: true,
+  invitedBy: true,
 });
 
 // Like model
@@ -166,8 +170,8 @@ export const restaurantLists = pgTable("restaurant_lists", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  createdById: integer("created_by_id").notNull(),
-  hubId: integer("hub_id"), // Optional: if associated with a hub
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  circleId: integer("circle_id").references(() => circles.id), // Optional: if associated with a circle
   isPublic: boolean("is_public").default(true),
   tags: text("tags").array(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -178,7 +182,7 @@ export const insertRestaurantListSchema = createInsertSchema(restaurantLists).pi
   name: true,
   description: true,
   createdById: true,
-  hubId: true,
+  circleId: true,
   isPublic: true,
   tags: true,
 });
@@ -217,11 +221,11 @@ export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Comment = typeof comments.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 
-export type Hub = typeof hubs.$inferSelect;
-export type InsertHub = z.infer<typeof insertHubSchema>;
+export type Circle = typeof circles.$inferSelect;
+export type InsertCircle = z.infer<typeof insertCircleSchema>;
 
-export type HubMember = typeof hubMembers.$inferSelect;
-export type InsertHubMember = z.infer<typeof insertHubMemberSchema>;
+export type CircleMember = typeof circleMembers.$inferSelect;
+export type InsertCircleMember = z.infer<typeof insertCircleMemberSchema>;
 
 export type Like = typeof likes.$inferSelect;
 export type InsertLike = z.infer<typeof insertLikeSchema>;

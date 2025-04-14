@@ -7,8 +7,8 @@ import {
   insertUserSchema,
   insertPostSchema,
   insertCommentSchema,
-  insertHubSchema,
-  insertHubMemberSchema,
+  insertCircleSchema,
+  insertCircleMemberSchema,
   insertLikeSchema,
   insertSavedRestaurantSchema,
   insertRestaurantSchema,
@@ -190,36 +190,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Hub routes
-  app.get("/api/hubs", async (req, res) => {
+  // Circle routes (social networks for trusted recommendations)
+  app.get("/api/circles", async (req, res) => {
     try {
-      const hubs = await storage.getAllHubs();
-      res.json(hubs);
+      const circles = await storage.getAllCircles();
+      res.json(circles);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/hubs/featured", async (req, res) => {
+  app.get("/api/circles/featured", async (req, res) => {
     try {
-      const featuredHubs = await storage.getFeaturedHubs();
-      res.json(featuredHubs);
+      const featuredCircles = await storage.getFeaturedCircles();
+      res.json(featuredCircles);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/hubs/:id", async (req, res) => {
+  app.get("/api/circles/:id", async (req, res) => {
     try {
-      const hub = await storage.getHub(parseInt(req.params.id));
-      if (!hub) {
-        return res.status(404).json({ error: "Hub not found" });
+      const circle = await storage.getCircle(parseInt(req.params.id));
+      if (!circle) {
+        return res.status(404).json({ error: "Circle not found" });
       }
       
-      const members = await storage.getHubMembers(hub.id);
+      const members = await storage.getCircleMembers(circle.id);
       
       res.json({
-        ...hub,
+        ...circle,
         memberCount: members.length
       });
     } catch (err: any) {
@@ -227,29 +227,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/hubs", async (req, res) => {
+  app.post("/api/circles", async (req, res) => {
     try {
-      const hubData = insertHubSchema.parse(req.body);
-      const newHub = await storage.createHub(hubData);
-      res.status(201).json(newHub);
+      const circleData = insertCircleSchema.parse(req.body);
+      const newCircle = await storage.createCircle(circleData);
+      res.status(201).json(newCircle);
     } catch (err: any) {
       handleZodError(err, res);
     }
   });
 
-  app.get("/api/users/:userId/hubs", async (req, res) => {
+  app.get("/api/users/:userId/circles", async (req, res) => {
     try {
-      const userHubs = await storage.getHubsByUser(parseInt(req.params.userId));
-      res.json(userHubs);
+      const userCircles = await storage.getCirclesByUser(parseInt(req.params.userId));
+      res.json(userCircles);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/hub-members", async (req, res) => {
+  app.post("/api/circle-members", async (req, res) => {
     try {
-      const memberData = insertHubMemberSchema.parse(req.body);
-      const newMember = await storage.createHubMember(memberData);
+      const memberData = insertCircleMemberSchema.parse(req.body);
+      const newMember = await storage.createCircleMember(memberData);
       res.status(201).json(newMember);
     } catch (err: any) {
       handleZodError(err, res);
@@ -351,12 +351,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Restaurant List routes
   app.get("/api/restaurant-lists", async (req, res) => {
     try {
-      const hubId = req.query.hubId;
+      const circleId = req.query.circleId;
       const userId = req.query.userId;
       const publicOnly = req.query.publicOnly === "true";
       
-      if (hubId && typeof hubId === "string") {
-        const lists = await storage.getRestaurantListsByHub(parseInt(hubId));
+      if (circleId && typeof circleId === "string") {
+        const lists = await storage.getRestaurantListsByCircle(parseInt(circleId));
         return res.json(lists);
       }
       
@@ -388,16 +388,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const listItems = await storage.getDetailedRestaurantsInList(list.id);
       const creator = await storage.getUser(list.createdById);
       
-      // If the list is associated with a hub, get the hub info
-      let hub = null;
-      if (list.hubId) {
-        hub = await storage.getHub(list.hubId);
+      // If the list is associated with a circle, get the circle info
+      let circle = null;
+      if (list.circleId) {
+        circle = await storage.getCircle(list.circleId);
       }
       
       res.json({
         ...list,
         creator,
-        hub,
+        circle,
         restaurants: listItems
       });
     } catch (err: any) {
