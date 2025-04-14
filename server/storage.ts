@@ -35,6 +35,9 @@ export interface IStorage {
   createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
   getAllRestaurants(): Promise<Restaurant[]>;
   searchRestaurants(query: string): Promise<Restaurant[]>;
+  searchRestaurantsByLocation(location: string): Promise<Restaurant[]>;
+  getRestaurantsByLocation(location: string): Promise<Restaurant[]>;
+  getNearbyRestaurants(lat: string, lng: string, radius: number): Promise<Restaurant[]>;
   
   // Post operations
   getPost(id: number): Promise<Post | undefined>;
@@ -104,7 +107,7 @@ export interface IStorage {
   getDetailedRestaurantsInList(listId: number): Promise<any[]>; // with restaurant details
   
   // Session store for authentication
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any for session store
   
   // Analytics operations
   logUserAction(userId: number, action: string, metadata: Record<string, any>): Promise<void>;
@@ -114,7 +117,7 @@ export interface IStorage {
 
 // Implementation using PostgreSQL Database via Drizzle ORM
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any for session store type
   
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
@@ -179,7 +182,8 @@ export class DatabaseStorage implements IStorage {
         or(
           like(restaurants.name, `%${query}%`),
           like(restaurants.location, `%${query}%`),
-          like(restaurants.category, `%${query}%`)
+          like(restaurants.category, `%${query}%`),
+          like(restaurants.cuisine, `%${query}%`)
         )
       );
       
@@ -187,6 +191,40 @@ export class DatabaseStorage implements IStorage {
       return results;
     } catch (error) {
       console.error(`Error searching restaurants for "${query}":`, error);
+      return [];
+    }
+  }
+  
+  async searchRestaurantsByLocation(location: string): Promise<Restaurant[]> {
+    try {
+      const results = await db.select().from(restaurants).where(
+        like(restaurants.location, `%${location}%`)
+      );
+      console.log(`Location search results for "${location}":`, results);
+      return results;
+    } catch (error) {
+      console.error(`Error searching restaurants by location "${location}":`, error);
+      return [];
+    }
+  }
+  
+  async getRestaurantsByLocation(location: string): Promise<Restaurant[]> {
+    return this.searchRestaurantsByLocation(location);
+  }
+  
+  async getNearbyRestaurants(lat: string, lng: string, radius: number): Promise<Restaurant[]> {
+    try {
+      // For now, this is a simple implementation since we don't have GPS coordinates in our data
+      // In a real app, this would calculate distance between coordinates
+      // For now, we'll just return restaurants in NYC as a fallback
+      const results = await db.select().from(restaurants).where(
+        like(restaurants.location, '%NYC%')
+      ).limit(10);
+      
+      console.log(`Getting nearby restaurants for coordinates (${lat}, ${lng}):`, results);
+      return results;
+    } catch (error) {
+      console.error(`Error getting nearby restaurants:`, error);
       return [];
     }
   }
@@ -487,6 +525,36 @@ export class DatabaseStorage implements IStorage {
 
   async getPublicRestaurantLists(): Promise<RestaurantList[]> {
     return await db.select().from(restaurantLists).where(eq(restaurantLists.visibility, 'public'));
+  }
+  
+  async updateRestaurantList(id: number, updates: Partial<RestaurantList>): Promise<RestaurantList> {
+    const now = new Date();
+    const updatedData = {
+      ...updates,
+      updatedAt: now
+    };
+    
+    const [updatedList] = await db
+      .update(restaurantLists)
+      .set(updatedData)
+      .where(eq(restaurantLists.id, id))
+      .returning();
+    
+    return updatedList;
+  }
+  
+  async incrementListViewCount(id: number): Promise<RestaurantList> {
+    const [list] = await db.select().from(restaurantLists).where(eq(restaurantLists.id, id));
+    const currentViews = list.viewCount || 0;
+    
+    return this.updateRestaurantList(id, { viewCount: currentViews + 1 });
+  }
+  
+  async incrementListSaveCount(id: number): Promise<RestaurantList> {
+    const [list] = await db.select().from(restaurantLists).where(eq(restaurantLists.id, id));
+    const currentSaves = list.saveCount || 0;
+    
+    return this.updateRestaurantList(id, { saveCount: currentSaves + 1 });
   }
   
   // Restaurant List Item operations

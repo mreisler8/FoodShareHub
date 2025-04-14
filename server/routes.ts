@@ -68,14 +68,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Restaurant routes
   app.get("/api/restaurants", async (req, res) => {
     try {
-      const { query } = req.query;
+      const { query, location } = req.query;
+      
+      // Search by query text
       if (query && typeof query === "string") {
+        console.log(`Searching restaurants with query: ${query}`);
         const results = await storage.searchRestaurants(query);
         return res.json(results);
       }
+      
+      // Search by location
+      if (location && typeof location === "string") {
+        console.log(`Searching restaurants by location: ${location}`);
+        const results = await storage.searchRestaurantsByLocation(location);
+        return res.json(results);
+      }
+      
+      // Return all restaurants if no query parameters
       const restaurants = await storage.getAllRestaurants();
       res.json(restaurants);
     } catch (err: any) {
+      console.error("Error in /api/restaurants:", err);
       res.status(500).json({ error: err.message });
     }
   });
