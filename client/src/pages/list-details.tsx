@@ -89,10 +89,8 @@ export default function ListDetails() {
       <div className="flex-1 max-w-5xl mx-auto px-4 py-6 md:px-8">
         {/* Back Button */}
         <div className="mb-4">
-          <Link href="/">
-            <a className="inline-flex items-center text-neutral-700 hover:text-neutral-900">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back to Feed
-            </a>
+          <Link href="/" className="inline-flex items-center text-neutral-700 hover:text-neutral-900">
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Feed
           </Link>
         </div>
         
@@ -287,10 +285,8 @@ export default function ListDetails() {
         ) : (
           <div className="text-center py-10">
             <p className="text-neutral-700">List not found.</p>
-            <Link href="/">
-              <a className="text-primary hover:underline mt-2 inline-block">
-                Return to Home
-              </a>
+            <Link href="/" className="text-primary hover:underline mt-2 inline-block">
+              Return to Home
             </Link>
           </div>
         )}

@@ -131,7 +131,7 @@ export default function DiscoverByLocation() {
                   </CardContent>
                   <CardFooter>
                     <Button asChild variant="outline">
-                      <Link to={`/restaurant-lists/${list.id}`}>View List</Link>
+                      <Link to={`/lists/${list.id}`}>View List</Link>
                     </Button>
                   </CardFooter>
                 </Card>
