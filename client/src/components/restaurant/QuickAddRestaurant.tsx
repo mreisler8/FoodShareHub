@@ -86,7 +86,7 @@ export function QuickAddRestaurant() {
   
   // Search restaurants query
   const { data: searchResults, isLoading: isSearching } = useQuery({
-    queryKey: ["/api/restaurants", searchQuery],
+    queryKey: [`/api/restaurants?query=${encodeURIComponent(searchQuery)}`],
     queryFn: async () => {
       console.log("Searching for:", searchQuery);
       const res = await apiRequest("GET", `/api/restaurants?query=${encodeURIComponent(searchQuery)}`);
@@ -170,7 +170,9 @@ export function QuickAddRestaurant() {
   // Handle search
   const handleSearch = () => {
     if (searchQuery.length > 2) {
-      // Search is triggered by the useQuery above
+      console.log("Manually triggering search for:", searchQuery);
+      // Force refresh the query
+      queryClient.invalidateQueries({ queryKey: [`/api/restaurants?query=${encodeURIComponent(searchQuery)}`] });
     }
   };
   
