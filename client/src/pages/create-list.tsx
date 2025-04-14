@@ -22,7 +22,7 @@ import { CircleWithStats } from "@/lib/types";
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   description: z.string().optional(),
-  hubId: z.string().optional(),
+  circleId: z.string().optional(),
   isPublic: z.boolean().default(true),
   tags: z.string().optional(),
 });
@@ -33,9 +33,9 @@ export default function CreateList() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   
-  // Fetch hubs for the dropdown
-  const { data: hubs } = useQuery<HubWithStats[]>({
-    queryKey: ["/api/hubs"],
+  // Fetch circles for the dropdown
+  const { data: circles } = useQuery<CircleWithStats[]>({
+    queryKey: ["/api/circles"],
   });
   
   // Form setup
@@ -44,7 +44,7 @@ export default function CreateList() {
     defaultValues: {
       name: "",
       description: "",
-      hubId: "",
+      circleId: "",
       isPublic: true,
       tags: "",
     },
@@ -56,15 +56,15 @@ export default function CreateList() {
       // Convert tags from comma-separated string to array
       const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
       
-      // Convert hubId from string to number or null
-      const hubId = values.hubId ? parseInt(values.hubId) : null;
+      // Convert circleId from string to number or null
+      const circleId = values.circleId ? parseInt(values.circleId) : null;
       
       // Create payload
       const payload = {
         name: values.name,
         description: values.description || null,
         isPublic: values.isPublic,
-        hubId: hubId,
+        circleId: circleId,
         tags: tagsArray.length > 0 ? tagsArray : null,
       };
       
@@ -170,24 +170,24 @@ export default function CreateList() {
                 
                 <FormField
                   control={form.control}
-                  name="hubId"
+                  name="circleId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Share with Hub (Optional)</FormLabel>
+                      <FormLabel>Share with Circle (Optional)</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a hub (optional)" />
+                            <SelectValue placeholder="Select a circle (optional)" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Don't share with a hub</SelectItem>
-                          {hubs?.map(hub => (
-                            <SelectItem key={hub.id} value={hub.id.toString()}>
-                              {hub.name}
+                          <SelectItem value="">Don't share with a circle</SelectItem>
+                          {circles?.map(circle => (
+                            <SelectItem key={circle.id} value={circle.id.toString()}>
+                              {circle.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -211,7 +211,7 @@ export default function CreateList() {
                       <div className="space-y-1 leading-none">
                         <FormLabel>Make this list public</FormLabel>
                         <p className="text-sm text-neutral-500">
-                          Public lists are visible to everyone. Private lists are only visible to you and members of the hub (if selected).
+                          Public lists are visible to everyone. Private lists are only visible to you and members of the circle (if selected).
                         </p>
                       </div>
                     </FormItem>

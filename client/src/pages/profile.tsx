@@ -172,14 +172,14 @@ export default function Profile() {
               Liked
             </TabsTrigger>
             <TabsTrigger 
-              value="hubs"
+              value="circles"
               className={`rounded-none border-b-2 pb-2 pt-0 px-4 font-medium ${
-                activeTab === "hubs" 
+                activeTab === "circles" 
                   ? "border-primary text-primary" 
                   : "border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-200"
               }`}
             >
-              Hubs
+              Circles
             </TabsTrigger>
           </TabsList>
           
@@ -228,11 +228,11 @@ export default function Profile() {
             </div>
           </TabsContent>
           
-          <TabsContent value="hubs" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
+          <TabsContent value="circles" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             <div className="text-center py-10 bg-white rounded-xl shadow-sm">
-              <p className="text-neutral-500">Not a member of any hubs yet.</p>
+              <p className="text-neutral-500">Not a member of any circles yet.</p>
               {isOwnProfile && (
-                <p className="text-neutral-500 mt-2">Join hubs to connect with food enthusiasts!</p>
+                <p className="text-neutral-500 mt-2">Join circles to connect with food enthusiasts!</p>
               )}
             </div>
           </TabsContent>
