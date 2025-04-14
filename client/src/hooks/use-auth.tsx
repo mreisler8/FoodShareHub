@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     isLoading,
   } = useQuery<SelectUser | null, Error>({
-    queryKey: ["/api/me"],
+    queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: SelectUser) => {
-      queryClient.setQueryData(["/api/me"], userData);
+      queryClient.setQueryData(["/api/user"], userData);
       toast({
         title: "Login successful",
         description: `Welcome back, ${userData.name}!`,
