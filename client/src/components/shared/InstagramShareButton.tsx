@@ -15,7 +15,7 @@ interface InstagramShareButtonProps {
   className?: string;
 }
 
-export function InstagramShareButton({ post, size = "md", variant = "outline", className = "" }: InstagramShareButtonProps) {
+export function InstagramShareButton({ post, size, variant = "outline", className = "" }: InstagramShareButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [includeRestaurantName, setIncludeRestaurantName] = useState(true);
   const [includeRating, setIncludeRating] = useState(true);

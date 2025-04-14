@@ -230,7 +230,12 @@ export function PostCard({ post }: PostCardProps) {
               <Bookmark className={`mr-1 h-4 w-4 ${post.isSaved ? 'fill-current' : ''}`} />
               <span className="text-sm">Save</span>
             </button>
-            <InstagramShareButton post={post} size="sm" variant="ghost" className="text-neutral-700" />
+            <Link href={`/posts/${post.id}`}>
+              <a className="flex items-center text-neutral-700">
+                <Share2 className="mr-1 h-4 w-4" />
+                <span className="text-sm">Share</span>
+              </a>
+            </Link>
           </div>
         </div>
         

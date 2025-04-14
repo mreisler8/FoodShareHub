@@ -10,6 +10,7 @@ import Profile from "@/pages/profile";
 import Discover from "@/pages/discover";
 import ListDetails from "@/pages/list-details";
 import CreateList from "@/pages/create-list";
+import PostDetails from "@/pages/post-details";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/discover" component={Discover} />
       <Route path="/lists/create" component={CreateList} />
       <Route path="/lists/:id" component={ListDetails} />
+      <Route path="/posts/:id" component={PostDetails} />
       <Route component={NotFound} />
     </Switch>
   );
