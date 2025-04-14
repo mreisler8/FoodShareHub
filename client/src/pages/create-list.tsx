@@ -66,10 +66,15 @@ export default function CreateList() {
         isPublic: values.isPublic,
         circleId: circleId,
         tags: tagsArray.length > 0 ? tagsArray : null,
+        // Add createdById which is required
+        createdById: 1, // Using the current user ID
+        // Add required fields from schema
+        visibility: values.isPublic ? 'public' : 'private',
       };
       
       // Use apiRequest with the correct pattern
-      return await apiRequest('/api/restaurant-lists', 'POST', payload);
+      const response = await apiRequest("POST", "/api/restaurant-lists", payload);
+      return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
