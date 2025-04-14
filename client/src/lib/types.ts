@@ -1,4 +1,4 @@
-import { User, Restaurant, Post, Comment, Hub, Like, Story } from "@shared/schema";
+import { User, Restaurant, Post, Comment, Hub, Like, Story, RestaurantList as BaseRestaurantList, RestaurantListItem } from "@shared/schema";
 
 // Extended types for frontend use
 
@@ -62,4 +62,16 @@ export interface PopularRestaurant {
   image: string;
   rating: number;
   reviewCount: number;
+}
+
+export interface RestaurantList extends BaseRestaurantList {
+  restaurantCount?: number;
+  hubName?: string;
+  creator?: User;
+  restaurants?: RestaurantListItemWithDetails[];
+}
+
+export interface RestaurantListItemWithDetails extends RestaurantListItem {
+  restaurant?: Restaurant;
+  addedBy?: User;
 }
