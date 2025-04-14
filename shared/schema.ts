@@ -24,17 +24,25 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const restaurants = pgTable("restaurants", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  location: text("location").notNull(),
+  location: text("location").notNull(), // City name (e.g., "Toronto")
   category: text("category").notNull(),
   priceRange: text("price_range").notNull(),
   // External service fields
   openTableId: text("opentable_id"),
   resyId: text("resy_id"),
+  // Location-based discovery fields
+  address: text("address"),
+  neighborhood: text("neighborhood"),
+  city: text("city"),
+  state: text("state"),
+  country: text("country").default("US"),
+  postalCode: text("postal_code"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  // Additional details
   phone: text("phone"),
   website: text("website"),
-  address: text("address"),
   cuisine: text("cuisine"),
-  neighborhood: text("neighborhood"),
   hours: text("hours"),
   description: text("description"),
   imageUrl: text("image_url"),
@@ -49,13 +57,22 @@ export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
   location: true,
   category: true,
   priceRange: true,
+  // External service fields
   openTableId: true,
   resyId: true,
+  // Location fields
+  address: true,
+  neighborhood: true,
+  city: true,
+  state: true,
+  country: true,
+  postalCode: true,
+  latitude: true,
+  longitude: true,
+  // Details
   phone: true,
   website: true,
-  address: true,
   cuisine: true,
-  neighborhood: true,
   hours: true,
   description: true,
   imageUrl: true,
@@ -199,6 +216,18 @@ export const restaurantLists = pgTable("restaurant_lists", {
   circleId: integer("circle_id").references(() => circles.id), // Optional: if associated with a circle
   isPublic: boolean("is_public").default(true),
   tags: text("tags").array(),
+  // Location-based fields
+  primaryLocation: text("primary_location"), // City name (e.g., "Toronto")
+  locationLat: text("location_lat"), // For geographic search
+  locationLng: text("location_lng"), // For geographic search
+  // Enhanced sharing
+  visibility: text("visibility").default("public").notNull(), // public, circle, private
+  allowSharing: boolean("allow_sharing").default(true), // Whether the list can be shared by others
+  shareableCircles: integer("shareable_circles").array(), // IDs of circles this list can be shared with
+  isFeatured: boolean("is_featured").default(false), // For curated lists
+  // Tracking fields
+  viewCount: integer("view_count").default(0),
+  saveCount: integer("save_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -208,8 +237,14 @@ export const insertRestaurantListSchema = createInsertSchema(restaurantLists).pi
   description: true,
   createdById: true,
   circleId: true,
-  isPublic: true,
+  isPublic: true, // For backward compatibility
+  visibility: true,
+  allowSharing: true,
+  shareableCircles: true,
   tags: true,
+  primaryLocation: true,
+  locationLat: true,
+  locationLng: true,
 });
 
 // Restaurant List Items model (restaurants in a list)
@@ -276,3 +311,26 @@ export type InsertRestaurantList = z.infer<typeof insertRestaurantListSchema>;
 
 export type RestaurantListItem = typeof restaurantListItems.$inferSelect;
 export type InsertRestaurantListItem = z.infer<typeof insertRestaurantListItemSchema>;
+
+// Shared Lists model (for tracking when lists are shared with circles)
+export const sharedLists = pgTable("shared_lists", {
+  id: serial("id").primaryKey(),
+  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
+  circleId: integer("circle_id").references(() => circles.id).notNull(),
+  sharedById: integer("shared_by_id").references(() => users.id).notNull(),
+  sharedAt: timestamp("shared_at").defaultNow().notNull(),
+  // Additional permissions
+  canEdit: boolean("can_edit").default(false),
+  canReshare: boolean("can_reshare").default(false),
+});
+
+export const insertSharedListSchema = createInsertSchema(sharedLists).pick({
+  listId: true,
+  circleId: true,
+  sharedById: true,
+  canEdit: true,
+  canReshare: true,
+});
+
+export type SharedList = typeof sharedLists.$inferSelect;
+export type InsertSharedList = z.infer<typeof insertSharedListSchema>;
