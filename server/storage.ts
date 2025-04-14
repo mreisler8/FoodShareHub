@@ -12,7 +12,7 @@ import {
   restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, like, desc } from "drizzle-orm";
+import { eq, and, like, desc, gt } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -426,7 +426,8 @@ export class DatabaseStorage implements IStorage {
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
     
-    return await db.select().from(stories).where(db.sql`${stories.createdAt} > ${oneDayAgo}`);
+    // Using gt() function instead of sql template literal
+    return await db.select().from(stories).where(gt(stories.createdAt, oneDayAgo));
   }
 
   async getStoriesByUser(userId: number): Promise<Story[]> {
@@ -458,7 +459,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRestaurantListsByUser(userId: number): Promise<RestaurantList[]> {
-    return await db.select().from(restaurantLists).where(eq(restaurantLists.creatorId, userId));
+    try {
+      // Use the correct field name from the schema (createdById, not creatorId)
+      const lists = await db.select().from(restaurantLists).where(eq(restaurantLists.createdById, userId));
+      return lists;
+    } catch (error) {
+      console.error("Error getting restaurant lists by user:", error);
+      // Return empty array rather than letting the error propagate
+      return [];
+    }
   }
 
   async getPublicRestaurantLists(): Promise<RestaurantList[]> {
@@ -493,7 +502,7 @@ export class DatabaseStorage implements IStorage {
     const itemsWithDetails = await Promise.all(
       items.map(async (item) => {
         const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, item.restaurantId));
-        const [addedBy] = await db.select().from(users).where(eq(users.id, item.addedBy));
+        const [addedBy] = await db.select().from(users).where(eq(users.id, item.addedById));
         
         return {
           ...item,
