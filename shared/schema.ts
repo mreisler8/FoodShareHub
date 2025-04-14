@@ -30,6 +30,7 @@ export const restaurants = pgTable("restaurants", {
   // External service fields
   openTableId: text("opentable_id"),
   resyId: text("resy_id"),
+  googlePlaceId: text("google_place_id"),
   // Location-based discovery fields
   address: text("address"),
   neighborhood: text("neighborhood"),
@@ -60,6 +61,7 @@ export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
   // External service fields
   openTableId: true,
   resyId: true,
+  googlePlaceId: true,
   // Location fields
   address: true,
   neighborhood: true,
