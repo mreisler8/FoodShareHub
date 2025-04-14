@@ -30,6 +30,13 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   
+  // User Following operations
+  followUser(followerId: number, followingId: number): Promise<UserFollower>;
+  unfollowUser(followerId: number, followingId: number): Promise<void>;
+  isUserFollowing(followerId: number, followingId: number): Promise<boolean>;
+  getFollowers(userId: number): Promise<User[]>;
+  getFollowing(userId: number): Promise<User[]>;
+  
   // Restaurant operations
   getRestaurant(id: number): Promise<Restaurant | undefined>;
   createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;

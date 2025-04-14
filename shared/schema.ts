@@ -336,3 +336,19 @@ export const insertSharedListSchema = createInsertSchema(sharedLists).pick({
 
 export type SharedList = typeof sharedLists.$inferSelect;
 export type InsertSharedList = z.infer<typeof insertSharedListSchema>;
+
+// User Followers model
+export const userFollowers = pgTable("user_followers", {
+  id: serial("id").primaryKey(),
+  followerId: integer("follower_id").references(() => users.id).notNull(),
+  followingId: integer("following_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserFollowerSchema = createInsertSchema(userFollowers).pick({
+  followerId: true,
+  followingId: true,
+});
+
+export type UserFollower = typeof userFollowers.$inferSelect;
+export type InsertUserFollower = z.infer<typeof insertUserFollowerSchema>;
