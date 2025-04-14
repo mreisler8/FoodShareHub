@@ -280,23 +280,31 @@ export function CreatePostForm() {
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Restaurant Name</FormLabel>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <FormControl>
+                        <Input
+                          placeholder="Search restaurants..."
+                          className="pl-8"
+                          value={field.value}
+                          onChange={(e) => {
+                            field.onChange(e.target.value);
+                            handleSearchInputChange(e.target.value);
+                            if (e.target.value.length > 2) {
+                              setOpen(true);
+                            }
+                          }}
+                          onClick={() => {
+                            if (field.value.length > 2) {
+                              setOpen(true);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                    </div>
                     <Popover open={open} onOpenChange={setOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <div className="relative">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Search restaurants..."
-                              className="pl-8"
-                              value={field.value}
-                              onChange={(e) => {
-                                field.onChange(e.target.value);
-                                handleSearchInputChange(e.target.value);
-                              }}
-                              onFocus={() => setOpen(true)}
-                            />
-                          </div>
-                        </FormControl>
+                      <PopoverTrigger className="hidden">
+                        <span></span>
                       </PopoverTrigger>
                       <PopoverContent className="p-0" align="start" side="bottom" sideOffset={5} style={{ width: "var(--radix-popover-trigger-width)" }}>
                         <Command className="w-full">

@@ -17,18 +17,32 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
   // Force close function that will be called if normal close fails
   const forceClose = () => {
     console.log("Force closing onboarding modal");
+    if (user?.id) {
+      localStorage.setItem(`onboarding-completed-${user.id}`, 'true');
+    }
     onClose();
   };
 
   const handleComplete = () => {
-    // Here you could potentially update user preferences in the backend
-    // to mark onboarding as complete
+    // Save the onboarding completion to localStorage
+    if (user?.id) {
+      localStorage.setItem(`onboarding-completed-${user.id}`, 'true');
+    }
     console.log("Completing onboarding");
     onClose();
   };
 
+  // Handle dialog close event
+  const handleOpenChange = (open: boolean) => {
+    if (!open && user?.id) {
+      // Save completed state when closing the dialog
+      localStorage.setItem(`onboarding-completed-${user.id}`, 'true');
+    }
+    onClose();
+  };
+  
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex justify-end">

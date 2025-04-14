@@ -29,8 +29,11 @@ export default function Home() {
   // Show onboarding modal for new users
   useEffect(() => {
     if (user && !isLoadingCircles && !isLoadingLists) {
-      // If user has no circles and no lists, they're likely a new user
-      if (userCircles.length === 0 && userLists.length === 0) {
+      // Check localStorage for onboarding completion
+      const hasCompletedOnboarding = localStorage.getItem(`onboarding-completed-${user.id}`);
+      
+      // If user has no circles and no lists and hasn't completed onboarding, they're likely a new user
+      if (userCircles.length === 0 && userLists.length === 0 && !hasCompletedOnboarding) {
         setShowOnboarding(true);
       }
     }
