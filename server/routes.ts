@@ -32,17 +32,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(500).json({ error: err.message || "An error occurred" });
   };
 
-  // Current user route - Just for testing purposes
+  // Current user route - Returns the authenticated user from session
   app.get("/api/me", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
     try {
-      // In a real app, this would come from the session
-      // For now, return the first user in the DB as a mock "current user"
-      const users = await storage.getAllUsers();
-      if (users.length > 0) {
-        res.json(users[0]);
-      } else {
-        res.status(404).json({ error: "No users found" });
-      }
+      // Return the current authenticated user (password is excluded in auth.ts)
+      const user = req.user;
+      res.json(user);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -70,19 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", async (req, res) => {
-    try {
-      const userData = insertUserSchema.parse(req.body);
-      const existingUser = await storage.getUserByUsername(userData.username);
-      if (existingUser) {
-        return res.status(400).json({ error: "Username already exists" });
-      }
-      const newUser = await storage.createUser(userData);
-      res.status(201).json(newUser);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
+  // User creation is now handled by /api/register in auth.ts
 
   // Restaurant routes
   app.get("/api/restaurants", async (req, res) => {
