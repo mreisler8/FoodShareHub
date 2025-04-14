@@ -1,8 +1,10 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { WebSocketServer } from "ws";
+import { setupAuth } from "./auth";
 import {
   insertUserSchema,
   insertPostSchema,
