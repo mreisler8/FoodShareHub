@@ -252,6 +252,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Current user's circles - Authenticated endpoint
+  app.get("/api/circles/user", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const circles = await storage.getCirclesByUser(req.user.id);
+      res.json(circles);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/circles/:id", async (req, res) => {
     try {
       const circle = await storage.getCircle(parseInt(req.params.id));
@@ -284,20 +298,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userCircles = await storage.getCirclesByUser(parseInt(req.params.userId));
       res.json(userCircles);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  
-  // Current user's circles - Authenticated endpoint
-  app.get("/api/circles/user", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    
-    try {
-      const circles = await storage.getCirclesByUser(req.user.id);
-      res.json(circles);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

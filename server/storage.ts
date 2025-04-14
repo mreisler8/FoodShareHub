@@ -635,7 +635,7 @@ export class MemStorage implements IStorage {
     
     return Promise.all(
       userMemberships.map(async membership => {
-        const hub = await this.getHub(membership.hubId);
+        const hub = await this.getHub(membership.circleId);
         return hub!;
       })
     );
@@ -643,7 +643,7 @@ export class MemStorage implements IStorage {
 
   async isUserMemberOfHub(userId: number, hubId: number): Promise<boolean> {
     const members = await this.getHubMembers(hubId);
-    return members.some(member => member.userId === userId);
+    return members.some(member => member.userId === userId && member.circleId === hubId);
   }
 
   // Like operations
