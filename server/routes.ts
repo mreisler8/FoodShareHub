@@ -32,20 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(500).json({ error: err.message || "An error occurred" });
   };
 
-  // Current user route - Returns the authenticated user from session
-  app.get("/api/me", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    
-    try {
-      // Remove password from user object
-      const { password, ...userWithoutPassword } = req.user;
-      res.json(userWithoutPassword);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+  // Note: The current user endpoint is registered in auth.ts as /api/user
 
   // User routes
   app.get("/api/users", async (req, res) => {

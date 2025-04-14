@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: SelectUser) => {
-      queryClient.setQueryData(["/api/me"], userData);
+      queryClient.setQueryData(["/api/user"], userData);
       toast({
         title: "Registration successful",
         description: `Welcome, ${userData.name}!`,
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/me"], null);
+      queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
