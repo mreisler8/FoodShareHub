@@ -141,7 +141,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/feed", async (req, res) => {
     try {
       const feedPosts = await storage.getFeedPosts();
-      res.json(feedPosts);
+      
+      // Remove password hashes from all post authors and comment authors
+      const safeFeedPosts = feedPosts.map(post => {
+        let safePost = { ...post };
+        
+        // Clean post author
+        if (safePost.author && safePost.author.password) {
+          const { password, ...authorWithoutPassword } = safePost.author;
+          safePost.author = authorWithoutPassword;
+        }
+        
+        // Clean comment authors
+        if (safePost.comments && Array.isArray(safePost.comments)) {
+          safePost.comments = safePost.comments.map((comment: any) => {
+            if (comment.author && comment.author.password) {
+              const { password, ...authorWithoutPassword } = comment.author;
+              return { ...comment, author: authorWithoutPassword };
+            }
+            return comment;
+          });
+        }
+        
+        return safePost;
+      });
+      
+      res.json(safeFeedPosts);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -163,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Remove password hashes from comment authors
       if (safePostDetails.comments && Array.isArray(safePostDetails.comments)) {
-        safePostDetails.comments = safePostDetails.comments.map(comment => {
+        safePostDetails.comments = safePostDetails.comments.map((comment: any) => {
           if (comment.author && comment.author.password) {
             const { password, ...authorWithoutPassword } = comment.author;
             return { ...comment, author: authorWithoutPassword };
