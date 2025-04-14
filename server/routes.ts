@@ -5,6 +5,7 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
+import { searchGooglePlaces, getPlaceDetails } from "./services/google-places";
 import {
   insertUserSchema,
   insertPostSchema,
@@ -73,15 +74,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Search by query text
       if (query && typeof query === "string") {
         console.log(`Searching restaurants with query: ${query}`);
-        const results = await storage.searchRestaurants(query);
-        return res.json(results);
+        // First search local database
+        const dbResults = await storage.searchRestaurants(query);
+        
+        // Then search Google Places API
+        console.log(`Searching Google Places for: ${query}`);
+        const googleResults = await searchGooglePlaces(query);
+        
+        // Combine results, with local database results first
+        const combinedResults = [...dbResults, ...googleResults];
+        console.log(`Found ${dbResults.length} local results and ${googleResults.length} Google results`);
+        
+        return res.json(combinedResults);
       }
       
       // Search by location
       if (location && typeof location === "string") {
         console.log(`Searching restaurants by location: ${location}`);
-        const results = await storage.searchRestaurantsByLocation(location);
-        return res.json(results);
+        // First search local database
+        const dbResults = await storage.searchRestaurantsByLocation(location);
+        
+        // Then search Google Places API
+        console.log(`Searching Google Places for location: ${location}`);
+        const googleResults = await searchGooglePlaces(location);
+        
+        // Combine results, with local database results first
+        const combinedResults = [...dbResults, ...googleResults];
+        
+        return res.json(combinedResults);
       }
       
       // Return all restaurants if no query parameters
@@ -101,6 +121,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(restaurant);
     } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  // Google Places details endpoint
+  app.get("/api/google/places/:placeId", async (req, res) => {
+    try {
+      const placeId = req.params.placeId;
+      console.log(`Fetching Google Place details for ID: ${placeId}`);
+      
+      const details = await getPlaceDetails(placeId);
+      if (!details) {
+        return res.status(404).json({ error: "Place details not found" });
+      }
+      
+      res.json(details);
+    } catch (err: any) {
+      console.error("Error fetching Google Place details:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  // Save a Google Place to our database
+  app.post("/api/google/places/save", async (req, res) => {
+    try {
+      const { placeId } = req.body;
+      
+      if (!placeId) {
+        return res.status(400).json({ error: "Google Place ID is required" });
+      }
+      
+      console.log(`Saving Google Place to database, ID: ${placeId}`);
+      
+      // Get place details from Google
+      const placeDetails = await getPlaceDetails(placeId);
+      if (!placeDetails) {
+        return res.status(404).json({ error: "Place details not found" });
+      }
+      
+      // Check if restaurant already exists in our database with this Google Place ID
+      const existingRestaurants = await storage.searchRestaurants(placeDetails.name || "");
+      const existingRestaurant = existingRestaurants.find(r => r.googlePlaceId === placeId);
+      
+      if (existingRestaurant) {
+        console.log(`Restaurant already exists in database with ID: ${existingRestaurant.id}`);
+        return res.json(existingRestaurant);
+      }
+      
+      // Create a new restaurant in our database
+      const restaurantData = {
+        name: placeDetails.name || "",
+        location: placeDetails.address?.split(",").slice(-2).join(",").trim() || "",
+        category: placeDetails.category || "Restaurant",
+        priceRange: placeDetails.priceRange || "$$",
+        googlePlaceId: placeId,
+        address: placeDetails.address || "",
+        website: placeDetails.website,
+        phone: placeDetails.phone,
+        latitude: placeDetails.latitude,
+        longitude: placeDetails.longitude,
+        cuisine: placeDetails.category,
+        hours: placeDetails.hours,
+      };
+      
+      const newRestaurant = await storage.createRestaurant(restaurantData);
+      console.log(`Saved Google Place to database with ID: ${newRestaurant.id}`);
+      
+      res.status(201).json(newRestaurant);
+    } catch (err: any) {
+      console.error("Error saving Google Place to database:", err);
       res.status(500).json({ error: err.message });
     }
   });
