@@ -8,11 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostCard } from "@/components/home/PostCard";
 import { Button } from "@/components/ui/button";
 import { CreatePostButton } from "@/components/create-post/CreatePostButton";
-import { ArrowLeft, CalendarDays, MapPin, Settings, UserPlus, Share2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPin, Settings, Share2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserWithStats } from "@/lib/types";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ReferralButton } from "@/components/invitation/ReferralButton";
+import { FollowButton } from "@/components/user/FollowButton";
+import { FollowsPanel } from "@/components/user/FollowsPanel";
 
 export default function Profile() {
   const { id } = useParams();
@@ -98,9 +100,14 @@ export default function Profile() {
                       </Button>
                     </div>
                   ) : (
-                    <Button className="md:ml-auto bg-primary text-white hover:bg-primary/90" size="sm">
-                      <UserPlus className="h-4 w-4 mr-2" /> Follow
-                    </Button>
+                    <div className="md:ml-auto">
+                      <FollowButton 
+                        userId={profileUser.id} 
+                        variant="default"
+                        size="sm"
+                        className="bg-primary text-white hover:bg-primary/90"
+                      />
+                    </div>
                   )}
                 </div>
                 
@@ -181,6 +188,16 @@ export default function Profile() {
             >
               Circles
             </TabsTrigger>
+            <TabsTrigger 
+              value="connections"
+              className={`rounded-none border-b-2 pb-2 pt-0 px-4 font-medium ${
+                activeTab === "connections" 
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-200"
+              }`}
+            >
+              Connections
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="posts" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
@@ -235,6 +252,16 @@ export default function Profile() {
                 <p className="text-neutral-500 mt-2">Join circles to connect with food enthusiasts!</p>
               )}
             </div>
+          </TabsContent>
+          
+          <TabsContent value="connections" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
+            {userId ? (
+              <FollowsPanel userId={userId} className="bg-white rounded-xl shadow-sm" />
+            ) : (
+              <div className="text-center py-10 bg-white rounded-xl shadow-sm">
+                <p className="text-neutral-500">Loading connections...</p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
         
