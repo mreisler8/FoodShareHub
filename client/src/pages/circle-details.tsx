@@ -4,24 +4,21 @@ import { useParams, Link } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Users, UserPlus, Share2 } from "lucide-react";
+import { ArrowLeft, User, Users } from "lucide-react";
 import { CircleWithStats } from "@/lib/types";
 import { PostCard } from "@/components/home/PostCard";
 import { CreatePostButton } from "@/components/create-post/CreatePostButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
-import { ReferralButton } from "@/components/invitation/ReferralButton";
-import { useCurrentUser } from "@/hooks/use-current-user";
 
 export default function CircleDetails() {
   const { id } = useParams();
-  const { currentUser } = useCurrentUser();
   
   const { data: circle, isLoading: isCircleLoading } = useQuery<CircleWithStats>({
     queryKey: [`/api/circles/${id}`],
   });
   
-  const { data: feedPosts = [], isLoading: isPostsLoading } = useQuery<any[]>({
+  const { data: feedPosts, isLoading: isPostsLoading } = useQuery({
     queryKey: ["/api/feed"],
     // In a real app, we would fetch only posts for this circle
     // queryKey: [`/api/circles/${id}/posts`],
@@ -49,10 +46,8 @@ export default function CircleDetails() {
       <div className="flex-1 max-w-5xl mx-auto px-4 py-6 md:px-8">
         {/* Back Button */}
         <div className="mb-4">
-          <Link href="/">
-            <div className="inline-flex items-center text-neutral-700 hover:text-neutral-900 cursor-pointer">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back to Feed
-            </div>
+          <Link href="/" className="inline-flex items-center text-neutral-700 hover:text-neutral-900">
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Feed
           </Link>
         </div>
         
@@ -93,21 +88,9 @@ export default function CircleDetails() {
                 </div>
               </div>
               
-              <div className="flex space-x-2">
-                <ReferralButton
-                  userId={currentUser?.id || 1}
-                  circleId={parseInt(id!)}
-                  circleName={circle.name}
-                  referralType="circle"
-                  variant="secondary"
-                  size="sm"
-                >
-                  <Share2 className="h-4 w-4 mr-2" /> Invite Friends
-                </ReferralButton>
-                <Button className="bg-secondary text-white hover:bg-secondary/90">
-                  Join Circle
-                </Button>
-              </div>
+              <Button className="bg-secondary text-white hover:bg-secondary/90">
+                Join Circle
+              </Button>
             </div>
           </div>
         ) : null}
@@ -115,7 +98,7 @@ export default function CircleDetails() {
         {/* Restaurant Lists */}
         {circle && (
           <RestaurantListsSection 
-            hubId={parseInt(id!)} 
+            circleId={parseInt(id!)} 
             title="Curated Restaurant Lists" 
             showCreateButton={true} 
             maxLists={4}

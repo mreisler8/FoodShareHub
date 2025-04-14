@@ -169,7 +169,7 @@ export default function Discover() {
           
           {/* Food Circles Tab */}
           <TabsContent value="circles" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
-            {isHubsLoading ? (
+            {isCirclesLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array(6).fill(0).map((_, i) => (
                   <Card key={i} className="overflow-hidden">
@@ -181,25 +181,25 @@ export default function Discover() {
                   </Card>
                 ))}
               </div>
-            ) : hubs && hubs.length > 0 ? (
+            ) : circles && circles.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {hubs.map((hub) => (
-                  <Link key={hub.id} href={`/circles/${hub.id}`} className="block">
+                {circles.map((circle) => (
+                  <Link key={circle.id} href={`/circles/${circle.id}`} className="block">
                       <Card className="overflow-hidden transition-transform duration-200 hover:translate-y-[-4px]">
                         <div className="relative h-32">
                           <img 
-                            src={hub.image} 
-                            alt={hub.name} 
+                            src={circle.image} 
+                            alt={circle.name} 
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                          <h3 className="absolute bottom-3 left-3 text-white font-bold font-heading">{hub.name}</h3>
+                          <h3 className="absolute bottom-3 left-3 text-white font-bold font-heading">{circle.name}</h3>
                         </div>
                         <CardContent className="p-3 flex justify-between items-center">
                           <div className="flex items-center">
                             <span className="text-sm text-neutral-700">
                               <Users className="inline-block h-3 w-3 mr-1" />
-                              {(hub.memberCount / 1000).toFixed(1)}k members
+                              {(circle.memberCount / 1000).toFixed(1)}k members
                             </span>
                           </div>
                           <Button variant="ghost" size="sm" className="text-secondary h-7 px-2">Join</Button>
@@ -210,7 +210,7 @@ export default function Discover() {
               </div>
             ) : (
               <div className="text-center py-10 bg-white rounded-xl shadow-sm">
-                <p className="text-neutral-500">No food hubs available</p>
+                <p className="text-neutral-500">No food circles available</p>
               </div>
             )}
           </TabsContent>
@@ -234,8 +234,7 @@ export default function Discover() {
             ) : users && users.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {users.map((user) => (
-                  <Link key={user.id} href={`/profile/${user.id}`}>
-                    <a className="block">
+                  <Link key={user.id} href={`/profile/${user.id}`} className="block">
                       <Card className="p-4 transition-transform duration-200 hover:translate-y-[-4px]">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
@@ -251,7 +250,6 @@ export default function Discover() {
                           </Button>
                         </div>
                       </Card>
-                    </a>
                   </Link>
                 ))}
               </div>
