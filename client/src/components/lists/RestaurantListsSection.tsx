@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
 interface RestaurantListsSectionProps {
-  hubId?: number;
+  circleId?: number;
   userId?: number;
   publicOnly?: boolean;
   title?: string;
@@ -17,7 +17,7 @@ interface RestaurantListsSectionProps {
 }
 
 export function RestaurantListsSection({
-  hubId,
+  circleId,
   userId,
   publicOnly = false,
   title = "Restaurant Lists",
@@ -28,8 +28,8 @@ export function RestaurantListsSection({
   // Build query string based on props
   let queryString = "/api/restaurant-lists";
   
-  if (hubId) {
-    queryString += `?hubId=${hubId}`;
+  if (circleId) {
+    queryString += `?circleId=${circleId}`;
   } else if (userId) {
     queryString += `?userId=${userId}`;
   } else if (publicOnly) {
@@ -48,13 +48,11 @@ export function RestaurantListsSection({
         <h2 className="text-xl font-heading font-bold text-neutral-900">{title}</h2>
         
         {showCreateButton && (
-          <Link href="/lists/create">
-            <a>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                <ListPlus className="h-4 w-4" />
-                <span>Create List</span>
-              </Button>
-            </a>
+          <Link href="/lists/create" className="inline-block">
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <ListPlus className="h-4 w-4" />
+              <span>Create List</span>
+            </Button>
           </Link>
         )}
       </div>
@@ -82,10 +80,8 @@ export function RestaurantListsSection({
       
       {maxLists && lists && lists.length > maxLists && (
         <div className="text-center mt-4">
-          <Link href={hubId ? `/hubs/${hubId}/lists` : userId ? `/users/${userId}/lists` : "/lists"}>
-            <a className="text-primary hover:underline">
-              View all {lists.length} lists
-            </a>
+          <Link href={circleId ? `/circles/${circleId}/lists` : userId ? `/users/${userId}/lists` : "/lists"} className="text-primary hover:underline">
+            View all {lists.length} lists
           </Link>
         </div>
       )}

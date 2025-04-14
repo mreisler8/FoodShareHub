@@ -47,10 +47,10 @@ export function RestaurantListCard({ list, isCompact = false }: RestaurantListCa
             </div>
           )}
           
-          {list.hubId && !isCompact && (
+          {list.circleId && !isCompact && (
             <div className="flex items-center mt-3 text-sm text-neutral-500">
               <Users className="h-4 w-4 mr-1" />
-              <span>Shared with {list.hubName || "a circle"}</span>
+              <span>Shared with {list.circleName || "a circle"}</span>
             </div>
           )}
           
