@@ -122,7 +122,7 @@ export function PostCard({ post }: PostCardProps) {
           <Link href={`/profile/${post.userId}`}>
             <a>
               <Avatar className="w-10 h-10">
-                <AvatarImage src={post.author?.profilePicture} alt={post.author?.name || 'User'} />
+                <AvatarImage src={post.author?.profilePicture || ''} alt={post.author?.name || 'User'} />
                 <AvatarFallback>{post.author?.name?.charAt(0) || 'U'}</AvatarFallback>
               </Avatar>
             </a>
@@ -241,7 +241,7 @@ export function PostCard({ post }: PostCardProps) {
           <div className="mt-4 border-t border-neutral-200 pt-3">
             {post.comments.slice(0, 2).map((comment) => (
               <div key={comment.id} className="flex items-start mb-3">
-                <Link href={`/profile/${comment.author.id}`}>
+                <Link href={`/profile/${comment.author?.id || comment.userId}`}>
                   <a>
                     <Avatar className="w-8 h-8 mt-1">
                       <AvatarImage src={comment.author?.profilePicture || ''} alt={comment.author?.name || 'User'} />
@@ -251,8 +251,8 @@ export function PostCard({ post }: PostCardProps) {
                 </Link>
                 <div className="ml-2 flex-1">
                   <p className="text-sm">
-                    <Link href={`/profile/${comment.author.id}`}>
-                      <a className="font-medium text-neutral-900 hover:underline">{comment.author.name}</a>
+                    <Link href={`/profile/${comment.author?.id || comment.userId}`}>
+                      <a className="font-medium text-neutral-900 hover:underline">{comment.author?.name || 'User'}</a>
                     </Link>
                     <span className="text-neutral-700"> {comment.content}</span>
                   </p>
