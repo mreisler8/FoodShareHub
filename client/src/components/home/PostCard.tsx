@@ -136,12 +136,12 @@ export function PostCard({ post }: PostCardProps) {
           <div className="p-3 flex items-center justify-between border-b border-neutral-100">
             <div className="flex items-center">
               <Link href={`/profile/${post.userId}`}>
-                <a>
+                <div className="cursor-pointer">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={post.author?.profilePicture || ''} alt={post.author?.name || 'User'} />
                     <AvatarFallback>{post.author?.name?.charAt(0) || 'U'}</AvatarFallback>
                   </Avatar>
-                </a>
+                </div>
               </Link>
               <div className="ml-2">
                 <div className="flex items-center">
@@ -152,7 +152,7 @@ export function PostCard({ post }: PostCardProps) {
                     {formatTimeAgo(post.createdAt)}
                   </span>
                 </div>
-                <p className="text-xs text-neutral-500 flex items-center">
+                <div className="text-xs text-neutral-500 flex items-center">
                   <span>rated</span>
                   <Rating value={post.rating} size="xs" className="ml-1 mr-2" />
                   {post.visibility === "Public" ? (
@@ -161,7 +161,7 @@ export function PostCard({ post }: PostCardProps) {
                     <Users className="text-xs mr-1 h-3 w-3" />
                   )}
                   <span>{post.visibility}</span>
-                </p>
+                </div>
               </div>
             </div>
             <button className="text-neutral-500">
