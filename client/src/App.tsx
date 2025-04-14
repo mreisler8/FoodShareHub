@@ -13,10 +13,11 @@ import ListDetails from "@/pages/list-details";
 import CreateList from "@/pages/create-list";
 import PostDetails from "@/pages/post-details";
 import JoinPage from "@/pages/join";
-import AuthPage from "@/pages/auth";
+import AuthPage from "@/pages/auth-page";
 import { AuthProvider } from "./hooks/use-auth";
 import { useEffect } from "react";
 import { addNativeAppClass } from "./lib/nativeAppBridge";
+import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
   // Add native app class to body for CSS targeting if running in native app
@@ -26,16 +27,16 @@ function Router() {
   
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/create-post" component={CreatePost} />
-      <Route path="/circles/:id" component={CircleDetails} />
-      <Route path="/profile/:id?" component={Profile} />
-      <Route path="/discover" component={Discover} />
-      <Route path="/discover-by-location" component={DiscoverByLocation} />
-      <Route path="/lists/create" component={CreateList} />
-      <Route path="/lists/:id" component={ListDetails} />
-      <Route path="/posts/:id" component={PostDetails} />
-      <Route path="/join" component={JoinPage} />
+      <ProtectedRoute path="/" component={Home} />
+      <ProtectedRoute path="/create-post" component={CreatePost} />
+      <ProtectedRoute path="/circles/:id" component={CircleDetails} />
+      <ProtectedRoute path="/profile/:id?" component={Profile} />
+      <ProtectedRoute path="/discover" component={Discover} />
+      <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
+      <ProtectedRoute path="/lists/create" component={CreateList} />
+      <ProtectedRoute path="/lists/:id" component={ListDetails} />
+      <ProtectedRoute path="/posts/:id" component={PostDetails} />
+      <ProtectedRoute path="/join" component={JoinPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

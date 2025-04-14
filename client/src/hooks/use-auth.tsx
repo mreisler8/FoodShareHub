@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     isLoading,
   } = useQuery<SelectUser | null, Error>({
-    queryKey: ["/api/user"],
+    queryKey: ["/api/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], userData);
+      queryClient.setQueryData(["/api/me"], userData);
       toast({
         title: "Login successful",
         description: `Welcome back, ${userData.name}!`,
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], userData);
+      queryClient.setQueryData(["/api/me"], userData);
       toast({
         title: "Registration successful",
         description: `Welcome, ${userData.name}!`,
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/user"], null);
+      queryClient.setQueryData(["/api/me"], null);
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
