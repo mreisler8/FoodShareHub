@@ -14,6 +14,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { InstagramShareButton } from "@/components/shared/InstagramShareButton";
 
 interface PostCardProps {
   post: PostWithDetails;
@@ -229,10 +230,7 @@ export function PostCard({ post }: PostCardProps) {
               <Bookmark className={`mr-1 h-4 w-4 ${post.isSaved ? 'fill-current' : ''}`} />
               <span className="text-sm">Save</span>
             </button>
-            <button className="flex items-center text-neutral-700">
-              <Share2 className="mr-1 h-4 w-4" />
-              <span className="text-sm">Share</span>
-            </button>
+            <InstagramShareButton post={post} size="sm" variant="ghost" className="text-neutral-700" />
           </div>
         </div>
         
