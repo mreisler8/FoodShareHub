@@ -11,6 +11,7 @@ import Discover from "@/pages/discover";
 import ListDetails from "@/pages/list-details";
 import CreateList from "@/pages/create-list";
 import PostDetails from "@/pages/post-details";
+import JoinPage from "@/pages/join";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/lists/create" component={CreateList} />
       <Route path="/lists/:id" component={ListDetails} />
       <Route path="/posts/:id" component={PostDetails} />
+      <Route path="/join" component={JoinPage} />
       <Route component={NotFound} />
     </Switch>
   );
