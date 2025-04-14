@@ -88,8 +88,11 @@ export function QuickAddRestaurant() {
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ["/api/restaurants", searchQuery],
     queryFn: async () => {
+      console.log("Searching for:", searchQuery);
       const res = await apiRequest("GET", `/api/restaurants?query=${encodeURIComponent(searchQuery)}`);
-      return res.json();
+      const results = await res.json();
+      console.log("Search results:", results);
+      return results;
     },
     enabled: searchQuery.length > 2 && step === "search",
   });
@@ -171,10 +174,41 @@ export function QuickAddRestaurant() {
     }
   };
   
+  // Save Google Place to database mutation
+  const saveGooglePlaceMutation = useMutation({
+    mutationFn: async (placeId: string) => {
+      console.log("Saving Google Place to database:", placeId);
+      const res = await apiRequest("POST", "/api/google/places/save", { placeId });
+      return res.json();
+    },
+    onSuccess: (restaurant) => {
+      setSelectedRestaurant(restaurant);
+      setStep("add-dishes");
+      toast({
+        title: "Restaurant added!",
+        description: `${restaurant.name} has been added to our database.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to add restaurant",
+        description: "Error saving Google Place to database.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle restaurant selection
   const handleSelectRestaurant = (restaurant: Restaurant) => {
-    setSelectedRestaurant(restaurant);
-    setStep("add-dishes");
+    // If it's a Google Place that hasn't been saved to our database yet
+    if (restaurant.googlePlaceId && !restaurant.id) {
+      console.log("Selected Google Place:", restaurant);
+      saveGooglePlaceMutation.mutate(restaurant.googlePlaceId);
+    } else {
+      // Regular restaurant or already saved Google Place
+      setSelectedRestaurant(restaurant);
+      setStep("add-dishes");
+    }
   };
   
   // Handle create new restaurant
@@ -329,18 +363,29 @@ export function QuickAddRestaurant() {
                 <p className="text-sm text-center py-4 text-muted-foreground">Searching...</p>
               ) : searchResults && searchResults.length > 0 ? (
                 searchResults.map((restaurant: Restaurant) => (
-                  <Card key={restaurant.id} className="cursor-pointer hover:bg-accent/50" onClick={() => handleSelectRestaurant(restaurant)}>
+                  <Card 
+                    key={restaurant.id || restaurant.googlePlaceId} 
+                    className="cursor-pointer hover:bg-accent/50" 
+                    onClick={() => handleSelectRestaurant(restaurant)}
+                  >
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-medium">{restaurant.name}</h3>
+                          <h3 className="font-medium">
+                            {restaurant.name}
+                            {restaurant.googlePlaceId && !restaurant.id && (
+                              <span className="ml-2 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                Google
+                              </span>
+                            )}
+                          </h3>
                           <p className="text-xs text-muted-foreground flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" /> {restaurant.location}
+                            <MapPin className="h-3 w-3 mr-1" /> {restaurant.location || restaurant.address}
                           </p>
                           <p className="text-xs mt-1">
                             <span className="bg-muted px-1.5 py-0.5 rounded text-xs">
                               <Utensils className="h-3 w-3 inline mr-1" />
-                              {restaurant.category}
+                              {restaurant.category || restaurant.cuisine || "Restaurant"}
                             </span>
                             <span className="ml-1 text-muted-foreground">{restaurant.priceRange}</span>
                           </p>
