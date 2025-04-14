@@ -1,7 +1,8 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
+import { User } from "@shared/schema";
 
 export function DesktopSidebar() {
   const [location] = useLocation();
@@ -46,42 +47,42 @@ export function DesktopSidebar() {
         <ul className="space-y-2">
           <li>
             <Link href="/">
-              <a className={getNavItemClasses("/")}>
+              <div className={getNavItemClasses("/")}>
                 <Home className="w-6 mr-2" />
                 <span>Feed</span>
-              </a>
+              </div>
             </Link>
           </li>
           <li>
             <Link href="/discover">
-              <a className={getNavItemClasses("/discover")}>
+              <div className={getNavItemClasses("/discover")}>
                 <Search className="w-6 mr-2" />
                 <span>Discover</span>
-              </a>
+              </div>
             </Link>
           </li>
           <li>
             <Link href="/create-post">
-              <a className={getNavItemClasses("/create-post")}>
+              <div className={getNavItemClasses("/create-post")}>
                 <PlusCircle className="w-6 mr-2" />
                 <span>Create Post</span>
-              </a>
+              </div>
             </Link>
           </li>
           <li>
-            <Link href="/hubs/1">
-              <a className={getNavItemClasses("/hubs")}>
+            <Link href="/circles/1">
+              <div className={getNavItemClasses("/circles")}>
                 <Users className="w-6 mr-2" />
-                <span>Food Hubs</span>
-              </a>
+                <span>Circles</span>
+              </div>
             </Link>
           </li>
           <li>
             <Link href="/saved">
-              <a className={getNavItemClasses("/saved")}>
+              <div className={getNavItemClasses("/saved")}>
                 <Bookmark className="w-6 mr-2" />
                 <span>Saved Restaurants</span>
-              </a>
+              </div>
             </Link>
           </li>
         </ul>
@@ -90,16 +91,16 @@ export function DesktopSidebar() {
       {currentUser && (
         <div className="mt-auto pt-5 border-t border-neutral-200">
           <Link href="/profile">
-            <a className="flex items-center p-3 rounded-lg hover:bg-neutral-100">
+            <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
               <Avatar className="w-10 h-10">
-                <AvatarImage src={currentUser.profilePicture} alt={currentUser.name} />
-                <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={currentUser?.profilePicture || ''} alt={currentUser?.name || 'User'} />
+                <AvatarFallback>{currentUser?.name?.charAt(0) || 'U'}</AvatarFallback>
               </Avatar>
               <div className="ml-3">
-                <p className="font-medium text-neutral-900">{currentUser.name}</p>
-                <p className="text-sm text-neutral-500">@{currentUser.username}</p>
+                <p className="font-medium text-neutral-900">{currentUser?.name || 'User'}</p>
+                <p className="text-sm text-neutral-500">@{currentUser?.username || 'user'}</p>
               </div>
-            </a>
+            </div>
           </Link>
         </div>
       )}
