@@ -36,6 +36,9 @@ export interface CircleWithStats extends Circle {
   trending?: boolean;
 }
 
+// Alias for backward compatibility
+export type HubWithStats = CircleWithStats;
+
 export interface StoryGroup {
   userId: number;
   userName: string;

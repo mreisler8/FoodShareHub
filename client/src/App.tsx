@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import CreatePost from "@/pages/create-post";
-import HubDetails from "@/pages/hub-details";
+import CircleDetails from "@/pages/circle-details";
 import Profile from "@/pages/profile";
 import Discover from "@/pages/discover";
 import ListDetails from "@/pages/list-details";
@@ -17,7 +17,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/create-post" component={CreatePost} />
-      <Route path="/circles/:id" component={HubDetails} />
+      <Route path="/circles/:id" component={CircleDetails} />
       <Route path="/profile/:id?" component={Profile} />
       <Route path="/discover" component={Discover} />
       <Route path="/lists/create" component={CreateList} />
