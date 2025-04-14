@@ -27,6 +27,21 @@ export const restaurants = pgTable("restaurants", {
   location: text("location").notNull(),
   category: text("category").notNull(),
   priceRange: text("price_range").notNull(),
+  // External service fields
+  openTableId: text("opentable_id"),
+  resyId: text("resy_id"),
+  phone: text("phone"),
+  website: text("website"),
+  address: text("address"),
+  cuisine: text("cuisine"),
+  neighborhood: text("neighborhood"),
+  hours: text("hours"),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  // Tracking fields
+  verified: boolean("verified").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
@@ -34,6 +49,16 @@ export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
   location: true,
   category: true,
   priceRange: true,
+  openTableId: true,
+  resyId: true,
+  phone: true,
+  website: true,
+  address: true,
+  cuisine: true,
+  neighborhood: true,
+  hours: true,
+  description: true,
+  imageUrl: true,
 });
 
 // Post model
