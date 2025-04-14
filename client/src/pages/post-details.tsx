@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostWithDetails } from "@/lib/types";
 import { useState } from "react";
-import { InstagramShareButton } from "@/components/shared/InstagramShareButton";
+import { SocialShare } from "@/components/common/SocialShare";
 
 export default function PostDetails() {
   const { id } = useParams();
@@ -280,12 +280,20 @@ export default function PostDetails() {
                 </div>
               )}
               
-              {/* Share with Instagram section */}
+              {/* Social Sharing section */}
               <div className="my-6 p-4 border border-neutral-200 rounded-lg bg-neutral-50">
                 <h4 className="text-sm font-medium mb-2">Share this experience:</h4>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-neutral-600">Let your Instagram followers know about this restaurant</p>
-                  <InstagramShareButton post={post} variant="default" className="text-white" />
+                <div className="flex flex-col space-y-3">
+                  <p className="text-sm text-neutral-600">Let friends and followers know about this restaurant</p>
+                  <SocialShare 
+                    url={`${window.location.origin}/posts/${post.id}`}
+                    title={`${post.author?.name || 'Someone'} recommends ${post.restaurant?.name || 'a restaurant'}`}
+                    description={post.content}
+                    image={post.images.length > 0 ? post.images[0] : ''}
+                    contentId={post.id}
+                    userId={1} // In a real app, this would be the current user's ID
+                    variant="full"
+                  />
                 </div>
               </div>
               
@@ -314,10 +322,16 @@ export default function PostDetails() {
                     <Bookmark className={`mr-1 h-4 w-4 ${post.isSaved ? 'fill-current' : ''}`} />
                     <span className="text-sm">Save</span>
                   </button>
-                  <button className="flex items-center text-neutral-700">
-                    <Share2 className="mr-1 h-4 w-4" />
-                    <span className="text-sm">Share</span>
-                  </button>
+                  <SocialShare 
+                    url={`${window.location.origin}/posts/${post.id}`}
+                    title={`${post.author?.name || 'Someone'} recommends ${post.restaurant?.name || 'a restaurant'}`}
+                    description={post.content}
+                    image={post.images.length > 0 ? post.images[0] : ''}
+                    contentId={post.id}
+                    userId={1}
+                    variant="icon"
+                    className="text-neutral-700"
+                  />
                 </div>
               </div>
               
