@@ -565,7 +565,7 @@ export class MemStorage implements IStorage {
   
   async getCircleMembers(circleId: number): Promise<HubMember[]> {
     return Array.from(this.hubMembers.values()).filter(
-      member => member.hubId === circleId
+      member => member.circleId === circleId
     );
   }
   
@@ -574,7 +574,7 @@ export class MemStorage implements IStorage {
       member => member.userId === userId
     );
     
-    const circleIds = memberEntries.map(entry => entry.hubId);
+    const circleIds = memberEntries.map(entry => entry.circleId);
     
     return Array.from(this.hubs.values()).filter(
       hub => circleIds.includes(hub.id)
@@ -591,7 +591,7 @@ export class MemStorage implements IStorage {
   
   async isUserMemberOfCircle(userId: number, circleId: number): Promise<boolean> {
     return Array.from(this.hubMembers.values()).some(
-      member => member.hubId === circleId && member.userId === userId
+      member => member.circleId === circleId && member.userId === userId
     );
   }
   
@@ -624,7 +624,7 @@ export class MemStorage implements IStorage {
 
   async getHubMembers(hubId: number): Promise<HubMember[]> {
     return Array.from(this.hubMembers.values()).filter(
-      member => member.hubId === hubId
+      member => member.circleId === hubId
     );
   }
 
