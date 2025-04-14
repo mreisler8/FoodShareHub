@@ -71,44 +71,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { query, location } = req.query;
       
+      console.log(`Restaurant search request received with params:`, { query, location });
+      
       // Search by query text
       if (query && typeof query === "string") {
-        console.log(`Searching restaurants with query: ${query}`);
+        console.log(`Searching restaurants with query: "${query}"`);
+        
         // First search local database
         const dbResults = await storage.searchRestaurants(query);
+        console.log(`Local database search returned ${dbResults.length} results`);
+        if (dbResults.length > 0) {
+          console.log(`First local result: ${JSON.stringify(dbResults[0].name)}`);
+        }
         
         // Then search Google Places API
-        console.log(`Searching Google Places for: ${query}`);
+        console.log(`Searching Google Places for: "${query}"`);
         const googleResults = await searchGooglePlaces(query);
+        console.log(`Google Places search returned ${googleResults.length} results`);
+        if (googleResults.length > 0) {
+          console.log(`First Google result: ${JSON.stringify(googleResults[0].name)}`);
+        }
+        
+        // Filter out Google results that already exist in the database to avoid duplicates
+        const filteredGoogleResults = googleResults.filter(gr => 
+          !dbResults.some(dr => dr.googlePlaceId === gr.googlePlaceId)
+        );
+        console.log(`After filtering duplicates, using ${filteredGoogleResults.length} Google results`);
         
         // Combine results, with local database results first
-        const combinedResults = [...dbResults, ...googleResults];
-        console.log(`Found ${dbResults.length} local results and ${googleResults.length} Google results`);
+        const combinedResults = [...dbResults, ...filteredGoogleResults];
+        console.log(`Found ${dbResults.length} local results and ${filteredGoogleResults.length} unique Google results, total: ${combinedResults.length}`);
         
         return res.json(combinedResults);
       }
       
       // Search by location
       if (location && typeof location === "string") {
-        console.log(`Searching restaurants by location: ${location}`);
+        console.log(`Searching restaurants by location: "${location}"`);
+        
         // First search local database
         const dbResults = await storage.searchRestaurantsByLocation(location);
+        console.log(`Local database location search returned ${dbResults.length} results`);
         
         // Then search Google Places API
-        console.log(`Searching Google Places for location: ${location}`);
+        console.log(`Searching Google Places for location: "${location}"`);
         const googleResults = await searchGooglePlaces(location);
+        console.log(`Google Places location search returned ${googleResults.length} results`);
+        
+        // Filter out Google results that already exist in the database
+        const filteredGoogleResults = googleResults.filter(gr => 
+          !dbResults.some(dr => dr.googlePlaceId === gr.googlePlaceId)
+        );
         
         // Combine results, with local database results first
-        const combinedResults = [...dbResults, ...googleResults];
+        const combinedResults = [...dbResults, ...filteredGoogleResults];
+        console.log(`Combined location results: ${combinedResults.length} total`);
         
         return res.json(combinedResults);
       }
       
       // Return all restaurants if no query parameters
+      console.log("No query or location provided, returning all restaurants");
       const restaurants = await storage.getAllRestaurants();
+      console.log(`Returning ${restaurants.length} restaurants from database`);
       res.json(restaurants);
     } catch (err: any) {
       console.error("Error in /api/restaurants:", err);
+      console.error(err.stack); // Log stack trace for better debugging
       res.status(500).json({ error: err.message });
     }
   });

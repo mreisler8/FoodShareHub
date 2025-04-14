@@ -171,8 +171,10 @@ export function QuickAddRestaurant() {
   const handleSearch = () => {
     if (searchQuery.length > 2) {
       console.log("Manually triggering search for:", searchQuery);
-      // Force refresh the query
+      // Force refresh the query - first disable and then enable it again to trigger a fresh fetch
       queryClient.invalidateQueries({ queryKey: [`/api/restaurants?query=${encodeURIComponent(searchQuery)}`] });
+      // This button click will force the query component to refetch data
+      document.getElementById("search-button")?.click();
     }
   };
   
@@ -334,6 +336,13 @@ export function QuickAddRestaurant() {
                   autoComplete="off"
                 />
               </div>
+              <Button id="search-button" onClick={() => {
+                // Re-fetch the data when button is clicked
+                if (searchQuery.length > 2) {
+                  const queryKey = `/api/restaurants?query=${encodeURIComponent(searchQuery)}`;
+                  queryClient.fetchQuery({ queryKey: [queryKey] });
+                }
+              }} className="hidden">Search</Button>
             </div>
             
             {/* Location-based suggestions */}
@@ -344,7 +353,11 @@ export function QuickAddRestaurant() {
                   <button 
                     key={index}
                     className="text-left text-primary hover:underline py-0.5 flex items-center" 
-                    onClick={() => setSearchQuery(suggestion)}
+                    onClick={() => {
+                      setSearchQuery(suggestion);
+                      // Trigger search after setting the query
+                      setTimeout(() => handleSearch(), 100);
+                    }}
                   >
                     <MapPin className="h-3 w-3 mr-1 inline" /> {suggestion}
                   </button>
@@ -352,7 +365,11 @@ export function QuickAddRestaurant() {
                 {userLocation && (
                   <button 
                     className="text-left text-primary hover:underline py-0.5 flex items-center mt-2" 
-                    onClick={() => setSearchQuery(userLocation)}
+                    onClick={() => {
+                      setSearchQuery(userLocation);
+                      // Trigger search after setting the query
+                      setTimeout(() => handleSearch(), 100);
+                    }}
                   >
                     <MapPin className="h-3 w-3 mr-1 inline" /> All restaurants in {userLocation}
                   </button>
