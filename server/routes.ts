@@ -13,6 +13,8 @@ import {
   insertSavedRestaurantSchema,
   insertRestaurantSchema,
   insertStorySchema,
+  insertRestaurantListSchema,
+  insertRestaurantListItemSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -343,6 +345,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(newStory);
     } catch (err: any) {
       handleZodError(err, res);
+    }
+  });
+
+  // Restaurant List routes
+  app.get("/api/restaurant-lists", async (req, res) => {
+    try {
+      const hubId = req.query.hubId;
+      const userId = req.query.userId;
+      const publicOnly = req.query.publicOnly === "true";
+      
+      if (hubId && typeof hubId === "string") {
+        const lists = await storage.getRestaurantListsByHub(parseInt(hubId));
+        return res.json(lists);
+      }
+      
+      if (userId && typeof userId === "string") {
+        const lists = await storage.getRestaurantListsByUser(parseInt(userId));
+        return res.json(lists);
+      }
+      
+      if (publicOnly) {
+        const lists = await storage.getPublicRestaurantLists();
+        return res.json(lists);
+      }
+      
+      // Default to public lists if no specific query
+      const lists = await storage.getPublicRestaurantLists();
+      res.json(lists);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  app.get("/api/restaurant-lists/:id", async (req, res) => {
+    try {
+      const list = await storage.getRestaurantList(parseInt(req.params.id));
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+      
+      const listItems = await storage.getDetailedRestaurantsInList(list.id);
+      const creator = await storage.getUser(list.createdById);
+      
+      // If the list is associated with a hub, get the hub info
+      let hub = null;
+      if (list.hubId) {
+        hub = await storage.getHub(list.hubId);
+      }
+      
+      res.json({
+        ...list,
+        creator,
+        hub,
+        restaurants: listItems
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  app.post("/api/restaurant-lists", async (req, res) => {
+    try {
+      const listData = insertRestaurantListSchema.parse(req.body);
+      const newList = await storage.createRestaurantList(listData);
+      res.status(201).json(newList);
+    } catch (err: any) {
+      handleZodError(err, res);
+    }
+  });
+  
+  app.post("/api/restaurant-list-items", async (req, res) => {
+    try {
+      const itemData = insertRestaurantListItemSchema.parse(req.body);
+      const newItem = await storage.addRestaurantToList(itemData);
+      res.status(201).json(newItem);
+    } catch (err: any) {
+      handleZodError(err, res);
+    }
+  });
+  
+  app.delete("/api/restaurant-lists/:listId/restaurants/:restaurantId", async (req, res) => {
+    try {
+      await storage.removeRestaurantFromList(
+        parseInt(req.params.listId),
+        parseInt(req.params.restaurantId)
+      );
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

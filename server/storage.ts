@@ -115,6 +115,8 @@ export class MemStorage implements IStorage {
     this.likes = new Map();
     this.savedRestaurants = new Map();
     this.stories = new Map();
+    this.restaurantLists = new Map();
+    this.restaurantListItems = new Map();
 
     this.userId = 1;
     this.restaurantId = 1;
@@ -125,6 +127,8 @@ export class MemStorage implements IStorage {
     this.likeId = 1;
     this.savedRestaurantId = 1;
     this.storyId = 1;
+    this.restaurantListId = 1;
+    this.restaurantListItemId = 1;
 
     // Initialize with some data
     this.initializeData();
@@ -284,6 +288,70 @@ export class MemStorage implements IStorage {
       content: "Best sushi in town",
       image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
       expiresAt: tomorrow
+    });
+    
+    // Create initial restaurant lists
+    const italianRestaurants = this.createRestaurantList({
+      name: "Best Italian Restaurants in NYC",
+      description: "A curated list of the most authentic Italian places",
+      createdById: user1.id,
+      hubId: hub1.id,
+      isPublic: true,
+      tags: ["Italian", "Pasta", "Pizza"]
+    });
+    
+    const dateNightSpots = this.createRestaurantList({
+      name: "Romantic Date Night Spots",
+      description: "Perfect restaurants for a special evening",
+      createdById: user2.id,
+      isPublic: true,
+      tags: ["Romantic", "Special Occasion", "Date Night"]
+    });
+    
+    const hiddenGems = this.createRestaurantList({
+      name: "Hidden Gems Only Locals Know",
+      description: "Off-the-beaten-path restaurants that tourists don't know about",
+      createdById: user3.id,
+      hubId: hub3.id,
+      isPublic: false,
+      tags: ["Hidden", "Local", "Authentic"]
+    });
+    
+    // Add restaurants to lists
+    this.addRestaurantToList({
+      listId: italianRestaurants.id,
+      restaurantId: restaurant1.id,
+      notes: "Their truffle pasta is to die for!",
+      mustTryDishes: ["Truffle Pasta", "Tiramisu"],
+      addedById: user1.id,
+      position: 1
+    });
+    
+    this.addRestaurantToList({
+      listId: dateNightSpots.id,
+      restaurantId: restaurant1.id,
+      notes: "Request a table by the window for a romantic view",
+      mustTryDishes: ["Tiramisu"],
+      addedById: user2.id,
+      position: 1
+    });
+    
+    this.addRestaurantToList({
+      listId: dateNightSpots.id,
+      restaurantId: restaurant2.id,
+      notes: "Great ambiance for a date, but can be pricey",
+      mustTryDishes: ["Omakase Set", "Sake Flight"],
+      addedById: user2.id,
+      position: 2
+    });
+    
+    this.addRestaurantToList({
+      listId: hiddenGems.id,
+      restaurantId: restaurant3.id,
+      notes: "Authentic Indian cuisine in a hole-in-the-wall setting",
+      mustTryDishes: ["Butter Chicken", "Garlic Naan"],
+      addedById: user3.id,
+      position: 1
     });
   }
 
@@ -554,6 +622,80 @@ export class MemStorage implements IStorage {
     const now = new Date();
     return Array.from(this.stories.values()).filter(
       story => story.userId === userId && new Date(story.expiresAt) > now
+    );
+  }
+
+  // Restaurant List operations
+  async createRestaurantList(list: InsertRestaurantList): Promise<RestaurantList> {
+    const id = this.restaurantListId++;
+    const createdAt = new Date();
+    const updatedAt = new Date();
+    const restaurantList: RestaurantList = { ...list, id, createdAt, updatedAt };
+    this.restaurantLists.set(id, restaurantList);
+    return restaurantList;
+  }
+  
+  async getRestaurantList(id: number): Promise<RestaurantList | undefined> {
+    return this.restaurantLists.get(id);
+  }
+  
+  async getRestaurantListsByHub(hubId: number): Promise<RestaurantList[]> {
+    return Array.from(this.restaurantLists.values()).filter(
+      list => list.hubId === hubId
+    );
+  }
+  
+  async getRestaurantListsByUser(userId: number): Promise<RestaurantList[]> {
+    return Array.from(this.restaurantLists.values()).filter(
+      list => list.createdById === userId
+    );
+  }
+  
+  async getPublicRestaurantLists(): Promise<RestaurantList[]> {
+    return Array.from(this.restaurantLists.values()).filter(
+      list => list.isPublic
+    );
+  }
+  
+  // Restaurant List Item operations
+  async addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem> {
+    const id = this.restaurantListItemId++;
+    const addedAt = new Date();
+    const listItem: RestaurantListItem = { ...item, id, addedAt };
+    this.restaurantListItems.set(id, listItem);
+    return listItem;
+  }
+  
+  async removeRestaurantFromList(listId: number, restaurantId: number): Promise<void> {
+    const itemToRemove = Array.from(this.restaurantListItems.values()).find(
+      item => item.listId === listId && item.restaurantId === restaurantId
+    );
+    
+    if (itemToRemove) {
+      this.restaurantListItems.delete(itemToRemove.id);
+    }
+  }
+  
+  async getRestaurantsInList(listId: number): Promise<RestaurantListItem[]> {
+    return Array.from(this.restaurantListItems.values())
+      .filter(item => item.listId === listId)
+      .sort((a, b) => a.position - b.position);
+  }
+  
+  async getDetailedRestaurantsInList(listId: number): Promise<any[]> {
+    const listItems = await this.getRestaurantsInList(listId);
+    
+    return Promise.all(
+      listItems.map(async (item) => {
+        const restaurant = await this.getRestaurant(item.restaurantId);
+        const addedBy = await this.getUser(item.addedById);
+        
+        return {
+          ...item,
+          restaurant,
+          addedBy
+        };
+      })
     );
   }
 }
