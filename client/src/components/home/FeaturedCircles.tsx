@@ -26,11 +26,9 @@ export function FeaturedCircles() {
           <h2 className="text-lg font-heading font-bold text-neutral-900">Popular Circles</h2>
           <p className="text-xs text-neutral-500">Join trusted recommendation circles</p>
         </div>
-        <Link href="/discover">
-          <a className="text-primary font-medium text-sm flex items-center">
+        <Link href="/discover" className="text-primary font-medium text-sm flex items-center">
             <span>Explore All</span>
             <ChevronRight className="h-4 w-4 ml-1" />
-          </a>
         </Link>
       </div>
       
@@ -52,8 +50,7 @@ export function FeaturedCircles() {
         
         {circles?.map((circle) => (
           <div key={circle.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-100 transition-all duration-200 hover:border-primary/30 hover:shadow-md">
-            <Link href={`/circles/${circle.id}`}>
-              <a className="block p-3">
+            <Link href={`/circles/${circle.id}`} className="block p-3">
                 <div className="flex justify-between">
                   {/* Circle info - Left side */}
                   <div className="flex-1">
@@ -122,7 +119,6 @@ export function FeaturedCircles() {
                     Join Circle
                   </Button>
                 </div>
-              </a>
             </Link>
           </div>
         ))}

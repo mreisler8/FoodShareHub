@@ -135,18 +135,16 @@ export function PostCard({ post }: PostCardProps) {
           {/* Post Header */}
           <div className="p-3 flex items-center justify-between border-b border-neutral-100">
             <div className="flex items-center">
-              <Link href={`/profile/${post.userId}`}>
-                <div className="cursor-pointer">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={post.author?.profilePicture || ''} alt={post.author?.name || 'User'} />
-                    <AvatarFallback>{post.author?.name?.charAt(0) || 'U'}</AvatarFallback>
-                  </Avatar>
-                </div>
+              <Link href={`/profile/${post.userId}`} className="cursor-pointer">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={post.author?.profilePicture || ''} alt={post.author?.name || 'User'} />
+                  <AvatarFallback>{post.author?.name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
               </Link>
               <div className="ml-2">
                 <div className="flex items-center">
-                  <Link href={`/profile/${post.userId}`}>
-                    <a className="font-medium text-sm text-neutral-900 hover:underline">{post.author?.name || 'User'}</a>
+                  <Link href={`/profile/${post.userId}`} className="font-medium text-sm text-neutral-900 hover:underline">
+                    {post.author?.name || 'User'}
                   </Link>
                   <span className="text-xs text-neutral-500 ml-2">
                     {formatTimeAgo(post.createdAt)}
