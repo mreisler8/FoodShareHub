@@ -25,9 +25,9 @@ export default function Discover() {
     queryKey: [`/api/restaurants${searchQuery ? `?query=${searchQuery}` : ""}`],
   });
   
-  // Fetch hubs
+  // Fetch circles
   const { data: hubs, isLoading: isHubsLoading } = useQuery<HubWithStats[]>({
-    queryKey: ["/api/hubs"],
+    queryKey: ["/api/circles"],
   });
   
   // Fetch users (not implemented in API yet)

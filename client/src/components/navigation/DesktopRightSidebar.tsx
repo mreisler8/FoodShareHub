@@ -82,6 +82,9 @@ export function DesktopRightSidebar() {
       category: "Food",
       image: "",
       createdAt: new Date(),
+      isPrivate: false,
+      tags: ["Pizza", "Italian"],
+      creatorId: 1,
       memberCount: 6200
     },
     {
@@ -91,6 +94,9 @@ export function DesktopRightSidebar() {
       category: "Beverage",
       image: "",
       createdAt: new Date(),
+      isPrivate: false,
+      tags: ["Coffee", "Cafe"],
+      creatorId: 1,
       memberCount: 8300
     },
     {
@@ -100,6 +106,9 @@ export function DesktopRightSidebar() {
       category: "Nightlife",
       image: "",
       createdAt: new Date(),
+      isPrivate: false,
+      tags: ["Cocktails", "Bars"],
+      creatorId: 1,
       memberCount: 4700
     }
   ];
