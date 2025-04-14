@@ -8,6 +8,7 @@ import CreatePost from "@/pages/create-post";
 import CircleDetails from "@/pages/circle-details";
 import Profile from "@/pages/profile";
 import Discover from "@/pages/discover";
+import DiscoverByLocation from "@/pages/discover-by-location";
 import ListDetails from "@/pages/list-details";
 import CreateList from "@/pages/create-list";
 import PostDetails from "@/pages/post-details";
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/circles/:id" component={CircleDetails} />
       <Route path="/profile/:id?" component={Profile} />
       <Route path="/discover" component={Discover} />
+      <Route path="/discover-by-location" component={DiscoverByLocation} />
       <Route path="/lists/create" component={CreateList} />
       <Route path="/lists/:id" component={ListDetails} />
       <Route path="/posts/:id" component={PostDetails} />

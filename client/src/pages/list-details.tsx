@@ -1,22 +1,48 @@
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, MapPin, Utensils, ChefHat, Clock, Plus, Star } from "lucide-react";
+import { 
+  ArrowLeft, Edit, MapPin, Utensils, ChefHat, Clock, Plus, Star, 
+  Share2, Eye, BookmarkPlus, BookmarkCheck, Users
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RestaurantList, RestaurantListItemWithDetails } from "@/lib/types";
+import { ShareListModal } from "@/components/lists/ShareListModal";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ListDetails() {
   const { id } = useParams();
+  const listId = parseInt(id || "0");
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const { data: list, isLoading } = useQuery<RestaurantList>({
     queryKey: [`/api/restaurant-lists/${id}`],
   });
+  
+  // Increment view count when the component mounts
+  useEffect(() => {
+    if (id) {
+      const incrementViewCount = async () => {
+        try {
+          await apiRequest("POST", `/api/restaurant-lists/${id}/view`);
+        } catch (error) {
+          console.error("Failed to increment view count", error);
+        }
+      };
+      
+      incrementViewCount();
+    }
+  }, [id]);
   
   // Set page title
   useEffect(() => {
@@ -27,6 +53,29 @@ export default function ListDetails() {
       document.title = "TasteBuds";
     };
   }, [list]);
+  
+  // Save list mutation
+  const saveListMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/restaurant-lists/${id}/save`);
+      return res.json();
+    },
+    onSuccess: () => {
+      setIsSaved(true);
+      queryClient.invalidateQueries({ queryKey: [`/api/restaurant-lists/${id}`] });
+      toast({
+        title: "List saved",
+        description: "This list has been saved to your collection",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to save list",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="flex min-h-screen mb-16 md:mb-0">
@@ -98,6 +147,64 @@ export default function ListDetails() {
                     ))}
                   </div>
                 )}
+              </div>
+              
+              {/* Stats and Actions */}
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl">
+                {/* Stats */}
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center text-sm">
+                    <Eye className="h-4 w-4 mr-2 text-neutral-500" />
+                    <span className="font-medium">{list.viewCount || 0}</span>
+                    <span className="ml-1 text-neutral-500">views</span>
+                  </div>
+                  
+                  <div className="flex items-center text-sm">
+                    <BookmarkCheck className="h-4 w-4 mr-2 text-neutral-500" />
+                    <span className="font-medium">{list.saveCount || 0}</span>
+                    <span className="ml-1 text-neutral-500">saves</span>
+                  </div>
+                  
+                  {list.circle && (
+                    <div className="flex items-center text-sm">
+                      <Users className="h-4 w-4 mr-2 text-neutral-500" />
+                      <span>Shared with <span className="font-medium">{list.circle.name}</span></span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1"
+                    onClick={() => setIsShareModalOpen(true)}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span>Share</span>
+                  </Button>
+                  
+                  <Button 
+                    variant={isSaved ? "secondary" : "outline"}
+                    size="sm" 
+                    className="flex items-center gap-1"
+                    onClick={() => saveListMutation.mutate()}
+                    disabled={saveListMutation.isPending || isSaved}
+                  >
+                    {isSaved ? (
+                      <>
+                        <BookmarkCheck className="h-4 w-4" />
+                        <span>Saved</span>
+                      </>
+                    ) : (
+                      <>
+                        <BookmarkPlus className="h-4 w-4" />
+                        <span>Save List</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
             
@@ -188,6 +295,13 @@ export default function ListDetails() {
           </div>
         )}
       </div>
+      
+      {/* Share List Modal */}
+      <ShareListModal 
+        open={isShareModalOpen} 
+        onOpenChange={setIsShareModalOpen} 
+        listId={listId}
+      />
     </div>
   );
 }
