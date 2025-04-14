@@ -415,8 +415,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "List not found" });
       }
       
+      // Get list items with restaurant details
       const listItems = await storage.getDetailedRestaurantsInList(list.id);
+      
+      // Fix for security vulnerability - remove password from all user objects
+      // Clean detailed restaurants list items to remove all user password hashes
+      const cleanedListItems = await Promise.all(listItems.map(async item => {
+        // Clean the addedBy user object if it exists
+        if (item.addedBy && item.addedBy.password) {
+          const { password, ...cleanAddedBy } = item.addedBy;
+          return { ...item, addedBy: cleanAddedBy };
+        }
+        return item;
+      }));
+      
+      // Get and clean creator user data
       const creator = await storage.getUser(list.createdById);
+      let creatorWithoutPassword = null;
+      if (creator) {
+        const { password, ...userWithoutPassword } = creator;
+        creatorWithoutPassword = userWithoutPassword;
+      }
       
       // If the list is associated with a circle, get the circle info
       let circle = null;
@@ -424,18 +443,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         circle = await storage.getCircle(list.circleId);
       }
       
-      // Remove password from creator data
-      let creatorWithoutPassword = null;
-      if (creator) {
-        const { password, ...userWithoutPassword } = creator;
-        creatorWithoutPassword = userWithoutPassword;
-      }
-      
       res.json({
         ...list,
         creator: creatorWithoutPassword,
         circle,
-        restaurants: listItems
+        restaurants: cleanedListItems
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
