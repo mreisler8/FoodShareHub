@@ -609,15 +609,13 @@ export class DatabaseStorage implements IStorage {
   // Analytics operations
   async logUserAction(userId: number, action: string, metadata: Record<string, any>): Promise<void> {
     await db.execute(
-      `INSERT INTO analytics (user_id, action, metadata) VALUES ($1, $2, $3)`,
-      [userId, action, JSON.stringify(metadata)]
+      `INSERT INTO analytics (user_id, action, metadata) VALUES (${userId}, '${action}', '${JSON.stringify(metadata).replace(/'/g, "''")}')`
     );
   }
 
   async getActionsByUser(userId: number): Promise<any[]> {
     const result = await db.execute(
-      `SELECT * FROM analytics WHERE user_id = $1 ORDER BY timestamp DESC`, 
-      [userId]
+      `SELECT * FROM analytics WHERE user_id = ${userId} ORDER BY timestamp DESC LIMIT 100`
     );
     return result.rows;
   }

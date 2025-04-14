@@ -66,6 +66,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // User creation is now handled by /api/register in auth.ts
 
+  // User following routes
+  app.post("/api/user/follow/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const followerId = req.user!.id;
+      const followingId = parseInt(req.params.userId, 10);
+      
+      // Validate the userId is a number
+      if (isNaN(followingId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      // Check if the user exists
+      const userToFollow = await storage.getUser(followingId);
+      if (!userToFollow) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const followRelationship = await storage.followUser(followerId, followingId);
+      res.status(201).json(followRelationship);
+    } catch (err: any) {
+      if (err.message === "Already following this user" || err.message === "Users cannot follow themselves") {
+        return res.status(400).json({ error: err.message });
+      }
+      res.status(500).json({ error: err.message || "An error occurred" });
+    }
+  });
+  
+  app.delete("/api/user/follow/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const followerId = req.user!.id;
+      const followingId = parseInt(req.params.userId, 10);
+      
+      // Validate the userId is a number
+      if (isNaN(followingId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      // Check if the user exists
+      const userToUnfollow = await storage.getUser(followingId);
+      if (!userToUnfollow) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      await storage.unfollowUser(followerId, followingId);
+      res.status(200).json({ message: "Successfully unfollowed user" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "An error occurred" });
+    }
+  });
+  
+  app.get("/api/user/following/status/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const followerId = req.user!.id;
+      const followingId = parseInt(req.params.userId, 10);
+      
+      // Validate the userId is a number
+      if (isNaN(followingId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      const isFollowing = await storage.isUserFollowing(followerId, followingId);
+      res.json({ isFollowing });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "An error occurred" });
+    }
+  });
+  
+  app.get("/api/user/:userId/followers", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      // Validate the userId is a number
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      // Check if the user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const followers = await storage.getFollowers(userId);
+      
+      // Remove passwords from followers
+      const safeFollowers = followers.map(follower => {
+        const { password, ...safeFollower } = follower;
+        return safeFollower;
+      });
+      
+      res.json(safeFollowers);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "An error occurred" });
+    }
+  });
+  
+  app.get("/api/user/:userId/following", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      // Validate the userId is a number
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      // Check if the user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const following = await storage.getFollowing(userId);
+      
+      // Remove passwords from followed users
+      const safeFollowing = following.map(followed => {
+        const { password, ...safeFollowed } = followed;
+        return safeFollowed;
+      });
+      
+      res.json(safeFollowing);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "An error occurred" });
+    }
+  });
+
   // Restaurant routes
   app.get("/api/restaurants", async (req, res) => {
     try {
