@@ -82,6 +82,7 @@ export interface IStorage {
   createRestaurantList(list: InsertRestaurantList): Promise<RestaurantList>;
   getRestaurantList(id: number): Promise<RestaurantList | undefined>;
   getRestaurantListsByHub(hubId: number): Promise<RestaurantList[]>;
+  getRestaurantListsByCircle(circleId: number): Promise<RestaurantList[]>;
   getRestaurantListsByUser(userId: number): Promise<RestaurantList[]>;
   getPublicRestaurantLists(): Promise<RestaurantList[]>;
   
@@ -707,6 +708,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.restaurantLists.values()).filter(
       list => list.hubId === hubId
     );
+  }
+  
+  async getRestaurantListsByCircle(circleId: number): Promise<RestaurantList[]> {
+    return this.getRestaurantListsByHub(circleId);
   }
   
   async getRestaurantListsByUser(userId: number): Promise<RestaurantList[]> {

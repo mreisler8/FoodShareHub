@@ -227,6 +227,16 @@ export type InsertCircle = z.infer<typeof insertCircleSchema>;
 export type CircleMember = typeof circleMembers.$inferSelect;
 export type InsertCircleMember = z.infer<typeof insertCircleMemberSchema>;
 
+// For backward compatibility with existing code
+export type Hub = Circle;
+export type InsertHub = InsertCircle;
+export type HubMember = CircleMember;
+export type InsertHubMember = InsertCircleMember;
+
+// Alias the tables for backward compatibility
+export const hubs = circles;
+export const hubMembers = circleMembers;
+
 export type Like = typeof likes.$inferSelect;
 export type InsertLike = z.infer<typeof insertLikeSchema>;
 
