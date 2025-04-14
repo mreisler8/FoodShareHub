@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 interface RatingProps {
   value: number;
   max?: number;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   showValue?: boolean;
   className?: string;
 }
@@ -31,12 +31,14 @@ export function Rating({
     });
 
   const sizeClasses = {
+    xs: "text-[10px]",
     sm: "text-xs",
     md: "text-sm",
     lg: "text-base",
   };
 
   const starSizes = {
+    xs: 10,
     sm: 12,
     md: 16,
     lg: 20,
@@ -60,7 +62,7 @@ export function Rating({
         ))}
       </div>
       {showValue && (
-        <span className={cn("ml-2 text-neutral-700", sizeClasses[size])}>
+        <span className={cn("ml-1.5 text-neutral-700", sizeClasses[size])}>
           {value.toFixed(1)}
         </span>
       )}
