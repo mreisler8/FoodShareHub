@@ -74,7 +74,7 @@ export function DesktopRightSidebar() {
     }
   ];
   
-  const suggestedHubs: HubWithStats[] = [
+  const suggestedCircles: HubWithStats[] = [
     {
       id: 4,
       name: "Pizza Enthusiasts",
@@ -104,14 +104,14 @@ export function DesktopRightSidebar() {
     }
   ];
 
-  const getHubIcon = (name: string) => {
+  const getCircleIcon = (name: string) => {
     if (name.toLowerCase().includes("pizza")) return <Pizza className="text-xs" />;
     if (name.toLowerCase().includes("coffee")) return <Coffee className="text-xs" />;
     if (name.toLowerCase().includes("cocktail")) return <GlassWater className="text-xs" />;
     return <Pizza className="text-xs" />;
   };
 
-  const getHubColor = (index: number) => {
+  const getCircleColor = (index: number) => {
     const colors = ["bg-primary", "bg-secondary", "bg-warning"];
     return colors[index % colors.length];
   };
@@ -177,7 +177,7 @@ export function DesktopRightSidebar() {
                     <span className="text-neutral-700"> ⭐ {activity.rating} stars</span>
                   )}
                   {activity.activityType === 'joined' && (
-                    <span className="text-neutral-700"> hub</span>
+                    <span className="text-neutral-700"> circle</span>
                   )}
                 </p>
                 <p className="text-xs text-neutral-500">{activity.timeAgo}</p>
@@ -187,19 +187,19 @@ export function DesktopRightSidebar() {
         </div>
       </div>
       
-      {/* Suggested Hubs */}
+      {/* Suggested Circles */}
       <div>
-        <h3 className="font-heading font-bold text-neutral-900 mb-4">Suggested Hubs</h3>
+        <h3 className="font-heading font-bold text-neutral-900 mb-4">Suggested Circles</h3>
         <div className="space-y-3">
-          {suggestedHubs.map((hub, index) => (
-            <div key={hub.id} className="flex items-center justify-between">
+          {suggestedCircles.map((circle, index) => (
+            <div key={circle.id} className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className={`w-8 h-8 rounded-lg ${getHubColor(index)} flex items-center justify-center text-white`}>
-                  {getHubIcon(hub.name)}
+                <div className={`w-8 h-8 rounded-lg ${getCircleColor(index)} flex items-center justify-center text-white`}>
+                  {getCircleIcon(circle.name)}
                 </div>
                 <div className="ml-3">
-                  <h4 className="text-sm font-medium">{hub.name}</h4>
-                  <p className="text-xs text-neutral-500">{(hub.memberCount / 1000).toFixed(1)}k members</p>
+                  <h4 className="text-sm font-medium">{circle.name}</h4>
+                  <p className="text-xs text-neutral-500">{(circle.memberCount / 1000).toFixed(1)}k members</p>
                 </div>
               </div>
               <button className="px-2 py-1 bg-neutral-100 text-neutral-700 text-xs rounded-lg">Join</button>
@@ -207,7 +207,7 @@ export function DesktopRightSidebar() {
           ))}
           
           <Link href="/discover" className="text-secondary text-sm font-medium">
-            Discover more hubs
+            Discover more circles
           </Link>
         </div>
       </div>

@@ -81,7 +81,7 @@ export function FriendActivityFeed() {
       case 'posted':
         return `/restaurants/${activity.targetId}`;
       case 'joined':
-        return `/hubs/${activity.targetId}`;
+        return `/circles/${activity.targetId}`;
       default:
         return '#';
     }

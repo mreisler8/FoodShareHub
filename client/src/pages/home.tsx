@@ -47,16 +47,16 @@ export default function Home() {
         {/* Stories/Quick Access */}
         <StoriesCarousel />
         
-        {/* Tonight's Section - Time-sensitive recommendations */}
-        <div className="mb-8">
-          <TonightSection />
-        </div>
-        
         {/* Desktop - Two column layout */}
         <div className="hidden md:grid md:grid-cols-3 gap-6">
           <div className="col-span-2">
             {/* Featured Circles Section */}
             <FeaturedCircles />
+            
+            {/* Tonight's Section - Time-sensitive recommendations */}
+            <div className="mb-8">
+              <TonightSection />
+            </div>
             
             {/* Feed Section */}
             <FeedSection />
@@ -72,6 +72,9 @@ export default function Home() {
         <div className="md:hidden space-y-8">
           {/* Featured Circles Section */}
           <FeaturedCircles />
+          
+          {/* Tonight's Section - Mobile */}
+          <TonightSection />
           
           {/* Friend Activity Feed */}
           <FriendActivityFeed />
