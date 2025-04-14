@@ -12,7 +12,7 @@ import {
   restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, like, desc, gt } from "drizzle-orm";
+import { eq, and, like, desc, gt, or } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -173,7 +173,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchRestaurants(query: string): Promise<Restaurant[]> {
-    return await db.select().from(restaurants).where(like(restaurants.name, `%${query}%`));
+    try {
+      // Enhanced search to look in multiple fields
+      const results = await db.select().from(restaurants).where(
+        or(
+          like(restaurants.name, `%${query}%`),
+          like(restaurants.location, `%${query}%`),
+          like(restaurants.category, `%${query}%`)
+        )
+      );
+      
+      console.log(`Search results for "${query}":`, results);
+      return results;
+    } catch (error) {
+      console.error(`Error searching restaurants for "${query}":`, error);
+      return [];
+    }
   }
   
   // Post operations

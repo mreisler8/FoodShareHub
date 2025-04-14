@@ -5,6 +5,7 @@ import { QuickCaptureButton } from "@/components/shared/QuickCaptureButton";
 import { Bell, MessageSquare, Users, Utensils, Bookmark, PlusCircle } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { QuickAddRestaurant } from "@/components/restaurant/QuickAddRestaurant";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -103,6 +104,14 @@ export default function Home() {
           </div>
         )}
         
+        {/* Quick Add Section - Easily add restaurants and dishes */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+          <div className="mb-4">
+            <QuickAddRestaurant />
+          </div>
+        </div>
+
         {/* Explore Section - for all users */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Explore</h2>
