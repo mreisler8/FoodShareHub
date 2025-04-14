@@ -1,15 +1,40 @@
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { DesktopRightSidebar } from "@/components/navigation/DesktopRightSidebar";
-import { StoriesCarousel } from "@/components/home/StoriesCarousel";
-import { FeaturedCircles } from "@/components/home/FeaturedCircles";
-import { FeedSection } from "@/components/home/FeedSection";
-import { FriendActivityFeed } from "@/components/home/FriendActivityFeed";
-import { TonightSection } from "@/components/home/TonightSection";
 import { QuickCaptureButton } from "@/components/shared/QuickCaptureButton";
-import { Bell, MessageSquare } from "lucide-react";
+import { Bell, MessageSquare, Users, Utensils, Bookmark, PlusCircle } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
+  const { user } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  // Check if user has joined any circles
+  const { data: userCircles = [], isLoading: isLoadingCircles } = useQuery({
+    queryKey: ["/api/circles/user"],
+    enabled: !!user,
+  });
+  
+  // Check if user has any restaurant lists
+  const { data: userLists = [], isLoading: isLoadingLists } = useQuery({
+    queryKey: ["/api/lists/user"],
+    enabled: !!user,
+  });
+  
+  // Show onboarding modal for new users
+  useEffect(() => {
+    if (user && !isLoadingCircles && !isLoadingLists) {
+      // If user has no circles and no lists, they're likely a new user
+      if (userCircles.length === 0 && userLists.length === 0) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [user, userCircles, userLists, isLoadingCircles, isLoadingLists]);
+
   return (
     <div className="flex min-h-screen mb-16 md:mb-0">
       {/* Mobile navigation at bottom of screen */}
@@ -32,7 +57,7 @@ export default function Home() {
                 <path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"></path>
               </svg>
             </div>
-            <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">TasteBuds</h1>
+            <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">Circles</h1>
           </div>
           <div className="flex items-center">
             <button className="p-2">
@@ -44,43 +69,68 @@ export default function Home() {
           </div>
         </header>
         
-        {/* Stories/Quick Access */}
-        <StoriesCarousel />
-        
-        {/* Desktop - Two column layout */}
-        <div className="hidden md:grid md:grid-cols-3 gap-6">
-          <div className="col-span-2">
-            {/* Featured Circles Section */}
-            <FeaturedCircles />
-            
-            {/* Tonight's Section - Time-sensitive recommendations */}
-            <div className="mb-8">
-              <TonightSection />
+        {/* Welcome/Getting Started Section - for new users */}
+        {(userCircles.length === 0 || userLists.length === 0) && (
+          <div className="mb-8">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold mb-2">Welcome, {user?.name || "there"}!</h2>
+              <p className="text-muted-foreground">Get started with Circles by joining or creating:</p>
             </div>
             
-            {/* Feed Section */}
-            <FeedSection />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              {userCircles.length === 0 && (
+                <EmptyState
+                  title="Join Your First Circle"
+                  description="Connect with friends and trusted food lovers to get restaurant recommendations."
+                  icon={Users}
+                  actionLabel="Join a Circle"
+                  actionHref="/discover"
+                  secondaryActionLabel="Create a Circle"
+                  secondaryActionHref="/circles/create"
+                />
+              )}
+              
+              {userLists.length === 0 && (
+                <EmptyState
+                  title="Create Your First List"
+                  description="Start collecting and sharing your favorite restaurants with your circles."
+                  icon={Bookmark}
+                  actionLabel="Create a List"
+                  actionHref="/lists/create"
+                />
+              )}
+            </div>
           </div>
-          
-          <div className="col-span-1 space-y-6">
-            {/* Friend Activity Feed */}
-            <FriendActivityFeed />
-          </div>
-        </div>
+        )}
         
-        {/* Mobile - Single column layout */}
-        <div className="md:hidden space-y-8">
-          {/* Featured Circles Section */}
-          <FeaturedCircles />
-          
-          {/* Tonight's Section - Mobile */}
-          <TonightSection />
-          
-          {/* Friend Activity Feed */}
-          <FriendActivityFeed />
-          
-          {/* Feed Section */}
-          <FeedSection />
+        {/* Explore Section - for all users */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Explore</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <EmptyState
+              title="Discover Places"
+              description="Find new restaurants based on recommendations from your circles."
+              icon={Utensils}
+              actionLabel="Browse Restaurants"
+              actionHref="/discover"
+            />
+            
+            <EmptyState
+              title="Join Circles"
+              description="Connect with friends or join public circles of food enthusiasts."
+              icon={Users}
+              actionLabel="Find Circles"
+              actionHref="/discover"
+            />
+            
+            <EmptyState
+              title="Share Experiences"
+              description="Post your dining experiences and add to your lists."
+              icon={PlusCircle}
+              actionLabel="Add an Experience"
+              actionHref="/create-post"
+            />
+          </div>
         </div>
         
         {/* Floating Action Button for Quick Capture */}
@@ -89,6 +139,9 @@ export default function Home() {
       
       {/* Right Sidebar (Desktop Only) */}
       <DesktopRightSidebar />
+      
+      {/* Onboarding Modal */}
+      <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
     </div>
   );
 }
