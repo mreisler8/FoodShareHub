@@ -1,8 +1,17 @@
-import { Home, Search, PlusCircle, Users, User } from "lucide-react";
+import { Home, Search, PlusCircle, Users, User, LogIn } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { User as UserType } from "@shared/schema";
 
 export function MobileNavigation() {
   const [location] = useLocation();
+  
+  // Get current user
+  const { data: currentUser } = useQuery<UserType | undefined>({
+    queryKey: ["/api/me"],
+  });
+  
+  const isAuthenticated = !!currentUser;
   
   // Function to check if a path is active
   const isActive = (path: string) => {
@@ -36,12 +45,21 @@ export function MobileNavigation() {
             <span className="text-xs mt-1">Circles</span>
           </div>
         </Link>
-        <Link href="/profile">
-          <div className={`flex flex-col items-center justify-center cursor-pointer ${location.startsWith('/profile') ? 'text-primary' : 'text-neutral-500'}`}>
-            <User className="h-5 w-5" />
-            <span className="text-xs mt-1">Profile</span>
-          </div>
-        </Link>
+        {isAuthenticated ? (
+          <Link href="/profile">
+            <div className={`flex flex-col items-center justify-center cursor-pointer ${location.startsWith('/profile') ? 'text-primary' : 'text-neutral-500'}`}>
+              <User className="h-5 w-5" />
+              <span className="text-xs mt-1">Profile</span>
+            </div>
+          </Link>
+        ) : (
+          <Link href="/auth">
+            <div className={`flex flex-col items-center justify-center cursor-pointer ${isActive('/auth') ? 'text-primary' : 'text-neutral-500'}`}>
+              <LogIn className="h-5 w-5" />
+              <span className="text-xs mt-1">Login</span>
+            </div>
+          </Link>
+        )}
       </div>
     </div>
   );

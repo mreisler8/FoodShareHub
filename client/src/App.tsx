@@ -13,8 +13,17 @@ import ListDetails from "@/pages/list-details";
 import CreateList from "@/pages/create-list";
 import PostDetails from "@/pages/post-details";
 import JoinPage from "@/pages/join";
+import AuthPage from "@/pages/auth";
+import { AuthProvider } from "./hooks/use-auth";
+import { useEffect } from "react";
+import { addNativeAppClass } from "./lib/nativeAppBridge";
 
 function Router() {
+  // Add native app class to body for CSS targeting if running in native app
+  useEffect(() => {
+    addNativeAppClass();
+  }, []);
+  
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -27,6 +36,7 @@ function Router() {
       <Route path="/lists/:id" component={ListDetails} />
       <Route path="/posts/:id" component={PostDetails} />
       <Route path="/join" component={JoinPage} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -35,8 +45,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AuthProvider>
+        <Router />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

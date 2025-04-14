@@ -1,6 +1,7 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 
@@ -8,9 +9,11 @@ export function DesktopSidebar() {
   const [location] = useLocation();
   
   // Get current user
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading } = useQuery<User | undefined>({
     queryKey: ["/api/me"],
   });
+  
+  const isAuthenticated = !!currentUser;
   
   // Function to check if a path is active
   const isActive = (path: string) => {
@@ -88,8 +91,8 @@ export function DesktopSidebar() {
         </ul>
       </nav>
       
-      {currentUser && (
-        <div className="mt-auto pt-5 border-t border-neutral-200">
+      <div className="mt-auto pt-5 border-t border-neutral-200">
+        {isAuthenticated ? (
           <Link href="/profile">
             <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
               <Avatar className="w-10 h-10">
@@ -102,8 +105,15 @@ export function DesktopSidebar() {
               </div>
             </div>
           </Link>
-        </div>
-      )}
+        ) : (
+          <Link href="/auth">
+            <div className={getNavItemClasses("/auth")}>
+              <LogIn className="w-6 mr-2" />
+              <span>Login / Register</span>
+            </div>
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
