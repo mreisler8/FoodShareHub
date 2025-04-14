@@ -9,7 +9,8 @@ import {
   savedRestaurants, type SavedRestaurant, type InsertSavedRestaurant,
   stories, type Story, type InsertStory,
   restaurantLists, type RestaurantList, type InsertRestaurantList,
-  restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem
+  restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem,
+  sharedLists, type SharedList, type InsertSharedList
 } from "@shared/schema";
 
 export interface IStorage {
@@ -85,6 +86,23 @@ export interface IStorage {
   getRestaurantListsByCircle(circleId: number): Promise<RestaurantList[]>;
   getRestaurantListsByUser(userId: number): Promise<RestaurantList[]>;
   getPublicRestaurantLists(): Promise<RestaurantList[]>;
+  updateRestaurantList(id: number, updates: Partial<InsertRestaurantList>): Promise<RestaurantList>;
+  incrementListViewCount(id: number): Promise<RestaurantList>;
+  incrementListSaveCount(id: number): Promise<RestaurantList>;
+  
+  // Location-based discovery
+  getRestaurantsByLocation(location: string): Promise<Restaurant[]>;
+  getNearbyRestaurants(lat: string, lng: string, radius: number): Promise<Restaurant[]>;
+  getRestaurantListsByLocation(location: string): Promise<RestaurantList[]>;
+  getPopularRestaurantListsByLocation(location: string, limit: number): Promise<RestaurantList[]>;
+  
+  // Enhanced list sharing
+  shareListWithCircle(sharedList: InsertSharedList): Promise<SharedList>;
+  getSharedListsByCircle(circleId: number): Promise<SharedList[]>;
+  getCirclesListIsSharedWith(listId: number): Promise<SharedList[]>;
+  isListSharedWithCircle(listId: number, circleId: number): Promise<boolean>;
+  getSharedListsPermissions(listId: number, circleId: number): Promise<SharedList | undefined>;
+  removeListSharingFromCircle(listId: number, circleId: number): Promise<void>;
   
   // Restaurant List Item operations
   addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem>;
@@ -105,6 +123,7 @@ export class MemStorage implements IStorage {
   private stories: Map<number, Story>;
   private restaurantLists: Map<number, RestaurantList>;
   private restaurantListItems: Map<number, RestaurantListItem>;
+  private sharedLists: Map<number, SharedList>;
 
   private userId: number;
   private restaurantId: number;
@@ -117,6 +136,7 @@ export class MemStorage implements IStorage {
   private storyId: number;
   private restaurantListId: number;
   private restaurantListItemId: number;
+  private sharedListId: number;
 
   constructor() {
     this.users = new Map();
@@ -130,6 +150,7 @@ export class MemStorage implements IStorage {
     this.stories = new Map();
     this.restaurantLists = new Map();
     this.restaurantListItems = new Map();
+    this.sharedLists = new Map();
 
     this.userId = 1;
     this.restaurantId = 1;
@@ -142,6 +163,7 @@ export class MemStorage implements IStorage {
     this.storyId = 1;
     this.restaurantListId = 1;
     this.restaurantListItemId = 1;
+    this.sharedListId = 1;
 
     // Initialize with some data
     this.initializeData();
