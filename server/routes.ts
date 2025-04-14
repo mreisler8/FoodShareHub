@@ -237,6 +237,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: err.message });
     }
   });
+  
+  // Current user's circles - Authenticated endpoint
+  app.get("/api/circles/user", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const circles = await storage.getCirclesByUser(req.user.id);
+      res.json(circles);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   app.post("/api/circle-members", async (req, res) => {
     try {
@@ -364,6 +378,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Default to public lists if no specific query
       const lists = await storage.getPublicRestaurantLists();
+      res.json(lists);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  // Current user's restaurant lists - Authenticated endpoint
+  app.get("/api/lists/user", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const lists = await storage.getRestaurantListsByUser(req.user.id);
       res.json(lists);
     } catch (err: any) {
       res.status(500).json({ error: err.message });

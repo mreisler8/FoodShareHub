@@ -14,13 +14,13 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   
   // Check if user has joined any circles
-  const { data: userCircles = [], isLoading: isLoadingCircles } = useQuery({
+  const { data: userCircles = [], isLoading: isLoadingCircles } = useQuery<any[]>({
     queryKey: ["/api/circles/user"],
     enabled: !!user,
   });
   
   // Check if user has any restaurant lists
-  const { data: userLists = [], isLoading: isLoadingLists } = useQuery({
+  const { data: userLists = [], isLoading: isLoadingLists } = useQuery<any[]>({
     queryKey: ["/api/lists/user"],
     enabled: !!user,
   });
