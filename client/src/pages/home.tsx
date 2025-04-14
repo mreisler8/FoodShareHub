@@ -4,7 +4,9 @@ import { DesktopRightSidebar } from "@/components/navigation/DesktopRightSidebar
 import { StoriesCarousel } from "@/components/home/StoriesCarousel";
 import { FeaturedHubs } from "@/components/home/FeaturedHubs";
 import { FeedSection } from "@/components/home/FeedSection";
-import { CreatePostButton } from "@/components/create-post/CreatePostButton";
+import { FriendActivityFeed } from "@/components/home/FriendActivityFeed";
+import { TonightSection } from "@/components/home/TonightSection";
+import { QuickCaptureButton } from "@/components/shared/QuickCaptureButton";
 import { Bell, MessageSquare } from "lucide-react";
 
 export default function Home() {
@@ -45,14 +47,41 @@ export default function Home() {
         {/* Stories/Quick Access */}
         <StoriesCarousel />
         
-        {/* Featured Hubs Section */}
-        <FeaturedHubs />
+        {/* Tonight's Section - Time-sensitive recommendations */}
+        <div className="mb-8">
+          <TonightSection />
+        </div>
         
-        {/* Feed Section */}
-        <FeedSection />
+        {/* Desktop - Two column layout */}
+        <div className="hidden md:grid md:grid-cols-3 gap-6">
+          <div className="col-span-2">
+            {/* Featured Hubs Section */}
+            <FeaturedHubs />
+            
+            {/* Feed Section */}
+            <FeedSection />
+          </div>
+          
+          <div className="col-span-1 space-y-6">
+            {/* Friend Activity Feed */}
+            <FriendActivityFeed />
+          </div>
+        </div>
         
-        {/* Floating Action Button for Post Creation */}
-        <CreatePostButton />
+        {/* Mobile - Single column layout */}
+        <div className="md:hidden space-y-8">
+          {/* Featured Hubs Section */}
+          <FeaturedHubs />
+          
+          {/* Friend Activity Feed */}
+          <FriendActivityFeed />
+          
+          {/* Feed Section */}
+          <FeedSection />
+        </div>
+        
+        {/* Floating Action Button for Quick Capture */}
+        <QuickCaptureButton />
       </div>
       
       {/* Right Sidebar (Desktop Only) */}

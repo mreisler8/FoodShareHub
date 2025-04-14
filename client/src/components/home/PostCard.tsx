@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { InstagramShareButton } from "@/components/shared/InstagramShareButton";
+import { TrustIndicators } from "@/components/shared/TrustIndicators";
 
 interface PostCardProps {
   post: PostWithDetails;
@@ -160,9 +161,18 @@ export function PostCard({ post }: PostCardProps) {
         <p className="text-sm text-neutral-700 mb-2">
           <MapPin className="inline-block mr-1 text-primary h-3 w-3" /> {post.restaurant?.location || 'Location unknown'}
         </p>
-        <p className="text-sm text-neutral-700 mb-3">
+        <p className="text-sm text-neutral-700 mb-2">
           <Utensils className="inline-block mr-1 text-primary h-3 w-3" /> {post.restaurant?.category || 'Cuisine'} • {post.restaurant?.priceRange || '$'}
         </p>
+        
+        {/* Trust Indicators */}
+        <div className="mt-2 mb-3">
+          <TrustIndicators 
+            restaurantId={post.restaurantId} 
+            type="restaurant" 
+            size="sm" 
+          />
+        </div>
       </div>
       
       {/* Post Images */}
