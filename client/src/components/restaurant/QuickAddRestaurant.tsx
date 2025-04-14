@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Restaurant } from "@shared/schema";
@@ -30,6 +30,12 @@ export function QuickAddRestaurant() {
   const [dishInput, setDishInput] = useState("");
   const [dishes, setDishes] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [userLocation, setUserLocation] = useState<string>("");
+  const [popularNearby, setPopularNearby] = useState<string[]>([
+    "Italian restaurants",
+    "Best coffee shops",
+    "Sushi places"
+  ]);
   
   // New restaurant form
   const [newRestaurantName, setNewRestaurantName] = useState("");
@@ -39,6 +45,44 @@ export function QuickAddRestaurant() {
   
   const { toast } = useToast();
   const currentUser = useCurrentUser();
+  
+  // Get user's location when the component mounts
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // Get city name from coordinates using reverse geocoding
+          // (In a real app, you'd use a geocoding service like Google Maps API)
+          fetchLocationName(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          // Fall back to a default location (e.g., based on IP)
+          setUserLocation("New York City");
+        }
+      );
+    } else {
+      // Geolocation not supported
+      setUserLocation("New York City");
+    }
+  }, []);
+  
+  // Mock function to simulate fetching location name
+  // In a real app, you'd use a geocoding API
+  const fetchLocationName = (latitude: number, longitude: number) => {
+    // Simulate API call
+    setTimeout(() => {
+      // This would normally come from an API
+      setUserLocation("New York City");
+      
+      // Update popular nearby suggestions based on location
+      setPopularNearby([
+        "NYC Pizza spots",
+        "Manhattan sushi",
+        "Brooklyn coffee shops"
+      ]);
+    }, 500);
+  };
   
   // Search restaurants query
   const { data: searchResults, isLoading: isSearching } = useQuery({
@@ -135,6 +179,10 @@ export function QuickAddRestaurant() {
   
   // Handle create new restaurant
   const handleCreateNewRestaurant = () => {
+    // Pre-fill location with user location if available
+    if (userLocation) {
+      setNewRestaurantLocation(userLocation);
+    }
     setStep("add-restaurant");
   };
   
@@ -246,9 +294,35 @@ export function QuickAddRestaurant() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  autoFocus
+                  autoComplete="off"
                 />
               </div>
             </div>
+            
+            {/* Location-based suggestions */}
+            {!searchQuery && (
+              <div className="flex flex-col space-y-1 text-sm text-muted-foreground px-2">
+                <p className="font-medium text-foreground">Popular in {userLocation || "your area"}:</p>
+                {popularNearby.map((suggestion, index) => (
+                  <button 
+                    key={index}
+                    className="text-left text-primary hover:underline py-0.5 flex items-center" 
+                    onClick={() => setSearchQuery(suggestion)}
+                  >
+                    <MapPin className="h-3 w-3 mr-1 inline" /> {suggestion}
+                  </button>
+                ))}
+                {userLocation && (
+                  <button 
+                    className="text-left text-primary hover:underline py-0.5 flex items-center mt-2" 
+                    onClick={() => setSearchQuery(userLocation)}
+                  >
+                    <MapPin className="h-3 w-3 mr-1 inline" /> All restaurants in {userLocation}
+                  </button>
+                )}
+              </div>
+            )}
             
             <div className="max-h-[300px] overflow-y-auto space-y-2">
               {isSearching ? (
