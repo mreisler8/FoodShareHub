@@ -437,6 +437,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced list management routes
+  app.patch("/api/restaurant-lists/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const updatedList = await storage.updateRestaurantList(parseInt(req.params.id), updates);
+      res.json(updatedList);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/restaurant-lists/:id/view", async (req, res) => {
+    try {
+      const updatedList = await storage.incrementListViewCount(parseInt(req.params.id));
+      res.json({ viewCount: updatedList.viewCount });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/restaurant-lists/:id/save", async (req, res) => {
+    try {
+      const updatedList = await storage.incrementListSaveCount(parseInt(req.params.id));
+      res.json({ saveCount: updatedList.saveCount });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Location-based discovery routes
+  app.get("/api/restaurants/location/:location", async (req, res) => {
+    try {
+      const restaurants = await storage.getRestaurantsByLocation(req.params.location);
+      res.json(restaurants);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/restaurants/nearby", async (req, res) => {
+    try {
+      const { lat, lng, radius } = req.query;
+      
+      if (!lat || !lng || !radius || 
+          typeof lat !== 'string' || 
+          typeof lng !== 'string' || 
+          typeof radius !== 'string') {
+        return res.status(400).json({ error: "Missing or invalid parameters" });
+      }
+      
+      const restaurants = await storage.getNearbyRestaurants(
+        lat, 
+        lng, 
+        parseInt(radius)
+      );
+      
+      res.json(restaurants);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/restaurant-lists/location/:location", async (req, res) => {
+    try {
+      const lists = await storage.getRestaurantListsByLocation(req.params.location);
+      res.json(lists);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/restaurant-lists/popular/:location", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const lists = await storage.getPopularRestaurantListsByLocation(req.params.location, limit);
+      res.json(lists);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Enhanced list sharing routes
+  app.post("/api/shared-lists", async (req, res) => {
+    try {
+      const { listId, circleId, permissions } = req.body;
+      
+      if (!listId || !circleId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const sharedList = await storage.shareListWithCircle({
+        listId,
+        circleId,
+        permissions: permissions || "view"
+      });
+      
+      res.status(201).json(sharedList);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/circles/:circleId/shared-lists", async (req, res) => {
+    try {
+      const sharedLists = await storage.getSharedListsByCircle(parseInt(req.params.circleId));
+      
+      // Get full list details for each shared list
+      const listsWithDetails = await Promise.all(
+        sharedLists.map(async (sharedList) => {
+          const list = await storage.getRestaurantList(sharedList.listId);
+          const creator = list ? await storage.getUser(list.createdById) : null;
+          
+          return {
+            ...sharedList,
+            list,
+            creator
+          };
+        })
+      );
+      
+      res.json(listsWithDetails);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/restaurant-lists/:listId/shared-with", async (req, res) => {
+    try {
+      const sharedEntries = await storage.getCirclesListIsSharedWith(parseInt(req.params.listId));
+      
+      // Get circle details for each shared entry
+      const circlesWithDetails = await Promise.all(
+        sharedEntries.map(async (sharedEntry) => {
+          const circle = await storage.getCircle(sharedEntry.circleId);
+          
+          return {
+            ...sharedEntry,
+            circle
+          };
+        })
+      );
+      
+      res.json(circlesWithDetails);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/restaurant-lists/:listId/shared-with/:circleId", async (req, res) => {
+    try {
+      await storage.removeListSharingFromCircle(
+        parseInt(req.params.listId),
+        parseInt(req.params.circleId)
+      );
+      
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

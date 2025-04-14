@@ -789,6 +789,138 @@ export class MemStorage implements IStorage {
       })
     );
   }
+
+  // Restaurant List enhanced operations
+  async updateRestaurantList(id: number, updates: Partial<InsertRestaurantList>): Promise<RestaurantList> {
+    const list = await this.getRestaurantList(id);
+    if (!list) throw new Error(`Restaurant list with ID ${id} not found`);
+    
+    const updatedList = { ...list, ...updates, updatedAt: new Date() };
+    this.restaurantLists.set(id, updatedList);
+    
+    return updatedList;
+  }
+  
+  async incrementListViewCount(id: number): Promise<RestaurantList> {
+    const list = await this.getRestaurantList(id);
+    if (!list) throw new Error(`Restaurant list with ID ${id} not found`);
+    
+    const viewCount = (list.viewCount || 0) + 1;
+    const updatedList = { ...list, viewCount, updatedAt: new Date() };
+    this.restaurantLists.set(id, updatedList);
+    
+    return updatedList;
+  }
+  
+  async incrementListSaveCount(id: number): Promise<RestaurantList> {
+    const list = await this.getRestaurantList(id);
+    if (!list) throw new Error(`Restaurant list with ID ${id} not found`);
+    
+    const saveCount = (list.saveCount || 0) + 1;
+    const updatedList = { ...list, saveCount, updatedAt: new Date() };
+    this.restaurantLists.set(id, updatedList);
+    
+    return updatedList;
+  }
+  
+  // Location-based discovery methods
+  async getRestaurantsByLocation(location: string): Promise<Restaurant[]> {
+    const lowerCaseLocation = location.toLowerCase();
+    return Array.from(this.restaurants.values()).filter(
+      restaurant => 
+        restaurant.location?.toLowerCase().includes(lowerCaseLocation) ||
+        restaurant.city?.toLowerCase().includes(lowerCaseLocation) ||
+        restaurant.neighborhood?.toLowerCase().includes(lowerCaseLocation) ||
+        restaurant.state?.toLowerCase().includes(lowerCaseLocation)
+    );
+  }
+  
+  async getNearbyRestaurants(lat: string, lng: string, radius: number): Promise<Restaurant[]> {
+    // In a real implementation, this would use geospatial queries
+    // For the in-memory implementation, we'll return restaurants based on the city/state match
+    // as a simplification
+    return Array.from(this.restaurants.values());
+  }
+  
+  async getRestaurantListsByLocation(location: string): Promise<RestaurantList[]> {
+    // Get restaurants by location
+    const restaurantsByLocation = await this.getRestaurantsByLocation(location);
+    const restaurantIds = restaurantsByLocation.map(r => r.id);
+    
+    // Get list items that contain those restaurants
+    const relevantListItems = Array.from(this.restaurantListItems.values())
+      .filter(item => restaurantIds.includes(item.restaurantId));
+    
+    // Get the unique list IDs
+    const listIds = [...new Set(relevantListItems.map(item => item.listId))];
+    
+    // Get the full list data for those IDs
+    const lists = await Promise.all(
+      listIds.map(id => this.getRestaurantList(id))
+    );
+    
+    return lists.filter(list => list && list.isPublic) as RestaurantList[];
+  }
+  
+  async getPopularRestaurantListsByLocation(location: string, limit: number): Promise<RestaurantList[]> {
+    const lists = await this.getRestaurantListsByLocation(location);
+    
+    // Sort by view count and save count (popularity)
+    return lists
+      .sort((a, b) => {
+        const aPopularity = (a.viewCount || 0) + (a.saveCount || 0) * 2;
+        const bPopularity = (b.viewCount || 0) + (b.saveCount || 0) * 2;
+        return bPopularity - aPopularity;
+      })
+      .slice(0, limit);
+  }
+  
+  // Enhanced list sharing
+  async shareListWithCircle(sharedList: InsertSharedList): Promise<SharedList> {
+    const id = this.sharedListId++;
+    const sharedAt = new Date();
+    
+    const newSharedList: SharedList = {
+      ...sharedList,
+      id,
+      sharedAt
+    };
+    
+    this.sharedLists.set(id, newSharedList);
+    return newSharedList;
+  }
+  
+  async getSharedListsByCircle(circleId: number): Promise<SharedList[]> {
+    return Array.from(this.sharedLists.values())
+      .filter(sharedList => sharedList.circleId === circleId);
+  }
+  
+  async getCirclesListIsSharedWith(listId: number): Promise<SharedList[]> {
+    return Array.from(this.sharedLists.values())
+      .filter(sharedList => sharedList.listId === listId);
+  }
+  
+  async isListSharedWithCircle(listId: number, circleId: number): Promise<boolean> {
+    return Array.from(this.sharedLists.values()).some(
+      sharedList => sharedList.listId === listId && sharedList.circleId === circleId
+    );
+  }
+  
+  async getSharedListsPermissions(listId: number, circleId: number): Promise<SharedList | undefined> {
+    return Array.from(this.sharedLists.values()).find(
+      sharedList => sharedList.listId === listId && sharedList.circleId === circleId
+    );
+  }
+  
+  async removeListSharingFromCircle(listId: number, circleId: number): Promise<void> {
+    const sharedListToRemove = Array.from(this.sharedLists.values()).find(
+      sharedList => sharedList.listId === listId && sharedList.circleId === circleId
+    );
+    
+    if (sharedListToRemove) {
+      this.sharedLists.delete(sharedListToRemove.id);
+    }
+  }
 }
 
 export const storage = new MemStorage();
