@@ -51,7 +51,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users", async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      res.json(users);
+      // Remove passwords from all user objects
+      const usersWithoutPasswords = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      res.json(usersWithoutPasswords);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -328,16 +333,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = await storage.getUser(story.userId);
         if (!user) continue;
         
-        if (!storiesByUser.has(user.id)) {
-          storiesByUser.set(user.id, {
-            userId: user.id,
-            userName: user.name,
-            profilePicture: user.profilePicture,
+        // Remove password from user data
+        const { password, ...userWithoutPassword } = user;
+        
+        if (!storiesByUser.has(userWithoutPassword.id)) {
+          storiesByUser.set(userWithoutPassword.id, {
+            userId: userWithoutPassword.id,
+            userName: userWithoutPassword.name,
+            profilePicture: userWithoutPassword.profilePicture,
             stories: []
           });
         }
         
-        storiesByUser.get(user.id).stories.push(story);
+        storiesByUser.get(userWithoutPassword.id).stories.push(story);
       }
       
       res.json(Array.from(storiesByUser.values()));
@@ -416,9 +424,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         circle = await storage.getCircle(list.circleId);
       }
       
+      // Remove password from creator data
+      let creatorWithoutPassword = null;
+      if (creator) {
+        const { password, ...userWithoutPassword } = creator;
+        creatorWithoutPassword = userWithoutPassword;
+      }
+      
       res.json({
         ...list,
-        creator,
+        creator: creatorWithoutPassword,
         circle,
         restaurants: listItems
       });
@@ -549,10 +564,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
+      // Ensure user is authenticated for this operation
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "You must be logged in to share lists" });
+      }
+      
+      // Convert permissions to canEdit/canReshare flags
+      let canEdit = false;
+      let canReshare = false;
+      
+      if (permissions === "edit" || permissions === "full") {
+        canEdit = true;
+      }
+      
+      if (permissions === "full") {
+        canReshare = true;
+      }
+      
       const sharedList = await storage.shareListWithCircle({
         listId,
         circleId,
-        permissions: permissions || "view"
+        sharedById: req.user.id, // Add the authenticated user as the sharer
+        canEdit,
+        canReshare
       });
       
       res.status(201).json(sharedList);
@@ -571,10 +605,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const list = await storage.getRestaurantList(sharedList.listId);
           const creator = list ? await storage.getUser(list.createdById) : null;
           
+          // Remove password from creator data
+          let creatorWithoutPassword = null;
+          if (creator) {
+            const { password, ...userWithoutPassword } = creator;
+            creatorWithoutPassword = userWithoutPassword;
+          }
+          
           return {
             ...sharedList,
             list,
-            creator
+            creator: creatorWithoutPassword
           };
         })
       );
