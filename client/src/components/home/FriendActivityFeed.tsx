@@ -92,7 +92,7 @@ export function FriendActivityFeed() {
       case 'rated':
         return (
           <>
-            rated <Link href={getActivityLink(activity)}><a className="font-medium text-primary hover:underline">{activity.targetName}</a></Link>
+            rated <Link href={getActivityLink(activity)} className="font-medium text-primary hover:underline">{activity.targetName}</Link>
             <div className="flex items-center mt-1">
               {[...Array(5)].map((_, i) => (
                 <Star 
@@ -107,13 +107,13 @@ export function FriendActivityFeed() {
       case 'joined':
         return (
           <>
-            joined <Link href={getActivityLink(activity)}><a className="font-medium text-primary hover:underline">{activity.targetName}</a></Link>
+            joined <Link href={getActivityLink(activity)} className="font-medium text-primary hover:underline">{activity.targetName}</Link>
           </>
         );
       case 'posted':
         return (
           <>
-            posted about <Link href={getActivityLink(activity)}><a className="font-medium text-primary hover:underline">{activity.targetName}</a></Link>
+            posted about <Link href={getActivityLink(activity)} className="font-medium text-primary hover:underline">{activity.targetName}</Link>
           </>
         );
       default:
@@ -132,18 +132,16 @@ export function FriendActivityFeed() {
         ) : (
           friendActivities.map((activity) => (
             <div key={activity.id} className="flex items-start gap-3">
-              <Link href={`/profile/${activity.userId}`}>
-                <a>
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={activity.profilePicture} alt={activity.userName} />
-                    <AvatarFallback>{activity.userName.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                </a>
+              <Link href={`/profile/${activity.userId}`} className="block">
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={activity.profilePicture} alt={activity.userName} />
+                  <AvatarFallback>{activity.userName.charAt(0)}</AvatarFallback>
+                </Avatar>
               </Link>
               <div className="flex-1">
                 <div className="flex items-center gap-1">
-                  <Link href={`/profile/${activity.userId}`}>
-                    <a className="font-medium hover:underline">{activity.userName}</a>
+                  <Link href={`/profile/${activity.userId}`} className="font-medium hover:underline">
+                    {activity.userName}
                   </Link>
                   <span className="text-sm text-muted-foreground">{getActivityText(activity)}</span>
                 </div>

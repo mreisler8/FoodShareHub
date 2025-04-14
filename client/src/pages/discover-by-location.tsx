@@ -112,7 +112,7 @@ export default function DiscoverByLocation() {
             </div>
           ) : popularLists && popularLists.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {popularLists.map((list) => (
+              {popularLists.map((list: any) => (
                 <Card key={list.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle>{list.name}</CardTitle>
@@ -122,7 +122,7 @@ export default function DiscoverByLocation() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {list.tags && list.tags.map((tag, i) => (
+                      {list.tags && list.tags.map((tag: any, i: number) => (
                         <span key={i} className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs">
                           {tag}
                         </span>
@@ -172,7 +172,7 @@ export default function DiscoverByLocation() {
             </div>
           ) : restaurants && restaurants.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {restaurants.map((restaurant) => (
+              {restaurants.map((restaurant: any) => (
                 <Card key={restaurant.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle>{restaurant.name}</CardTitle>
