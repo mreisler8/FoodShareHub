@@ -1,0 +1,542 @@
+import {
+  users, type User, type InsertUser,
+  restaurants, type Restaurant, type InsertRestaurant,
+  posts, type Post, type InsertPost,
+  comments, type Comment, type InsertComment,
+  hubs, type Hub, type InsertHub,
+  hubMembers, type HubMember, type InsertHubMember,
+  likes, type Like, type InsertLike,
+  savedRestaurants, type SavedRestaurant, type InsertSavedRestaurant,
+  stories, type Story, type InsertStory
+} from "@shared/schema";
+
+export interface IStorage {
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  
+  // Restaurant operations
+  getRestaurant(id: number): Promise<Restaurant | undefined>;
+  createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
+  getAllRestaurants(): Promise<Restaurant[]>;
+  searchRestaurants(query: string): Promise<Restaurant[]>;
+  
+  // Post operations
+  getPost(id: number): Promise<Post | undefined>;
+  createPost(post: InsertPost): Promise<Post>;
+  getAllPosts(): Promise<Post[]>;
+  getPostsByUser(userId: number): Promise<Post[]>;
+  getPostsByRestaurant(restaurantId: number): Promise<Post[]>;
+  getPostDetails(postId: number): Promise<any>;
+  getFeedPosts(): Promise<any[]>;
+  
+  // Comment operations
+  getComment(id: number): Promise<Comment | undefined>;
+  createComment(comment: InsertComment): Promise<Comment>;
+  getCommentsByPost(postId: number): Promise<Comment[]>;
+  
+  // Hub operations
+  getHub(id: number): Promise<Hub | undefined>;
+  createHub(hub: InsertHub): Promise<Hub>;
+  getAllHubs(): Promise<Hub[]>;
+  getFeaturedHubs(): Promise<Hub[]>;
+  
+  // Hub Member operations
+  createHubMember(hubMember: InsertHubMember): Promise<HubMember>;
+  getHubMembers(hubId: number): Promise<HubMember[]>;
+  getHubsByUser(userId: number): Promise<Hub[]>;
+  isUserMemberOfHub(userId: number, hubId: number): Promise<boolean>;
+  
+  // Like operations
+  createLike(like: InsertLike): Promise<Like>;
+  deleteLike(postId: number, userId: number): Promise<void>;
+  getLikesByPost(postId: number): Promise<Like[]>;
+  isPostLikedByUser(postId: number, userId: number): Promise<boolean>;
+  
+  // Saved Restaurant operations
+  createSavedRestaurant(savedRestaurant: InsertSavedRestaurant): Promise<SavedRestaurant>;
+  getSavedRestaurantsByUser(userId: number): Promise<SavedRestaurant[]>;
+  
+  // Story operations
+  createStory(story: InsertStory): Promise<Story>;
+  getActiveStories(): Promise<Story[]>;
+  getStoriesByUser(userId: number): Promise<Story[]>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private restaurants: Map<number, Restaurant>;
+  private posts: Map<number, Post>;
+  private comments: Map<number, Comment>;
+  private hubs: Map<number, Hub>;
+  private hubMembers: Map<number, HubMember>;
+  private likes: Map<number, Like>;
+  private savedRestaurants: Map<number, SavedRestaurant>;
+  private stories: Map<number, Story>;
+
+  private userId: number;
+  private restaurantId: number;
+  private postId: number;
+  private commentId: number;
+  private hubId: number;
+  private hubMemberId: number;
+  private likeId: number;
+  private savedRestaurantId: number;
+  private storyId: number;
+
+  constructor() {
+    this.users = new Map();
+    this.restaurants = new Map();
+    this.posts = new Map();
+    this.comments = new Map();
+    this.hubs = new Map();
+    this.hubMembers = new Map();
+    this.likes = new Map();
+    this.savedRestaurants = new Map();
+    this.stories = new Map();
+
+    this.userId = 1;
+    this.restaurantId = 1;
+    this.postId = 1;
+    this.commentId = 1;
+    this.hubId = 1;
+    this.hubMemberId = 1;
+    this.likeId = 1;
+    this.savedRestaurantId = 1;
+    this.storyId = 1;
+
+    // Initialize with some data
+    this.initializeData();
+  }
+
+  private initializeData() {
+    // Create initial users
+    const user1 = this.createUser({
+      username: "foodieSofia",
+      password: "password123",
+      name: "Sofia Chen",
+      bio: "Food enthusiast exploring NYC's culinary scene",
+      profilePicture: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"
+    });
+
+    const user2 = this.createUser({
+      username: "chefJames",
+      password: "password123",
+      name: "James Wilson",
+      bio: "Amateur chef and restaurant critic",
+      profilePicture: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"
+    });
+
+    const user3 = this.createUser({
+      username: "tasteEmma",
+      password: "password123",
+      name: "Emma Rodriguez",
+      bio: "Finding the best hidden gems in every city",
+      profilePicture: "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"
+    });
+
+    // Create initial restaurants
+    const restaurant1 = this.createRestaurant({
+      name: "Little Italy Trattoria",
+      location: "Downtown, New York City",
+      category: "Italian",
+      priceRange: "$$"
+    });
+
+    const restaurant2 = this.createRestaurant({
+      name: "Blue Ocean Sushi",
+      location: "SoHo, New York City",
+      category: "Japanese",
+      priceRange: "$$$"
+    });
+
+    const restaurant3 = this.createRestaurant({
+      name: "Spice Avenue",
+      location: "Midtown, New York City",
+      category: "Indian",
+      priceRange: "$$"
+    });
+
+    // Create initial hubs
+    const hub1 = this.createHub({
+      name: "Italian Cuisine",
+      description: "For lovers of Italian food",
+      category: "Cuisine",
+      image: "https://images.unsplash.com/photo-1542826438-bd32f43d626f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
+    });
+
+    const hub2 = this.createHub({
+      name: "Japanese Delights",
+      description: "Explore sushi, ramen, and more",
+      category: "Cuisine",
+      image: "https://images.unsplash.com/photo-1617196035154-1e7e6e28b0db?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
+    });
+
+    const hub3 = this.createHub({
+      name: "NYC Dining Scene",
+      description: "The best restaurants in NYC",
+      category: "Location",
+      image: "https://images.unsplash.com/photo-1508615263227-c5d58c1e5821?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
+    });
+
+    // Create initial hub members
+    this.createHubMember({
+      hubId: hub1.id,
+      userId: user1.id
+    });
+
+    this.createHubMember({
+      hubId: hub2.id,
+      userId: user1.id
+    });
+
+    this.createHubMember({
+      hubId: hub3.id,
+      userId: user3.id
+    });
+
+    // Create initial posts
+    const post1 = this.createPost({
+      userId: user2.id,
+      restaurantId: restaurant1.id,
+      content: "Finally tried the famous truffle pasta at Little Italy Trattoria! The ambiance was perfect for date night, and the service was exceptional. Must try the tiramisu for dessert - absolutely heavenly! 😍",
+      rating: 5,
+      visibility: "Public",
+      dishesTried: ["Truffle Pasta", "Caprese Salad", "Tiramisu"],
+      images: ["https://images.unsplash.com/photo-1595295333158-4742f28fbd85?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80", "https://images.unsplash.com/photo-1581873372796-635b67ca2008?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"]
+    });
+
+    const post2 = this.createPost({
+      userId: user3.id,
+      restaurantId: restaurant2.id,
+      content: "This omakase experience at Blue Ocean Sushi was worth every penny! Chef Takashi's attention to detail is impressive. The fish was incredibly fresh, and the sake pairing was perfect. Great place for special occasions! 🍣✨",
+      rating: 4,
+      visibility: "NYC Dining Scene",
+      dishesTried: ["Omakase Set", "Sake Flight", "Matcha Ice Cream"],
+      images: ["https://images.unsplash.com/photo-1579871494447-9811cf80d66c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"]
+    });
+
+    // Create initial comments
+    this.createComment({
+      postId: post1.id,
+      userId: user3.id,
+      content: "That pasta looks incredible! Did you make a reservation or just walk in?"
+    });
+
+    this.createComment({
+      postId: post2.id,
+      userId: user1.id,
+      content: "How much was the omakase? Been wanting to try this place!"
+    });
+
+    this.createComment({
+      postId: post2.id,
+      userId: user3.id,
+      content: "It was $150 per person, but totally worth it! They have a more affordable option at $85 too."
+    });
+
+    // Create initial likes
+    this.createLike({
+      postId: post1.id,
+      userId: user1.id
+    });
+
+    this.createLike({
+      postId: post2.id,
+      userId: user2.id
+    });
+
+    // Create initial stories
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    this.createStory({
+      userId: user2.id,
+      content: "Trying out a new pizza place",
+      image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+      expiresAt: tomorrow
+    });
+
+    this.createStory({
+      userId: user3.id,
+      content: "Best sushi in town",
+      image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+      expiresAt: tomorrow
+    });
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userId++;
+    const user: User = { ...insertUser, id };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  // Restaurant operations
+  async getRestaurant(id: number): Promise<Restaurant | undefined> {
+    return this.restaurants.get(id);
+  }
+
+  async createRestaurant(insertRestaurant: InsertRestaurant): Promise<Restaurant> {
+    const id = this.restaurantId++;
+    const restaurant: Restaurant = { ...insertRestaurant, id };
+    this.restaurants.set(id, restaurant);
+    return restaurant;
+  }
+
+  async getAllRestaurants(): Promise<Restaurant[]> {
+    return Array.from(this.restaurants.values());
+  }
+
+  async searchRestaurants(query: string): Promise<Restaurant[]> {
+    const lowerCaseQuery = query.toLowerCase();
+    return Array.from(this.restaurants.values()).filter(
+      restaurant => 
+        restaurant.name.toLowerCase().includes(lowerCaseQuery) ||
+        restaurant.category.toLowerCase().includes(lowerCaseQuery) ||
+        restaurant.location.toLowerCase().includes(lowerCaseQuery)
+    );
+  }
+
+  // Post operations
+  async getPost(id: number): Promise<Post | undefined> {
+    return this.posts.get(id);
+  }
+
+  async createPost(insertPost: InsertPost): Promise<Post> {
+    const id = this.postId++;
+    const createdAt = new Date();
+    const post: Post = { ...insertPost, id, createdAt };
+    this.posts.set(id, post);
+    return post;
+  }
+
+  async getAllPosts(): Promise<Post[]> {
+    return Array.from(this.posts.values());
+  }
+
+  async getPostsByUser(userId: number): Promise<Post[]> {
+    return Array.from(this.posts.values()).filter(
+      post => post.userId === userId
+    );
+  }
+
+  async getPostsByRestaurant(restaurantId: number): Promise<Post[]> {
+    return Array.from(this.posts.values()).filter(
+      post => post.restaurantId === restaurantId
+    );
+  }
+
+  async getPostDetails(postId: number): Promise<any> {
+    const post = await this.getPost(postId);
+    if (!post) return null;
+
+    const user = await this.getUser(post.userId);
+    const restaurant = await this.getRestaurant(post.restaurantId);
+    const comments = await this.getCommentsByPost(postId);
+    const likes = await this.getLikesByPost(postId);
+
+    const commentDetails = await Promise.all(
+      comments.map(async (comment) => {
+        const commentUser = await this.getUser(comment.userId);
+        return {
+          ...comment,
+          author: commentUser
+        };
+      })
+    );
+
+    return {
+      ...post,
+      author: user,
+      restaurant,
+      comments: commentDetails,
+      likeCount: likes.length
+    };
+  }
+
+  async getFeedPosts(): Promise<any[]> {
+    const posts = await this.getAllPosts();
+    const sortedPosts = posts.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return Promise.all(
+      sortedPosts.map(async (post) => {
+        return await this.getPostDetails(post.id);
+      })
+    );
+  }
+
+  // Comment operations
+  async getComment(id: number): Promise<Comment | undefined> {
+    return this.comments.get(id);
+  }
+
+  async createComment(insertComment: InsertComment): Promise<Comment> {
+    const id = this.commentId++;
+    const createdAt = new Date();
+    const comment: Comment = { ...insertComment, id, createdAt };
+    this.comments.set(id, comment);
+    return comment;
+  }
+
+  async getCommentsByPost(postId: number): Promise<Comment[]> {
+    return Array.from(this.comments.values()).filter(
+      comment => comment.postId === postId
+    );
+  }
+
+  // Hub operations
+  async getHub(id: number): Promise<Hub | undefined> {
+    return this.hubs.get(id);
+  }
+
+  async createHub(insertHub: InsertHub): Promise<Hub> {
+    const id = this.hubId++;
+    const createdAt = new Date();
+    const hub: Hub = { ...insertHub, id, createdAt };
+    this.hubs.set(id, hub);
+    return hub;
+  }
+
+  async getAllHubs(): Promise<Hub[]> {
+    return Array.from(this.hubs.values());
+  }
+
+  async getFeaturedHubs(): Promise<Hub[]> {
+    const allHubs = await this.getAllHubs();
+    return allHubs.slice(0, 3); // Return first 3 hubs as featured
+  }
+
+  // Hub Member operations
+  async createHubMember(insertHubMember: InsertHubMember): Promise<HubMember> {
+    const id = this.hubMemberId++;
+    const joinedAt = new Date();
+    const hubMember: HubMember = { ...insertHubMember, id, joinedAt };
+    this.hubMembers.set(id, hubMember);
+    return hubMember;
+  }
+
+  async getHubMembers(hubId: number): Promise<HubMember[]> {
+    return Array.from(this.hubMembers.values()).filter(
+      member => member.hubId === hubId
+    );
+  }
+
+  async getHubsByUser(userId: number): Promise<Hub[]> {
+    const userMemberships = Array.from(this.hubMembers.values()).filter(
+      member => member.userId === userId
+    );
+    
+    return Promise.all(
+      userMemberships.map(async membership => {
+        const hub = await this.getHub(membership.hubId);
+        return hub!;
+      })
+    );
+  }
+
+  async isUserMemberOfHub(userId: number, hubId: number): Promise<boolean> {
+    const members = await this.getHubMembers(hubId);
+    return members.some(member => member.userId === userId);
+  }
+
+  // Like operations
+  async createLike(insertLike: InsertLike): Promise<Like> {
+    // Check if like already exists
+    const existingLike = Array.from(this.likes.values()).find(
+      like => like.postId === insertLike.postId && like.userId === insertLike.userId
+    );
+    
+    if (existingLike) {
+      return existingLike;
+    }
+    
+    const id = this.likeId++;
+    const createdAt = new Date();
+    const like: Like = { ...insertLike, id, createdAt };
+    this.likes.set(id, like);
+    return like;
+  }
+
+  async deleteLike(postId: number, userId: number): Promise<void> {
+    const likeToDelete = Array.from(this.likes.values()).find(
+      like => like.postId === postId && like.userId === userId
+    );
+    
+    if (likeToDelete) {
+      this.likes.delete(likeToDelete.id);
+    }
+  }
+
+  async getLikesByPost(postId: number): Promise<Like[]> {
+    return Array.from(this.likes.values()).filter(
+      like => like.postId === postId
+    );
+  }
+
+  async isPostLikedByUser(postId: number, userId: number): Promise<boolean> {
+    return Array.from(this.likes.values()).some(
+      like => like.postId === postId && like.userId === userId
+    );
+  }
+
+  // Saved Restaurant operations
+  async createSavedRestaurant(insertSavedRestaurant: InsertSavedRestaurant): Promise<SavedRestaurant> {
+    const id = this.savedRestaurantId++;
+    const savedAt = new Date();
+    const savedRestaurant: SavedRestaurant = { ...insertSavedRestaurant, id, savedAt };
+    this.savedRestaurants.set(id, savedRestaurant);
+    return savedRestaurant;
+  }
+
+  async getSavedRestaurantsByUser(userId: number): Promise<SavedRestaurant[]> {
+    return Array.from(this.savedRestaurants.values()).filter(
+      saved => saved.userId === userId
+    );
+  }
+
+  // Story operations
+  async createStory(insertStory: InsertStory): Promise<Story> {
+    const id = this.storyId++;
+    const createdAt = new Date();
+    const story: Story = { ...insertStory, id, createdAt };
+    this.stories.set(id, story);
+    return story;
+  }
+
+  async getActiveStories(): Promise<Story[]> {
+    const now = new Date();
+    return Array.from(this.stories.values()).filter(
+      story => new Date(story.expiresAt) > now
+    );
+  }
+
+  async getStoriesByUser(userId: number): Promise<Story[]> {
+    const now = new Date();
+    return Array.from(this.stories.values()).filter(
+      story => story.userId === userId && new Date(story.expiresAt) > now
+    );
+  }
+}
+
+export const storage = new MemStorage();

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>TasteBuds - Share Food Experiences</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --font-heading: 'Poppins', sans-serif;
+        --font-body: 'Inter', sans-serif;
+        --font-accent: 'Playfair Display', serif;
+      }
+      
+      body {
+        font-family: var(--font-body);
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-heading);
+      }
+      
+      .font-accent {
+        font-family: var(--font-accent);
+      }
+      
+      .post-card {
+        transition: transform 0.2s ease;
+      }
+      .post-card:hover {
+        transform: translateY(-4px);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+  </body>
+</html>
