@@ -87,6 +87,14 @@ export const analytics = {
       listId,
       listName 
     });
+  },
+  
+  trackInvite: (userId: number | undefined, inviteType: string, method: string, circleId?: number) => {
+    trackAction(userId, 'send_invite', {
+      inviteType,
+      method, 
+      ...(circleId && { circleId })
+    });
   }
 };
 

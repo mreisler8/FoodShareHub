@@ -152,8 +152,8 @@ export function DesktopRightSidebar() {
             </div>
           ))}
           
-          <Link href="/discover">
-            <a className="text-secondary text-sm font-medium">View more restaurants</a>
+          <Link href="/discover" className="text-secondary text-sm font-medium">
+            View more restaurants
           </Link>
         </div>
       </div>
@@ -206,8 +206,8 @@ export function DesktopRightSidebar() {
             </div>
           ))}
           
-          <Link href="/discover">
-            <a className="text-secondary text-sm font-medium">Discover more hubs</a>
+          <Link href="/discover" className="text-secondary text-sm font-medium">
+            Discover more hubs
           </Link>
         </div>
       </div>

@@ -169,10 +169,8 @@ export function PostCard({ post }: PostCardProps) {
           
           {/* Restaurant & Rating Info - Emphasized */}
           <div className="px-3 py-2">
-            <Link href={`/restaurants/${post.restaurantId}`}>
-              <a className="flex items-center">
-                <h3 className="text-base font-medium text-primary hover:underline">{post.restaurant?.name || 'Restaurant'}</h3>
-              </a>
+            <Link href={`/restaurants/${post.restaurantId}`} className="flex items-center">
+              <h3 className="text-base font-medium text-primary hover:underline">{post.restaurant?.name || 'Restaurant'}</h3>
             </Link>
             <div className="flex flex-wrap items-center mt-1 gap-2">
               <span className="inline-flex items-center text-xs text-neutral-700">
@@ -270,24 +268,22 @@ export function PostCard({ post }: PostCardProps) {
                   <h4 className="text-xs font-medium text-neutral-500">
                     Latest comments
                   </h4>
-                  <Link href={`/posts/${post.id}#comments`}>
-                    <a className="text-xs text-primary">See all</a>
+                  <Link href={`/posts/${post.id}#comments`} className="text-xs text-primary">
+                    See all
                   </Link>
                 </div>
                 {post.comments.slice(0, 1).map((comment) => (
                   <div key={comment.id} className="flex items-start">
-                    <Link href={`/profile/${comment.author?.id || comment.userId}`}>
-                      <a>
-                        <Avatar className="w-6 h-6 mt-0.5">
-                          <AvatarImage src={comment.author?.profilePicture || ''} alt={comment.author?.name || 'User'} />
-                          <AvatarFallback>{comment.author?.name?.charAt(0) || 'U'}</AvatarFallback>
-                        </Avatar>
-                      </a>
+                    <Link href={`/profile/${comment.author?.id || comment.userId}`} className="block">
+                      <Avatar className="w-6 h-6 mt-0.5">
+                        <AvatarImage src={comment.author?.profilePicture || ''} alt={comment.author?.name || 'User'} />
+                        <AvatarFallback>{comment.author?.name?.charAt(0) || 'U'}</AvatarFallback>
+                      </Avatar>
                     </Link>
                     <div className="ml-2 flex-1">
                       <p className="text-xs">
-                        <Link href={`/profile/${comment.author?.id || comment.userId}`}>
-                          <a className="font-medium text-neutral-700 hover:underline">{comment.author?.name || 'User'}</a>
+                        <Link href={`/profile/${comment.author?.id || comment.userId}`} className="font-medium text-neutral-700 hover:underline">
+                          {comment.author?.name || 'User'}
                         </Link>
                         <span className="text-neutral-600"> {comment.content}</span>
                       </p>
