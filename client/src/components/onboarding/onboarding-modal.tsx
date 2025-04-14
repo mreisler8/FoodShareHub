@@ -14,9 +14,16 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
   const [step, setStep] = useState<string>("welcome");
   const { user } = useAuth();
 
+  // Force close function that will be called if normal close fails
+  const forceClose = () => {
+    console.log("Force closing onboarding modal");
+    onClose();
+  };
+
   const handleComplete = () => {
     // Here you could potentially update user preferences in the backend
     // to mark onboarding as complete
+    console.log("Completing onboarding");
     onClose();
   };
 
@@ -24,6 +31,17 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
+          <div className="flex justify-end">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 absolute top-2 right-2"
+              onClick={forceClose}
+              aria-label="Close"
+            >
+              ✕
+            </Button>
+          </div>
           <DialogTitle className="text-center text-2xl">
             Welcome to Circles!
           </DialogTitle>
@@ -123,7 +141,9 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
               <Button variant="outline" onClick={() => setStep("discover")}>
                 Back
               </Button>
-              <Button onClick={handleComplete}>Get Started</Button>
+              <Button onClick={forceClose} className="bg-primary hover:bg-primary/90">
+                Skip & Get Started
+              </Button>
             </div>
           </TabsContent>
         </Tabs>
