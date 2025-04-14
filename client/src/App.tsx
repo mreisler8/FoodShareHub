@@ -19,6 +19,7 @@ function Router() {
       <Route path="/hubs/:id" component={HubDetails} />
       <Route path="/profile/:id?" component={Profile} />
       <Route path="/discover" component={Discover} />
+      <Route path="/lists/create" component={CreateList} />
       <Route path="/lists/:id" component={ListDetails} />
       <Route component={NotFound} />
     </Switch>

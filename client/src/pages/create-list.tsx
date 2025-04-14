@@ -59,18 +59,17 @@ export default function CreateList() {
       // Convert hubId from string to number or null
       const hubId = values.hubId ? parseInt(values.hubId) : null;
       
-      const response = await apiRequest('/api/restaurant-lists', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: values.name,
-          description: values.description || null,
-          isPublic: values.isPublic,
-          hubId: hubId,
-          tags: tagsArray.length > 0 ? tagsArray : null,
-        }),
-      });
+      // Create payload
+      const payload = {
+        name: values.name,
+        description: values.description || null,
+        isPublic: values.isPublic,
+        hubId: hubId,
+        tags: tagsArray.length > 0 ? tagsArray : null,
+      };
       
-      return response;
+      // Use apiRequest with the correct pattern
+      return await apiRequest('/api/restaurant-lists', 'POST', payload);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
@@ -80,11 +79,7 @@ export default function CreateList() {
       });
       
       // Navigate to the new list
-      if (data && data.id) {
-        navigate(`/lists/${data.id}`);
-      } else {
-        navigate("/");
-      }
+      navigate(`/lists/${data.id}`);
     },
     onError: () => {
       toast({
