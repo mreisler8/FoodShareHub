@@ -39,9 +39,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      // Return the current authenticated user (password is excluded in auth.ts)
-      const user = req.user;
-      res.json(user);
+      // Remove password from user object
+      const { password, ...userWithoutPassword } = req.user;
+      res.json(userWithoutPassword);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -63,7 +63,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      res.json(user);
+      // Remove password from user object
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
