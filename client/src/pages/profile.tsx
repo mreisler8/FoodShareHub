@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostCard } from "@/components/home/PostCard";
 import { Button } from "@/components/ui/button";
 import { CreatePostButton } from "@/components/create-post/CreatePostButton";
-import { ArrowLeft, CalendarDays, MapPin, Settings, UserPlus } from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPin, Settings, UserPlus, Share2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserWithStats } from "@/lib/types";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { ReferralButton } from "@/components/invitation/ReferralButton";
 
 export default function Profile() {
   const { id } = useParams();
@@ -83,9 +84,19 @@ export default function Profile() {
                   </div>
                   
                   {isOwnProfile ? (
-                    <Button variant="outline" className="md:ml-auto" size="sm">
-                      <Settings className="h-4 w-4 mr-2" /> Edit Profile
-                    </Button>
+                    <div className="md:ml-auto flex space-x-2">
+                      <ReferralButton 
+                        userId={currentUser?.id || 1}
+                        referralType="app"
+                        variant="secondary"
+                        size="sm"
+                      >
+                        <Share2 className="h-4 w-4 mr-2" /> Invite Friends
+                      </ReferralButton>
+                      <Button variant="outline" size="sm">
+                        <Settings className="h-4 w-4 mr-2" /> Edit Profile
+                      </Button>
+                    </div>
                   ) : (
                     <Button className="md:ml-auto bg-primary text-white hover:bg-primary/90" size="sm">
                       <UserPlus className="h-4 w-4 mr-2" /> Follow
