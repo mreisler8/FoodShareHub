@@ -45,7 +45,11 @@ export const posts = pgTable("posts", {
   rating: integer("rating").notNull(),
   visibility: text("visibility").notNull(),
   dishesTried: text("dishes_tried").array(),
-  images: text("images").array(),
+  images: text("images").array(), // Made optional effectively
+  priceAssessment: text("price_assessment"), // "great value", "overpriced", "fair"
+  atmosphere: text("atmosphere"), // "quiet", "lively", "romantic", etc.
+  serviceRating: integer("service_rating"), // 1-5 rating for service
+  dietaryOptions: text("dietary_options").array(), // "vegetarian", "vegan", "gluten-free"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -57,6 +61,10 @@ export const insertPostSchema = createInsertSchema(posts).pick({
   visibility: true,
   dishesTried: true,
   images: true,
+  priceAssessment: true,
+  atmosphere: true,
+  serviceRating: true,
+  dietaryOptions: true,
 });
 
 // Comment model
@@ -81,6 +89,8 @@ export const hubs = pgTable("hubs", {
   description: text("description").notNull(),
   category: text("category").notNull(),
   image: text("image"),
+  isPrivate: boolean("is_private").default(false),
+  tags: text("tags").array(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -89,6 +99,8 @@ export const insertHubSchema = createInsertSchema(hubs).pick({
   description: true,
   category: true,
   image: true,
+  isPrivate: true,
+  tags: true,
 });
 
 // HubMember model
@@ -96,12 +108,14 @@ export const hubMembers = pgTable("hub_members", {
   id: serial("id").primaryKey(),
   hubId: integer("hub_id").notNull(),
   userId: integer("user_id").notNull(),
+  role: text("role").default("member"), // Can be: "owner", "admin", "member"
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
 });
 
 export const insertHubMemberSchema = createInsertSchema(hubMembers).pick({
   hubId: true,
   userId: true,
+  role: true,
 });
 
 // Like model
@@ -147,6 +161,49 @@ export const insertStorySchema = createInsertSchema(stories).pick({
   expiresAt: true,
 });
 
+// Restaurant List model
+export const restaurantLists = pgTable("restaurant_lists", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdById: integer("created_by_id").notNull(),
+  hubId: integer("hub_id"), // Optional: if associated with a hub
+  isPublic: boolean("is_public").default(true),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRestaurantListSchema = createInsertSchema(restaurantLists).pick({
+  name: true,
+  description: true,
+  createdById: true,
+  hubId: true,
+  isPublic: true,
+  tags: true,
+});
+
+// Restaurant List Items model (restaurants in a list)
+export const restaurantListItems = pgTable("restaurant_list_items", {
+  id: serial("id").primaryKey(),
+  listId: integer("list_id").notNull(),
+  restaurantId: integer("restaurant_id").notNull(),
+  notes: text("notes"),
+  mustTryDishes: text("must_try_dishes").array(),
+  addedById: integer("added_by_id").notNull(),
+  position: integer("position").default(0),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+});
+
+export const insertRestaurantListItemSchema = createInsertSchema(restaurantListItems).pick({
+  listId: true,
+  restaurantId: true,
+  notes: true,
+  mustTryDishes: true,
+  addedById: true,
+  position: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -174,3 +231,9 @@ export type InsertSavedRestaurant = z.infer<typeof insertSavedRestaurantSchema>;
 
 export type Story = typeof stories.$inferSelect;
 export type InsertStory = z.infer<typeof insertStorySchema>;
+
+export type RestaurantList = typeof restaurantLists.$inferSelect;
+export type InsertRestaurantList = z.infer<typeof insertRestaurantListSchema>;
+
+export type RestaurantListItem = typeof restaurantListItems.$inferSelect;
+export type InsertRestaurantListItem = z.infer<typeof insertRestaurantListItemSchema>;

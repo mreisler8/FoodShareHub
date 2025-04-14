@@ -7,7 +7,9 @@ import {
   hubMembers, type HubMember, type InsertHubMember,
   likes, type Like, type InsertLike,
   savedRestaurants, type SavedRestaurant, type InsertSavedRestaurant,
-  stories, type Story, type InsertStory
+  stories, type Story, type InsertStory,
+  restaurantLists, type RestaurantList, type InsertRestaurantList,
+  restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem
 } from "@shared/schema";
 
 export interface IStorage {
@@ -63,6 +65,19 @@ export interface IStorage {
   createStory(story: InsertStory): Promise<Story>;
   getActiveStories(): Promise<Story[]>;
   getStoriesByUser(userId: number): Promise<Story[]>;
+  
+  // Restaurant List operations
+  createRestaurantList(list: InsertRestaurantList): Promise<RestaurantList>;
+  getRestaurantList(id: number): Promise<RestaurantList | undefined>;
+  getRestaurantListsByHub(hubId: number): Promise<RestaurantList[]>;
+  getRestaurantListsByUser(userId: number): Promise<RestaurantList[]>;
+  getPublicRestaurantLists(): Promise<RestaurantList[]>;
+  
+  // Restaurant List Item operations
+  addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem>;
+  removeRestaurantFromList(listId: number, restaurantId: number): Promise<void>;
+  getRestaurantsInList(listId: number): Promise<RestaurantListItem[]>;
+  getDetailedRestaurantsInList(listId: number): Promise<any[]>; // with restaurant details
 }
 
 export class MemStorage implements IStorage {
@@ -75,6 +90,8 @@ export class MemStorage implements IStorage {
   private likes: Map<number, Like>;
   private savedRestaurants: Map<number, SavedRestaurant>;
   private stories: Map<number, Story>;
+  private restaurantLists: Map<number, RestaurantList>;
+  private restaurantListItems: Map<number, RestaurantListItem>;
 
   private userId: number;
   private restaurantId: number;
@@ -85,6 +102,8 @@ export class MemStorage implements IStorage {
   private likeId: number;
   private savedRestaurantId: number;
   private storyId: number;
+  private restaurantListId: number;
+  private restaurantListItemId: number;
 
   constructor() {
     this.users = new Map();
