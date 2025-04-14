@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Rating } from "@/components/ui/rating";
 import { Search, Pizza, Coffee, GlassWater } from "lucide-react";
 import { Link } from "wouter";
-import { PopularRestaurant, FriendActivity, HubWithStats } from "@/lib/types";
+import { PopularRestaurant, FriendActivity, CircleWithStats } from "@/lib/types";
 
 export function DesktopRightSidebar() {
   // For now we'll use static data since these would normally come from API endpoints
@@ -74,7 +74,7 @@ export function DesktopRightSidebar() {
     }
   ];
   
-  const suggestedCircles: HubWithStats[] = [
+  const suggestedCircles: CircleWithStats[] = [
     {
       id: 4,
       name: "Pizza Enthusiasts",
