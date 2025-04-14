@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Rating } from "@/components/ui/rating";
 import { 
-  Heart, MessageCircle, Bookmark, Share2, 
+  Heart, MessageCircle, Bookmark, Share2,
   MoreHorizontal, MapPin, Utensils, Globe, 
   Users, Send
 } from "lucide-react";
@@ -14,7 +14,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { InstagramShareButton } from "@/components/shared/InstagramShareButton";
+import { SocialShare } from "@/components/common/SocialShare";
 import { TrustIndicators } from "@/components/shared/TrustIndicators";
 
 interface PostCardProps {
@@ -252,12 +252,16 @@ export function PostCard({ post }: PostCardProps) {
                   <Bookmark className={`mr-1 h-3.5 w-3.5 ${post.isSaved ? 'fill-current' : ''}`} />
                   <span className="text-xs">Save</span>
                 </button>
-                <Link href={`/posts/${post.id}`}>
-                  <a className="flex items-center text-neutral-500">
-                    <Share2 className="mr-1 h-3.5 w-3.5" />
-                    <span className="text-xs">Share</span>
-                  </a>
-                </Link>
+                <SocialShare 
+                  url={`${window.location.origin}/posts/${post.id}`}
+                  title={`${post.author?.name || 'Someone'} recommends ${post.restaurant?.name || 'a restaurant'}`}
+                  description={post.content}
+                  image={post.images.length > 0 ? post.images[0] : ''}
+                  contentId={post.id}
+                  userId={1} // In a real app, this would be the current user's ID
+                  variant="icon"
+                  className="text-neutral-500"
+                />
               </div>
             </div>
             
