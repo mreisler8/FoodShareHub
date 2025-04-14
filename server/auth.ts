@@ -56,18 +56,24 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Authenticating user:", username);
         const user = await storage.getUserByUsername(username);
         if (!user) {
+          console.log("User not found");
           return done(null, false, { message: "Invalid username or password" });
         }
         
+        console.log("User found, verifying password");
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
+          console.log("Invalid password");
           return done(null, false, { message: "Invalid username or password" });
         }
         
+        console.log("Password verified successfully");
         return done(null, user);
       } catch (err) {
+        console.log("Authentication error:", err);
         return done(err);
       }
     }),
@@ -127,14 +133,26 @@ export function setupAuth(app: Express) {
 
   // User login endpoint
   app.post("/api/login", (req, res, next) => {
+    console.log("Login attempt:", req.body.username);
     passport.authenticate("local", (err: Error, user: Express.User, info: any) => {
-      if (err) return next(err);
-      if (!user) return res.status(401).json({ error: info?.message || "Authentication failed" });
+      if (err) {
+        console.log("Login error:", err);
+        return next(err);
+      }
+      if (!user) {
+        console.log("Login failed:", info?.message || "Authentication failed");
+        return res.status(401).json({ error: info?.message || "Authentication failed" });
+      }
       
+      console.log("User authenticated, creating session...");
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.log("Session creation error:", err);
+          return next(err);
+        }
         // Return user without password
         const { password, ...userWithoutPassword } = user;
+        console.log("Login successful:", userWithoutPassword);
         return res.status(200).json(userWithoutPassword);
       });
     })(req, res, next);
@@ -150,12 +168,17 @@ export function setupAuth(app: Express) {
 
   // Get current user information endpoint
   app.get("/api/user", (req, res) => {
+    console.log("Checking authentication, session id:", req.sessionID);
+    console.log("Session:", req.session);
+    console.log("Is authenticated:", req.isAuthenticated());
+    
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
     
     // Return user without password
     const { password, ...userWithoutPassword } = req.user as Express.User;
+    console.log("User authenticated:", userWithoutPassword);
     res.json(userWithoutPassword);
   });
 }
