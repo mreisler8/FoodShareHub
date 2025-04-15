@@ -123,6 +123,31 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Feed Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Latest Posts</h2>
+          
+          {isLoadingFeed ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : feedPosts.length > 0 ? (
+            <div className="space-y-6">
+              {feedPosts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No Posts Yet"
+              description="Follow friends or join circles to see posts in your feed, or create your first post."
+              icon={PlusCircle}
+              actionLabel="Create a Post"
+              actionHref="/create-post"
+            />
+          )}
+        </div>
+        
         {/* Explore Section - for all users */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Explore</h2>
