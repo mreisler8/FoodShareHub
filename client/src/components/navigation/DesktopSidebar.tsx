@@ -1,9 +1,10 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 export function DesktopSidebar() {
   const [location] = useLocation();
