@@ -6,9 +6,11 @@ import { Bell, MessageSquare, Users, Utensils, Bookmark, PlusCircle } from "luci
 import { EmptyState } from "@/components/ui/empty-state";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { QuickAddRestaurant } from "@/components/restaurant/QuickAddRestaurant";
+import { PostCard } from "@/components/home/PostCard";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { PostWithDetails } from "@/lib/types";
 
 export default function Home() {
   const { user } = useAuth();
@@ -23,6 +25,12 @@ export default function Home() {
   // Check if user has any restaurant lists
   const { data: userLists = [], isLoading: isLoadingLists } = useQuery<any[]>({
     queryKey: ["/api/lists/user"],
+    enabled: !!user,
+  });
+  
+  // Fetch posts for the feed
+  const { data: feedPosts = [], isLoading: isLoadingFeed } = useQuery<PostWithDetails[]>({
+    queryKey: ["/api/feed"],
     enabled: !!user,
   });
   

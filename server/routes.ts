@@ -1002,21 +1002,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/restaurant-lists/:listId/shared-with", async (req, res) => {
     try {
-      const sharedEntries = await storage.getCirclesListIsSharedWith(parseInt(req.params.listId));
+      const listId = parseInt(req.params.listId);
       
-      // Get circle details for each shared entry
-      const circlesWithDetails = await Promise.all(
-        sharedEntries.map(async (sharedEntry) => {
-          const circle = await storage.getCircle(sharedEntry.circleId);
-          
-          return {
-            ...sharedEntry,
-            circle
-          };
-        })
-      );
+      // Check if list exists
+      const list = await storage.getRestaurantList(listId);
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
       
-      res.json(circlesWithDetails);
+      // Feature not fully implemented yet
+      res.status(200).json([]);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -1024,12 +1019,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/restaurant-lists/:listId/shared-with/:circleId", async (req, res) => {
     try {
-      await storage.removeListSharingFromCircle(
-        parseInt(req.params.listId),
-        parseInt(req.params.circleId)
-      );
+      const listId = parseInt(req.params.listId);
+      const circleId = parseInt(req.params.circleId);
       
-      res.status(204).end();
+      // Ensure user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "You must be logged in to unshare lists" });
+      }
+      
+      // Check if the list and circle exist
+      const list = await storage.getRestaurantList(listId);
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+      
+      const circle = await storage.getCircle(circleId);
+      if (!circle) {
+        return res.status(404).json({ error: "Circle not found" });
+      }
+      
+      // Allow unsharing if user created the list
+      const isListCreator = list.createdById === req.user.id;
+      
+      if (!isListCreator) {
+        return res.status(403).json({ error: "You don't have permission to unshare this list" });
+      }
+      
+      // Feature not fully implemented yet
+      res.status(501).json({ 
+        message: "List unsharing functionality will be available in a future update"
+      });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

@@ -137,11 +137,15 @@ export function EditPostForm({ post, open, onOpenChange }: EditPostFormProps) {
                 <FormItem className="space-y-1">
                   <FormLabel>Rating</FormLabel>
                   <FormControl>
-                    <Rating 
-                      value={field.value} 
-                      onChange={field.onChange}
-                      size="md"
-                    />
+                    <div className="flex items-center">
+                      <Rating 
+                        value={field.value} 
+                        onChange={field.onChange}
+                        size="md"
+                        readonly={false}
+                        showValue={true}
+                      />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
