@@ -7,6 +7,8 @@ interface RatingProps {
   size?: "xs" | "sm" | "md" | "lg";
   showValue?: boolean;
   className?: string;
+  onChange?: (value: number) => void;
+  readonly?: boolean;
 }
 
 export function Rating({
@@ -15,6 +17,8 @@ export function Rating({
   size = "md",
   showValue = true,
   className,
+  onChange,
+  readonly = onChange ? false : true,
 }: RatingProps) {
   // Generate an array representing stars to display
   const stars = Array(max)
@@ -44,22 +48,40 @@ export function Rating({
     lg: 20,
   };
 
-  const starClassName = "text-warning";
+  const starClassName = cn(
+    "text-warning",
+    !readonly && "cursor-pointer hover:scale-110 transition-transform"
+  );
+
+  const handleStarClick = (starValue: number) => {
+    if (!readonly && onChange) {
+      onChange(starValue);
+    }
+  };
 
   return (
     <div className={cn("flex items-center", className)}>
       <div className="flex">
-        {stars.map((type, index) => (
-          <span key={index} className={starClassName}>
-            {type === "full" ? (
-              <Star fill="currentColor" size={starSizes[size]} />
-            ) : type === "half" ? (
-              <StarHalf fill="currentColor" size={starSizes[size]} />
-            ) : (
-              <Star size={starSizes[size]} />
-            )}
-          </span>
-        ))}
+        {stars.map((type, index) => {
+          const starValue = index + 1;
+          return (
+            <span 
+              key={index} 
+              className={starClassName}
+              onClick={() => handleStarClick(starValue)}
+              role={!readonly ? "button" : undefined}
+              tabIndex={!readonly ? 0 : undefined}
+            >
+              {type === "full" ? (
+                <Star fill="currentColor" size={starSizes[size]} />
+              ) : type === "half" ? (
+                <StarHalf fill="currentColor" size={starSizes[size]} />
+              ) : (
+                <Star size={starSizes[size]} />
+              )}
+            </span>
+          );
+        })}
       </div>
       {showValue && (
         <span className={cn("ml-1.5 text-neutral-700", sizeClasses[size])}>

@@ -24,6 +24,10 @@ export interface PostWithDetails {
   likeCount: number;
   isLiked?: boolean;
   isSaved?: boolean;
+  priceAssessment?: string;
+  atmosphere?: string;
+  serviceRating?: number;
+  dietaryOptions?: string[];
 }
 
 export interface CommentWithAuthor extends Comment {

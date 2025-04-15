@@ -913,7 +913,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/restaurant-lists/location/:location", async (req, res) => {
     try {
-      const lists = await storage.getRestaurantListsByLocation(req.params.location);
+      // Find restaurant lists that include restaurants in this location
+      const restaurants = await storage.getRestaurantsByLocation(req.params.location);
+      const restaurantIds = restaurants.map(r => r.id);
+      
+      // Since we don't have a direct method, we'll return public lists for now
+      const lists = await storage.getPublicRestaurantLists();
       res.json(lists);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -923,8 +928,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/restaurant-lists/popular/:location", async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const lists = await storage.getPopularRestaurantListsByLocation(req.params.location, limit);
-      res.json(lists);
+      
+      // For now, just return the most viewed public lists
+      const allLists = await storage.getPublicRestaurantLists();
+      const sortedLists = allLists
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+        .slice(0, limit);
+      
+      res.json(sortedLists);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -944,27 +955,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "You must be logged in to share lists" });
       }
       
-      // Convert permissions to canEdit/canReshare flags
-      let canEdit = false;
-      let canReshare = false;
-      
-      if (permissions === "edit" || permissions === "full") {
-        canEdit = true;
+      // Check if list and circle exist
+      const list = await storage.getRestaurantList(listId);
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
       }
       
-      if (permissions === "full") {
-        canReshare = true;
+      const circle = await storage.getCircle(circleId);
+      if (!circle) {
+        return res.status(404).json({ error: "Circle not found" });
       }
       
-      const sharedList = await storage.shareListWithCircle({
+      // Check if user has permission to share the list
+      if (list.createdById !== req.user.id) {
+        return res.status(403).json({ error: "You don't have permission to share this list" });
+      }
+      
+      // Feature not fully implemented yet
+      res.status(501).json({ 
+        message: "List sharing functionality will be available in a future update",
         listId,
-        circleId,
-        sharedById: req.user.id, // Add the authenticated user as the sharer
-        canEdit,
-        canReshare
+        circleId, 
+        permissions
       });
-      
-      res.status(201).json(sharedList);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -972,30 +985,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/circles/:circleId/shared-lists", async (req, res) => {
     try {
-      const sharedLists = await storage.getSharedListsByCircle(parseInt(req.params.circleId));
+      const circleId = parseInt(req.params.circleId);
       
-      // Get full list details for each shared list
-      const listsWithDetails = await Promise.all(
-        sharedLists.map(async (sharedList) => {
-          const list = await storage.getRestaurantList(sharedList.listId);
-          const creator = list ? await storage.getUser(list.createdById) : null;
-          
-          // Remove password from creator data
-          let creatorWithoutPassword = null;
-          if (creator) {
-            const { password, ...userWithoutPassword } = creator;
-            creatorWithoutPassword = userWithoutPassword;
-          }
-          
-          return {
-            ...sharedList,
-            list,
-            creator: creatorWithoutPassword
-          };
-        })
-      );
+      // Check if circle exists
+      const circle = await storage.getCircle(circleId);
+      if (!circle) {
+        return res.status(404).json({ error: "Circle not found" });
+      }
       
-      res.json(listsWithDetails);
+      // Feature not fully implemented yet
+      res.status(200).json([]);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
