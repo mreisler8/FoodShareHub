@@ -460,12 +460,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/posts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
     try {
       const postData = insertPostSchema.parse(req.body);
       const newPost = await storage.createPost(postData);
       res.status(201).json(newPost);
     } catch (err: any) {
       handleZodError(err, res);
+    }
+  });
+  
+  // Update a post
+  app.put("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const postId = parseInt(req.params.id);
+      const post = await storage.getPost(postId);
+      
+      // Check if post exists
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
+      // Check if the authenticated user is the author of the post
+      if (post.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized to update this post" });
+      }
+      
+      // Validate the request body
+      const updateData = req.body;
+      
+      // Update the post
+      const updatedPost = await storage.updatePost(postId, updateData);
+      res.json(updatedPost);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  // Delete a post
+  app.delete("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const postId = parseInt(req.params.id);
+      const post = await storage.getPost(postId);
+      
+      // Check if post exists
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      
+      // Check if the authenticated user is the author of the post
+      if (post.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized to delete this post" });
+      }
+      
+      // Delete the post
+      await storage.deletePost(postId);
+      res.status(200).json({ message: "Post deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
