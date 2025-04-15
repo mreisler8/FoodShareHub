@@ -416,26 +416,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply offset pagination
       const offset = (page - 1) * limit;
       
-      // TODO: Update storage.getFeedPosts to accept pagination parameters
-      // const feedPosts = await storage.getFeedPosts({ userId: req.user.id, offset, limit });
-      const feedPosts = await storage.getFeedPosts();
+      // Get paginated posts with new optimized method
+      const feedPosts = await storage.getFeedPosts({ 
+        userId: req.user.id, 
+        offset, 
+        limit 
+      });
       
-      // Apply manual pagination as a temporary solution
-      const paginatedPosts = feedPosts.slice(offset, offset + limit);
-      
-      // Process posts efficiently - use destructuring for cleaner code
-      const safeFeedPosts = paginatedPosts.map(post => {
+      // Make sure the posts are safe (no password info)
+      const safeFeedPosts = feedPosts.map(post => {
+        // Clean post author using destructuring
         const { author, comments = [], ...postData } = post;
+        let cleanAuthor = null;
         
-        // Clean post author efficiently with optional chaining
-        const cleanAuthor = author?.password 
-          ? (({ password, ...rest }) => rest)(author) 
-          : author;
+        if (author) {
+          const { password, ...authorWithoutPassword } = author;
+          cleanAuthor = authorWithoutPassword;
+        }
         
-        // Process comments efficiently
+        // Process comments if they exist
         const cleanComments = Array.isArray(comments) 
           ? comments.map(comment => {
-              if (!comment.author) return comment;
+              if (!comment || !comment.author) return comment;
               const { password, ...authorData } = comment.author;
               return { ...comment, author: authorData };
             })
@@ -448,20 +450,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      // Add pagination metadata to help client
-      const totalPosts = feedPosts.length;
-      const totalPages = Math.ceil(totalPosts / limit);
+      // Get total count from the posts list
+      // In this approach we just count from the first post
+      const total = feedPosts.length > 0 ? feedPosts[0].totalPosts || 0 : 0;
+      const totalPages = Math.ceil(total / limit);
       const hasMore = page < totalPages;
+      
+      // Create pagination info
+      const pagination = {
+        page,
+        limit,
+        total, 
+        totalPages,
+        hasMore
+      };
       
       res.json({
         posts: safeFeedPosts,
-        pagination: {
-          page,
-          limit,
-          total: totalPosts,
-          totalPages,
-          hasMore
-        }
+        pagination
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

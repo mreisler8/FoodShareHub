@@ -319,25 +319,65 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getFeedPosts(): Promise<any[]> {
+  // Optimized getFeedPosts method with pagination support
+  async getFeedPosts(options?: { offset?: number; limit?: number; userId?: number }): Promise<any[]> {
+    // Get all posts with ordering
     const allPosts = await this.getAllPosts();
     
+    // Apply offset and limit if options are provided
+    const offset = options?.offset || 0;
+    const limit = options?.limit || allPosts.length;
+    const userId = options?.userId; // For future use
+    
+    // Get paginated posts
+    const paginatedPosts = allPosts.slice(offset, offset + limit);
+    
+    // Process posts with details efficiently
     const postsWithDetails = await Promise.all(
-      allPosts.map(async (post) => {
+      paginatedPosts.map(async (post) => {
+        // Fetch related data
         const [author] = await db.select().from(users).where(eq(users.id, post.userId));
         const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, post.restaurantId));
         const likeCount = await this.getLikesByPost(post.id).then(likes => likes.length);
         
-        return {
+        // Get comment count for display
+        const comments = await this.getCommentsByPost(post.id);
+        
+        // Create the post with details
+        const postWithDetails: any = {
           ...post,
           author,
           restaurant,
-          likeCount
+          likeCount,
+          commentCount: comments.length,
+          totalPosts: allPosts.length,
+          comments: [] // Empty array to be populated if needed
         };
+        
+        return postWithDetails;
       })
     );
     
-    return postsWithDetails;
+    // Add pagination metadata directly as an object
+    // rather than trying to modify the posts
+    const paginationMeta = {
+      total: allPosts.length,
+      offset,
+      limit,
+      hasMore: offset + limit < allPosts.length
+    };
+    
+    // Create a paginated result
+    const result: any[] = [...postsWithDetails];
+    
+    // Add pagination info as a special field on the array
+    Object.defineProperty(result, 'pagination', {
+      value: paginationMeta,
+      enumerable: false // Makes it not show up in JSON.stringify
+    });
+    
+    // Return the result with the pagination property
+    return result;
   }
   
   // Comment operations
