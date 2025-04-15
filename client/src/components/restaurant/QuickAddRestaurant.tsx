@@ -346,7 +346,18 @@ export function QuickAddRestaurant() {
             </div>
             
             {/* Location-based suggestions */}
-            {!searchQuery && (
+            {!searchQuery && !selectedRestaurant && (
+  <div className="text-sm text-muted-foreground mb-4">
+    <p className="font-medium text-foreground mb-2">Quick Tips:</p>
+    <ul className="list-disc pl-4 space-y-1">
+      <li>Share recent restaurants you loved</li>
+      <li>Add must-try dishes to help friends</li>
+      <li>Include price range and ambiance notes</li>
+    </ul>
+  </div>
+)}
+
+{!searchQuery && (
               <div className="flex flex-col space-y-1 text-sm text-muted-foreground px-2">
                 <p className="font-medium text-foreground">Popular in {userLocation || "your area"}:</p>
                 {popularNearby.map((suggestion, index) => (

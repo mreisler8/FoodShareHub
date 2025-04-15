@@ -48,7 +48,26 @@ export function FeaturedCircles() {
           ))
         }
         
-        {circles?.map((circle) => (
+        {(!circles || circles.length === 0) && (
+  <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-100 transition-all duration-200 hover:border-primary/30 hover:shadow-md">
+    <div className="p-3">
+      <div className="flex justify-between">
+        <div className="flex-1">
+          <h3 className="font-medium text-primary">Italian Food Lovers NYC</h3>
+          <p className="text-xs text-neutral-600 mt-1">Discover the best Italian restaurants in New York, curated by local food enthusiasts.</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+            <span className="text-xs text-neutral-500 flex items-center">
+              <Users className="h-3 w-3 mr-1 text-neutral-400" />
+              2.5k members
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+{circles?.map((circle) => (
           <div key={circle.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-100 transition-all duration-200 hover:border-primary/30 hover:shadow-md">
             <Link href={`/circles/${circle.id}`} className="block p-3">
                 <div className="flex justify-between">
