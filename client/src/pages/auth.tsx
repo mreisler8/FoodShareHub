@@ -42,9 +42,10 @@ export default function AuthPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
-      email: "",
       name: "",
       password: "",
+      bio: "",
+      profilePicture: "",
     },
   });
 
@@ -154,12 +155,12 @@ export default function AuthPage() {
                       />
                       <FormField
                         control={registerForm.control}
-                        name="email"
+                        name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel>Name</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="you@example.com" {...field} />
+                              <Input placeholder="Your full name" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -178,21 +179,8 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={registerForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" className="w-full" disabled={isPending}>
-                        {isPending ? (
+                      <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+                        {registerMutation.isPending ? (
                           <>
                             <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
                             Creating account...

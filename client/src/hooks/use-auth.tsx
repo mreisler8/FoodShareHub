@@ -25,11 +25,13 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Registration schema with validation (extends insertUserSchema from shared/schema)
-export const registerSchema = insertUserSchema.extend({
+// Registration schema with validation (aligns with insertUserSchema from shared/schema)
+export const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"), 
   name: z.string().min(1, "Name is required"),
+  bio: z.string().optional().nullable(),
+  profilePicture: z.string().optional().nullable(),
 });
 
 // Type definitions based on schemas
