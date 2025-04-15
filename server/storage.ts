@@ -50,6 +50,8 @@ export interface IStorage {
   // Post operations
   getPost(id: number): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
+  updatePost(id: number, post: Partial<InsertPost>): Promise<Post>;
+  deletePost(id: number): Promise<void>;
   getAllPosts(): Promise<Post[]>;
   getPostsByUser(userId: number): Promise<Post[]>;
   getPostsByRestaurant(restaurantId: number): Promise<Post[]>;
@@ -249,6 +251,31 @@ export class DatabaseStorage implements IStorage {
       createdAt: new Date()
     }).returning();
     return post;
+  }
+  
+  async updatePost(id: number, postUpdates: Partial<InsertPost>): Promise<Post> {
+    const [updatedPost] = await db
+      .update(posts)
+      .set(postUpdates)
+      .where(eq(posts.id, id))
+      .returning();
+    
+    if (!updatedPost) {
+      throw new Error("Post not found");
+    }
+    
+    return updatedPost;
+  }
+  
+  async deletePost(id: number): Promise<void> {
+    // First, delete all likes related to this post
+    await db.delete(likes).where(eq(likes.postId, id));
+    
+    // Then, delete all comments related to this post
+    await db.delete(comments).where(eq(comments.postId, id));
+    
+    // Finally, delete the post itself
+    await db.delete(posts).where(eq(posts.id, id));
   }
 
   async getAllPosts(): Promise<Post[]> {
