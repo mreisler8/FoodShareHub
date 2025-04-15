@@ -396,6 +396,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/feed", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "You must be logged in to view your feed" });
+      }
+      
       const feedPosts = await storage.getFeedPosts();
       
       // Remove password hashes from all post authors and comment authors
@@ -408,8 +412,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           safePost.author = authorWithoutPassword;
         }
         
+        // Initialize comments array if it doesn't exist
+        if (!safePost.comments) {
+          safePost.comments = [];
+        }
+        
         // Clean comment authors
-        if (safePost.comments && Array.isArray(safePost.comments)) {
+        if (Array.isArray(safePost.comments)) {
           safePost.comments = safePost.comments.map((comment: any) => {
             if (comment.author && comment.author.password) {
               const { password, ...authorWithoutPassword } = comment.author;

@@ -280,7 +280,7 @@ export function PostCard({ post }: PostCardProps) {
                   </button>
                   <button className="flex items-center text-neutral-500">
                     <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                    <span className="text-xs">{post.comments.length}</span>
+                    <span className="text-xs">{post.comments?.length || 0}</span>
                   </button>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -306,7 +306,7 @@ export function PostCard({ post }: PostCardProps) {
               </div>
               
               {/* Comments Preview - Simplified */}
-              {post.comments.length > 0 && (
+              {post.comments?.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-neutral-100">
                   <div className="flex items-center justify-between mb-1.5">
                     <h4 className="text-xs font-medium text-neutral-500">
@@ -316,7 +316,7 @@ export function PostCard({ post }: PostCardProps) {
                       See all
                     </Link>
                   </div>
-                  {post.comments.slice(0, 1).map((comment) => (
+                  {post.comments?.slice(0, 1).map((comment) => (
                     <div key={comment.id} className="flex items-start">
                       <Link href={`/profile/${comment.author?.id || comment.userId}`} className="block">
                         <Avatar className="w-6 h-6 mt-0.5">
