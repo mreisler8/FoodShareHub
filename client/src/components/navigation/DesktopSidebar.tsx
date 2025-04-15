@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 export function DesktopSidebar() {
   const [location] = useLocation();
+  const { logoutMutation } = useAuth();
   
   // Get current user
   const { data: currentUser, isLoading } = useQuery<User | undefined>({
@@ -15,6 +16,10 @@ export function DesktopSidebar() {
   });
   
   const isAuthenticated = !!currentUser;
+  
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
   
   // Function to check if a path is active
   const isActive = (path: string) => {
@@ -94,18 +99,27 @@ export function DesktopSidebar() {
       
       <div className="mt-auto pt-5 border-t border-neutral-200">
         {isAuthenticated ? (
-          <Link href="/profile">
-            <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
-              <Avatar className="w-10 h-10">
-                <AvatarImage src={currentUser?.profilePicture || ''} alt={currentUser?.name || 'User'} />
-                <AvatarFallback>{currentUser?.name?.charAt(0) || 'U'}</AvatarFallback>
-              </Avatar>
-              <div className="ml-3">
-                <p className="font-medium text-neutral-900">{currentUser?.name || 'User'}</p>
-                <p className="text-sm text-neutral-500">@{currentUser?.username || 'user'}</p>
+          <>
+            <Link href="/profile">
+              <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={currentUser?.profilePicture || ''} alt={currentUser?.name || 'User'} />
+                  <AvatarFallback>{currentUser?.name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+                <div className="ml-3">
+                  <p className="font-medium text-neutral-900">{currentUser?.name || 'User'}</p>
+                  <p className="text-sm text-neutral-500">@{currentUser?.username || 'user'}</p>
+                </div>
               </div>
+            </Link>
+            <div 
+              className="flex items-center p-3 mt-2 rounded-lg hover:bg-red-50 text-red-600 cursor-pointer" 
+              onClick={handleLogout}
+            >
+              <LogOut className="w-6 mr-2" />
+              <span>Logout</span>
             </div>
-          </Link>
+          </>
         ) : (
           <Link href="/auth">
             <div className={getNavItemClasses("/auth")}>

@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, loginSchema, registerSchema, LoginData, RegisterData } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,41 +15,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-const loginSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
-});
-
-const registerSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
-  confirmPassword: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
-  const [isPending, setIsPending] = useState(false);
-  const { user, login, register: registerUser, isLoading } = useAuth();
+  const { user, isLoading, loginMutation, registerMutation } = useAuth();
   const [location, navigate] = useLocation();
 
   // Redirect to home if already logged in
@@ -60,7 +30,7 @@ export default function AuthPage() {
     }
   }, [user, navigate]);
 
-  const loginForm = useForm<LoginFormValues>({
+  const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       username: "",
@@ -68,32 +38,22 @@ export default function AuthPage() {
     },
   });
 
-  const registerForm = useForm<RegisterFormValues>({
+  const registerForm = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
       email: "",
+      name: "",
       password: "",
-      confirmPassword: "",
     },
   });
 
-  async function onLoginSubmit(values: LoginFormValues) {
-    setIsPending(true);
-    try {
-      await login(values.username, values.password);
-    } finally {
-      setIsPending(false);
-    }
+  function onLoginSubmit(values: LoginData) {
+    loginMutation.mutate(values);
   }
 
-  async function onRegisterSubmit(values: RegisterFormValues) {
-    setIsPending(true);
-    try {
-      await registerUser(values.username, values.email, values.password);
-    } finally {
-      setIsPending(false);
-    }
+  function onRegisterSubmit(values: RegisterData) {
+    registerMutation.mutate(values);
   }
 
   if (isLoading) {
@@ -152,8 +112,8 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={isPending}>
-                        {isPending ? (
+                      <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                        {loginMutation.isPending ? (
                           <>
                             <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
                             Signing in...
