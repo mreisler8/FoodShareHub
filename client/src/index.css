@@ -7,7 +7,44 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Fix iOS issues */
+  input, textarea, button, select, a {
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+  }
+  
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  textarea {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  /* Prevent image-based content from being draggable */
+  img {
+    -webkit-user-drag: none;
+    user-drag: none;
+  }
+  
+  /* Fix bottom padding on iOS to account for navigation bar */
+  .mb-16 {
+    padding-bottom: env(safe-area-inset-bottom, 64px);
   }
 }
