@@ -13,25 +13,25 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   console.log(`API Request: ${method} ${url}`, data);
-  
+
   const headers: Record<string, string> = {};
   if (data) {
     headers["Content-Type"] = "application/json";
   }
-  
+
   const options = {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include" as RequestCredentials,
   };
-  
+
   console.log("Request options:", options);
-  
+
   const res = await fetch(url, options);
-  
+
   console.log(`Response status: ${res.status} ${res.statusText}`);
-  
+
   try {
     await throwIfResNotOk(res);
     return res;
@@ -48,11 +48,11 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     console.log(`Query request for key: ${queryKey[0]}`);
-    
+
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
     });
-    
+
     console.log(`Query response status: ${res.status} ${res.statusText}`);
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -74,14 +74,18 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      retry: 2,
+      staleTime: 60000,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      onError: (error) => {
+        console.error('Query error:', error);
+      }
     },
     mutations: {
-      retry: false,
-    },
-  },
+      retry: 2,
+      onError: (error) => {
+        console.error('Mutation error:', error);
+      }
+    }
+  }
 });
