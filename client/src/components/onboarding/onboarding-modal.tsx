@@ -94,9 +94,19 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
               Welcome, {user?.name || "Friend"}!
             </h3>
             <p className="text-center text-muted-foreground">
-              Circles is built around trusted restaurant recommendations from people you know.
-              No more anonymous reviews—just real advice from friends.
+              Welcome to Canada's trusted food community! Share and discover authentic Canadian dining experiences 
+              with friends and locals who know the best spots.
             </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="bg-primary/5 p-2 rounded-lg text-sm">
+                <span className="block font-medium">🍁 Canadian Focus</span>
+                <span className="text-xs">Local spots & hidden gems</span>
+              </div>
+              <div className="bg-primary/5 p-2 rounded-lg text-sm">
+                <span className="block font-medium">🤝 Trusted Network</span>
+                <span className="text-xs">Real recommendations</span>
+              </div>
+            </div>
             <div className="flex justify-end pt-4">
               <Button onClick={() => setStep("circles")}>Next</Button>
             </div>

@@ -60,10 +60,14 @@ export default function AuthPage() {
       {/* Hero/promo section */}
       <div className="flex-1 bg-gradient-to-br from-primary/90 to-primary/60 p-8 flex flex-col justify-center text-white">
         <div className="max-w-xl mx-auto">
-          <h1 className="text-4xl font-bold mb-6">Find Your Next Favorite Restaurant</h1>
+          <h1 className="text-4xl font-bold mb-6">Discover Canada's Best Dining Spots</h1>
           <p className="text-xl mb-8">
-            Join trusted circles of friends and discover the best dining experiences through recommendations you can actually trust. 
+            Join Canada's most trusted food community. Connect with locals and friends to discover authentic dining experiences from Vancouver to Halifax.
           </p>
+          <div className="bg-primary/10 rounded-lg p-4 mb-8">
+            <p className="text-sm font-medium">🍁 Now Available in Canada!</p>
+            <p className="text-xs opacity-80">Launching city by city across Canada. Join the community to share and discover local favorites.</p>
+          </div>
           <div className="space-y-4">
             <div className="flex items-start space-x-4">
               <div className="bg-white/20 p-2 rounded-lg">

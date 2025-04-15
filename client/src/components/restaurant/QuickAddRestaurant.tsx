@@ -50,10 +50,40 @@ export function QuickAddRestaurant() {
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // Get city name from coordinates using reverse geocoding
-          // (In a real app, you'd use a geocoding service like Google Maps API)
-          fetchLocationName(position.coords.latitude, position.coords.longitude);
+        async (position) => {
+          try {
+            const response = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.coords.latitude},${position.coords.longitude}&key=${process.env.GOOGLE_MAPS_API_KEY}&result_type=locality|administrative_area_level_1|country`
+            );
+            const data = await response.json();
+            const addressComponents = data.results[0]?.address_components || [];
+            const country = addressComponents.find(c => c.types.includes('country'))?.short_name;
+            
+            // Check if user is in Canada
+            if (country === 'CA') {
+              const city = addressComponents.find(c => c.types.includes('locality'))?.long_name;
+              const province = addressComponents.find(c => c.types.includes('administrative_area_level_1'))?.short_name;
+              setUserLocation(`${city}, ${province}`);
+              
+              // Update popular nearby based on Canadian context
+              setPopularNearby([
+                "Best poutine spots",
+                "Top Tim Hortons",
+                "Local food trucks",
+                "Best maple syrup cafes"
+              ]);
+            } else {
+              setUserLocation("Canada");
+              toast({
+                title: "Location Notice",
+                description: "This service is currently available in Canada only.",
+                variant: "warning"
+              });
+            }
+          } catch (error) {
+            console.error('Error fetching location:', error);
+            setUserLocation("Canada");
+          }
         },
         (error) => {
           console.error("Error getting location:", error);

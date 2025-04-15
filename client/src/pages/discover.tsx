@@ -66,9 +66,28 @@ export default function Discover() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Filter className="h-4 w-4" /> Filter
-            </Button>
+            <div className="flex gap-2">
+              <select className="px-3 py-2 rounded-md border border-input bg-background text-sm" 
+                      onChange={(e) => setRegion(e.target.value)}>
+                <option value="">All Canada</option>
+                <option value="BC">British Columbia</option>
+                <option value="ON">Ontario</option>
+                <option value="QC">Quebec</option>
+                <option value="AB">Alberta</option>
+                <option value="MB">Manitoba</option>
+                <option value="SK">Saskatchewan</option>
+                <option value="NS">Nova Scotia</option>
+                <option value="NB">New Brunswick</option>
+                <option value="NL">Newfoundland and Labrador</option>
+                <option value="PE">Prince Edward Island</option>
+                <option value="YT">Yukon</option>
+                <option value="NT">Northwest Territories</option>
+                <option value="NU">Nunavut</option>
+              </select>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Filter className="h-4 w-4" /> Filter
+              </Button>
+            </div>
           </form>
         </header>
         
