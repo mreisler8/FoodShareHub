@@ -25,8 +25,8 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg z-50" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
-      <div className="flex justify-around items-center h-16">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg z-50 border-t border-gray-200" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+      <div className="flex justify-around items-center h-16 max-h-16">
         <Link href="/" className="flex-1 h-full">
           <div className={`h-full flex flex-col items-center justify-center ${isActive('/') ? 'text-primary' : 'text-neutral-500'}`}>
             <Home className="h-5 w-5" />
