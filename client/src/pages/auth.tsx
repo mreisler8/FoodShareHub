@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useAuth, loginSchema, registerSchema, LoginData, RegisterData } from "@/hooks/use-auth";
+import { z } from "zod";
+import { useAuth, loginSchema, LoginData, RegisterData } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -17,6 +18,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+
+// Define a custom registration schema for the form
+const registerFormSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -38,14 +52,13 @@ export default function AuthPage() {
     },
   });
 
-  const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(registerSchema),
+  const registerForm = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerFormSchema),
     defaultValues: {
       username: "",
       name: "",
       password: "",
-      bio: "",
-      profilePicture: "",
+      confirmPassword: "",
     },
   });
 
@@ -53,8 +66,16 @@ export default function AuthPage() {
     loginMutation.mutate(values);
   }
 
-  function onRegisterSubmit(values: RegisterData) {
-    registerMutation.mutate(values);
+  function onRegisterSubmit(values: RegisterFormValues) {
+    // Extract only the data needed for registration, omitting confirmPassword
+    const { confirmPassword, ...registrationData } = values;
+    
+    // Add empty bio and profilePicture to match the schema
+    registerMutation.mutate({
+      ...registrationData,
+      bio: "",
+      profilePicture: "",
+    });
   }
 
   if (isLoading) {
@@ -172,6 +193,19 @@ export default function AuthPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="••••••••" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm Password</FormLabel>
                             <FormControl>
                               <Input type="password" placeholder="••••••••" {...field} />
                             </FormControl>

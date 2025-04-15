@@ -36,7 +36,13 @@ export const registerSchema = z.object({
 
 // Type definitions based on schemas
 export type LoginData = z.infer<typeof loginSchema>;
-export type RegisterData = z.infer<typeof registerSchema>;
+export type RegisterData = {
+  username: string;
+  password: string;
+  name: string;
+  bio: string | null;
+  profilePicture: string | null;
+};
 
 // Create auth context
 export const AuthContext = createContext<AuthContextType | null>(null);
