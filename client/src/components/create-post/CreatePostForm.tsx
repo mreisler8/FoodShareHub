@@ -287,6 +287,11 @@ export function CreatePostForm() {
                           placeholder="Search restaurants..."
                           className="pl-8"
                           value={field.value}
+                          autoComplete="off"
+                          autoCorrect="off"
+                          spellCheck="false"
+                          enterKeyHint="search"
+                          inputMode="text"
                           onChange={(e) => {
                             field.onChange(e.target.value);
                             handleSearchInputChange(e.target.value);
@@ -294,7 +299,17 @@ export function CreatePostForm() {
                               setOpen(true);
                             }
                           }}
-                          onClick={() => {
+                          onFocus={() => {
+                            // On iOS, this ensures the keyboard doesn't auto-hide
+                            setTimeout(() => {
+                              if (field.value.length > 2) {
+                                setOpen(true);
+                              }
+                            }, 100);
+                          }}
+                          onClick={(e) => {
+                            // Prevent propagation to avoid closing the popover
+                            e.stopPropagation();
                             if (field.value.length > 2) {
                               setOpen(true);
                             }

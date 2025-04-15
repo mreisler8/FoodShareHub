@@ -10,41 +10,83 @@
   html {
     -webkit-text-size-adjust: 100%;
     touch-action: manipulation;
+    height: 100%;
+    /* Prevent pull-to-refresh and overscroll behaviors on iOS */
+    overscroll-behavior-y: none;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    min-height: 100%;
+    position: relative;
+    /* Prevent pull-to-refresh and overscroll behaviors */
     overscroll-behavior-y: none;
+    /* Improve scrolling on iOS */
     -webkit-overflow-scrolling: touch;
+    /* Remove tap highlight */
     -webkit-tap-highlight-color: transparent;
   }
   
   /* Fix iOS issues */
-  input, textarea, button, select, a {
+  button, a, [role="button"] {
+    cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   
+  /* Fix iOS form input issues */
+  input, textarea, select {
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Prevent zooming on iOS */
+    font-size: 16px !important;
+    /* Fix for iOS autocorrect and autofill */
+    transform: translateZ(0);
+  }
+  
+  /* Prevent iOS Safari from adding extra padding */
   input[type="text"],
   input[type="email"],
   input[type="password"],
   input[type="number"],
   input[type="search"],
   textarea {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    font-size: 16px; /* Prevents iOS zoom on focus */
+    box-sizing: border-box;
+    max-height: none;
+    /* Fixes various iOS input styling issues */
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  /* Fix iOS scrolling issue on modals/popups */
+  .fixed, .absolute {
+    transform: translateZ(0);
   }
 
   /* Prevent image-based content from being draggable */
   img {
     -webkit-user-drag: none;
     user-drag: none;
+    pointer-events: none;
   }
   
   /* Fix bottom padding on iOS to account for navigation bar */
   .mb-16 {
     padding-bottom: env(safe-area-inset-bottom, 64px);
+  }
+
+  /* Fix for mobile viewport height issues on iOS */
+  @supports (-webkit-touch-callout: none) {
+    .min-h-screen {
+      min-height: -webkit-fill-available;
+    }
+
+    .h-screen {
+      height: -webkit-fill-available;
+    }
   }
 }
