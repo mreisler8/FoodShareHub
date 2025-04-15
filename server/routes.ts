@@ -400,38 +400,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "You must be logged in to view your feed" });
       }
       
+      // Get feed posts with pagination support
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      // Add query validation
+      if (isNaN(page) || page < 1) {
+        return res.status(400).json({ error: "Invalid page parameter" });
+      }
+      
+      if (isNaN(limit) || limit < 1 || limit > 50) {
+        return res.status(400).json({ error: "Invalid limit parameter" });
+      }
+      
+      // Apply offset pagination
+      const offset = (page - 1) * limit;
+      
+      // TODO: Update storage.getFeedPosts to accept pagination parameters
+      // const feedPosts = await storage.getFeedPosts({ userId: req.user.id, offset, limit });
       const feedPosts = await storage.getFeedPosts();
       
-      // Remove password hashes from all post authors and comment authors
-      const safeFeedPosts = feedPosts.map(post => {
-        let safePost = { ...post };
+      // Apply manual pagination as a temporary solution
+      const paginatedPosts = feedPosts.slice(offset, offset + limit);
+      
+      // Process posts efficiently - use destructuring for cleaner code
+      const safeFeedPosts = paginatedPosts.map(post => {
+        const { author, comments = [], ...postData } = post;
         
-        // Clean post author
-        if (safePost.author && safePost.author.password) {
-          const { password, ...authorWithoutPassword } = safePost.author;
-          safePost.author = authorWithoutPassword;
-        }
+        // Clean post author efficiently with optional chaining
+        const cleanAuthor = author?.password 
+          ? (({ password, ...rest }) => rest)(author) 
+          : author;
         
-        // Initialize comments array if it doesn't exist
-        if (!safePost.comments) {
-          safePost.comments = [];
-        }
+        // Process comments efficiently
+        const cleanComments = Array.isArray(comments) 
+          ? comments.map(comment => {
+              if (!comment.author) return comment;
+              const { password, ...authorData } = comment.author;
+              return { ...comment, author: authorData };
+            })
+          : [];
         
-        // Clean comment authors
-        if (Array.isArray(safePost.comments)) {
-          safePost.comments = safePost.comments.map((comment: any) => {
-            if (comment.author && comment.author.password) {
-              const { password, ...authorWithoutPassword } = comment.author;
-              return { ...comment, author: authorWithoutPassword };
-            }
-            return comment;
-          });
-        }
-        
-        return safePost;
+        return {
+          ...postData,
+          author: cleanAuthor,
+          comments: cleanComments
+        };
       });
       
-      res.json(safeFeedPosts);
+      // Add pagination metadata to help client
+      const totalPosts = feedPosts.length;
+      const totalPages = Math.ceil(totalPosts / limit);
+      const hasMore = page < totalPages;
+      
+      res.json({
+        posts: safeFeedPosts,
+        pagination: {
+          page,
+          limit,
+          total: totalPosts,
+          totalPages,
+          hasMore
+        }
+      });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

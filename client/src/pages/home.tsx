@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { QuickAddRestaurant } from "@/components/restaurant/QuickAddRestaurant";
 import { PostCard } from "@/components/home/PostCard";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -28,11 +29,39 @@ export default function Home() {
     enabled: !!user,
   });
   
-  // Fetch posts for the feed
-  const { data: feedPosts = [], isLoading: isLoadingFeed } = useQuery<PostWithDetails[]>({
-    queryKey: ["/api/feed"],
+  // Fetch posts for the feed with pagination
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  
+  // Define a type for the paginated feed response
+  interface PaginatedFeedResponse {
+    posts: PostWithDetails[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasMore: boolean;
+    }
+  }
+  
+  const { 
+    data: feedData, 
+    isLoading: isLoadingFeed 
+  } = useQuery<PaginatedFeedResponse>({
+    queryKey: ["/api/feed", { page, limit }],
     enabled: !!user,
   });
+  
+  // Extract posts and pagination data with defaults for safety
+  const feedPosts = feedData?.posts || [];
+  const pagination = feedData?.pagination || { 
+    page: 1, 
+    limit: 10, 
+    total: 0, 
+    totalPages: 1, 
+    hasMore: false 
+  };
   
   // Show onboarding modal for new users
   useEffect(() => {
@@ -132,11 +161,40 @@ export default function Home() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : feedPosts.length > 0 ? (
-            <div className="space-y-6">
-              {feedPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-6">
+                {feedPosts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+              
+              {/* Pagination Controls */}
+              {pagination.totalPages > 1 && (
+                <div className="flex justify-between items-center mt-6">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </Button>
+                  
+                  <span className="text-sm text-muted-foreground">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setPage(prev => prev + 1)}
+                    disabled={!pagination.hasMore}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <EmptyState
               title="No Posts Yet"

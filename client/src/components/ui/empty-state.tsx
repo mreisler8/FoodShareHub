@@ -1,32 +1,36 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
+import { ReactNode } from 'react';
 
-interface EmptyStateProps {
+// Define props that accept both LucideIcon and ReactNode but type-narrowed
+interface EmptyStatePropsWithLucideIcon {
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: LucideIcon; // Type-narrowed to just LucideIcon
   actionLabel?: string;
   actionHref?: string;
   onAction?: () => void;
   secondaryActionLabel?: string;
   secondaryActionHref?: string;
   onSecondaryAction?: () => void;
+  className?: string;
 }
 
 export function EmptyState({
   title,
   description,
-  icon: Icon,
+  icon: Icon, // Destructure and rename for component usage
   actionLabel,
   actionHref,
   onAction,
   secondaryActionLabel,
   secondaryActionHref,
   onSecondaryAction,
-}: EmptyStateProps) {
+  className = '',
+}: EmptyStatePropsWithLucideIcon) {
   return (
-    <Card className="w-full border-dashed">
+    <Card className={`w-full border-dashed ${className}`}>
       <CardHeader className="flex items-center space-y-5 pb-4">
         <div className="p-5 rounded-full bg-muted">
           <Icon className="h-10 w-10 text-muted-foreground" />
@@ -64,24 +68,5 @@ export function EmptyState({
         )}
       </CardContent>
     </Card>
-  );
-}
-import { ReactNode } from 'react';
-
-interface EmptyStateProps {
-  icon?: ReactNode;
-  title: string;
-  description: string;
-  action?: ReactNode;
-}
-
-export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
-  return (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      {icon && <div className="mb-4">{icon}</div>}
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-gray-500 mb-4">{description}</p>
-      {action && <div>{action}</div>}
-    </div>
   );
 }
