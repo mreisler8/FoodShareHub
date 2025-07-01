@@ -72,12 +72,12 @@ export default function CreateList() {
         visibility: values.isPublic ? 'public' : 'private',
       };
       
-      // Use apiRequest with the correct pattern
-      const response = await apiRequest("POST", "/api/restaurant-lists", payload);
-      return await response.json();
+      // Use the new /api/lists endpoint
+      return await apiRequest("POST", "/api/lists", payload);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
       toast({
         title: "Success!",
         description: "Your restaurant list has been created.",

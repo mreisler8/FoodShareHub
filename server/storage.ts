@@ -657,7 +657,22 @@ export class DatabaseStorage implements IStorage {
     
     return this.updateRestaurantList(id, { saveCount: currentSaves + 1 });
   }
-  
+
+  async deleteRestaurantList(id: number): Promise<void> {
+    // First delete all items in the list
+    await db.delete(restaurantListItems).where(eq(restaurantListItems.listId, id));
+    
+    // Delete any shared list records
+    await db.delete(sharedLists).where(eq(sharedLists.listId, id));
+    
+    // Finally delete the list itself
+    await db.delete(restaurantLists).where(eq(restaurantLists.id, id));
+  }
+
+  async removeRestaurantListItem(itemId: number): Promise<void> {
+    await db.delete(restaurantListItems).where(eq(restaurantListItems.id, itemId));
+  }
+
   // Restaurant List Item operations
   async addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem> {
     const [listItem] = await db.insert(restaurantListItems).values({
@@ -697,6 +712,15 @@ export class DatabaseStorage implements IStorage {
     );
     
     return itemsWithDetails;
+  }
+
+  async updateRestaurantListItem(itemId: number, updates: Partial<RestaurantListItem>): Promise<RestaurantListItem> {
+    const [updatedItem] = await db
+      .update(restaurantListItems)
+      .set(updates)
+      .where(eq(restaurantListItems.id, itemId))
+      .returning();
+    return updatedItem;
   }
 
   // Analytics operations
