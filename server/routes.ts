@@ -1,7 +1,3 @@
-import { Request, Response } from "express";
-import { db } from "./db"; // you already saw this in db.ts
-import { authenticate } from "./auth"; // or wherever your middleware lives
-
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -717,9 +713,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/circles", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     try {
-      const circleData = insertCircleSchema.parse(req.body);
+      const circleData = insertCircleSchema.parse({
+        ...req.body,
+        creatorId: req.user!.id, // Use authenticated user's ID
+      });
       const newCircle = await storage.createCircle(circleData);
+      
+      // Automatically add the creator as a member
+      await storage.createCircleMember({
+        circleId: newCircle.id,
+        userId: req.user!.id,
+        role: "owner"
+      });
+      
       res.status(201).json(newCircle);
     } catch (err: any) {
       handleZodError(err, res);
