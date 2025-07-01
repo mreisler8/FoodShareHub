@@ -45,15 +45,22 @@ function Router() {
   );
 }
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
-        <Toaster />
+        <ErrorBoundary>
+          <Router />
+          <Toaster />
+        </ErrorBoundary>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
 
 export default App;
+
+export default App;
+import ErrorBoundary from './components/ErrorBoundary';
