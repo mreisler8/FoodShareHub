@@ -22,10 +22,10 @@ export default function CircleDetails() {
   // Set page title
   useEffect(() => {
     if (circle) {
-      document.title = `${circle.name} | TasteBuds`;
+      document.title = `${circle.name} | Circles`;
     }
     return () => {
-      document.title = "TasteBuds";
+      document.title = "Circles";
     };
   }, [circle]);
 

@@ -174,7 +174,7 @@ export function InviteModal({
                 <CheckCircle2 className="mx-auto h-12 w-12 text-primary mb-2" />
                 <h3 className="text-lg font-medium">Invitation Sent!</h3>
                 <p className="text-neutral-500 mb-4">
-                  We've sent an invitation to join {inviteType === "circle" ? circleName || "your circle" : "TasteBuds"}
+                  We've sent an invitation to join {inviteType === "circle" ? circleName || "your circle" : "Circles"}
                 </p>
                 <Button onClick={() => setEmailSent(false)}>
                   Send Another
@@ -232,7 +232,7 @@ export function InviteModal({
           <TabsContent value="social" className="space-y-4">
             <div className="mb-4">
               <p className="text-sm text-neutral-600 mb-2">
-                Share TasteBuds with your social network
+                Share Circles with your social network
               </p>
               
               <div className="flex space-x-2 mb-4">
@@ -261,8 +261,8 @@ export function InviteModal({
             <SocialShare
               url={referralLink}
               title={inviteType === "circle" 
-                ? `Join my Circle "${circleName}" on TasteBuds` 
-                : "Join me on TasteBuds for trusted restaurant recommendations"}
+                ? `Join my Circle "${circleName}" on Circles` 
+                : "Join me on Circles for trusted restaurant recommendations"}
               description="Restaurant recommendations from people you trust, not strangers on the internet."
               variant="full"
               userId={userId}

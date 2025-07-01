@@ -34,10 +34,10 @@ export default function PostDetails() {
   // Set page title
   useEffect(() => {
     if (post) {
-      document.title = `${post.restaurant.name} Review | TasteBuds`;
+      document.title = `${post.restaurant.name} Review | Circles`;
     }
     return () => {
-      document.title = "TasteBuds";
+      document.title = "Circles";
     };
   }, [post]);
   

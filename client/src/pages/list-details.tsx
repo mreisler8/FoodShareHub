@@ -47,10 +47,10 @@ export default function ListDetails() {
   // Set page title
   useEffect(() => {
     if (list) {
-      document.title = `${list.name} | TasteBuds`;
+      document.title = `${list.name} | Circles`;
     }
     return () => {
-      document.title = "TasteBuds";
+      document.title = "Circles";
     };
   }, [list]);
   

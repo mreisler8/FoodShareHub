@@ -102,9 +102,9 @@ export default function CreateList() {
   
   // Set page title
   useEffect(() => {
-    document.title = "Create New List | TasteBuds";
+    document.title = "Create New List | Circles";
     return () => {
-      document.title = "TasteBuds";
+      document.title = "Circles";
     };
   }, []);
   
