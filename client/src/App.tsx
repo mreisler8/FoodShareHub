@@ -19,6 +19,7 @@ import { AuthProvider } from "./hooks/use-auth";
 import { useEffect } from "react";
 import { addNativeAppClass } from "./lib/nativeAppBridge";
 import { ProtectedRoute } from "./lib/protected-route";
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 function Router() {
   // Add native app class to body for CSS targeting if running in native app
@@ -45,8 +46,6 @@ function Router() {
   );
 }
 
-import ErrorBoundary from './components/ErrorBoundary';
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -61,6 +60,3 @@ function App() {
 }
 
 export default App;
-
-export default App;
-import ErrorBoundary from './components/ErrorBoundary';
