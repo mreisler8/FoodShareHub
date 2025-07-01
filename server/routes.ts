@@ -950,8 +950,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/restaurant-lists", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     try {
-      const listData = insertRestaurantListSchema.parse(req.body);
+      const listData = insertRestaurantListSchema.parse({
+        ...req.body,
+        createdById: req.user!.id, // Use authenticated user's ID
+      });
       const newList = await storage.createRestaurantList(listData);
       res.status(201).json(newList);
     } catch (err: any) {
@@ -1165,8 +1172,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "List not found" });
       }
 
-      // Feature not fully implemented yet
-      res.status(200).json([]);
+      // Get all circles this list is shared with
+      const circlesSharedWith = await storage.getCirclesListIsSharedWith(listId);
+      res.status(200).json(circlesSharedWith);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -1206,10 +1214,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ error: "You don't have permission to unshare this list" });
         }
 
-        // Feature not fully implemented yet
-        res.status(501).json({
-          message:
-            "List unsharing functionality will be available in a future update",
+        // Unshare the list from the circle
+        await storage.unshareListFromCircle(listId, circleId);
+        
+        res.status(200).json({
+          message: "List successfully unshared from circle"
         });
       } catch (err: any) {
         res.status(500).json({ error: err.message });

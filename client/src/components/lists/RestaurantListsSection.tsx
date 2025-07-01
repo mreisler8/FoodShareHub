@@ -25,19 +25,31 @@ export function RestaurantListsSection({
   isCompact = false,
   maxLists,
 }: RestaurantListsSectionProps) {
-  // Build query string based on props
-  let queryString = "/api/restaurant-lists";
+  // Build query key and endpoint based on props
+  let queryKey: string[];
+  let endpoint: string;
   
   if (circleId) {
-    queryString += `?circleId=${circleId}`;
+    queryKey = ["/api/circles", circleId.toString(), "shared-lists"];
+    endpoint = `/api/circles/${circleId}/shared-lists`;
   } else if (userId) {
-    queryString += `?userId=${userId}`;
+    queryKey = ["/api/restaurant-lists", "user", userId.toString()];
+    endpoint = `/api/restaurant-lists?userId=${userId}`;
   } else if (publicOnly) {
-    queryString += "?publicOnly=true";
+    queryKey = ["/api/restaurant-lists", "public"];
+    endpoint = "/api/restaurant-lists?publicOnly=true";
+  } else {
+    queryKey = ["/api/restaurant-lists"];
+    endpoint = "/api/restaurant-lists";
   }
   
   const { data: lists, isLoading } = useQuery<RestaurantList[]>({
-    queryKey: [queryString],
+    queryKey,
+    queryFn: async () => {
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error('Failed to fetch lists');
+      return res.json();
+    }
   });
   
   const displayLists = maxLists && lists ? lists.slice(0, maxLists) : lists;
