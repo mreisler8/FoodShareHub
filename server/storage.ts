@@ -10,6 +10,7 @@ import {
   stories, type Story, type InsertStory,
   restaurantLists, type RestaurantList, type InsertRestaurantList,
   restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem,
+  sharedLists, type SharedList, type InsertSharedList,
   userFollowers, type UserFollower, type InsertUserFollower
 } from "@shared/schema";
 import { db } from "./db";
@@ -115,6 +116,12 @@ export interface IStorage {
   removeRestaurantFromList(listId: number, restaurantId: number): Promise<void>;
   getRestaurantsInList(listId: number): Promise<RestaurantListItem[]>;
   getDetailedRestaurantsInList(listId: number): Promise<any[]>; // with restaurant details
+  
+  // Shared List operations
+  shareListWithCircle(listId: number, circleId: number, sharedById: number, permissions?: { canEdit?: boolean; canReshare?: boolean }): Promise<SharedList>;
+  unshareListFromCircle(listId: number, circleId: number): Promise<void>;
+  getListsSharedWithCircle(circleId: number): Promise<any[]>; // Lists with details
+  getCirclesListIsSharedWith(listId: number): Promise<any[]>; // Circles with permissions
   
   // Session store for authentication
   sessionStore: any; // Using any for session store
@@ -789,6 +796,54 @@ export class DatabaseStorage implements IStorage {
       LIMIT 10
     `);
     return result.rows;
+  }
+
+  // Shared List operations implementation
+  async shareListWithCircle(listId: number, circleId: number, sharedById: number, permissions: { canEdit?: boolean; canReshare?: boolean } = {}): Promise<SharedList> {
+    const [sharedList] = await db.insert(sharedLists).values({
+      listId,
+      circleId,
+      sharedById,
+      canEdit: permissions.canEdit || false,
+      canReshare: permissions.canReshare || false,
+      sharedAt: new Date()
+    }).returning();
+    return sharedList;
+  }
+
+  async unshareListFromCircle(listId: number, circleId: number): Promise<void> {
+    await db.delete(sharedLists)
+      .where(and(eq(sharedLists.listId, listId), eq(sharedLists.circleId, circleId)));
+  }
+
+  async getListsSharedWithCircle(circleId: number): Promise<any[]> {
+    const sharedListsData = await db.select({
+      sharedList: sharedLists,
+      list: restaurantLists,
+      sharedBy: {
+        id: users.id,
+        name: users.name,
+        username: users.username
+      }
+    })
+    .from(sharedLists)
+    .innerJoin(restaurantLists, eq(sharedLists.listId, restaurantLists.id))
+    .innerJoin(users, eq(sharedLists.sharedById, users.id))
+    .where(eq(sharedLists.circleId, circleId));
+
+    return sharedListsData;
+  }
+
+  async getCirclesListIsSharedWith(listId: number): Promise<any[]> {
+    const sharedWithData = await db.select({
+      sharedList: sharedLists,
+      circle: circles
+    })
+    .from(sharedLists)
+    .innerJoin(circles, eq(sharedLists.circleId, circles.id))
+    .where(eq(sharedLists.listId, listId));
+
+    return sharedWithData;
   }
 }
 

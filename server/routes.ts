@@ -1125,13 +1125,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "You don't have permission to share this list" });
       }
 
-      // Feature not fully implemented yet
-      res.status(501).json({
-        message:
-          "List sharing functionality will be available in a future update",
-        listId,
-        circleId,
-        permissions,
+      // Share the list with the circle
+      const sharedList = await storage.shareListWithCircle(listId, circleId, req.user!.id, permissions);
+      
+      res.status(201).json({
+        message: "List shared successfully",
+        sharedList
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1148,8 +1147,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Circle not found" });
       }
 
-      // Feature not fully implemented yet
-      res.status(200).json([]);
+      // Get all lists shared with this circle
+      const sharedLists = await storage.getListsSharedWithCircle(circleId);
+      res.status(200).json(sharedLists);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
