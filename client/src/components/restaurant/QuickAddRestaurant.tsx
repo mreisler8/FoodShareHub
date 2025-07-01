@@ -50,50 +50,41 @@ export function QuickAddRestaurant() {
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.coords.latitude},${position.coords.longitude}&key=${process.env.GOOGLE_MAPS_API_KEY}&result_type=locality|administrative_area_level_1|country`
-            );
-            const data = await response.json();
-            const addressComponents = data.results[0]?.address_components || [];
-            const country = addressComponents.find(c => c.types.includes('country'))?.short_name;
-            
-            // Check if user is in Canada
-            if (country === 'CA') {
-              const city = addressComponents.find(c => c.types.includes('locality'))?.long_name;
-              const province = addressComponents.find(c => c.types.includes('administrative_area_level_1'))?.short_name;
-              setUserLocation(`${city}, ${province}`);
-              
-              // Update popular nearby based on Canadian context
-              setPopularNearby([
-                "Best poutine spots",
-                "Top Tim Hortons",
-                "Local food trucks",
-                "Best maple syrup cafes"
-              ]);
-            } else {
-              setUserLocation("Canada");
-              toast({
-                title: "Location Notice",
-                description: "This service is currently available in Canada only.",
-                variant: "warning"
-              });
-            }
-          } catch (error) {
-            console.error('Error fetching location:', error);
-            setUserLocation("Canada");
+        (position) => {
+          // For now, just use coordinates to determine general area
+          // In production, you'd use a geocoding service
+          const { latitude, longitude } = position.coords;
+          
+          // Simple logic to determine general area based on coordinates
+          if (latitude > 40.5 && latitude < 40.9 && longitude > -74.1 && longitude < -73.7) {
+            setUserLocation("New York City");
+            setPopularNearby(["NYC Pizza spots", "Manhattan sushi", "Brooklyn coffee shops"]);
+          } else if (latitude > 37.6 && latitude < 37.9 && longitude > -122.6 && longitude < -122.3) {
+            setUserLocation("San Francisco");
+            setPopularNearby(["SF food trucks", "Mission tacos", "Chinatown dim sum"]);
+          } else if (latitude > 43.5 && latitude < 43.9 && longitude > -79.5 && longitude < -79.1) {
+            setUserLocation("Toronto, ON");
+            setPopularNearby(["Best poutine spots", "Top Tim Hortons", "Local food trucks"]);
+          } else {
+            setUserLocation("Your Area");
+            setPopularNearby(["Italian restaurants", "Best coffee shops", "Sushi places"]);
           }
         },
         (error) => {
           console.error("Error getting location:", error);
-          // Fall back to a default location (e.g., based on IP)
+          // Fall back to a default location
           setUserLocation("New York City");
+          setPopularNearby(["Italian restaurants", "Best coffee shops", "Sushi places"]);
+        },
+        {
+          timeout: 5000,
+          enableHighAccuracy: false
         }
       );
     } else {
       // Geolocation not supported
       setUserLocation("New York City");
+      setPopularNearby(["Italian restaurants", "Best coffee shops", "Sushi places"]);
     }
   }, []);
   

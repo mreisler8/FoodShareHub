@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import CreatePost from "@/pages/create-post";
 import CircleDetails from "@/pages/circle-details";
+import Circles from "@/pages/circles";
 import Profile from "@/pages/profile";
 import Discover from "@/pages/discover";
 import DiscoverByLocation from "@/pages/discover-by-location";
@@ -29,6 +30,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={Home} />
       <ProtectedRoute path="/create-post" component={CreatePost} />
+      <ProtectedRoute path="/circles" component={Circles} />
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />
       <ProtectedRoute path="/profile/:id?" component={Profile} />
       <ProtectedRoute path="/discover" component={Discover} />

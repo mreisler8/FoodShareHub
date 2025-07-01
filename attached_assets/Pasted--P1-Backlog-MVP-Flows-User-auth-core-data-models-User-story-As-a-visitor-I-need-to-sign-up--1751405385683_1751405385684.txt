@@ -1,0 +1,91 @@
+🚀 P1 Backlog: MVP Flows
+
+User auth & core data models
+User story:
+
+As a visitor, I need to sign up, log in and out, so that my circles and lists stay private and tied to my account.
+Acceptance criteria:
+
+Sign-up page collects email & password, creates a User record.
+
+Login page authenticates via hashed password and issues a session/token.
+
+“Logout” button clears session/token and redirects to login.
+
+Data models for User, Circle, Recommendation (with relations: User ↔ Circle, Circle ↔ Recommendation) exist in the backend.
+Implementation notes:
+
+Use JWT or session cookies.
+
+Passwords must be hashed (bcrypt).
+
+Sequelize/Prisma/TypeORM (or your ORM of choice) with migrations for models.
+
+Create & join a Circle
+User story:
+
+As a logged-in user, I want to create a new Circle or join an existing one, so that I can share and view recommendations with friends.
+Acceptance criteria:
+
+“Create Circle” button opens a modal/form to enter circle name and optional description.
+
+Submitting creates a Circle record, associates current User as owner/member, and navigates into the Circle view.
+
+“Join Circle” input lets me paste an invite code/link; submitting adds me as a member and navigates into that Circle.
+
+Invite link (e.g. https://.../join/<circleId>?token=<inviteToken>) generates a one-time or JWT-based token.
+
+Search restaurants & add to list
+User story:
+
+As a Circle member, I want to search for restaurants and add them to my Circle’s list, so that all members can see my recommendations.
+Acceptance criteria:
+
+On the Circle page, a search bar with placeholder “Search restaurants…” is visible at top.
+
+Typing calls a mock API (or later real API) and shows autocomplete dropdown with name + small thumbnail.
+
+Clicking a result inserts a Recommendation record linked to that Circle and current User.
+
+The “Add” button toggles state to “Added” and disables further clicks.
+
+View & manage a Circle’s list
+User story:
+
+As a Circle member, I need to see all restaurants recommended in that Circle and be able to remove my own, so I can browse and curate.
+Acceptance criteria:
+
+Circle detail view shows a vertical list of cards: each card has restaurant name, (mock) photo, recommender’s name, and timestamp.
+
+If I’m the recommender, a “Remove” (trash icon) appears; clicking it deletes my Recommendation.
+
+The view auto-refreshes or updates optimistically on add/remove without a full page reload.
+
+Onboarding splash & micro-copy
+User story:
+
+As a first-time user, I want to understand what Circles are and why I’d use them, so I don’t get lost.
+Acceptance criteria:
+
+Immediately after login (only on first visit), show a lightbox or full-screen card with:
+
+Headline: “Welcome to Food Share Hub”
+
+Tagline: “Create trusted Circles of friends and discover each other’s favorite spots.”
+
+Buttons: “Create your first Circle” (takes you to Create flow) and “Skip for now.”
+
+Small info icons or tool-tips next to key labels (“Circle,” “Add to List”) with one-sentence explanations.
+
+Next steps for “Replit”
+
+Spin up backend route stubs (/auth, /circles, /search, /recommendations).
+
+Scaffold data models in your ORM.
+
+Wire up basic React/Vue/Svelte pages/components for each flow above.
+
+Use in-memory/mock data for search results until we integrate a real API in P2.
+
+Hook up auth guard so all circle/list pages redirect to login if unauthenticated.
+
