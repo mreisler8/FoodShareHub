@@ -21,8 +21,15 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication
-  setupAuth(app);
+  try {
+    console.log('Setting up authentication...');
+    // Set up authentication
+    setupAuth(app);
+    console.log('Authentication setup complete');
+  } catch (error) {
+    console.error('Failed to setup authentication:', error);
+    throw error;
+  }
   
   // Error handling middleware
   const handleZodError = (err: any, res: Response) => {

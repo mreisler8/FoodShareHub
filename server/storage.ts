@@ -130,24 +130,39 @@ export class DatabaseStorage implements IStorage {
   sessionStore: any; // Using any for session store type
   
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      createTableIfMissing: true 
-    });
-    this.initializeAnalyticsTable();
+    try {
+      this.sessionStore = new PostgresSessionStore({ 
+        pool, 
+        createTableIfMissing: true,
+        tableName: 'session'
+      });
+      // Initialize analytics table asynchronously to not block startup
+      this.initializeAnalyticsTable().catch(err => {
+        console.error('Failed to initialize analytics table:', err);
+      });
+    } catch (error) {
+      console.error('Failed to initialize session store:', error);
+      throw error;
+    }
   }
   
   private async initializeAnalyticsTable() {
-    // We'll use this for analytics tracking
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS analytics (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
-        action TEXT NOT NULL,
-        metadata JSONB NOT NULL,
-        timestamp TIMESTAMP DEFAULT NOW()
-      )
-    `);
+    try {
+      // We'll use this for analytics tracking
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS analytics (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id),
+          action TEXT NOT NULL,
+          metadata JSONB NOT NULL,
+          timestamp TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      console.log('Analytics table initialized successfully');
+    } catch (error) {
+      console.error('Failed to create analytics table:', error);
+      // Don't throw here to prevent app startup failure
+    }
   }
 
   // User operations
