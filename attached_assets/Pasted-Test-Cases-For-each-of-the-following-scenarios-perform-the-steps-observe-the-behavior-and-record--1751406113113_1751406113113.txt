@@ -1,0 +1,64 @@
+Test Cases
+For each of the following scenarios, perform the steps, observe the behavior, and record your findings.
+
+Test Case ID	Scenario	Steps	Expected Result	Actual Result & Notes
+TC-01	Authentication & Logout	1. Go to the URL
+2. Log in with provided creds
+3. Confirm landing page
+4. Click “Logout”	- On first login, onboarding splash appears (once)
+- Redirect to home/Circles
+- Logout returns to login screen	
+TC-02	Onboarding Splash Behavior	1. After login, view splash modal
+2. Dismiss via “Skip” or “Create your first Circle”
+3. Log out + back in	- Splash shows only on very first login
+- Does not reappear on subsequent logins	
+TC-03	Create a Circle	1. Click “Create your first Circle” or nav link
+2. Enter a name (and optional description)
+3. Submit	- Navigation to new Circle page
+- Your user is listed as owner/member	
+TC-04	Join an Existing Circle	1. Copy invite link or code from an existing Circle
+2. In incognito or same window, click “Join Circle”
+3. Paste link or code & submit	- You’re added as member
+- Redirect to the same Circle’s list view	
+TC-05	Restaurant Search Autocomplete	1. Within a Circle page, locate the search bar
+2. Type a query (e.g. “Starbucks”)	- Mock results dropdown appears
+- Each item shows name and thumbnail
+- “Add” button is visible	
+TC-06	Add a Recommendation	1. Click “Add” next to a search result	- Button toggles to “Added” and becomes disabled
+- New card appears in the list below	
+TC-07	View & Remove Recommendations	1. Scroll through list of recommendations
+2. For your own recommendation, click trash icon	- Each card displays name, photo, recommender name, timestamp
+- Clicking trash removes the card immediately without full page reload	
+
+Reporting Requirements
+
+For each TC- entry, fill out:
+
+Status: Pass / Fail / Blocked
+
+Actual Result: Describe what happened vs. expected.
+
+Screenshots: Attach or link if UI issues occur.
+
+Severity: Low / Medium / High (e.g., typos vs. broken flows).
+
+Notes & Recommendations: Any UX copy tweaks, missing buttons, styling glitches, error messages, or suggestions for improvement.
+
+Additional Exploratory Checks
+
+Verify mobile-responsive behavior at common breakpoints (e.g., 375×667 px).
+
+Confirm button states (hover, disabled).
+
+Check loading states or error handling (e.g., simulate search API failure).
+
+Deliverable: A structured QA report (spreadsheet or ticket list) with each test case’s results, severity, and recommended actions.
+
+
+
+
+
+
+
+
+
