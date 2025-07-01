@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    console.log('Starting TasteBuds server...');
+    console.log('Starting Circles server...');
     
     const server = await registerRoutes(app);
     console.log('Routes registered successfully');
@@ -72,7 +72,7 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
-      log(`TasteBuds server running successfully on port ${port}`);
+      log(`Circles server running successfully on port ${port}`);
       console.log(`🚀 Server is ready at http://localhost:${port}`);
     });
   } catch (error) {

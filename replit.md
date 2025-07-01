@@ -1,8 +1,8 @@
-# TasteBuds - Food Experience Sharing Platform
+# Circles - Food Experience Sharing Platform
 
 ## Overview
 
-TasteBuds is a full-stack social platform for sharing restaurant recommendations and food experiences. The application allows users to create posts about restaurants, join food-focused circles, create curated restaurant lists, and follow friends for personalized recommendations.
+Circles is a full-stack social platform for sharing restaurant recommendations and food experiences. The application allows users to create posts about restaurants, join food-focused circles, create curated restaurant lists, and follow friends for personalized recommendations.
 
 ## System Architecture
 

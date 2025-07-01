@@ -120,7 +120,7 @@ export function InviteModal({
           <DialogDescription>
             {inviteType === "circle"
               ? "Invite friends to join your trusted Circle for restaurant recommendations"
-              : "Invite friends to join TasteBuds and discover restaurants through trusted connections"}
+              : "Invite friends to join Circles and discover restaurants through trusted connections"}
           </DialogDescription>
         </DialogHeader>
         

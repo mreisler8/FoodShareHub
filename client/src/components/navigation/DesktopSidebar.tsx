@@ -49,7 +49,7 @@ export function DesktopSidebar() {
             <path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"></path>
           </svg>
         </div>
-        <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">TasteBuds</h1>
+        <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">Circles</h1>
       </div>
       
       <nav className="flex-1">

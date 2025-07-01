@@ -49,7 +49,7 @@ export function WelcomeSplash({ onCreateFirstCircle }: WelcomeSplashProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl mb-2">Welcome to TasteBuds!</DialogTitle>
+          <DialogTitle className="text-2xl mb-2">Welcome to Circles!</DialogTitle>
           <DialogDescription className="text-lg">
             Create trusted Circles of friends and discover each other's favorite spots.
           </DialogDescription>

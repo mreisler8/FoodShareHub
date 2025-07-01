@@ -131,7 +131,7 @@ export default function JoinPage() {
       <div className="flex-1 flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-md">
           <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold text-primary">Join TasteBuds</h2>
+            <h2 className="text-3xl font-bold text-primary">Join Circles</h2>
             {referrer && !isLoadingReferrer && (
               <p className="mt-2 text-neutral-600">
                 <span className="font-medium">{referrer.name}</span> invited you to join
@@ -241,7 +241,7 @@ export default function JoinPage() {
             Discover restaurants through trusted connections
           </h2>
           <p className="text-xl mb-10 max-w-md text-center">
-            TasteBuds helps you find great restaurants based on recommendations from people you trust, not strangers on the internet.
+            Circles helps you find great restaurants based on recommendations from people you trust, not strangers on the internet.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
