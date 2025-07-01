@@ -5,6 +5,7 @@ import { QuickCaptureButton } from "@/components/shared/QuickCaptureButton";
 import { Bell, MessageSquare, Users, Utensils, Bookmark, PlusCircle } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { WelcomeSplash } from "@/components/onboarding/WelcomeSplash";
 import { QuickAddRestaurant } from "@/components/restaurant/QuickAddRestaurant";
 import { PostCard } from "@/components/home/PostCard";
 import { Button } from "@/components/ui/button";
@@ -13,10 +14,12 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PostWithDetails } from "@/lib/types";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLocation } from "wouter";
 
 export default function Home() {
   const { user } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [, setLocation] = useLocation();
   
   // Check if user has joined any circles
   const { data: userCircles = [], isLoading: isLoadingCircles } = useQuery<any[]>({
@@ -243,6 +246,9 @@ export default function Home() {
       
       {/* Right Sidebar (Desktop Only) */}
       <DesktopRightSidebar />
+      
+      {/* Welcome Splash for first-time users */}
+      <WelcomeSplash onCreateFirstCircle={() => setLocation("/circles")} />
       
       {/* Onboarding Modal */}
       <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />

@@ -1107,6 +1107,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get featured circles
+  app.get("/api/circles/featured", async (req, res) => {
+    try {
+      const featuredCircles = await storage.getFeaturedCircles();
+      res.json(featuredCircles);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Join a circle
+  app.post("/api/circles/:id/join", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "You must be logged in to join a circle" });
+    }
+
+    try {
+      const circleId = parseInt(req.params.id);
+      const userId = req.user.id;
+
+      // Check if circle exists
+      const circle = await storage.getCircle(circleId);
+      if (!circle) {
+        return res.status(404).json({ error: "Circle not found" });
+      }
+
+      // Check if user is already a member
+      const isAlreadyMember = await storage.isUserMemberOfCircle(userId, circleId);
+      if (isAlreadyMember) {
+        return res.status(400).json({ error: "You are already a member of this circle" });
+      }
+
+      // Add user to circle
+      await storage.createCircleMember({
+        userId,
+        circleId
+      });
+
+      res.json({ message: "Successfully joined circle", circle });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup WebSocket server for real-time communication
