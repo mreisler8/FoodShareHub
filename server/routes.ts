@@ -855,7 +855,198 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Restaurant List routes
+  // User Story 1: Lists API Endpoints
+  // POST /api/lists → create list
+  app.post("/api/lists", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const listData = insertRestaurantListSchema.parse({
+        ...req.body,
+        createdById: req.user!.id, // Use authenticated user's ID
+      });
+      const newList = await storage.createRestaurantList(listData);
+      res.status(201).json(newList);
+    } catch (err: any) {
+      handleZodError(err, res);
+    }
+  });
+
+  // GET /api/lists/:listId → fetch list metadata + items
+  app.get("/api/lists/:listId", async (req, res) => {
+    try {
+      const listId = parseInt(req.params.listId);
+      const list = await storage.getRestaurantList(listId);
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+
+      // Get list items with restaurant details
+      const listItems = await storage.getDetailedRestaurantsInList(list.id);
+
+      // Remove password from user objects for security
+      const cleanedListItems = listItems.map((item: any) => {
+        if (item.addedBy) {
+          const { password, ...cleanUser } = item.addedBy;
+          return { ...item, addedBy: cleanUser };
+        }
+        return item;
+      });
+
+      const response = {
+        ...list,
+        items: cleanedListItems,
+      };
+
+      res.json(response);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT /api/lists/:listId → update list (name, desc, visibility)
+  app.put("/api/lists/:listId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const listId = parseInt(req.params.listId);
+      const list = await storage.getRestaurantList(listId);
+      
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+
+      // Check if user owns the list
+      if (list.createdById !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized to edit this list" });
+      }
+
+      const updates = req.body;
+      const updatedList = await storage.updateRestaurantList(listId, updates);
+      res.json(updatedList);
+    } catch (err: any) {
+      handleZodError(err, res);
+    }
+  });
+
+  // DELETE /api/lists/:listId → delete list
+  app.delete("/api/lists/:listId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const listId = parseInt(req.params.listId);
+      const list = await storage.getRestaurantList(listId);
+      
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+
+      // Check if user owns the list
+      if (list.createdById !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized to delete this list" });
+      }
+
+      // Delete the list (this should cascade to delete items)
+      await storage.deleteRestaurantList(listId);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/lists/:listId/items → add item
+  app.post("/api/lists/:listId/items", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const listId = parseInt(req.params.listId);
+      const list = await storage.getRestaurantList(listId);
+      
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+
+      const itemData = insertRestaurantListItemSchema.parse({
+        ...req.body,
+        listId,
+        addedById: req.user!.id,
+      });
+      
+      const newItem = await storage.addRestaurantToList(itemData);
+      res.status(201).json(newItem);
+    } catch (err: any) {
+      handleZodError(err, res);
+    }
+  });
+
+  // DELETE /api/lists/:listId/items/:itemId → remove item
+  app.delete("/api/lists/:listId/items/:itemId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const listId = parseInt(req.params.listId);
+      const itemId = parseInt(req.params.itemId);
+      
+      // Check if list exists
+      const list = await storage.getRestaurantList(listId);
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+
+      // For now, allow list owner to delete any item
+      // TODO: Check if user owns the item or the list
+      if (list.createdById !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized to delete items from this list" });
+      }
+
+      await storage.removeRestaurantListItem(itemId);
+      res.status(204).end();
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT /api/lists/:listId/items/:itemId → update item metadata
+  app.put("/api/lists/:listId/items/:itemId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const listId = parseInt(req.params.listId);
+      const itemId = parseInt(req.params.itemId);
+      
+      // Check if list exists
+      const list = await storage.getRestaurantList(listId);
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+
+      // For now, allow list owner to edit any item
+      // TODO: Check if user owns the item or the list
+      if (list.createdById !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized to edit items in this list" });
+      }
+
+      const updates = req.body;
+      const updatedItem = await storage.updateRestaurantListItem(itemId, updates);
+      res.json(updatedItem);
+    } catch (err: any) {
+      handleZodError(err, res);
+    }
+  });
+
+  // Restaurant List routes (existing routes kept for backward compatibility)
   app.get("/api/restaurant-lists", async (req, res) => {
     try {
       const circleId = req.query.circleId;

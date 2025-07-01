@@ -267,6 +267,9 @@ export const restaurantListItems = pgTable("restaurant_list_items", {
   id: serial("id").primaryKey(),
   listId: integer("list_id").notNull(),
   restaurantId: integer("restaurant_id").notNull(),
+  rating: integer("rating"), // 1-5 star rating
+  liked: text("liked"), // What I liked
+  disliked: text("disliked"), // What I didn't like
   notes: text("notes"),
   mustTryDishes: text("must_try_dishes").array(),
   addedById: integer("added_by_id").notNull(),
@@ -277,6 +280,9 @@ export const restaurantListItems = pgTable("restaurant_list_items", {
 export const insertRestaurantListItemSchema = createInsertSchema(restaurantListItems).pick({
   listId: true,
   restaurantId: true,
+  rating: true,
+  liked: true,
+  disliked: true,
   notes: true,
   mustTryDishes: true,
   addedById: true,

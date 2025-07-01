@@ -106,6 +106,8 @@ export interface IStorage {
   // Restaurant List operations
   createRestaurantList(list: InsertRestaurantList): Promise<RestaurantList>;
   getRestaurantList(id: number): Promise<RestaurantList | undefined>;
+  updateRestaurantList(id: number, updates: Partial<RestaurantList>): Promise<RestaurantList>;
+  deleteRestaurantList(id: number): Promise<void>;
   getRestaurantListsByHub(hubId: number): Promise<RestaurantList[]>;
   getRestaurantListsByCircle(circleId: number): Promise<RestaurantList[]>;
   getRestaurantListsByUser(userId: number): Promise<RestaurantList[]>;
@@ -114,6 +116,8 @@ export interface IStorage {
   // Restaurant List Item operations
   addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem>;
   removeRestaurantFromList(listId: number, restaurantId: number): Promise<void>;
+  removeRestaurantListItem(itemId: number): Promise<void>;
+  updateRestaurantListItem(itemId: number, updates: Partial<RestaurantListItem>): Promise<RestaurantListItem>;
   getRestaurantsInList(listId: number): Promise<RestaurantListItem[]>;
   getDetailedRestaurantsInList(listId: number): Promise<any[]>; // with restaurant details
   
