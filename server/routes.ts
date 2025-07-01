@@ -1,3 +1,7 @@
+import { Request, Response } from "express";
+import { db } from "./db"; // you already saw this in db.ts
+import { authenticate } from "./auth"; // or wherever your middleware lives
+
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -19,18 +23,21 @@ import {
   insertRestaurantListSchema,
   insertRestaurantListItemSchema,
 } from "@shared/schema";
+import express from "express";
+const app = express();
+// … other app.use() calls …
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
-    console.log('Setting up authentication...');
+    console.log("Setting up authentication...");
     // Set up authentication
     setupAuth(app);
-    console.log('Authentication setup complete');
+    console.log("Authentication setup complete");
   } catch (error) {
-    console.error('Failed to setup authentication:', error);
+    console.error("Failed to setup authentication:", error);
     throw error;
   }
-  
+
   // Error handling middleware
   const handleZodError = (err: any, res: Response) => {
     if (err instanceof ZodError) {
@@ -47,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const users = await storage.getAllUsers();
       // Remove passwords from all user objects
-      const usersWithoutPasswords = users.map(user => {
+      const usersWithoutPasswords = users.map((user) => {
         const { password, ...userWithoutPassword } = user;
         return userWithoutPassword;
       });
@@ -78,132 +85,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const followerId = req.user!.id;
       const followingId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(followingId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Check if the user exists
       const userToFollow = await storage.getUser(followingId);
       if (!userToFollow) {
         return res.status(404).json({ error: "User not found" });
       }
-      
-      const followRelationship = await storage.followUser(followerId, followingId);
+
+      const followRelationship = await storage.followUser(
+        followerId,
+        followingId,
+      );
       res.status(201).json(followRelationship);
     } catch (err: any) {
-      if (err.message === "Already following this user" || err.message === "Users cannot follow themselves") {
+      if (
+        err.message === "Already following this user" ||
+        err.message === "Users cannot follow themselves"
+      ) {
         return res.status(400).json({ error: err.message });
       }
       res.status(500).json({ error: err.message || "An error occurred" });
     }
   });
-  
+
   app.delete("/api/user/follow/:userId", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const followerId = req.user!.id;
       const followingId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(followingId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Check if the user exists
       const userToUnfollow = await storage.getUser(followingId);
       if (!userToUnfollow) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       await storage.unfollowUser(followerId, followingId);
       res.status(200).json({ message: "Successfully unfollowed user" });
     } catch (err: any) {
       res.status(500).json({ error: err.message || "An error occurred" });
     }
   });
-  
+
   app.get("/api/user/following/status/:userId", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const followerId = req.user!.id;
       const followingId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(followingId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
-      const isFollowing = await storage.isUserFollowing(followerId, followingId);
+
+      const isFollowing = await storage.isUserFollowing(
+        followerId,
+        followingId,
+      );
       res.json({ isFollowing });
     } catch (err: any) {
       res.status(500).json({ error: err.message || "An error occurred" });
     }
   });
-  
+
   app.get("/api/user/:userId/followers", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Check if the user exists
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       const followers = await storage.getFollowers(userId);
-      
+
       // Remove passwords from followers
-      const safeFollowers = followers.map(follower => {
+      const safeFollowers = followers.map((follower) => {
         const { password, ...safeFollower } = follower;
         return safeFollower;
       });
-      
+
       res.json(safeFollowers);
     } catch (err: any) {
       res.status(500).json({ error: err.message || "An error occurred" });
     }
   });
-  
+
   app.get("/api/user/:userId/following", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Check if the user exists
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       const following = await storage.getFollowing(userId);
-      
+
       // Remove passwords from followed users
-      const safeFollowing = following.map(followed => {
+      const safeFollowing = following.map((followed) => {
         const { password, ...safeFollowed } = followed;
         return safeFollowed;
       });
-      
+
       res.json(safeFollowing);
     } catch (err: any) {
       res.status(500).json({ error: err.message || "An error occurred" });
@@ -214,66 +230,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/restaurants", async (req, res) => {
     try {
       const { query, location } = req.query;
-      
-      console.log(`Restaurant search request received with params:`, { query, location });
-      
+
+      console.log(`Restaurant search request received with params:`, {
+        query,
+        location,
+      });
+
       // Search by query text
       if (query && typeof query === "string") {
         console.log(`Searching restaurants with query: "${query}"`);
-        
+
         // First search local database
         const dbResults = await storage.searchRestaurants(query);
-        console.log(`Local database search returned ${dbResults.length} results`);
+        console.log(
+          `Local database search returned ${dbResults.length} results`,
+        );
         if (dbResults.length > 0) {
-          console.log(`First local result: ${JSON.stringify(dbResults[0].name)}`);
+          console.log(
+            `First local result: ${JSON.stringify(dbResults[0].name)}`,
+          );
         }
-        
+
         // Then search Google Places API
         console.log(`Searching Google Places for: "${query}"`);
         const googleResults = await searchGooglePlaces(query);
-        console.log(`Google Places search returned ${googleResults.length} results`);
-        if (googleResults.length > 0) {
-          console.log(`First Google result: ${JSON.stringify(googleResults[0].name)}`);
-        }
-        
-        // Filter out Google results that already exist in the database to avoid duplicates
-        const filteredGoogleResults = googleResults.filter(gr => 
-          !dbResults.some(dr => dr.googlePlaceId === gr.googlePlaceId)
+        console.log(
+          `Google Places search returned ${googleResults.length} results`,
         );
-        console.log(`After filtering duplicates, using ${filteredGoogleResults.length} Google results`);
-        
+        if (googleResults.length > 0) {
+          console.log(
+            `First Google result: ${JSON.stringify(googleResults[0].name)}`,
+          );
+        }
+
+        // Filter out Google results that already exist in the database to avoid duplicates
+        const filteredGoogleResults = googleResults.filter(
+          (gr) =>
+            !dbResults.some((dr) => dr.googlePlaceId === gr.googlePlaceId),
+        );
+        console.log(
+          `After filtering duplicates, using ${filteredGoogleResults.length} Google results`,
+        );
+
         // Combine results, with local database results first
         const combinedResults = [...dbResults, ...filteredGoogleResults];
-        console.log(`Found ${dbResults.length} local results and ${filteredGoogleResults.length} unique Google results, total: ${combinedResults.length}`);
-        
+        console.log(
+          `Found ${dbResults.length} local results and ${filteredGoogleResults.length} unique Google results, total: ${combinedResults.length}`,
+        );
+
         return res.json(combinedResults);
       }
-      
+
       // Search by location
       if (location && typeof location === "string") {
         console.log(`Searching restaurants by location: "${location}"`);
-        
+
         // First search local database
         const dbResults = await storage.searchRestaurantsByLocation(location);
-        console.log(`Local database location search returned ${dbResults.length} results`);
-        
+        console.log(
+          `Local database location search returned ${dbResults.length} results`,
+        );
+
         // Then search Google Places API
         console.log(`Searching Google Places for location: "${location}"`);
         const googleResults = await searchGooglePlaces(location);
-        console.log(`Google Places location search returned ${googleResults.length} results`);
-        
-        // Filter out Google results that already exist in the database
-        const filteredGoogleResults = googleResults.filter(gr => 
-          !dbResults.some(dr => dr.googlePlaceId === gr.googlePlaceId)
+        console.log(
+          `Google Places location search returned ${googleResults.length} results`,
         );
-        
+
+        // Filter out Google results that already exist in the database
+        const filteredGoogleResults = googleResults.filter(
+          (gr) =>
+            !dbResults.some((dr) => dr.googlePlaceId === gr.googlePlaceId),
+        );
+
         // Combine results, with local database results first
         const combinedResults = [...dbResults, ...filteredGoogleResults];
-        console.log(`Combined location results: ${combinedResults.length} total`);
-        
+        console.log(
+          `Combined location results: ${combinedResults.length} total`,
+        );
+
         return res.json(combinedResults);
       }
-      
+
       // Return all restaurants if no query parameters
       console.log("No query or location provided, returning all restaurants");
       const restaurants = await storage.getAllRestaurants();
@@ -297,55 +336,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: err.message });
     }
   });
-  
+
   // Google Places details endpoint
   app.get("/api/google/places/:placeId", async (req, res) => {
     try {
       const placeId = req.params.placeId;
       console.log(`Fetching Google Place details for ID: ${placeId}`);
-      
+
       const details = await getPlaceDetails(placeId);
       if (!details) {
         return res.status(404).json({ error: "Place details not found" });
       }
-      
+
       res.json(details);
     } catch (err: any) {
       console.error("Error fetching Google Place details:", err);
       res.status(500).json({ error: err.message });
     }
   });
-  
+
   // Save a Google Place to our database
   app.post("/api/google/places/save", async (req, res) => {
     try {
       const { placeId } = req.body;
-      
+
       if (!placeId) {
         return res.status(400).json({ error: "Google Place ID is required" });
       }
-      
+
       console.log(`Saving Google Place to database, ID: ${placeId}`);
-      
+
       // Get place details from Google
       const placeDetails = await getPlaceDetails(placeId);
       if (!placeDetails) {
         return res.status(404).json({ error: "Place details not found" });
       }
-      
+
       // Check if restaurant already exists in our database with this Google Place ID
-      const existingRestaurants = await storage.searchRestaurants(placeDetails.name || "");
-      const existingRestaurant = existingRestaurants.find(r => r.googlePlaceId === placeId);
-      
+      const existingRestaurants = await storage.searchRestaurants(
+        placeDetails.name || "",
+      );
+      const existingRestaurant = existingRestaurants.find(
+        (r) => r.googlePlaceId === placeId,
+      );
+
       if (existingRestaurant) {
-        console.log(`Restaurant already exists in database with ID: ${existingRestaurant.id}`);
+        console.log(
+          `Restaurant already exists in database with ID: ${existingRestaurant.id}`,
+        );
         return res.json(existingRestaurant);
       }
-      
+
       // Create a new restaurant in our database
       const restaurantData = {
         name: placeDetails.name || "",
-        location: placeDetails.address?.split(",").slice(-2).join(",").trim() || "",
+        location:
+          placeDetails.address?.split(",").slice(-2).join(",").trim() || "",
         category: placeDetails.category || "Restaurant",
         priceRange: placeDetails.priceRange || "$$",
         googlePlaceId: placeId,
@@ -357,10 +403,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cuisine: placeDetails.category,
         hours: placeDetails.hours,
       };
-      
+
       const newRestaurant = await storage.createRestaurant(restaurantData);
-      console.log(`Saved Google Place to database with ID: ${newRestaurant.id}`);
-      
+      console.log(
+        `Saved Google Place to database with ID: ${newRestaurant.id}`,
+      );
+
       res.status(201).json(newRestaurant);
     } catch (err: any) {
       console.error("Error saving Google Place to database:", err);
@@ -390,7 +438,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (restaurantId && typeof restaurantId === "string") {
-        const posts = await storage.getPostsByRestaurant(parseInt(restaurantId));
+        const posts = await storage.getPostsByRestaurant(
+          parseInt(restaurantId),
+        );
         return res.json(posts);
       }
 
@@ -404,77 +454,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/feed", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "You must be logged in to view your feed" });
+        return res
+          .status(401)
+          .json({ error: "You must be logged in to view your feed" });
       }
-      
+
       // Get feed posts with pagination support
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      
+
       // Add query validation
       if (isNaN(page) || page < 1) {
         return res.status(400).json({ error: "Invalid page parameter" });
       }
-      
+
       if (isNaN(limit) || limit < 1 || limit > 50) {
         return res.status(400).json({ error: "Invalid limit parameter" });
       }
-      
+
       // Apply offset pagination
       const offset = (page - 1) * limit;
-      
+
       // Get paginated posts with new optimized method
-      const feedPosts = await storage.getFeedPosts({ 
-        userId: req.user.id, 
-        offset, 
-        limit 
+      const feedPosts = await storage.getFeedPosts({
+        userId: req.user.id,
+        offset,
+        limit,
       });
-      
+
       // Make sure the posts are safe (no password info)
-      const safeFeedPosts = feedPosts.map(post => {
+      const safeFeedPosts = feedPosts.map((post) => {
         // Clean post author using destructuring
         const { author, comments = [], ...postData } = post;
         let cleanAuthor = null;
-        
+
         if (author) {
           const { password, ...authorWithoutPassword } = author;
           cleanAuthor = authorWithoutPassword;
         }
-        
+
         // Process comments if they exist
-        const cleanComments = Array.isArray(comments) 
-          ? comments.map(comment => {
+        const cleanComments = Array.isArray(comments)
+          ? comments.map((comment) => {
               if (!comment || !comment.author) return comment;
               const { password, ...authorData } = comment.author;
               return { ...comment, author: authorData };
             })
           : [];
-        
+
         return {
           ...postData,
           author: cleanAuthor,
-          comments: cleanComments
+          comments: cleanComments,
         };
       });
-      
+
       // Get total count from the posts list
       // In this approach we just count from the first post
       const total = feedPosts.length > 0 ? feedPosts[0].totalPosts || 0 : 0;
       const totalPages = Math.ceil(total / limit);
       const hasMore = page < totalPages;
-      
+
       // Create pagination info
       const pagination = {
         page,
         limit,
-        total, 
+        total,
         totalPages,
-        hasMore
+        hasMore,
       };
-      
+
       res.json({
         posts: safeFeedPosts,
-        pagination
+        pagination,
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -487,25 +539,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!postDetails) {
         return res.status(404).json({ error: "Post not found" });
       }
-      
+
       // Remove password hash from post author
       let safePostDetails = { ...postDetails };
       if (safePostDetails.author && safePostDetails.author.password) {
         const { password, ...authorWithoutPassword } = safePostDetails.author;
         safePostDetails.author = authorWithoutPassword;
       }
-      
+
       // Remove password hashes from comment authors
       if (safePostDetails.comments && Array.isArray(safePostDetails.comments)) {
-        safePostDetails.comments = safePostDetails.comments.map((comment: any) => {
-          if (comment.author && comment.author.password) {
-            const { password, ...authorWithoutPassword } = comment.author;
-            return { ...comment, author: authorWithoutPassword };
-          }
-          return comment;
-        });
+        safePostDetails.comments = safePostDetails.comments.map(
+          (comment: any) => {
+            if (comment.author && comment.author.password) {
+              const { password, ...authorWithoutPassword } = comment.author;
+              return { ...comment, author: authorWithoutPassword };
+            }
+            return comment;
+          },
+        );
       }
-      
+
       res.json(safePostDetails);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -516,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const postData = insertPostSchema.parse(req.body);
       const newPost = await storage.createPost(postData);
@@ -525,30 +579,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleZodError(err, res);
     }
   });
-  
+
   // Update a post
   app.put("/api/posts/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const postId = parseInt(req.params.id);
       const post = await storage.getPost(postId);
-      
+
       // Check if post exists
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
-      
+
       // Check if the authenticated user is the author of the post
       if (post.userId !== req.user!.id) {
-        return res.status(403).json({ error: "Not authorized to update this post" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to update this post" });
       }
-      
+
       // Validate the request body
       const updateData = req.body;
-      
+
       // Update the post
       const updatedPost = await storage.updatePost(postId, updateData);
       res.json(updatedPost);
@@ -556,27 +612,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: err.message });
     }
   });
-  
+
   // Delete a post
   app.delete("/api/posts/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const postId = parseInt(req.params.id);
       const post = await storage.getPost(postId);
-      
+
       // Check if post exists
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
-      
+
       // Check if the authenticated user is the author of the post
       if (post.userId !== req.user!.id) {
-        return res.status(403).json({ error: "Not authorized to delete this post" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to delete this post" });
       }
-      
+
       // Delete the post
       await storage.deletePost(postId);
       res.status(200).json({ message: "Post deleted successfully" });
@@ -588,7 +646,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Comment routes
   app.get("/api/posts/:postId/comments", async (req, res) => {
     try {
-      const comments = await storage.getCommentsByPost(parseInt(req.params.postId));
+      const comments = await storage.getCommentsByPost(
+        parseInt(req.params.postId),
+      );
       res.json(comments);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -629,7 +689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    
+
     try {
       const circles = await storage.getCirclesByUser(req.user.id);
       res.json(circles);
@@ -644,12 +704,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!circle) {
         return res.status(404).json({ error: "Circle not found" });
       }
-      
+
       const members = await storage.getCircleMembers(circle.id);
-      
+
       res.json({
         ...circle,
-        memberCount: members.length
+        memberCount: members.length,
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -668,7 +728,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/:userId/circles", async (req, res) => {
     try {
-      const userCircles = await storage.getCirclesByUser(parseInt(req.params.userId));
+      const userCircles = await storage.getCirclesByUser(
+        parseInt(req.params.userId),
+      );
       res.json(userCircles);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -700,7 +762,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await storage.deleteLike(
         parseInt(req.params.postId),
-        parseInt(req.params.userId)
+        parseInt(req.params.userId),
       );
       res.status(204).end();
     } catch (err: any) {
@@ -730,7 +792,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/:userId/saved-restaurants", async (req, res) => {
     try {
-      const savedRestaurants = await storage.getSavedRestaurantsByUser(parseInt(req.params.userId));
+      const savedRestaurants = await storage.getSavedRestaurantsByUser(
+        parseInt(req.params.userId),
+      );
       res.json(savedRestaurants);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -741,29 +805,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stories", async (req, res) => {
     try {
       const activeStories = await storage.getActiveStories();
-      
+
       // Group stories by user
       const storiesByUser = new Map();
-      
+
       for (const story of activeStories) {
         const user = await storage.getUser(story.userId);
         if (!user) continue;
-        
+
         // Remove password from user data
         const { password, ...userWithoutPassword } = user;
-        
+
         if (!storiesByUser.has(userWithoutPassword.id)) {
           storiesByUser.set(userWithoutPassword.id, {
             userId: userWithoutPassword.id,
             userName: userWithoutPassword.name,
             profilePicture: userWithoutPassword.profilePicture,
-            stories: []
+            stories: [],
           });
         }
-        
+
         storiesByUser.get(userWithoutPassword.id).stories.push(story);
       }
-      
+
       res.json(Array.from(storiesByUser.values()));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -786,22 +850,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const circleId = req.query.circleId;
       const userId = req.query.userId;
       const publicOnly = req.query.publicOnly === "true";
-      
+
       if (circleId && typeof circleId === "string") {
-        const lists = await storage.getRestaurantListsByCircle(parseInt(circleId));
+        const lists = await storage.getRestaurantListsByCircle(
+          parseInt(circleId),
+        );
         return res.json(lists);
       }
-      
+
       if (userId && typeof userId === "string") {
         const lists = await storage.getRestaurantListsByUser(parseInt(userId));
         return res.json(lists);
       }
-      
+
       if (publicOnly) {
         const lists = await storage.getPublicRestaurantLists();
         return res.json(lists);
       }
-      
+
       // Default to public lists if no specific query
       const lists = await storage.getPublicRestaurantLists();
       res.json(lists);
@@ -809,13 +875,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: err.message });
     }
   });
-  
+
   // Current user's restaurant lists - Authenticated endpoint
   app.get("/api/lists/user", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-    
+
     try {
       const lists = await storage.getRestaurantListsByUser(req.user.id);
       res.json(lists);
@@ -823,28 +889,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: err.message });
     }
   });
-  
+
   app.get("/api/restaurant-lists/:id", async (req, res) => {
     try {
       const list = await storage.getRestaurantList(parseInt(req.params.id));
       if (!list) {
         return res.status(404).json({ error: "List not found" });
       }
-      
+
       // Get list items with restaurant details
       const listItems = await storage.getDetailedRestaurantsInList(list.id);
-      
+
       // Fix for security vulnerability - remove password from all user objects
       // Clean detailed restaurants list items to remove all user password hashes
-      const cleanedListItems = await Promise.all(listItems.map(async item => {
-        // Clean the addedBy user object if it exists
-        if (item.addedBy && item.addedBy.password) {
-          const { password, ...cleanAddedBy } = item.addedBy;
-          return { ...item, addedBy: cleanAddedBy };
-        }
-        return item;
-      }));
-      
+      const cleanedListItems = await Promise.all(
+        listItems.map(async (item) => {
+          // Clean the addedBy user object if it exists
+          if (item.addedBy && item.addedBy.password) {
+            const { password, ...cleanAddedBy } = item.addedBy;
+            return { ...item, addedBy: cleanAddedBy };
+          }
+          return item;
+        }),
+      );
+
       // Get and clean creator user data
       const creator = await storage.getUser(list.createdById);
       let creatorWithoutPassword = null;
@@ -852,24 +920,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { password, ...userWithoutPassword } = creator;
         creatorWithoutPassword = userWithoutPassword;
       }
-      
+
       // If the list is associated with a circle, get the circle info
       let circle = null;
       if (list.circleId) {
         circle = await storage.getCircle(list.circleId);
       }
-      
+
       res.json({
         ...list,
         creator: creatorWithoutPassword,
         circle,
-        restaurants: cleanedListItems
+        restaurants: cleanedListItems,
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
-  
+
   app.post("/api/restaurant-lists", async (req, res) => {
     try {
       const listData = insertRestaurantListSchema.parse(req.body);
@@ -879,7 +947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleZodError(err, res);
     }
   });
-  
+
   app.post("/api/restaurant-list-items", async (req, res) => {
     try {
       const itemData = insertRestaurantListItemSchema.parse(req.body);
@@ -889,24 +957,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleZodError(err, res);
     }
   });
-  
-  app.delete("/api/restaurant-lists/:listId/restaurants/:restaurantId", async (req, res) => {
-    try {
-      await storage.removeRestaurantFromList(
-        parseInt(req.params.listId),
-        parseInt(req.params.restaurantId)
-      );
-      res.status(204).end();
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+
+  app.delete(
+    "/api/restaurant-lists/:listId/restaurants/:restaurantId",
+    async (req, res) => {
+      try {
+        await storage.removeRestaurantFromList(
+          parseInt(req.params.listId),
+          parseInt(req.params.restaurantId),
+        );
+        res.status(204).end();
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    },
+  );
 
   // Enhanced list management routes
   app.patch("/api/restaurant-lists/:id", async (req, res) => {
     try {
       const updates = req.body;
-      const updatedList = await storage.updateRestaurantList(parseInt(req.params.id), updates);
+      const updatedList = await storage.updateRestaurantList(
+        parseInt(req.params.id),
+        updates,
+      );
       res.json(updatedList);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -915,7 +989,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/restaurant-lists/:id/view", async (req, res) => {
     try {
-      const updatedList = await storage.incrementListViewCount(parseInt(req.params.id));
+      const updatedList = await storage.incrementListViewCount(
+        parseInt(req.params.id),
+      );
       res.json({ viewCount: updatedList.viewCount });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -924,7 +1000,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/restaurant-lists/:id/save", async (req, res) => {
     try {
-      const updatedList = await storage.incrementListSaveCount(parseInt(req.params.id));
+      const updatedList = await storage.incrementListSaveCount(
+        parseInt(req.params.id),
+      );
       res.json({ saveCount: updatedList.saveCount });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -934,7 +1012,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Location-based discovery routes
   app.get("/api/restaurants/location/:location", async (req, res) => {
     try {
-      const restaurants = await storage.getRestaurantsByLocation(req.params.location);
+      const restaurants = await storage.getRestaurantsByLocation(
+        req.params.location,
+      );
       res.json(restaurants);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -944,20 +1024,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/restaurants/nearby", async (req, res) => {
     try {
       const { lat, lng, radius } = req.query;
-      
-      if (!lat || !lng || !radius || 
-          typeof lat !== 'string' || 
-          typeof lng !== 'string' || 
-          typeof radius !== 'string') {
+
+      if (
+        !lat ||
+        !lng ||
+        !radius ||
+        typeof lat !== "string" ||
+        typeof lng !== "string" ||
+        typeof radius !== "string"
+      ) {
         return res.status(400).json({ error: "Missing or invalid parameters" });
       }
-      
+
       const restaurants = await storage.getNearbyRestaurants(
-        lat, 
-        lng, 
-        parseInt(radius)
+        lat,
+        lng,
+        parseInt(radius),
       );
-      
+
       res.json(restaurants);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -967,9 +1051,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/restaurant-lists/location/:location", async (req, res) => {
     try {
       // Find restaurant lists that include restaurants in this location
-      const restaurants = await storage.getRestaurantsByLocation(req.params.location);
-      const restaurantIds = restaurants.map(r => r.id);
-      
+      const restaurants = await storage.getRestaurantsByLocation(
+        req.params.location,
+      );
+      const restaurantIds = restaurants.map((r) => r.id);
+
       // Since we don't have a direct method, we'll return public lists for now
       const lists = await storage.getPublicRestaurantLists();
       res.json(lists);
@@ -981,13 +1067,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/restaurant-lists/popular/:location", async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      
+
       // For now, just return the most viewed public lists
       const allLists = await storage.getPublicRestaurantLists();
       const sortedLists = allLists
         .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
         .slice(0, limit);
-      
+
       res.json(sortedLists);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -998,38 +1084,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/shared-lists", async (req, res) => {
     try {
       const { listId, circleId, permissions } = req.body;
-      
+
       if (!listId || !circleId) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      
+
       // Ensure user is authenticated for this operation
       if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "You must be logged in to share lists" });
+        return res
+          .status(401)
+          .json({ error: "You must be logged in to share lists" });
       }
-      
+
       // Check if list and circle exist
       const list = await storage.getRestaurantList(listId);
       if (!list) {
         return res.status(404).json({ error: "List not found" });
       }
-      
+
       const circle = await storage.getCircle(circleId);
       if (!circle) {
         return res.status(404).json({ error: "Circle not found" });
       }
-      
+
       // Check if user has permission to share the list
       if (list.createdById !== req.user.id) {
-        return res.status(403).json({ error: "You don't have permission to share this list" });
+        return res
+          .status(403)
+          .json({ error: "You don't have permission to share this list" });
       }
-      
+
       // Feature not fully implemented yet
-      res.status(501).json({ 
-        message: "List sharing functionality will be available in a future update",
+      res.status(501).json({
+        message:
+          "List sharing functionality will be available in a future update",
         listId,
-        circleId, 
-        permissions
+        circleId,
+        permissions,
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1039,13 +1130,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/circles/:circleId/shared-lists", async (req, res) => {
     try {
       const circleId = parseInt(req.params.circleId);
-      
+
       // Check if circle exists
       const circle = await storage.getCircle(circleId);
       if (!circle) {
         return res.status(404).json({ error: "Circle not found" });
       }
-      
+
       // Feature not fully implemented yet
       res.status(200).json([]);
     } catch (err: any) {
@@ -1056,13 +1147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/restaurant-lists/:listId/shared-with", async (req, res) => {
     try {
       const listId = parseInt(req.params.listId);
-      
+
       // Check if list exists
       const list = await storage.getRestaurantList(listId);
       if (!list) {
         return res.status(404).json({ error: "List not found" });
       }
-      
+
       // Feature not fully implemented yet
       res.status(200).json([]);
     } catch (err: any) {
@@ -1070,42 +1161,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/restaurant-lists/:listId/shared-with/:circleId", async (req, res) => {
-    try {
-      const listId = parseInt(req.params.listId);
-      const circleId = parseInt(req.params.circleId);
-      
-      // Ensure user is authenticated
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "You must be logged in to unshare lists" });
+  app.delete(
+    "/api/restaurant-lists/:listId/shared-with/:circleId",
+    async (req, res) => {
+      try {
+        const listId = parseInt(req.params.listId);
+        const circleId = parseInt(req.params.circleId);
+
+        // Ensure user is authenticated
+        if (!req.isAuthenticated()) {
+          return res
+            .status(401)
+            .json({ error: "You must be logged in to unshare lists" });
+        }
+
+        // Check if the list and circle exist
+        const list = await storage.getRestaurantList(listId);
+        if (!list) {
+          return res.status(404).json({ error: "List not found" });
+        }
+
+        const circle = await storage.getCircle(circleId);
+        if (!circle) {
+          return res.status(404).json({ error: "Circle not found" });
+        }
+
+        // Allow unsharing if user created the list
+        const isListCreator = list.createdById === req.user.id;
+
+        if (!isListCreator) {
+          return res
+            .status(403)
+            .json({ error: "You don't have permission to unshare this list" });
+        }
+
+        // Feature not fully implemented yet
+        res.status(501).json({
+          message:
+            "List unsharing functionality will be available in a future update",
+        });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
       }
-      
-      // Check if the list and circle exist
-      const list = await storage.getRestaurantList(listId);
-      if (!list) {
-        return res.status(404).json({ error: "List not found" });
-      }
-      
-      const circle = await storage.getCircle(circleId);
-      if (!circle) {
-        return res.status(404).json({ error: "Circle not found" });
-      }
-      
-      // Allow unsharing if user created the list
-      const isListCreator = list.createdById === req.user.id;
-      
-      if (!isListCreator) {
-        return res.status(403).json({ error: "You don't have permission to unshare this list" });
-      }
-      
-      // Feature not fully implemented yet
-      res.status(501).json({ 
-        message: "List unsharing functionality will be available in a future update"
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+    },
+  );
 
   // Get featured circles
   app.get("/api/circles/featured", async (req, res) => {
@@ -1120,7 +1219,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Join a circle
   app.post("/api/circles/:id/join", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "You must be logged in to join a circle" });
+      return res
+        .status(401)
+        .json({ error: "You must be logged in to join a circle" });
     }
 
     try {
@@ -1134,15 +1235,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user is already a member
-      const isAlreadyMember = await storage.isUserMemberOfCircle(userId, circleId);
+      const isAlreadyMember = await storage.isUserMemberOfCircle(
+        userId,
+        circleId,
+      );
       if (isAlreadyMember) {
-        return res.status(400).json({ error: "You are already a member of this circle" });
+        return res
+          .status(400)
+          .json({ error: "You are already a member of this circle" });
       }
 
       // Add user to circle
       await storage.createCircleMember({
         userId,
-        circleId
+        circleId,
       });
 
       res.json({ message: "Successfully joined circle", circle });
@@ -1152,36 +1258,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  
+
   // Setup WebSocket server for real-time communication
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  wss.on('connection', (ws) => {
-    console.log('WebSocket client connected');
-    
-    ws.on('message', (message) => {
+  const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
+
+  wss.on("connection", (ws) => {
+    console.log("WebSocket client connected");
+
+    ws.on("message", (message) => {
       try {
         const data = JSON.parse(message.toString());
-        console.log('Received message:', data);
-        
+        console.log("Received message:", data);
+
         // Broadcast to all connected clients
         wss.clients.forEach((client) => {
           if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              type: data.type,
-              payload: data.payload
-            }));
+            client.send(
+              JSON.stringify({
+                type: data.type,
+                payload: data.payload,
+              }),
+            );
           }
         });
       } catch (error) {
-        console.error('Error processing WebSocket message:', error);
+        console.error("Error processing WebSocket message:", error);
       }
     });
-    
-    ws.on('close', () => {
-      console.log('WebSocket client disconnected');
+
+    ws.on("close", () => {
+      console.log("WebSocket client disconnected");
     });
   });
-  
+
   return httpServer;
 }
+// ─── Recommendations Endpoints ────────────────────────────────
+
+// GET all recommendations for a circle
+app.get(
+  "/api/recommendations/:circleId",
+  authenticate,
+  async (req: Request, res: Response) => {
+    const circleId = Number(req.params.circleId);
+    const recs = await db
+      .select()
+      .from(db.recommendations)
+      .where(db.recommendations.circleId.eq(circleId));
+    res.json(recs);
+  },
+);
+
+// POST a new recommendation
+app.post(
+  "/api/recommendations",
+  authenticate,
+  async (req: Request, res: Response) => {
+    const { circleId, restaurantId } = req.body;
+    const userId = req.user.id;
+    const [rec] = await db
+      .insert(db.recommendations)
+      .values({ circleId, restaurantId, userId })
+      .returning();
+    res.json(rec);
+  },
+);
+
+// DELETE your own recommendation
+app.delete(
+  "/api/recommendations/:id",
+  authenticate,
+  async (req: Request, res: Response) => {
+    const recId = Number(req.params.id);
+    await db
+      .delete(db.recommendations)
+      .where(
+        db.recommendations.id
+          .eq(recId)
+          .and(db.recommendations.userId.eq(req.user.id)),
+      );
+    res.sendStatus(204);
+  },
+);
