@@ -53,7 +53,7 @@ export default function JoinPage() {
         navigate("/");
         
         toast({
-          title: "Welcome to TasteBuds!",
+          title: "Welcome to Circles!",
           description: "Your account has been created successfully.",
         });
       }
@@ -81,7 +81,7 @@ export default function JoinPage() {
       setIsJoining(false);
       
       toast({
-        title: "Welcome to TasteBuds!",
+        title: "Welcome to Circles!",
         description: `You've joined ${circle?.name || "the circle"} successfully.`,
       });
       

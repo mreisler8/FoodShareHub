@@ -126,6 +126,12 @@ The application uses a comprehensive PostgreSQL schema including:
   - Updated UI components to properly fetch and display shared lists
   - Added permission management for editing and resharing capabilities
   - Fixed authentication for all list creation and sharing endpoints
+- July 01, 2025: **Complete Application Rebranding from TasteBuds to Circles**:
+  - Updated all user-facing text and branding throughout the application
+  - Changed main navigation header, welcome messages, and page titles
+  - Updated invitation system and social sharing to use "Circles" branding
+  - Modified server startup messages and HTML meta titles
+  - Ensured consistent "Circles" naming across all UI components
 
 ## Changelog
 - July 01, 2025: Initial setup and MVP P1 backlog implementation

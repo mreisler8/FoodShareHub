@@ -1,0 +1,108 @@
+🚀 “Lists” Feature Backlog
+1. Data Model & API Endpoints
+User story:
+
+As a logged-in user, I want to define “Lists” as a new entity so that I can group my themed recommendations.
+Acceptance criteria:
+
+Database has restaurant_lists (id, name, description, createdById, circleId?, visibility)
+
+Database has restaurant_list_items (id, listId, restaurantId, rating, liked, disliked, notes, position)
+
+Expose REST endpoints:
+
+POST /api/lists → create list
+
+GET /api/lists/:listId → fetch list metadata + items
+
+PUT /api/lists/:listId → update list (name, desc, visibility)
+
+DELETE /api/lists/:listId → delete list
+
+POST /api/lists/:listId/items → add item
+
+DELETE /api/lists/:listId/items/:itemId → remove item
+
+PUT /api/lists/:listId/items/:itemId → update item metadata
+Implementation notes:
+
+Use existing Drizzle tables restaurantLists and restaurantListItems
+
+Protect with authenticate middleware
+
+Return JSON of newly created/updated resources
+
+2. Create List Flow
+User story:
+
+As a user, I want to create a new List (e.g. “Best Pizza in Toronto”) so that I can start adding themed recommendations.
+Acceptance criteria:
+
+“+ Create List” button on Home/Circle page
+
+Opens CreateListModal with fields: Name (required), Description (optional), Visibility toggle (Circle / Public)
+
+“Create” is disabled until Name is non-empty
+
+On submit, calls POST /api/lists, closes modal, navigates to /lists/:newId
+Implementation notes:
+
+Use apiFetch wrapper
+
+Hook into React Router or your routing solution
+
+3. Search & Add Restaurants to List
+User story:
+
+As a list owner, I want to search for restaurants and add them with rating, liked/disliked notes so that my list is rich with context.
+Acceptance criteria:
+
+On /lists/:listId, display a search bar “Search restaurants…”
+
+Typing invokes GET /api/search?q=… (mock or real) and shows name + thumbnail + rating preview
+
+Each result has an “Add to List” button
+
+Clicking “Add” opens an inline form to capture:
+
+Star rating (1–5)
+
+“What I liked” text
+
+“What I didn’t like” text
+
+Optional notes
+
+Submitting calls POST /api/lists/:listId/items with payload, closes form, and prepends the new item card in the list view
+
+4. View & Manage List Items
+User story:
+
+As a list owner or member (if shared in a Circle), I want to view all items in my List and remove or edit my own entries.
+Acceptance criteria:
+
+/lists/:listId shows list title, description, visibility badge, and a vertical list of ListItemCards
+
+Each card displays: restaurant name, image, rating stars, liked/disliked snippets, owner name, createdAt
+
+For items I created, show Edit (✏️) and Delete (🗑️) icons
+
+Delete triggers DELETE /api/lists/:listId/items/:itemId and removes the card optimistically
+
+Edit opens inline form pre-filled with existing metadata; saving calls PUT /api/lists/:listId/items/:itemId and updates the card
+
+5. List Visibility & Sharing
+User story:
+
+As a list creator, I want to control who can see my List (Circle members vs. Public) so that I share appropriately.
+Acceptance criteria:
+
+On create/edit, a visibility dropdown with options:
+
+Circle (only visible to members of the parent circle)
+
+Public (anyone with link can view)
+
+Public lists have a “Share” button that copies URL to clipboard
+
+Circle–only lists omit “Share” and only appear in members’ List dashboard
