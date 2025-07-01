@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { RestaurantList } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RestaurantListCard } from "./RestaurantListCard";
+import { CreateListModal } from "./CreateListModal";
 import { ListPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -25,6 +28,8 @@ export function RestaurantListsSection({
   isCompact = false,
   maxLists,
 }: RestaurantListsSectionProps) {
+  const [, navigate] = useLocation();
+  const [showCreateModal, setShowCreateModal] = useState(false);
   // Build query key and endpoint based on props
   let queryKey: string[];
   let endpoint: string;
@@ -60,12 +65,15 @@ export function RestaurantListsSection({
         <h2 className="text-xl font-heading font-bold text-neutral-900">{title}</h2>
         
         {showCreateButton && (
-          <Link href="/lists/create" className="inline-block">
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              <ListPlus className="h-4 w-4" />
-              <span>Create List</span>
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <ListPlus className="h-4 w-4" />
+            <span>Create List</span>
+          </Button>
         )}
       </div>
       
@@ -97,6 +105,15 @@ export function RestaurantListsSection({
           </Link>
         </div>
       )}
+      
+      <CreateListModal 
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onSuccess={(listId) => {
+          // Navigate to the new list on successful creation
+          navigate(`/lists/${listId}`);
+        }}
+      />
     </div>
   );
 }

@@ -422,6 +422,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Story 3: Restaurant search API for adding to lists
+  app.get("/api/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      
+      if (!query || query.trim().length === 0) {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      if (query.trim().length < 2) {
+        return res.status(400).json({ error: "Search query must be at least 2 characters" });
+      }
+
+      // Search restaurants by name, cuisine, or location
+      const restaurants = await storage.searchRestaurants(query.trim());
+      
+      // Return results with thumbnail preview data
+      const searchResults = restaurants.map(restaurant => ({
+        id: restaurant.id,
+        name: restaurant.name,
+        cuisine: restaurant.cuisine || restaurant.category,
+        location: restaurant.location || restaurant.city,
+        imageUrl: restaurant.imageUrl,
+        priceRange: restaurant.priceRange,
+        // Add rating preview if available
+        rating: 4.0, // This would come from aggregated user ratings in a real implementation
+      }));
+
+      res.json(searchResults);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Post routes
   app.get("/api/posts", async (req, res) => {
     try {

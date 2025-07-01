@@ -26,7 +26,7 @@ export default function ListDetails() {
   const { toast } = useToast();
   
   const { data: list, isLoading } = useQuery<RestaurantList>({
-    queryKey: [`/api/restaurant-lists/${id}`],
+    queryKey: [`/api/lists/${id}`],
   });
   
   // Increment view count when the component mounts
