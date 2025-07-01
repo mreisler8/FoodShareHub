@@ -50,10 +50,26 @@ export function MobileNavigation() {
         
         {isAuthenticated ? (
           <>
+            <Link href="/circles" className="flex-1 h-full">
+              <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/circles') ? 'text-primary' : 'text-neutral-500'}`}>
+                <Users className="h-5 w-5" />
+                <span className="text-xs mt-1">Circles</span>
+              </div>
+            </Link>
+            
             <Link href="/profile" className="flex-1 h-full">
               <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/profile') ? 'text-primary' : 'text-neutral-500'}`}>
                 <User className="h-5 w-5" />
                 <span className="text-xs mt-1">Profile</span>
+              </div>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link href="/auth" className="flex-1 h-full">
+              <div className={`h-full flex flex-col items-center justify-center ${isActive('/auth') ? 'text-primary' : 'text-neutral-500'}`}>
+                <LogIn className="h-5 w-5" />
+                <span className="text-xs mt-1">Login</span>
               </div>
             </Link>
             
@@ -67,22 +83,6 @@ export function MobileNavigation() {
                 <span className="text-xs mt-1">Logout</span>
               </div>
             </button>
-          </>
-        ) : (
-          <>
-            <Link href="/auth" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center ${isActive('/auth') ? 'text-primary' : 'text-neutral-500'}`}>
-                <LogIn className="h-5 w-5" />
-                <span className="text-xs mt-1">Login</span>
-              </div>
-            </Link>
-            
-            <Link href="/circles/1" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/circles') ? 'text-primary' : 'text-neutral-500'}`}>
-                <Users className="h-5 w-5" />
-                <span className="text-xs mt-1">Circles</span>
-              </div>
-            </Link>
           </>
         )}
       </div>

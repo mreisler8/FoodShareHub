@@ -111,8 +111,17 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Native Wrapper**: React Native WebView for app store distribution
 - **Deep Linking**: Support for sharing and referral links
 
+## Recent Changes
+- July 01, 2025: Fixed database connection and startup issues with improved WebSocket configuration
+- July 01, 2025: Implemented P1 MVP features for user authentication and core data models
+- July 01, 2025: Added Circle creation, joining, and management functionality
+- July 01, 2025: Created comprehensive onboarding flow with welcome splash for first-time users
+- July 01, 2025: Enhanced navigation with Circle access in mobile and desktop interfaces
+- July 01, 2025: Fixed geolocation errors in restaurant search functionality
+- July 01, 2025: Added missing API endpoints for featured circles and circle membership
+
 ## Changelog
-- July 01, 2025. Initial setup
+- July 01, 2025: Initial setup and MVP P1 backlog implementation
 
 ## User Preferences
 
