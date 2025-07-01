@@ -127,19 +127,14 @@ export const insertCommentSchema = createInsertSchema(comments).pick({
 });
 
 // Circle model (social trust network for recommendations)
- export const circles = pgTable("circles", {
-   id: serial("id").primaryKey(),
-   name: text("name").notNull(),
--  description: text("description").notNull(),
--  category: text("category").notNull(),
--  image: text("image"),
--  tags: text("tags").array(),
-+  description: text("description").nullable(),    // optional for MVP
--  isPrivate: boolean("is_private").default(false),
-+  isPrivate: boolean("is_private").default(false), // OK to keep privacy flag
-   createdAt: timestamp("created_at").defaultNow().notNull(),
-   creatorId: integer("creator_id").references(() => users.id).notNull(),
- });
+export const circles = pgTable("circles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isPrivate: boolean("is_private").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  creatorId: integer("creator_id").references(() => users.id).notNull(),
+});
 export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
   circleId: integer("circle_id")
@@ -164,10 +159,6 @@ export const insertRecommendationSchema = createInsertSchema(recommendations).pi
 export const insertCircleSchema = createInsertSchema(circles).pick({
   name: true,
   description: true,
-  category: true,
-  image: true,
-  isPrivate: true,
-  tags: true,
   creatorId: true,
 });
 
