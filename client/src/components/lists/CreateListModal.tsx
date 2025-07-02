@@ -176,7 +176,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Select Circle</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Choose a circle" />
