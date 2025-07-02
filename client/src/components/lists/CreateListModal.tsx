@@ -6,17 +6,21 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
+import { useLocation } from "wouter";
 
-// Form Schema based on User Story 2 requirements
+// Form Schema based on Robust List Creation user story
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  visibility: z.enum(["public", "circle"]).default("public"),
+  tags: z.string().optional(),
+  shareWithCircle: z.boolean().default(false),
+  makePublic: z.boolean().default(false),
   circleId: z.string().optional(),
 });
 
@@ -30,8 +34,9 @@ interface CreateListModalProps {
 
 export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListModalProps) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
-  // Fetch circles for the visibility dropdown
+  // Fetch circles for the sharing dropdown
   const { data: circles } = useQuery<CircleWithStats[]>({
     queryKey: ["/api/circles"],
   });
@@ -42,25 +47,40 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
     defaultValues: {
       name: "",
       description: "",
-      visibility: "public",
+      tags: "",
+      shareWithCircle: false,
+      makePublic: false,
       circleId: undefined,
     },
   });
 
-  // Watch the visibility field to show/hide circle selection
-  const visibility = form.watch("visibility");
+  // Watch the sharing fields to show/hide circle selection
+  const shareWithCircle = form.watch("shareWithCircle");
 
   // Create list mutation
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
+      // Apply default sharing rules if neither option is selected
+      let shareWithCircle = values.shareWithCircle;
+      let makePublic = values.makePublic;
+      
+      if (!shareWithCircle && !makePublic) {
+        shareWithCircle = true; // Default to circle sharing
+      }
+
       // Convert circleId to number if provided
       const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
+
+      // Parse tags into array
+      const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
 
       const payload = {
         name: values.name,
         description: values.description || null,
+        tags: tags,
         circleId: circleId,
-        visibility: values.visibility,
+        isPublic: makePublic,
+        visibility: makePublic ? "public" : "circle",
       };
 
       const response = await apiRequest("POST", "/api/lists", payload);
@@ -80,14 +100,29 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
       form.reset();
       onOpenChange(false);
 
-      // Call success callback with the new list ID - handle different response structures
-      if (onSuccess) {
-        const listId = data?.id || (data as any)?.id;
-        if (listId) {
-          onSuccess(Number(listId));
-        } else {
-          console.error("No list ID in response:", data);
+      // Navigate directly to the list - handle different response structures
+      const listId = data?.id || (data as any)?.id;
+      if (listId) {
+        try {
+          navigate(`/lists/${listId}`);
+          if (onSuccess) {
+            onSuccess(Number(listId));
+          }
+        } catch (error) {
+          console.error("Navigation failed:", error);
+          toast({
+            title: "Navigation Error",
+            description: "Couldn't open your list—please try again.",
+            variant: "destructive",
+          });
         }
+      } else {
+        console.error("No list ID in response:", data);
+        toast({
+          title: "Error",
+          description: "List created but couldn't navigate to it.",
+          variant: "destructive",
+        });
       }
     },
     onError: (error: any) => {
@@ -155,27 +190,62 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
 
             <FormField
               control={form.control}
-              name="visibility"
+              name="tags"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Visibility</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select visibility" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="public">Public - Anyone with link can view</SelectItem>
-                      <SelectItem value="circle">Circle - Only circle members can view</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Tags (Optional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="e.g., pizza, italian, family-friendly" 
+                      {...field} 
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {visibility === "circle" && (
+            <div className="space-y-3">
+              <FormLabel>Sharing Settings</FormLabel>
+              
+              <FormField
+                control={form.control}
+                name="shareWithCircle"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Share with Circle</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="makePublic"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Make Public</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {shareWithCircle && (
               <FormField
                 control={form.control}
                 name="circleId"

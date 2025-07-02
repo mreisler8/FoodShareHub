@@ -1,0 +1,113 @@
+User Story: Robust List Creation & Navigation
+As a signed-in user
+I want to fully configure my new list’s sharing settings and be taken directly to its detail page
+So that I can immediately search for restaurants by their real names and add them with my ratings and notes
+
+Acceptance Criteria
+Create List Modal
+
+Fields:
+
+Name (required)
+
+Description (optional)
+
+Tags (comma-separated)
+
+Sharing toggles (mutually exclusive):
+
+Share with Circle (checkbox)
+
+Make Public (checkbox)
+
+They can check neither, one, or both (if you support dual sharing modes).
+
+The Create button is disabled until Name is filled.
+
+Correct Routing & Redirect
+
+On successful POST /api/lists, the server returns { id, ... }.
+
+Frontend must navigate(/lists/${id})—and that route must exist (404s fixed).
+
+List Detail Page (/lists/:listId)
+
+Renders immediately after creation (no “Not Found”).
+
+Shows list header: Name, Description, Tags, Sharing badges (“Circle”, “Public”).
+
+Below header, a search bar with placeholder “Search restaurants…”
+
+List of existing items (empty initially) and inline Add controls.
+
+Consistent Search Vocabulary
+
+Search should match the real restaurant names in your data (or Google Places).
+
+Menu items and restaurant names must appear exactly as returned by the search API.
+
+Inline Add UI
+
+Each search result has an Add button.
+
+Clicking opens the ListItemForm inline (star rating, liked/disliked, notes).
+
+Saving posts to /api/lists/:listId/items and optimistically prepends the card.
+
+Error Handling & Edge Cases
+
+If the sharing toggles are mis-configured (e.g. both unchecked), default to “Circle only.”
+
+If navigation fails, show a toast “Couldn’t open your list—please try again.”
+
+If search returns zero results, show “No restaurants found.”
+
+Implementation Notes for Replit Agent
+Modal enhancement
+
+Update CreateListModal.tsx to include two independent <input type="checkbox"> controls for “Share with Circle” and “Make Public.”
+
+Bind them to boolean state shareWithCircle and makePublic.
+
+Include both values in the POST /api/lists payload.
+
+Ensure route exists
+
+In your router (e.g. src/Router.tsx), confirm you have:
+
+tsx
+Copy
+Edit
+<Route path="/lists/:listId" element={<ListPage />} />
+If missing, add it and rebuild.
+
+Redirect on creation
+
+In your handleSubmit of CreateListModal, after receiving list.id, call:
+
+ts
+Copy
+Edit
+navigate(`/lists/${list.id}`);
+Detail page header
+
+In ListPage.tsx, fetch /api/lists/:listId to get name, description, tags, shareWithCircle, makePublic.
+
+Render badges conditionally:
+
+tsx
+Copy
+Edit
+{list.shareWithCircle && <Badge>Circle</Badge>}
+{list.makePublic    && <Badge>Public</Badge>}
+Search & Add
+
+Above your items list, render the debounced search bar and autocomplete as previously specified.
+
+Use Google Places or your DB; ensure names match exactly.
+
+Validation & Errors
+
+Default unchecked sharing toggles to shareWithCircle = true in the absence of both.
+
+Wrap navigation in try/catch to toast on failure.

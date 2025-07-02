@@ -286,23 +286,19 @@ export default function ListDetails() {
                   </div>
                 )}
                 
-                {/* Visibility Badge */}
-                <Badge 
-                  variant={list.visibility === 'public' ? 'default' : 'secondary'} 
-                  className="flex items-center gap-1"
-                >
-                  {list.visibility === 'public' ? (
-                    <>
-                      <Eye className="h-3 w-3" />
-                      <span>Public</span>
-                    </>
-                  ) : (
-                    <>
-                      <Users className="h-3 w-3" />
-                      <span>Circle Only</span>
-                    </>
-                  )}
-                </Badge>
+                {/* Sharing Badges - show individual badges based on sharing settings */}
+                {list.circleId && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    <span>Circle</span>
+                  </Badge>
+                )}
+                {list.isPublic && (
+                  <Badge variant="default" className="flex items-center gap-1">
+                    <Eye className="h-3 w-3" />
+                    <span>Public</span>
+                  </Badge>
+                )}
                 
                 {list.tags && list.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
