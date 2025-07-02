@@ -30,12 +30,12 @@ interface CreateListModalProps {
 
 export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListModalProps) {
   const { toast } = useToast();
-  
+
   // Fetch circles for the visibility dropdown
   const { data: circles } = useQuery<CircleWithStats[]>({
     queryKey: ["/api/circles"],
   });
-  
+
   // Form setup
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -49,36 +49,36 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
 
   // Watch the visibility field to show/hide circle selection
   const visibility = form.watch("visibility");
-  
+
   // Create list mutation
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
       // Convert circleId to number if provided
       const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
-      
+
       const payload = {
         name: values.name,
         description: values.description || null,
         circleId: circleId,
         visibility: values.visibility,
       };
-      
+
       return await apiRequest("POST", "/api/lists", payload);
     },
     onSuccess: (data) => {
       // Invalidate relevant caches
       queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
       queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
-      
+
       toast({
         title: "Success!",
         description: "Your restaurant list has been created.",
       });
-      
+
       // Reset form and close modal
       form.reset();
       onOpenChange(false);
-      
+
       // Call success callback with the new list ID
       if (onSuccess && data && typeof data === 'object' && 'id' in data) {
         onSuccess(Number((data as any).id));
@@ -109,7 +109,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
             Create a themed list of restaurant recommendations to share with your circles.
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -128,7 +128,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -146,7 +146,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="visibility"
@@ -168,7 +168,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                 </FormItem>
               )}
             />
-            
+
             {visibility === "circle" && (
               <FormField
                 control={form.control}
@@ -195,7 +195,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                 )}
               />
             )}
-            
+
             <div className="flex justify-end space-x-2 pt-4">
               <Button 
                 type="button" 

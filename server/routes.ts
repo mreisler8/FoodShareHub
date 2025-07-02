@@ -426,7 +426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/search", async (req, res) => {
     try {
       const query = req.query.q as string;
-      
+
       if (!query || query.trim().length === 0) {
         return res.status(400).json({ error: "Search query is required" });
       }
@@ -437,7 +437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Search restaurants by name, cuisine, or location
       const restaurants = await storage.searchRestaurants(query.trim());
-      
+
       // Return results with thumbnail preview data
       const searchResults = restaurants.map(restaurant => ({
         id: restaurant.id,
@@ -757,14 +757,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         creatorId: req.user!.id, // Use authenticated user's ID
       });
       const newCircle = await storage.createCircle(circleData);
-      
+
       // Automatically add the creator as a member
       await storage.createCircleMember({
         circleId: newCircle.id,
         userId: req.user!.id,
         role: "owner"
       });
-      
+
       res.status(201).json(newCircle);
     } catch (err: any) {
       handleZodError(err, res);
@@ -949,7 +949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const listId = parseInt(req.params.listId);
       const list = await storage.getRestaurantList(listId);
-      
+
       if (!list) {
         return res.status(404).json({ error: "List not found" });
       }
@@ -976,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const listId = parseInt(req.params.listId);
       const list = await storage.getRestaurantList(listId);
-      
+
       if (!list) {
         return res.status(404).json({ error: "List not found" });
       }
@@ -1003,7 +1003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const listId = parseInt(req.params.listId);
       const list = await storage.getRestaurantList(listId);
-      
+
       if (!list) {
         return res.status(404).json({ error: "List not found" });
       }
@@ -1013,7 +1013,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         listId,
         addedById: req.user!.id,
       });
-      
+
       const newItem = await storage.addRestaurantToList(itemData);
       res.status(201).json(newItem);
     } catch (err: any) {
@@ -1030,7 +1030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const listId = parseInt(req.params.listId);
       const itemId = parseInt(req.params.itemId);
-      
+
       // Check if list exists
       const list = await storage.getRestaurantList(listId);
       if (!list) {
@@ -1059,7 +1059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const listId = parseInt(req.params.listId);
       const itemId = parseInt(req.params.itemId);
-      
+
       // Check if list exists
       const list = await storage.getRestaurantList(listId);
       if (!list) {
@@ -1085,7 +1085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const listId = parseInt(req.params.listId);
       const list = await storage.getRestaurantList(listId);
-      
+
       if (!list) {
         return res.status(404).json({ error: "List not found" });
       }
@@ -1107,7 +1107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const listId = parseInt(req.params.listId);
       const list = await storage.getRestaurantList(listId);
-      
+
       if (!list) {
         return res.status(404).json({ error: "List not found" });
       }
@@ -1399,7 +1399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Share the list with the circle
       const sharedList = await storage.shareListWithCircle(listId, circleId, req.user!.id, permissions);
-      
+
       res.status(201).json({
         message: "List shared successfully",
         sharedList
@@ -1481,7 +1481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Unshare the list from the circle
         await storage.unshareListFromCircle(listId, circleId);
-        
+
         res.status(200).json({
           message: "List successfully unshared from circle"
         });
@@ -1575,6 +1575,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("WebSocket client disconnected");
     });
   });
+
+  // Add lists routes
+  // Register lists routes
+  app.use('/api/recommendations', recommendations);
+  app.use('/api/lists', lists);
 
   return httpServer;
 }
