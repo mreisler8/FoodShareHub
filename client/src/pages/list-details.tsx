@@ -149,7 +149,7 @@ export default function ListDetails() {
                 </Button>
               </div>
               
-              {/* Created by and tags */}
+              {/* Created by, visibility, and tags */}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 {list.creator && (
                   <div className="flex items-center text-sm text-neutral-500 mr-4">
@@ -160,6 +160,24 @@ export default function ListDetails() {
                     <span>Created by {list.creator.name}</span>
                   </div>
                 )}
+                
+                {/* Visibility Badge */}
+                <Badge 
+                  variant={list.visibility === 'public' ? 'default' : 'secondary'} 
+                  className="flex items-center gap-1"
+                >
+                  {list.visibility === 'public' ? (
+                    <>
+                      <Eye className="h-3 w-3" />
+                      <span>Public</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-3 w-3" />
+                      <span>Circle Only</span>
+                    </>
+                  )}
+                </Badge>
                 
                 {list.tags && list.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -198,15 +216,33 @@ export default function ListDetails() {
                 
                 {/* Action Buttons */}
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex items-center gap-1"
-                    onClick={() => setIsShareModalOpen(true)}
-                  >
-                    <Share2 className="h-4 w-4" />
-                    <span>Share</span>
-                  </Button>
+                  {/* Share button only for public lists */}
+                  {list.visibility === 'public' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-1"
+                      onClick={() => {
+                        // Copy URL to clipboard for public lists
+                        const url = window.location.href;
+                        navigator.clipboard.writeText(url).then(() => {
+                          toast({
+                            title: "Link copied!",
+                            description: "Share this link with anyone to view this list.",
+                          });
+                        }).catch(() => {
+                          toast({
+                            title: "Share",
+                            description: `Share this link: ${url}`,
+                            variant: "default",
+                          });
+                        });
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </Button>
+                  )}
                   
                   <Button 
                     variant={isSaved ? "secondary" : "outline"}
@@ -262,59 +298,131 @@ export default function ListDetails() {
             {/* Restaurant List Items */}
             {list.restaurants && list.restaurants.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {list.restaurants.map((item: RestaurantListItemWithDetails) => (
-                  <Card key={item.id} className="overflow-hidden">
-                    <div className="flex flex-col h-full">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg font-heading">
-                          {item.restaurant?.name}
-                        </CardTitle>
-                        <div className="flex items-center text-sm text-neutral-500 mt-1">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          <span>{item.restaurant?.location}</span>
-                          <span className="mx-2">•</span>
-                          <span>{item.restaurant?.category}</span>
-                          <span className="mx-2">•</span>
-                          <span>{item.restaurant?.priceRange}</span>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent className="pb-4 pt-2 flex-grow">
-                        {item.notes && (
-                          <div className="mt-2 text-neutral-700">{item.notes}</div>
-                        )}
-                        
-                        {item.mustTryDishes && item.mustTryDishes.length > 0 && (
-                          <div className="mt-3">
-                            <div className="flex items-center text-sm font-semibold">
-                              <ChefHat className="h-4 w-4 mr-1 text-primary" />
-                              <span>Must-try dishes:</span>
+                {list.restaurants.map((item: RestaurantListItemWithDetails) => {
+                  const renderStars = (rating: number | null) => {
+                    if (!rating) return null;
+                    return Array(5).fill(0).map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-4 w-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                      />
+                    ));
+                  };
+
+                  // Check if current user can edit/delete this item
+                  const canEditItem = item.addedById === list.createdById; // For now, allow list owner to edit all items
+
+                  return (
+                    <Card key={item.id} className="overflow-hidden">
+                      <div className="flex flex-col h-full">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg font-heading">
+                                {item.restaurant?.name}
+                              </CardTitle>
+                              <div className="flex items-center text-sm text-neutral-500 mt-1">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                <span>{item.restaurant?.location}</span>
+                                <span className="mx-2">•</span>
+                                <span>{item.restaurant?.category}</span>
+                                <span className="mx-2">•</span>
+                                <span>{item.restaurant?.priceRange}</span>
+                              </div>
+                              
+                              {/* Rating */}
+                              {item.rating && (
+                                <div className="flex items-center mt-2">
+                                  <div className="flex">{renderStars(item.rating)}</div>
+                                  <span className="ml-2 text-sm text-neutral-600">({item.rating}/5)</span>
+                                </div>
+                              )}
                             </div>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {item.mustTryDishes.map((dish: string, i: number) => (
-                                <Badge key={i} variant="outline" className="bg-primary/5">
-                                  {dish}
-                                </Badge>
-                              ))}
-                            </div>
+                            
+                            {/* Edit/Delete actions for items the user can manage */}
+                            {canEditItem && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setEditingItem(item.id)}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => deleteItemMutation.mutate(item.id)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </div>
-                        )}
+                        </CardHeader>
                         
-                        <div className="mt-4 flex justify-between items-end">
-                          <div className="flex items-center text-sm text-neutral-500">
-                            <Clock className="h-3 w-3 mr-1" />
-                            <span>Added by {item.addedBy?.name || "anonymous"}</span>
-                          </div>
+                        <CardContent className="pb-4 pt-2 flex-grow">
+                          {/* What I liked */}
+                          {item.liked && (
+                            <div className="mt-2">
+                              <h4 className="text-sm font-medium text-green-700 mb-1">What I liked:</h4>
+                              <p className="text-sm text-neutral-700">{item.liked}</p>
+                            </div>
+                          )}
                           
-                          <Button size="sm" variant="ghost" className="flex items-center gap-1 text-primary">
-                            <Star className="h-4 w-4" />
-                            <span>See reviews</span>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </div>
-                  </Card>
-                ))}
+                          {/* What I didn't like */}
+                          {item.disliked && (
+                            <div className="mt-2">
+                              <h4 className="text-sm font-medium text-red-700 mb-1">What I didn't like:</h4>
+                              <p className="text-sm text-neutral-700">{item.disliked}</p>
+                            </div>
+                          )}
+                          
+                          {/* Additional notes */}
+                          {item.notes && (
+                            <div className="mt-2">
+                              <h4 className="text-sm font-medium text-neutral-700 mb-1">Notes:</h4>
+                              <p className="text-sm text-neutral-700">{item.notes}</p>
+                            </div>
+                          )}
+                          
+                          {/* Must-try dishes (legacy field) */}
+                          {item.mustTryDishes && item.mustTryDishes.length > 0 && (
+                            <div className="mt-3">
+                              <div className="flex items-center text-sm font-semibold">
+                                <ChefHat className="h-4 w-4 mr-1 text-primary" />
+                                <span>Must-try dishes:</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {item.mustTryDishes.map((dish: string, i: number) => (
+                                  <Badge key={i} variant="outline" className="bg-primary/5">
+                                    {dish}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="mt-4 flex justify-between items-end">
+                            <div className="flex items-center text-sm text-neutral-500">
+                              <Clock className="h-3 w-3 mr-1" />
+                              <span>Added by {item.addedBy?.name || "anonymous"}</span>
+                              {item.addedAt && (
+                                <span className="ml-2">
+                                  • {new Date(item.addedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-10 bg-white rounded-xl shadow-sm">

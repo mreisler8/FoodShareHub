@@ -132,7 +132,6 @@ The application uses a comprehensive PostgreSQL schema including:
   - Updated invitation system and social sharing to use "Circles" branding
   - Modified server startup messages and HTML meta titles
   - Ensured consistent "Circles" naming across all UI components
-
 ## Changelog
 - July 01, 2025: Initial setup and MVP P1 backlog implementation
 
