@@ -42,14 +42,14 @@ app.use((req, res, next) => {
 (async () => {
   try {
     console.log('Starting Circles server...');
-    
+
     const server = await registerRoutes(app);
     console.log('Routes registered successfully');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-      
+
       console.error('Express error:', err);
       res.status(status).json({ message });
     });
@@ -89,4 +89,31 @@ app.use((req, res, next) => {
 })().catch(error => {
   console.error('Unhandled server startup error:', error);
   process.exit(1);
+});
+
+// Session middleware
+app.use(session({
+  store: new MemoryStore({
+    checkPeriod: 86400000 // prune expired entries every 24h
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    sameSite: 'lax'
+  }
+}));
+
+// Add request logging for debugging
+app.use((req, res, next) => {
+  if (req.method === 'POST') {
+    console.log('POST Request:', req.path);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Session exists:', !!req.session);
+    console.log('SessionID:', req.sessionID);
+  }
+  next();
 });
