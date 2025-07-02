@@ -59,7 +59,7 @@ export default function ListDetails() {
     if (id) {
       const incrementViewCount = async () => {
         try {
-          await apiRequest("POST", `/api/restaurant-lists/${id}/view`);
+          await apiRequest("POST", `/api/lists/${id}/view`);
         } catch (error) {
           console.error("Failed to increment view count", error);
         }
@@ -82,12 +82,12 @@ export default function ListDetails() {
   // Save list mutation
   const saveListMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/restaurant-lists/${id}/save`);
+      const res = await apiRequest("POST", `/api/lists/${id}/save`);
       return res.json();
     },
     onSuccess: () => {
       setIsSaved(true);
-      queryClient.invalidateQueries({ queryKey: [`/api/restaurant-lists/${id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
       toast({
         title: "List saved",
         description: "This list has been saved to your collection",

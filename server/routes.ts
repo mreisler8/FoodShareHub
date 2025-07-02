@@ -1080,6 +1080,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/lists/:listId/view → increment view count
+  app.post("/api/lists/:listId/view", async (req, res) => {
+    try {
+      const listId = parseInt(req.params.listId);
+      const list = await storage.getRestaurantList(listId);
+      
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+
+      // Increment view count
+      const updatedList = await storage.incrementListViewCount(listId);
+      res.json(updatedList);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/lists/:listId/save → save list for user
+  app.post("/api/lists/:listId/save", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const listId = parseInt(req.params.listId);
+      const list = await storage.getRestaurantList(listId);
+      
+      if (!list) {
+        return res.status(404).json({ error: "List not found" });
+      }
+
+      // Increment save count
+      const updatedList = await storage.incrementListSaveCount(listId);
+      res.json(updatedList);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Restaurant List routes (existing routes kept for backward compatibility)
   app.get("/api/restaurant-lists", async (req, res) => {
     try {
