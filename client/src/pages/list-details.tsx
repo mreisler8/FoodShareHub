@@ -57,7 +57,7 @@ export default function ListDetails() {
   }) => {
     // Create optimistic item with all required properties
     const optimisticItem: OptimisticListItem = {
-      id: `temp-${data.restaurantId}`,
+      id: -Date.now(), // Use negative timestamp for unique temporary ID
       listId: listId,
       restaurantId: parseInt(data.restaurantId.replace('google_', '')),
       rating: data.rating,
@@ -75,11 +75,26 @@ export default function ListDetails() {
         location: "Loading...",
         category: "Restaurant",
         priceRange: "$$",
-        cuisine: "Restaurant",
-        imageUrl: null,
+        openTableId: null,
+        resyId: null,
         googlePlaceId: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        address: null,
+        neighborhood: null,
+        city: null,
+        state: null,
+        country: "US",
+        postalCode: null,
+        latitude: null,
+        longitude: null,
+        phone: null,
+        website: null,
+        cuisine: "Restaurant",
+        hours: null,
+        description: null,
+        imageUrl: null,
+        verified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       }
     };
 
@@ -396,10 +411,9 @@ export default function ListDetails() {
               <div className="mb-6">
                 <RestaurantSearch 
                   listId={listId}
-                  onRestaurantAdded={() => {
+                  onRestaurantAdded={handleOptimisticAdd}
+                  onAddCompleted={() => {
                     setShowRestaurantSearch(false);
-                    // Refresh list items
-                    queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
                   }}
                 />
               </div>

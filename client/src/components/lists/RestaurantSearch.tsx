@@ -49,10 +49,18 @@ interface ListItem {
 
 interface RestaurantSearchProps {
   listId: number;
-  onRestaurantAdded?: () => void;
+  onRestaurantAdded?: (data: {
+    restaurantId: string;
+    restaurantName: string;
+    rating: number;
+    liked: string;
+    disliked: string;
+    notes: string;
+  }) => Promise<void>;
+  onAddCompleted?: () => void;
 }
 
-export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearchProps) {
+export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: RestaurantSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
