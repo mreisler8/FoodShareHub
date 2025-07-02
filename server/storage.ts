@@ -11,7 +11,8 @@ import {
   restaurantLists, type RestaurantList, type InsertRestaurantList,
   restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem,
   sharedLists, type SharedList, type InsertSharedList,
-  userFollowers, type UserFollower, type InsertUserFollower
+  userFollowers, type UserFollower, type InsertUserFollower,
+  contentReports, type ContentReport, type InsertContentReport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, like, desc, gt, or } from "drizzle-orm";
@@ -134,6 +135,12 @@ export interface IStorage {
   logUserAction(userId: number, action: string, metadata: Record<string, any>): Promise<void>;
   getActionsByUser(userId: number): Promise<any[]>;
   getPopularContent(): Promise<any[]>;
+  
+  // Content Moderation operations
+  createContentReport(report: InsertContentReport): Promise<ContentReport>;
+  getContentReports(options?: { status?: string; contentType?: string; limit?: number }): Promise<ContentReport[]>;
+  updateContentReportStatus(reportId: number, status: string, reviewedById: number, resolution?: string): Promise<ContentReport>;
+  getReportsByContent(contentType: string, contentId: number): Promise<ContentReport[]>;
 }
 
 // Implementation using PostgreSQL Database via Drizzle ORM
@@ -878,6 +885,67 @@ export class DatabaseStorage implements IStorage {
       console.error('Error getting popular content:', error);
       return [];
     }
+  }
+
+  // Content Moderation operations implementation
+  async createContentReport(insertReport: InsertContentReport): Promise<ContentReport> {
+    const [report] = await db.insert(contentReports).values(insertReport).returning();
+    return report;
+  }
+
+  async getContentReports(options?: { status?: string; contentType?: string; limit?: number }): Promise<ContentReport[]> {
+    let query = db.select().from(contentReports);
+    
+    const conditions = [];
+    if (options?.status) {
+      conditions.push(eq(contentReports.status, options.status));
+    }
+    if (options?.contentType) {
+      conditions.push(eq(contentReports.contentType, options.contentType));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    query = query.orderBy(desc(contentReports.createdAt));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+    
+    return await query;
+  }
+
+  async updateContentReportStatus(reportId: number, status: string, reviewedById: number, resolution?: string): Promise<ContentReport> {
+    const updateData: any = {
+      status,
+      reviewedById,
+      reviewedAt: new Date(),
+    };
+    
+    if (resolution) {
+      updateData.resolution = resolution;
+    }
+    
+    const [updatedReport] = await db
+      .update(contentReports)
+      .set(updateData)
+      .where(eq(contentReports.id, reportId))
+      .returning();
+    
+    return updatedReport;
+  }
+
+  async getReportsByContent(contentType: string, contentId: number): Promise<ContentReport[]> {
+    return await db
+      .select()
+      .from(contentReports)
+      .where(and(
+        eq(contentReports.contentType, contentType),
+        eq(contentReports.contentId, contentId)
+      ))
+      .orderBy(desc(contentReports.createdAt));
   }
 
   // Shared List operations implementation

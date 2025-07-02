@@ -376,3 +376,32 @@ export const insertUserFollowerSchema = createInsertSchema(userFollowers).pick({
 
 export type UserFollower = typeof userFollowers.$inferSelect;
 export type InsertUserFollower = z.infer<typeof insertUserFollowerSchema>;
+
+// Content Reports model for User Story 5: User-Generated Content Moderation
+export const contentReports = pgTable("content_reports", {
+  id: serial("id").primaryKey(),
+  reporterId: integer("reporter_id").references(() => users.id).notNull(),
+  contentType: text("content_type").notNull(), // 'post', 'comment', 'list', 'user'
+  contentId: integer("content_id").notNull(),
+  reason: text("reason").notNull(), // 'spam', 'inappropriate', 'harassment', 'false_info', 'other'
+  description: text("description"), // Optional additional details
+  status: text("status").default("pending").notNull(), // 'pending', 'reviewing', 'resolved', 'dismissed'
+  reviewedById: integer("reviewed_by_id").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  resolution: text("resolution"), // Action taken: 'no_action', 'content_removed', 'user_warned', 'user_suspended'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertContentReportSchema = createInsertSchema(contentReports).pick({
+  reporterId: true,
+  contentType: true,
+  contentId: true,
+  reason: true,
+  description: true,
+});
+
+export type ContentReport = typeof contentReports.$inferSelect;
+export type InsertContentReport = z.infer<typeof insertContentReportSchema>;
+
+// Content Moderation Status - add moderation fields to existing content
+// Note: These will be added as optional fields to existing tables via migrations

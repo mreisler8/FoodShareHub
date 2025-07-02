@@ -555,6 +555,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Story 5: Content Moderation endpoints
+  app.post("/api/reports", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const reportData = {
+        ...req.body,
+        reporterId: req.user!.id,
+      };
+
+      // Validate required fields
+      if (!reportData.contentType || !reportData.contentId || !reportData.reason) {
+        return res.status(400).json({ error: "Missing required fields: contentType, contentId, reason" });
+      }
+
+      // Validate content type
+      const validContentTypes = ['post', 'comment', 'list', 'user'];
+      if (!validContentTypes.includes(reportData.contentType)) {
+        return res.status(400).json({ error: "Invalid content type" });
+      }
+
+      // Validate reason
+      const validReasons = ['spam', 'inappropriate', 'harassment', 'false_info', 'other'];
+      if (!validReasons.includes(reportData.reason)) {
+        return res.status(400).json({ error: "Invalid reason" });
+      }
+
+      const newReport = await storage.createContentReport(reportData);
+      res.status(201).json(newReport);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/reports", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { status, contentType, limit } = req.query;
+      const options: any = {};
+      
+      if (status && typeof status === 'string') {
+        options.status = status;
+      }
+      if (contentType && typeof contentType === 'string') {
+        options.contentType = contentType;
+      }
+      if (limit && typeof limit === 'string') {
+        const parsedLimit = parseInt(limit);
+        if (!isNaN(parsedLimit) && parsedLimit > 0 && parsedLimit <= 100) {
+          options.limit = parsedLimit;
+        }
+      }
+
+      const reports = await storage.getContentReports(options);
+      res.json(reports);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/content/:contentType/:contentId/reports", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { contentType, contentId } = req.params;
+      const parsedContentId = parseInt(contentId);
+      
+      if (isNaN(parsedContentId)) {
+        return res.status(400).json({ error: "Invalid content ID" });
+      }
+
+      const reports = await storage.getReportsByContent(contentType, parsedContentId);
+      res.json(reports);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/reports/:reportId/status", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const reportId = parseInt(req.params.reportId);
+      const { status, resolution } = req.body;
+
+      if (isNaN(reportId)) {
+        return res.status(400).json({ error: "Invalid report ID" });
+      }
+
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+
+      const validStatuses = ['pending', 'reviewing', 'resolved', 'dismissed'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+
+      const updatedReport = await storage.updateContentReportStatus(
+        reportId, 
+        status, 
+        req.user!.id, 
+        resolution
+      );
+      
+      res.json(updatedReport);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // User Story 4: Top Picks endpoint
   app.get("/api/top-picks", async (req, res) => {
     try {
