@@ -151,8 +151,29 @@ export default function Home() {
         {/* Quick Add Section - Easily add restaurants and dishes */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <QuickAddRestaurant />
+            
+            {/* Quick Create List */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <PlusCircle className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Create Restaurant List</h3>
+                  <p className="text-sm text-gray-600">Curate and share your favorites</p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => setLocation('/lists/create')} 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+              >
+                Create New List
+              </Button>
+            </div>
           </div>
         </div>
 

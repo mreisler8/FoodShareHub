@@ -107,6 +107,14 @@ export function DesktopSidebar() {
             </Link>
           </li>
           <li>
+            <Link href="/lists/create" aria-label="Create a new restaurant list">
+              <div className={getNavItemClasses("/lists/create")} role="menuitem" tabIndex={0}>
+                <PlusCircle className="w-6 mr-2" aria-hidden="true" />
+                <span>Create List</span>
+              </div>
+            </Link>
+          </li>
+          <li>
             <Link href="/saved">
               <div className={getNavItemClasses("/saved")}>
                 <Bookmark className="w-6 mr-2" />
