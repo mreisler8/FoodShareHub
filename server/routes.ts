@@ -19,16 +19,10 @@ import {
   insertRestaurantListSchema,
   insertRestaurantListItemSchema,
 } from "@shared/schema";
-import express from "express";
-const app = express();
-// … other app.use() calls …
 import { Router } from "express";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
 import { db } from "./db.js";
-import { storage } from "./storage.js";
 import { authenticate } from "./auth.js";
-import { searchGooglePlaces } from "./services/google-places.js";
 import recommendationsRouter from "./routes/recommendations.js";
 import listsRouter from "./routes/lists.js";
 

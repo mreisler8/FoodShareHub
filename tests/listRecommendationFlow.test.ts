@@ -11,7 +11,7 @@ describe('List & Recommendation API Flow', () => {
   beforeAll(async () => {
     // 1. Create a test user directly in the DB
     const [user] = await db
-      .insert(db.users)
+      .insert(users)
       .values({ username: 'e2e_test', password: 'test', name: 'E2E Tester' })
       .returning();
     
@@ -23,7 +23,7 @@ describe('List & Recommendation API Flow', () => {
     
     // 3. Create a test restaurant
     const [rest] = await db
-      .insert(db.restaurants)
+      .insert(restaurants)
       .values({
         name: 'Test Pizza Place',
         location: 'Toronto',
@@ -76,9 +76,9 @@ describe('List & Recommendation API Flow', () => {
 
   afterAll(async () => {
     // clean up: delete test data
-    await db.delete(db.restaurantListItems).where(db.restaurantListItems.listId.eq(listId));
-    await db.delete(db.restaurantLists).where(db.restaurantLists.id.eq(listId));
-    await db.delete(db.restaurants).where(db.restaurants.id.eq(restaurantId));
-    await db.delete(db.users).where(db.users.username.eq('e2e_test'));
+    await db.delete(restaurantListItems).where(eq(restaurantListItems.listId, listId));
+    await db.delete(restaurantLists).where(eq(restaurantLists.id, listId));
+    await db.delete(restaurants).where(eq(restaurants.id, restaurantId));
+    await db.delete(users).where(eq(users.username, 'e2e_test'));
   });
 });

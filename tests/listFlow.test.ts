@@ -163,10 +163,10 @@ describe('List & Recommendation API Flow', () => {
   afterAll(async () => {
     // Clean up: delete test data
     try {
-      await db.delete(restaurantListItems).where(restaurantListItems.listId.eq(listId));
-      await db.delete(restaurantLists).where(restaurantLists.id.eq(listId));
-      await db.delete(restaurants).where(restaurants.id.eq(restaurantId));
-      await db.delete(users).where(users.id.eq(userId));
+      await db.delete(restaurantListItems).where(eq(restaurantListItems.listId, listId));
+      await db.delete(restaurantLists).where(eq(restaurantLists.id, listId));
+      await db.delete(restaurants).where(eq(restaurants.id, restaurantId));
+      await db.delete(users).where(eq(users.id, userId));
     } catch (error) {
       console.log('Cleanup error (might be expected):', error);
     }
