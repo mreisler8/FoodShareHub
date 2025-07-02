@@ -2,7 +2,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
-import { authenticate } from '../middleware/auth';
+import { authenticate } from '../auth';
+import { restaurantLists, restaurantListItems, restaurants } from '../../shared/schema';
 
 const router = Router();
 

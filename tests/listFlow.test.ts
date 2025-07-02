@@ -16,7 +16,7 @@ describe('List & Recommendation API Flow', () => {
     
     // 1. Create a test user directly in the DB
     const [user] = await db
-      .insert(db.users)
+      .insert(users)
       .values({ 
         username: 'e2e_test@example.com', 
         password: 'hashedpassword123', // In real app this would be hashed
