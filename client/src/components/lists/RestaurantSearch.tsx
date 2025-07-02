@@ -6,14 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ListItemForm } from "@/components/ListItemForm";
 
 // Create apiFetch function for GET requests with authentication
 async function apiFetch(url: string): Promise<any> {
@@ -42,15 +37,15 @@ interface SearchResult {
   source: 'database' | 'google';
 }
 
-// Add restaurant form schema
-const addRestaurantSchema = z.object({
-  rating: z.string().min(1, "Rating is required"),
-  liked: z.string().optional(),
-  disliked: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-type AddRestaurantFormValues = z.infer<typeof addRestaurantSchema>;
+// Type for list items in state management
+interface ListItem {
+  id: number;
+  restaurantId: number;
+  rating: number;
+  liked: string | null;
+  disliked: string | null;
+  notes: string | null;
+}
 
 interface RestaurantSearchProps {
   listId: number;
@@ -62,7 +57,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<SearchResult | null>(null);
+  const [addingId, setAddingId] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -128,17 +123,6 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
           prev > 0 ? prev - 1 : searchResults.length - 1
         );
         break;
-      case 'Enter':
-        e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < searchResults.length) {
-          const selectedResult = searchResults[highlightedIndex];
-          setSelectedRestaurant(selectedResult);
-          setShowDropdown(false);
-          setSearchQuery("");
-          setDebouncedQuery("");
-          setHighlightedIndex(-1);
-        }
-        break;
       case 'Escape':
         e.preventDefault();
         setShowDropdown(false);
@@ -160,37 +144,28 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Add restaurant form
-  const form = useForm<AddRestaurantFormValues>({
-    resolver: zodResolver(addRestaurantSchema),
-    defaultValues: {
-      rating: "",
-      liked: "",
-      disliked: "",
-      notes: "",
-    },
-  });
-
-  // Add restaurant to list mutation
+  // Handle adding restaurant using the inline form approach
   const addToListMutation = useMutation({
-    mutationFn: async (values: AddRestaurantFormValues) => {
-      if (!selectedRestaurant) throw new Error("No restaurant selected");
+    mutationFn: async (data: { restaurantId: string; rating: number; liked: string; disliked: string; notes: string }) => {
+      // Find the restaurant being added
+      const restaurant = searchResults.find(r => r.id === data.restaurantId);
+      if (!restaurant) throw new Error("Restaurant not found");
       
       // Handle both database and Google Places results
       let restaurantId: number;
       
-      if (selectedRestaurant.source === 'database') {
-        restaurantId = parseInt(selectedRestaurant.id);
+      if (restaurant.source === 'database') {
+        restaurantId = parseInt(restaurant.id);
       } else {
         // For Google Places results, we need to create a restaurant first
         const response = await apiRequest("POST", "/api/restaurants", {
-          name: selectedRestaurant.name,
-          location: selectedRestaurant.location || "Unknown location",
+          name: restaurant.name,
+          location: restaurant.location || "Unknown location",
           category: "Restaurant",
           priceRange: "$$",
           cuisine: "Restaurant",
-          imageUrl: selectedRestaurant.thumbnailUrl,
-          googlePlaceId: selectedRestaurant.id.replace('google_', ''),
+          imageUrl: restaurant.thumbnailUrl,
+          googlePlaceId: restaurant.id.replace('google_', ''),
         });
         const newRestaurant = await response.json() as { id: number };
         restaurantId = newRestaurant.id;
@@ -198,27 +173,30 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
       
       const payload = {
         restaurantId: restaurantId,
-        rating: parseInt(values.rating),
-        liked: values.liked || null,
-        disliked: values.disliked || null,
-        notes: values.notes || null,
+        rating: data.rating,
+        liked: data.liked || null,
+        disliked: data.disliked || null,
+        notes: data.notes || null,
       };
       
       return await apiRequest("POST", `/api/lists/${listId}/items`, payload);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       // Invalidate list details to refresh items
       queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
       
+      const restaurant = searchResults.find(r => r.id === variables.restaurantId);
       toast({
         title: "Restaurant added!",
-        description: `${selectedRestaurant?.name} has been added to your list.`,
+        description: `${restaurant?.name} has been added to your list.`,
       });
       
-      // Reset form and selection
-      form.reset();
-      setSelectedRestaurant(null);
+      // Reset state
+      setAddingId(null);
       setSearchQuery("");
+      setDebouncedQuery("");
+      setSearchResults([]);
+      setShowDropdown(false);
       
       // Call callback if provided
       if (onRestaurantAdded) {
@@ -234,8 +212,19 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
     }
   });
 
-  const onSubmit = (values: AddRestaurantFormValues) => {
-    addToListMutation.mutate(values);
+  // Handle saving from inline form
+  const handleSave = async (data: { rating: number; liked: string; disliked: string; notes: string }) => {
+    if (!addingId) return;
+    
+    addToListMutation.mutate({
+      restaurantId: addingId,
+      ...data
+    });
+  };
+
+  // Handle canceling inline form
+  const handleCancel = () => {
+    setAddingId(null);
   };
 
   const renderStars = (rating: number) => {
@@ -278,48 +267,65 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
             ) : searchResults && searchResults.length > 0 ? (
               <div className="py-2">
                 {searchResults.map((restaurant: SearchResult, index: number) => (
-                  <div
-                    key={restaurant.id}
-                    className={`px-4 py-3 flex items-center space-x-3 cursor-pointer transition-colors ${
-                      index === highlightedIndex 
-                        ? 'bg-blue-50 border-l-2 border-blue-500' 
-                        : 'hover:bg-gray-50'
-                    }`}
-                    onClick={() => {
-                      setSelectedRestaurant(restaurant);
-                      setShowDropdown(false);
-                      setSearchQuery("");
-                      setDebouncedQuery("");
-                      setHighlightedIndex(-1);
-                    }}
-                  >
-                    {/* Thumbnail Image */}
-                    {restaurant.thumbnailUrl ? (
-                      <img 
-                        src={restaurant.thumbnailUrl} 
-                        alt={restaurant.name}
-                        className="w-12 h-12 rounded object-cover flex-shrink-0"
-                      />
+                  <div key={restaurant.id}>
+                    {addingId === restaurant.id ? (
+                      // Show inline form when this restaurant is being added
+                      <div className="px-4 py-3">
+                        <ListItemForm
+                          restaurantId={restaurant.id}
+                          restaurantName={restaurant.name}
+                          onSave={handleSave}
+                          onCancel={handleCancel}
+                        />
+                      </div>
                     ) : (
-                      <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-gray-500 text-xs">No img</span>
+                      // Show normal restaurant result with Add button
+                      <div
+                        className={`px-4 py-3 flex items-center space-x-3 transition-colors ${
+                          index === highlightedIndex 
+                            ? 'bg-blue-50 border-l-2 border-blue-500' 
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        {/* Thumbnail Image */}
+                        {restaurant.thumbnailUrl ? (
+                          <img 
+                            src={restaurant.thumbnailUrl} 
+                            alt={restaurant.name}
+                            className="w-12 h-12 rounded object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
+                            <span className="text-gray-500 text-xs">No img</span>
+                          </div>
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          {/* Restaurant Name */}
+                          <h3 className="font-medium text-gray-900 truncate">{restaurant.name}</h3>
+                          {/* Average Rating */}
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className="text-sm text-gray-600">{formatRating(restaurant.avgRating)}</span>
+                            {restaurant.location && (
+                              <>
+                                <span className="text-gray-400">•</span>
+                                <span className="text-sm text-gray-500 truncate">{restaurant.location}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Add Button */}
+                        <Button
+                          className="add-btn flex-shrink-0"
+                          size="sm"
+                          onClick={() => setAddingId(restaurant.id)}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add
+                        </Button>
                       </div>
                     )}
-                    
-                    <div className="flex-1 min-w-0">
-                      {/* Restaurant Name */}
-                      <h3 className="font-medium text-gray-900 truncate">{restaurant.name}</h3>
-                      {/* Average Rating */}
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-sm text-gray-600">{formatRating(restaurant.avgRating)}</span>
-                        {restaurant.location && (
-                          <>
-                            <span className="text-gray-400">•</span>
-                            <span className="text-sm text-gray-500 truncate">{restaurant.location}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -332,116 +338,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
         )}
       </div>
 
-      {/* Add Restaurant Form */}
-      {selectedRestaurant && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-medium">Add {selectedRestaurant.name} to your list</h3>
-              <p className="text-sm text-gray-500">Share your experience with this restaurant</p>
-            </div>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="rating"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Star Rating *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Rate this restaurant" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="5">5 stars - Excellent</SelectItem>
-                          <SelectItem value="4">4 stars - Very Good</SelectItem>
-                          <SelectItem value="3">3 stars - Good</SelectItem>
-                          <SelectItem value="2">2 stars - Fair</SelectItem>
-                          <SelectItem value="1">1 star - Poor</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="liked"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>What I liked</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="What did you enjoy about this restaurant?"
-                          rows={2}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="disliked"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>What I didn't like</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="What could be improved?"
-                          rows={2}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Additional Notes</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Any other thoughts or recommendations?"
-                          rows={2}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end space-x-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setSelectedRestaurant(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={addToListMutation.isPending}
-                  >
-                    {addToListMutation.isPending ? "Adding..." : "Add to List"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      )}
+      {/* Inline forms are now rendered within the dropdown results */}
     </div>
   );
 }
