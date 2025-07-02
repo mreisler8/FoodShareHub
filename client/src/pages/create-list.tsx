@@ -73,7 +73,8 @@ export default function CreateList() {
       };
       
       // Use the new /api/lists endpoint
-      return await apiRequest("POST", "/api/lists", payload);
+      const response = await apiRequest("POST", "/api/lists", payload);
+      return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
@@ -83,8 +84,14 @@ export default function CreateList() {
         description: "Your restaurant list has been created.",
       });
       
-      // Navigate to the new list
-      navigate(`/lists/${(data as any).id}`);
+      // Navigate to the new list - handle different response structures
+      const listId = data?.id || (data as any)?.id;
+      if (listId) {
+        navigate(`/lists/${listId}`);
+      } else {
+        console.error("No list ID in response:", data);
+        navigate("/lists");
+      }
     },
     onError: () => {
       toast({

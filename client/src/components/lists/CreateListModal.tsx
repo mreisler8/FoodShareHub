@@ -63,7 +63,8 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
         visibility: values.visibility,
       };
 
-      return await apiRequest("POST", "/api/lists", payload);
+      const response = await apiRequest("POST", "/api/lists", payload);
+      return await response.json();
     },
     onSuccess: (data) => {
       // Invalidate relevant caches
@@ -79,9 +80,14 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
       form.reset();
       onOpenChange(false);
 
-      // Call success callback with the new list ID
-      if (onSuccess && data && typeof data === 'object' && 'id' in data) {
-        onSuccess(Number((data as any).id));
+      // Call success callback with the new list ID - handle different response structures
+      if (onSuccess) {
+        const listId = data?.id || (data as any)?.id;
+        if (listId) {
+          onSuccess(Number(listId));
+        } else {
+          console.error("No list ID in response:", data);
+        }
       }
     },
     onError: (error: any) => {
