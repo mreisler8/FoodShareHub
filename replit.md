@@ -239,6 +239,15 @@ The application uses a comprehensive PostgreSQL schema including:
     - Added comprehensive validation for report reasons, content types, and statuses
     - Created extensive test suite for moderation API endpoints and validation logic
   - **Feature Status**: Complete restaurant sharing system with search, posting, timeline, discovery, and content moderation
+- July 02, 2025: **Duplicate List Name Validation Feature**:
+  - Added GET /api/lists?name=<name> endpoint for checking duplicate list names by user
+  - Implemented 409 Conflict response in POST /api/lists for duplicate name detection
+  - Enhanced CreateListModal with debounced duplicate checking (500ms delay)
+  - Added warning banner UI with "View Existing" and "Continue Anyway" options
+  - Implemented client-side duplicate detection with onBlur and typing pause triggers
+  - Added comprehensive error handling for 409 responses with existing list ID
+  - Created extensive test suite covering duplicate detection, case sensitivity, and edge cases
+  - **Feature Status**: Complete duplicate list name validation with user-friendly warnings and navigation options
 ## Changelog
 - July 01, 2025: Initial setup and MVP P1 backlog implementation
 

@@ -1,0 +1,148 @@
+As a user
+I want the app to warn me if I try to create a list with a name I’ve already used
+So that I avoid accidentally making duplicate lists and cluttering my dashboard
+
+Acceptance Criteria
+Given I open the Create List modal and enter a Name,
+When I leave the Name field (on blur) or pause typing for 500 ms,
+Then the frontend issues:
+
+pgsql
+Copy
+Edit
+GET /api/lists?name=<URL-encoded-Name>
+and if the response array is non-empty, shows
+
+“You already have a list named ‘<Name>’.
+Would you like to view it or continue creating?”
+with two buttons:
+
+View Existing → closes modal and navigates to /lists/:existingId
+
+Continue Anyway → clears the warning and leaves the form open
+
+Given I click Save with a Name that exactly matches an existing list (and I have not clicked Continue Anyway),
+When the frontend sends POST /api/lists,
+Then the backend returns 409 Conflict with:
+
+json
+Copy
+Edit
+{ "error": "duplicate_list", "existingId": 123 }
+and the frontend shows the same “You already have a list named …” warning.
+
+Given I click Continue Anyway,
+When I click Save again,
+Then the modal submits and creates a second list with the same name.
+
+Given I click View Existing,
+Then I am redirected to the existing list’s detail page instead of creating a new one.
+
+Implementation Notes
+API – List Query by Name
+
+File: server/routes/lists.ts
+
+Add at top of router:
+
+ts
+Copy
+Edit
+// GET /api/lists?name=<name>
+router.get('/', authenticate, async (req, res) => {
+  if (req.query.name) {
+    const lists = await db
+      .select()
+      .from(db.restaurantLists)
+      .where(db.restaurantLists.name.eq(String(req.query.name)));
+    return res.json(lists);
+  }
+  // existing list-all or list-by-circle logic…
+});
+API – Duplicate Create Response
+
+In the existing POST /api/lists handler, before insert:
+
+ts
+Copy
+Edit
+const existing = await db
+  .select()
+  .from(db.restaurantLists)
+  .where(db.restaurantLists.name.eq(name))
+  .limit(1);
+if (existing.length) {
+  return res.status(409).json({
+    error: 'duplicate_list',
+    existingId: existing[0].id
+  });
+}
+// otherwise proceed to insert…
+Frontend – CreateListModal
+
+File: src/components/CreateListModal.tsx
+
+Add state: const [duplicateInfo, setDuplicateInfo] = useState<{id:number, name:string}|null>(null);
+
+On Name field onBlur (or debounced onChange):
+
+ts
+Copy
+Edit
+const checkDuplicate = async (name: string) => {
+  if (!name) return setDuplicateInfo(null);
+  const lists = await apiFetch(`/api/lists?name=${encodeURIComponent(name)}`);
+  if (lists.length) setDuplicateInfo({ id: lists[0].id, name });
+  else setDuplicateInfo(null);
+};
+If duplicateInfo is set, render a warning banner above the form:
+
+tsx
+Copy
+Edit
+{duplicateInfo && (
+  <div className="warning-banner">
+    You already have a list named “{duplicateInfo.name}”.
+    <button onClick={() => navigate(`/lists/${duplicateInfo.id}`)}>
+      View Existing
+    </button>
+    <button onClick={() => setDuplicateInfo(null)}>
+      Continue Anyway
+    </button>
+  </div>
+)}
+In the modal’s handleSubmit, catch 409:
+
+ts
+Copy
+Edit
+try {
+  const list = await apiFetch('/api/lists', { method: 'POST', body: … });
+  // success…
+} catch (err) {
+  if (err.status === 409 && err.data.error === 'duplicate_list') {
+    setDuplicateInfo({ id: err.data.existingId, name });
+  } else {
+    // other errors…
+  }
+}
+Test Hook
+
+Add tests/lists-duplicate.test.ts:
+
+ts
+Copy
+Edit
+import request from 'supertest';
+import app from '../server/index.js';
+// create list “Test Dup”
+// attempt to create again → expect 409 and existingId in response
+Commit Messages
+
+feat(api): add list query by name & 409 on duplicate create
+
+feat(ui): warn user on duplicate list name in CreateListModal
+
+test: add duplicate-list creation tests
+
+Next: Create these API updates and UI changes before your next deployment to ensure users don’t inadvertently create duplicate lists and have a smoother experience.

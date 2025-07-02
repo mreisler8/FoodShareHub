@@ -44,11 +44,24 @@ const updateItemSchema = z.object({
   mustTryDishes: z.array(z.string()).optional(),
 });
 
-// GET /api/lists - Get user's lists with filtering
+// GET /api/lists - Get user's lists with filtering and name search
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
     const filter = req.query.filter as string;
+    const name = req.query.name as string;
+
+    // Handle duplicate name checking
+    if (name) {
+      const lists = await db
+        .select()
+        .from(restaurantLists)
+        .where(and(
+          eq(restaurantLists.name, name),
+          eq(restaurantLists.createdById, userId)
+        ));
+      return res.json(lists);
+    }
 
     if (filter === 'mine') {
       // Return only lists the user can see per User Story 5 criteria:
@@ -106,6 +119,23 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const data = createListSchema.parse(req.body);
     const userId = req.user!.id;
+
+    // Check for duplicate name before creating
+    const existingLists = await db
+      .select()
+      .from(restaurantLists)
+      .where(and(
+        eq(restaurantLists.name, data.name),
+        eq(restaurantLists.createdById, userId)
+      ))
+      .limit(1);
+
+    if (existingLists.length > 0) {
+      return res.status(409).json({
+        error: 'duplicate_list',
+        existingId: existingLists[0].id
+      });
+    }
 
     // Handle the frontend's sharing model
     const isPublic = data.makePublic || data.isPublic || false;

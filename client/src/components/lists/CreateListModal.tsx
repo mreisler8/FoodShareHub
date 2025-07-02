@@ -2,17 +2,20 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
 import { useLocation } from "wouter";
+import { AlertTriangle, Eye } from "lucide-react";
 
 // Form Schema based on Robust List Creation user story
 const formSchema = z.object({
@@ -35,6 +38,9 @@ interface CreateListModalProps {
 export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListModalProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [duplicateInfo, setDuplicateInfo] = useState<{id: number, name: string} | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const [continueAnyway, setContinueAnyway] = useState(false);
 
   // Fetch circles for the sharing dropdown
   const { data: circles } = useQuery<CircleWithStats[]>({
@@ -56,6 +62,54 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
 
   // Watch the sharing fields to show/hide circle selection
   const shareWithCircle = form.watch("shareWithCircle");
+  const currentName = form.watch("name");
+
+  // Debounced duplicate checking function
+  const checkDuplicate = useCallback(async (name: string) => {
+    if (!name.trim()) {
+      setDuplicateInfo(null);
+      return;
+    }
+
+    setCheckingDuplicate(true);
+    try {
+      const response = await fetch(`/api/lists?name=${encodeURIComponent(name.trim())}`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const lists = await response.json();
+        if (lists.length > 0) {
+          setDuplicateInfo({ id: lists[0].id, name: name.trim() });
+        } else {
+          setDuplicateInfo(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking duplicate:", error);
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  }, []);
+
+  // Debounce the duplicate check
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (currentName && !continueAnyway) {
+        checkDuplicate(currentName);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentName, checkDuplicate, continueAnyway]);
+
+  // Reset duplicate state when modal opens/closes
+  useEffect(() => {
+    if (!open) {
+      setDuplicateInfo(null);
+      setContinueAnyway(false);
+    }
+  }, [open]);
 
   // Create list mutation
   const createList = useMutation({
@@ -126,6 +180,15 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
       }
     },
     onError: (error: any) => {
+      // Handle 409 conflict for duplicate names
+      if (error.status === 409 && error.data?.error === 'duplicate_list') {
+        setDuplicateInfo({ 
+          id: error.data.existingId, 
+          name: form.getValues("name") 
+        });
+        return;
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to create list. Please try again.",
@@ -169,6 +232,47 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                 </FormItem>
               )}
             />
+
+            {/* Duplicate warning banner */}
+            {duplicateInfo && !continueAnyway && (
+              <Alert className="border-yellow-200 bg-yellow-50">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  <div className="space-y-3">
+                    <p>
+                      You already have a list named "{duplicateInfo.name}".
+                      Would you like to view it or continue creating?
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          onOpenChange(false);
+                          navigate(`/lists/${duplicateInfo.id}`);
+                        }}
+                        className="bg-white border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Existing
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setContinueAnyway(true);
+                          setDuplicateInfo(null);
+                        }}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                      >
+                        Continue Anyway
+                      </Button>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <FormField
               control={form.control}
