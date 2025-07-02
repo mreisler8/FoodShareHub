@@ -35,9 +35,14 @@ export default function ListDetails() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  const { data: list, isLoading } = useQuery<RestaurantList>({
+  const { data: list, isLoading, error } = useQuery<RestaurantList>({
     queryKey: [`/api/lists/${id}`],
   });
+
+  // Debug logging
+  console.log("ListDetails - ID:", id, "List ID:", listId);
+  console.log("ListDetails - Query state:", { list, isLoading, error });
+  console.log("ListDetails - Query key:", [`/api/lists/${id}`]);
 
   // Sync server data with local state when it loads
   useEffect(() => {

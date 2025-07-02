@@ -74,18 +74,13 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      queryFn: getQueryFn({ on401: "throw" }),
       retry: 2,
       staleTime: 60000,
       refetchOnWindowFocus: false,
-      onError: (error) => {
-        console.error('Query error:', error);
-      }
     },
     mutations: {
       retry: 2,
-      onError: (error) => {
-        console.error('Mutation error:', error);
-      }
     }
   }
 });
