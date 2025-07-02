@@ -240,6 +240,9 @@ export const restaurantLists = pgTable("restaurant_lists", {
   allowSharing: boolean("allow_sharing").default(true), // Whether the list can be shared by others
   shareableCircles: integer("shareable_circles").array(), // IDs of circles this list can be shared with
   isFeatured: boolean("is_featured").default(false), // For curated lists
+  // User Story 5: List Visibility & Sharing Controls
+  shareWithCircle: boolean("share_with_circle").default(false),
+  makePublic: boolean("make_public").default(false),
   // Tracking fields
   viewCount: integer("view_count").default(0),
   saveCount: integer("save_count").default(0),
@@ -260,6 +263,8 @@ export const insertRestaurantListSchema = createInsertSchema(restaurantLists).pi
   primaryLocation: true,
   locationLat: true,
   locationLng: true,
+  shareWithCircle: true,
+  makePublic: true,
 });
 
 // Restaurant List Items model (restaurants in a list)

@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RestaurantList, RestaurantListItemWithDetails } from "@/lib/types";
 import { ShareListModal } from "@/components/lists/ShareListModal";
+import { EditListModal } from "@/components/lists/EditListModal";
 import { RestaurantSearch } from "@/components/lists/RestaurantSearch";
 import { ListItemCard } from "@/components/lists/ListItemCard";
 import { ListItemForm } from "@/components/ListItemForm";
@@ -31,6 +32,7 @@ export default function ListDetails() {
   const { id } = useParams();
   const listId = parseInt(id || "0");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -345,10 +347,53 @@ export default function ListDetails() {
                     <p className="text-neutral-700 mt-2">{list.description}</p>
                   )}
                 </div>
-                <Button variant="outline" size="sm" className="flex items-center gap-1">
-                  <Edit className="h-4 w-4" />
-                  <span>Edit List</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  {/* Show badges for sharing status */}
+                  {list.shareWithCircle && (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      Circle
+                    </Badge>
+                  )}
+                  {list.makePublic && (
+                    <Badge variant="default" className="flex items-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      Public
+                    </Badge>
+                  )}
+                  
+                  {/* Share button - only show if list is public */}
+                  {list.makePublic && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        toast({
+                          title: "Link copied!",
+                          description: "Share this link with others to show them your list.",
+                        });
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                  )}
+                  
+                  {/* Edit button - only show for list owner */}
+                  {user && list.createdById === user.id && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="flex items-center gap-1"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit List
+                    </Button>
+                  )}
+                </div>
               </div>
               
               {/* Created by, visibility, and tags */}
@@ -363,19 +408,7 @@ export default function ListDetails() {
                   </div>
                 )}
                 
-                {/* Sharing Badges - show individual badges based on sharing settings */}
-                {list.circleId && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    <span>Circle</span>
-                  </Badge>
-                )}
-                {list.isPublic && (
-                  <Badge variant="default" className="flex items-center gap-1">
-                    <Eye className="h-3 w-3" />
-                    <span>Public</span>
-                  </Badge>
-                )}
+
                 
                 {list.tags && list.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -552,6 +585,15 @@ export default function ListDetails() {
         onOpenChange={setIsShareModalOpen} 
         listId={listId}
       />
+      
+      {/* Edit List Modal */}
+      {list && (
+        <EditListModal 
+          open={isEditModalOpen} 
+          onOpenChange={setIsEditModalOpen} 
+          list={list}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,117 @@
+Next Up: User Story 5 – List Visibility & Sharing
+As a list creator
+I want to control whether my list is visible to my Circle, public, or both
+So that I can share appropriately and let others view (or not) as intended
+
+Acceptance Criteria
+Sharing Toggles on Edit
+
+On the List detail page header (and in CreateListModal), render two checkboxes:
+
+tsx
+Copy
+Edit
+<label>
+  <input
+    type="checkbox"
+    checked={list.shareWithCircle}
+    onChange={e => updateField('shareWithCircle', e.target.checked)}
+  />
+  Share with Circle
+</label>
+<label>
+  <input
+    type="checkbox"
+    checked={list.makePublic}
+    onChange={e => updateField('makePublic', e.target.checked)}
+  />
+  Make Public
+</label>
+You may allow both boxes checked (list is both circle‐shared and public).
+
+Persisting Visibility
+
+Hitting Save in your inline list‐edit form (or a separate Edit List modal) calls:
+
+http
+Copy
+Edit
+PUT /api/lists/:listId
+Content-Type: application/json
+
+{ shareWithCircle: boolean, makePublic: boolean }
+The server updates those fields in the restaurant_lists table and returns the updated list object.
+
+Badges & Access Control
+
+On /lists/:listId header, show badges:
+
+tsx
+Copy
+Edit
+{list.shareWithCircle && <Badge>Circle</Badge>}
+{list.makePublic    && <Badge>Public</Badge>}
+When fetching /api/lists/:listId, the backend must:
+
+Allow access if either makePublic === true or the user is a member of the associated circle.
+
+Otherwise return 403.
+
+Share Link
+
+If makePublic is true, show a Share button next to the badges:
+
+tsx
+Copy
+Edit
+<button onClick={() => {
+  navigator.clipboard.writeText(window.location.href);
+  showToast('Link copied!')
+}}>
+  Share
+</button>
+If makePublic is false, hide or disable this button.
+
+List Dashboard Filtering
+
+On the “My Lists” overview page, only show:
+
+Lists where shareWithCircle === true and the circle includes the current user
+
+PLUS lists where makePublic === true
+
+Implementation Steps for the AI Agent
+Backend
+
+Add shareWithCircle and makePublic boolean columns to your restaurant_lists schema (Drizzle).
+
+Create/Update endpoint:
+
+PUT /api/lists/:id to accept and save those fields.
+
+GET /api/lists/:id should enforce access control.
+
+Frontend – ListPage
+
+Import a small <EditListModal> (or inline edit controls) in ListPage.tsx.
+
+Render the two checkboxes bound to list.shareWithCircle and list.makePublic.
+
+Implement updateField: update local state and call PUT /api/lists/:listId.
+
+Show the two badges and a conditional Share button that copies window.location.href.
+
+Frontend – My Lists (Lists.tsx)
+
+In your fetch for all lists, call GET /api/lists?filter=mine which the backend should implement to only return lists the user can see per criterion 5.
+
+Render only those lists.
+
+Commit & Push
+
+bash
+Copy
+Edit
+git add server/routes/lists.ts shared/schema.ts src/pages/ListPage.tsx src/components/Lists.tsx
+git commit -m "feat(sharing): add shareWithCircle/makePublic controls, badges, and share link"
+git push

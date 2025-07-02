@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { restaurantLists, restaurantListItems, restaurants } from '../../shared/schema';
+import { restaurantLists, restaurantListItems, restaurants, circleMembers } from '../../shared/schema';
 
 const router = Router();
 
@@ -19,6 +19,8 @@ const updateListSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   visibility: z.enum(['public', 'circle']).optional(),
+  shareWithCircle: z.boolean().optional(),
+  makePublic: z.boolean().optional(),
 });
 
 const addItemSchema = z.object({
@@ -38,17 +40,57 @@ const updateItemSchema = z.object({
   mustTryDishes: z.array(z.string()).optional(),
 });
 
-// GET /api/lists - Get user's lists
+// GET /api/lists - Get user's lists with filtering
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
+    const filter = req.query.filter as string;
 
-    const lists = await db
-      .select()
-      .from(restaurantLists)
-      .where(eq(restaurantLists.createdById, userId));
+    if (filter === 'mine') {
+      // Return only lists the user can see per User Story 5 criteria:
+      // 1. Lists where shareWithCircle === true and the circle includes the current user
+      // 2. PLUS lists where makePublic === true
+      // 3. PLUS lists the user owns
+      
+      // Get all lists
+      const allLists = await db
+        .select()
+        .from(restaurantLists);
 
-    res.json(lists);
+      // Filter based on access criteria
+      const accessibleLists = [];
+      
+      for (const list of allLists) {
+        const isOwner = list.createdById === userId;
+        const isPublic = list.makePublic === true;
+        
+        let hasCircleAccess = false;
+        if (list.shareWithCircle && list.circleId) {
+          const [circleMember] = await db
+            .select()
+            .from(circleMembers)
+            .where(and(
+              eq(circleMembers.circleId, list.circleId),
+              eq(circleMembers.userId, userId)
+            ));
+          hasCircleAccess = !!circleMember;
+        }
+        
+        if (isOwner || isPublic || hasCircleAccess) {
+          accessibleLists.push(list);
+        }
+      }
+      
+      res.json(accessibleLists);
+    } else {
+      // Default: return user's own lists
+      const lists = await db
+        .select()
+        .from(restaurantLists)
+        .where(eq(restaurantLists.createdById, userId));
+
+      res.json(lists);
+    }
   } catch (error) {
     console.error('Error fetching lists:', error);
     res.status(500).json({ error: 'Failed to fetch lists' });
@@ -83,6 +125,7 @@ router.post('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
     
     // Get list metadata
     const [list] = await db
@@ -92,6 +135,30 @@ router.get('/:id', authenticate, async (req, res) => {
 
     if (!list) {
       return res.status(404).json({ error: 'List not found' });
+    }
+
+    // Access control: Allow access if:
+    // 1. User owns the list
+    // 2. List is public (makePublic = true)
+    // 3. List is shared with circle and user is member of that circle
+    const isOwner = list.createdById === userId;
+    const isPublic = list.makePublic === true;
+    
+    let hasCircleAccess = false;
+    if (list.shareWithCircle && list.circleId) {
+      // Check if user is member of the associated circle
+      const [circleMember] = await db
+        .select()
+        .from(circleMembers)
+        .where(and(
+          eq(circleMembers.circleId, list.circleId),
+          eq(circleMembers.userId, userId)
+        ));
+      hasCircleAccess = !!circleMember;
+    }
+
+    if (!isOwner && !isPublic && !hasCircleAccess) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     // Get list items with restaurant details
