@@ -49,14 +49,13 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
 
   // Watch the visibility field to show/hide circle selection
   const visibility = form.watch("visibility");
-
+  
   // Create list mutation
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Convert circleId from string to number or null
-      const circleId = values.circleId && values.circleId !== "" ? parseInt(values.circleId) : null;
+      // Convert circleId to number if provided
+      const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
       
-      // Create payload for the new /api/lists endpoint
       const payload = {
         name: values.name,
         description: values.description || null,
