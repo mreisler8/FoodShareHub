@@ -3,6 +3,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { authenticate } from '../auth.js';
+import { recommendations } from '../../shared/schema';
 
 const router = Router();
 
@@ -11,8 +12,8 @@ router.get('/:circleId', authenticate, async (req, res) => {
   const { circleId } = req.params;
   const recs = await db
     .select()
-    .from(db.recommendations)
-    .where(db.recommendations.circleId.eq(Number(circleId)));
+    .from(recommendations)
+    .where(recommendations.circleId.eq(Number(circleId)));
   res.json(recs);
 });
 
@@ -21,7 +22,7 @@ router.post('/', authenticate, async (req, res) => {
   const { circleId, restaurantId } = req.body;
   const userId = req.user.id;
   const [rec] = await db
-    .insert(db.recommendations)
+    .insert(recommendations)
     .values({ circleId, restaurantId, userId })
     .returning();
   res.json(rec);
@@ -31,11 +32,11 @@ router.post('/', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   const recId = Number(req.params.id);
   await db
-    .delete(db.recommendations)
+    .delete(recommendations)
     .where(
-      db.recommendations.id
+      recommendations.id
         .eq(recId)
-        .and(db.recommendations.userId.eq(req.user.id))
+        .and(recommendations.userId.eq(req.user.id))
     );
   res.sendStatus(204);
 });

@@ -45,7 +45,7 @@ router.post('/', authenticate, async (req, res) => {
     const userId = req.user.id;
 
     const [list] = await db
-      .insert(db.restaurantLists)
+      .insert(restaurantLists)
       .values({
         name: data.name,
         description: data.description || null,
@@ -70,8 +70,8 @@ router.get('/:listId', authenticate, async (req, res) => {
     // Get list metadata
     const [list] = await db
       .select()
-      .from(db.restaurantLists)
-      .where(db.restaurantLists.id.eq(listId));
+      .from(restaurantLists)
+      .where(restaurantLists.id.eq(listId));
 
     if (!list) {
       return res.status(404).json({ error: 'List not found' });
@@ -80,26 +80,26 @@ router.get('/:listId', authenticate, async (req, res) => {
     // Get list items with restaurant details
     const items = await db
       .select({
-        id: db.restaurantListItems.id,
-        restaurantId: db.restaurantListItems.restaurantId,
-        rating: db.restaurantListItems.rating,
-        liked: db.restaurantListItems.liked,
-        disliked: db.restaurantListItems.disliked,
-        notes: db.restaurantListItems.notes,
-        position: db.restaurantListItems.position,
-        createdAt: db.restaurantListItems.createdAt,
+        id: restaurantListItems.id,
+        restaurantId: restaurantListItems.restaurantId,
+        rating: restaurantListItems.rating,
+        liked: restaurantListItems.liked,
+        disliked: restaurantListItems.disliked,
+        notes: restaurantListItems.notes,
+        position: restaurantListItems.position,
+        createdAt: restaurantListItems.createdAt,
         restaurant: {
-          id: db.restaurants.id,
-          name: db.restaurants.name,
-          location: db.restaurants.location,
-          category: db.restaurants.category,
-          price_range: db.restaurants.price_range,
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          category: restaurants.category,
+          price_range: restaurants.price_range,
         }
       })
-      .from(db.restaurantListItems)
-      .leftJoin(db.restaurants, db.restaurants.id.eq(db.restaurantListItems.restaurantId))
-      .where(db.restaurantListItems.listId.eq(listId))
-      .orderBy(db.restaurantListItems.position);
+      .from(restaurantListItems)
+      .leftJoin(restaurants, restaurants.id.eq(restaurantListItems.restaurantId))
+      .where(restaurantListItems.listId.eq(listId))
+      .orderBy(restaurantListItems.position);
 
     res.json({ ...list, items });
   } catch (error) {
@@ -118,10 +118,10 @@ router.put('/:listId', authenticate, async (req, res) => {
     // Check if user owns the list
     const [existingList] = await db
       .select()
-      .from(db.restaurantLists)
+      .from(restaurantLists)
       .where(
-        db.restaurantLists.id.eq(listId)
-        .and(db.restaurantLists.createdById.eq(userId))
+        restaurantLists.id.eq(listId)
+        .and(restaurantLists.createdById.eq(userId))
       );
 
     if (!existingList) {
@@ -129,13 +129,13 @@ router.put('/:listId', authenticate, async (req, res) => {
     }
 
     const [updatedList] = await db
-      .update(db.restaurantLists)
+      .update(restaurantLists)
       .set({
         name: data.name ?? existingList.name,
         description: data.description ?? existingList.description,
         visibility: data.visibility ?? existingList.visibility,
       })
-      .where(db.restaurantLists.id.eq(listId))
+      .where(restaurantLists.id.eq(listId))
       .returning();
 
     res.json(updatedList);
@@ -154,10 +154,10 @@ router.delete('/:listId', authenticate, async (req, res) => {
     // Check if user owns the list
     const [existingList] = await db
       .select()
-      .from(db.restaurantLists)
+      .from(restaurantLists)
       .where(
-        db.restaurantLists.id.eq(listId)
-        .and(db.restaurantLists.createdById.eq(userId))
+        restaurantLists.id.eq(listId)
+        .and(restaurantLists.createdById.eq(userId))
       );
 
     if (!existingList) {
@@ -166,13 +166,13 @@ router.delete('/:listId', authenticate, async (req, res) => {
 
     // Delete list items first
     await db
-      .delete(db.restaurantListItems)
-      .where(db.restaurantListItems.listId.eq(listId));
+      .delete(restaurantListItems)
+      .where(restaurantListItems.listId.eq(listId));
 
     // Delete the list
     await db
-      .delete(db.restaurantLists)
-      .where(db.restaurantLists.id.eq(listId));
+      .delete(restaurantLists)
+      .where(restaurantLists.id.eq(listId));
 
     res.sendStatus(204);
   } catch (error) {
@@ -191,8 +191,8 @@ router.post('/:listId/items', authenticate, async (req, res) => {
     // Check if list exists and user has access
     const [list] = await db
       .select()
-      .from(db.restaurantLists)
-      .where(db.restaurantLists.id.eq(listId));
+      .from(restaurantLists)
+      .where(restaurantLists.id.eq(listId));
 
     if (!list) {
       return res.status(404).json({ error: 'List not found' });
@@ -204,7 +204,7 @@ router.post('/:listId/items', authenticate, async (req, res) => {
     }
 
     const [item] = await db
-      .insert(db.restaurantListItems)
+      .insert(restaurantListItems)
       .values({
         listId,
         restaurantId: data.restaurantId,
@@ -233,10 +233,10 @@ router.put('/:listId/items/:itemId', authenticate, async (req, res) => {
     // Check if item exists in the list
     const [existingItem] = await db
       .select()
-      .from(db.restaurantListItems)
+      .from(restaurantListItems)
       .where(
-        db.restaurantListItems.id.eq(itemId)
-        .and(db.restaurantListItems.listId.eq(listId))
+        restaurantListItems.id.eq(itemId)
+        .and(restaurantListItems.listId.eq(listId))
       );
 
     if (!existingItem) {
@@ -244,7 +244,7 @@ router.put('/:listId/items/:itemId', authenticate, async (req, res) => {
     }
 
     const [updatedItem] = await db
-      .update(db.restaurantListItems)
+      .update(restaurantListItems)
       .set({
         rating: data.rating ?? existingItem.rating,
         liked: data.liked ?? existingItem.liked,
@@ -252,7 +252,7 @@ router.put('/:listId/items/:itemId', authenticate, async (req, res) => {
         notes: data.notes ?? existingItem.notes,
         position: data.position ?? existingItem.position,
       })
-      .where(db.restaurantListItems.id.eq(itemId))
+      .where(restaurantListItems.id.eq(itemId))
       .returning();
 
     res.json(updatedItem);
@@ -271,10 +271,10 @@ router.delete('/:listId/items/:itemId', authenticate, async (req, res) => {
     // Check if item exists in the list
     const [existingItem] = await db
       .select()
-      .from(db.restaurantListItems)
+      .from(restaurantListItems)
       .where(
-        db.restaurantListItems.id.eq(itemId)
-        .and(db.restaurantListItems.listId.eq(listId))
+        restaurantListItems.id.eq(itemId)
+        .and(restaurantListItems.listId.eq(listId))
       );
 
     if (!existingItem) {
@@ -282,8 +282,8 @@ router.delete('/:listId/items/:itemId', authenticate, async (req, res) => {
     }
 
     await db
-      .delete(db.restaurantListItems)
-      .where(db.restaurantListItems.id.eq(itemId));
+      .delete(restaurantListItems)
+      .where(restaurantListItems.id.eq(itemId));
 
     res.sendStatus(204);
   } catch (error) {
