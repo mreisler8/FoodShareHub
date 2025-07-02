@@ -555,6 +555,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Story 4: Top Picks endpoint
+  app.get("/api/top-picks", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const category = req.query.category as string || 'all'; // 'restaurants', 'posts', or 'all'
+
+      if (isNaN(limit) || limit < 1 || limit > 50) {
+        return res.status(400).json({ error: "Invalid limit parameter" });
+      }
+
+      let topPicks: any = {};
+
+      if (category === 'restaurants' || category === 'all') {
+        // Get top-rated restaurants based on average post ratings
+        const topRestaurants = await storage.getPopularContent();
+        const restaurantPicks = topRestaurants
+          .filter(item => item.type === 'restaurant')
+          .slice(0, Math.floor(limit / 2))
+          .map(item => ({
+            id: item.id,
+            name: item.name,
+            location: item.location,
+            category: item.category,
+            averageRating: item.averageRating,
+            totalPosts: item.postCount,
+            imageUrl: item.imageUrl,
+            type: 'restaurant'
+          }));
+        
+        topPicks.restaurants = restaurantPicks;
+      }
+
+      if (category === 'posts' || category === 'all') {
+        // Get most liked and commented posts
+        const topPosts = await storage.getPopularContent();
+        const postPicks = topPosts
+          .filter(item => item.type === 'post')
+          .slice(0, Math.floor(limit / 2))
+          .map(item => ({
+            id: item.id,
+            content: item.content,
+            rating: item.rating,
+            likeCount: item.likeCount,
+            commentCount: item.commentCount,
+            author: {
+              id: item.authorId,
+              name: item.authorName,
+              username: item.authorUsername
+            },
+            restaurant: {
+              id: item.restaurantId,
+              name: item.restaurantName,
+              location: item.restaurantLocation
+            },
+            createdAt: item.createdAt,
+            type: 'post'
+          }));
+        
+        topPicks.posts = postPicks;
+      }
+
+      res.json({
+        category,
+        limit,
+        data: topPicks,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/posts/:id", async (req, res) => {
     try {
       const postDetails = await storage.getPostDetails(parseInt(req.params.id));

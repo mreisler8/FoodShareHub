@@ -214,7 +214,23 @@ The application uses a comprehensive PostgreSQL schema including:
     - Content formatting combines structured fields for schema compatibility
     - Created comprehensive test suite for post creation API and content structure
     - Added proper error handling for Google Places restaurant integration (noted for future implementation)
-  - **Feature Status**: Restaurant search and post creation functionality fully operational with database restaurants
+  - **User Story 3 Complete**: Feed & Circle Timeline
+    - Enhanced /api/feed endpoint with scope-based filtering (scope=feed, scope=circle)
+    - Added circleId parameter support for circle-specific feeds
+    - Updated storage layer with scope-aware getFeedPosts method
+    - Created comprehensive FeedPage component with Feed/Circle tabs
+    - Implemented Load More pagination functionality with page state management
+    - Added proper PostCard rendering for both feed and circle scopes
+    - Created comprehensive test suite for both scopes and pagination
+  - **User Story 4 Complete**: Consolidated "Top Picks" View
+    - Created /api/top-picks endpoint with category filtering (all, restaurants, posts)
+    - Enhanced getPopularContent storage method with SQL queries for top restaurants and posts
+    - Implemented restaurant ranking by average rating and post count
+    - Implemented post ranking by engagement (likes + comments) and rating
+    - Created TopPicksPage component with tabbed interface for All/Restaurants/Posts
+    - Added proper data visualization with cards, ratings, and engagement metrics
+    - Created comprehensive test suite for endpoint validation and ranking algorithms
+  - **Feature Status**: Complete restaurant sharing system with search, posting, timeline, and discovery functionality
 ## Changelog
 - July 01, 2025: Initial setup and MVP P1 backlog implementation
 

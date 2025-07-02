@@ -826,17 +826,58 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPopularContent(): Promise<any[]> {
-    const result = await db.execute(`
-      SELECT 
-        metadata->>'contentId' as content_id, 
-        COUNT(*) as view_count 
-      FROM analytics 
-      WHERE action = 'view_content' 
-      GROUP BY metadata->>'contentId' 
-      ORDER BY view_count DESC 
-      LIMIT 10
-    `);
-    return result.rows;
+    try {
+      // Get popular restaurants with average ratings and post counts
+      const popularRestaurants = await db.execute(`
+        SELECT 
+          r.id,
+          r.name,
+          r.location,
+          r.category,
+          r.image_url as "imageUrl",
+          AVG(p.rating::numeric) as "averageRating",
+          COUNT(p.id) as "postCount",
+          'restaurant' as type
+        FROM restaurants r
+        LEFT JOIN posts p ON r.id = p.restaurant_id
+        GROUP BY r.id, r.name, r.location, r.category, r.image_url
+        HAVING COUNT(p.id) > 0
+        ORDER BY AVG(p.rating::numeric) DESC, COUNT(p.id) DESC
+        LIMIT 10
+      `);
+
+      // Get popular posts with like and comment counts
+      const popularPosts = await db.execute(`
+        SELECT 
+          p.id,
+          p.content,
+          p.rating,
+          p.created_at as "createdAt",
+          COUNT(DISTINCT l.id) as "likeCount",
+          COUNT(DISTINCT c.id) as "commentCount",
+          u.id as "authorId",
+          u.name as "authorName", 
+          u.username as "authorUsername",
+          r.id as "restaurantId",
+          r.name as "restaurantName",
+          r.location as "restaurantLocation",
+          'post' as type
+        FROM posts p
+        LEFT JOIN likes l ON p.id = l.post_id
+        LEFT JOIN comments c ON p.id = c.post_id
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN restaurants r ON p.restaurant_id = r.id
+        WHERE p.visibility = 'public'
+        GROUP BY p.id, p.content, p.rating, p.created_at, u.id, u.name, u.username, r.id, r.name, r.location
+        ORDER BY (COUNT(DISTINCT l.id) + COUNT(DISTINCT c.id)) DESC, p.rating DESC
+        LIMIT 10
+      `);
+
+      return [...popularRestaurants.rows, ...popularPosts.rows];
+    } catch (error) {
+      console.error('Error getting popular content:', error);
+      return [];
+    }
   }
 
   // Shared List operations implementation

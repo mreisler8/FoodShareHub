@@ -6,6 +6,7 @@ import NotFound from "../pages/not-found";
 import Home from "../pages/home";
 import CreatePost from "../pages/create-post";
 import FeedPage from "../pages/feed";
+import TopPicksPage from "../pages/top-picks";
 import CircleDetails from "../pages/circle-details";
 import Circles from "../pages/circles";
 import Profile from "../pages/profile";
@@ -29,6 +30,7 @@ function Router() {
       <ProtectedRoute path="/" component={Home} />
       <ProtectedRoute path="/feed" component={() => <FeedPage scope="feed" />} />
       <ProtectedRoute path="/feed/circle/:circleId" component={({ params }: any) => <FeedPage scope="circle" circleId={params?.circleId} />} />
+      <ProtectedRoute path="/top-picks" component={TopPicksPage} />
       <ProtectedRoute path="/create-post" component={CreatePost} />
       <ProtectedRoute path="/circles" component={Circles} />
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />
