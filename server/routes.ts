@@ -461,9 +461,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "You must be logged in to view your feed" });
       }
 
-      // Get feed posts with pagination support
+      // Get feed posts with pagination support and scope filtering
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const scope = req.query.scope as string || 'feed'; // 'feed' or 'circle'
+      const circleId = req.query.circleId ? parseInt(req.query.circleId as string) : undefined;
 
       // Add query validation
       if (isNaN(page) || page < 1) {
@@ -474,15 +476,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid limit parameter" });
       }
 
+      if (scope === 'circle' && (!circleId || isNaN(circleId))) {
+        return res.status(400).json({ error: "Circle ID is required for circle scope" });
+      }
+
       // Apply offset pagination
       const offset = (page - 1) * limit;
 
-      // Get paginated posts with new optimized method
-      const feedPosts = await storage.getFeedPosts({
-        userId: req.user.id,
-        offset,
-        limit,
-      });
+      // Get paginated posts based on scope
+      let feedPosts;
+      if (scope === 'circle' && circleId) {
+        // Get posts shared to the specific circle
+        feedPosts = await storage.getFeedPosts({
+          userId: req.user.id,
+          offset,
+          limit,
+          scope: 'circle',
+          circleId,
+        });
+      } else {
+        // Default feed - posts by followed users where visibility.feed === true
+        feedPosts = await storage.getFeedPosts({
+          userId: req.user.id,
+          offset,
+          limit,
+          scope: 'feed',
+        });
+      }
 
       // Make sure the posts are safe (no password info)
       const safeFeedPosts = feedPosts.map((post) => {

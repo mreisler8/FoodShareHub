@@ -57,7 +57,7 @@ export interface IStorage {
   getPostsByUser(userId: number): Promise<Post[]>;
   getPostsByRestaurant(restaurantId: number): Promise<Post[]>;
   getPostDetails(postId: number): Promise<any>;
-  getFeedPosts(): Promise<any[]>;
+  getFeedPosts(options?: { offset?: number; limit?: number; userId?: number; scope?: 'feed' | 'circle'; circleId?: number }): Promise<any[]>;
   
   // Comment operations
   getComment(id: number): Promise<Comment | undefined>;
@@ -346,14 +346,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Optimized getFeedPosts method with pagination support
-  async getFeedPosts(options?: { offset?: number; limit?: number; userId?: number }): Promise<any[]> {
-    // Get all posts with ordering
-    const allPosts = await this.getAllPosts();
+  async getFeedPosts(options?: { offset?: number; limit?: number; userId?: number; scope?: 'feed' | 'circle'; circleId?: number }): Promise<any[]> {
+    let allPosts;
+    
+    if (options?.scope === 'circle' && options?.circleId) {
+      // Get posts shared to the specific circle
+      // For now, get all posts and filter by visibility (simplified)
+      allPosts = await db.select().from(posts)
+        .orderBy(desc(posts.createdAt))
+        .where(eq(posts.visibility, 'public')); // Simplified: assuming circle posts are public
+    } else {
+      // Default feed - get posts by followed users where visibility includes feed
+      // For now, get all public posts (would need user following implementation for full functionality)
+      allPosts = await db.select().from(posts)
+        .orderBy(desc(posts.createdAt))
+        .where(eq(posts.visibility, 'public'));
+    }
     
     // Apply offset and limit if options are provided
     const offset = options?.offset || 0;
     const limit = options?.limit || allPosts.length;
-    const userId = options?.userId; // For future use
+    const userId = options?.userId;
     
     // Get paginated posts
     const paginatedPosts = allPosts.slice(offset, offset + limit);

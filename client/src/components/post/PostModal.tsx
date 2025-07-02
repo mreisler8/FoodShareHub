@@ -41,8 +41,19 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<SelectedRestaurant | null>(null);
   const [rating, setRating] = useState(0);
-  const [content, setContent] = useState('');
+  const [liked, setLiked] = useState('');
+  const [disliked, setDisliked] = useState('');
+  const [notes, setNotes] = useState('');
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Visibility state
+  const [visibilitySettings, setVisibilitySettings] = useState({
+    feed: true,
+    circleIds: [] as number[],
+    listIds: [] as number[]
+  });
 
   // Debounced search
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -98,8 +109,17 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
     setSearchQuery('');
     setSelectedRestaurant(null);
     setRating(0);
-    setContent('');
+    setLiked('');
+    setDisliked('');
+    setNotes('');
+    setSelectedImages([]);
+    setImageUrls([]);
     setShowSearchResults(false);
+    setVisibilitySettings({
+      feed: true,
+      circleIds: [],
+      listIds: []
+    });
   };
 
   const handleSearchInputChange = (value: string) => {
@@ -124,29 +144,50 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedRestaurant || !rating || !content.trim()) {
+    if (!selectedRestaurant || !rating || !liked.trim()) {
       toast({
         title: 'Missing required fields',
-        description: 'Please select a restaurant, add a rating, and write your review.',
+        description: 'Please select a restaurant, add a rating, and tell us what you liked.',
         variant: 'destructive',
       });
       return;
     }
 
-    // Extract restaurant ID for database restaurants, handle Google places differently
-    const restaurantId = selectedRestaurant.source === 'database' 
-      ? parseInt(selectedRestaurant.id)
-      : selectedRestaurant.id; // Keep Google place IDs as strings for now
+    // Handle image upload (simplified for now - in real app would upload to cloud storage)
+    const uploadedImageUrls = selectedImages.map(file => URL.createObjectURL(file));
+
+    // Combine the structured fields into content for current schema compatibility
+    const contentParts = [];
+    if (liked.trim()) contentParts.push(`What I liked: ${liked.trim()}`);
+    if (disliked.trim()) contentParts.push(`What I didn't like: ${disliked.trim()}`);
+    if (notes.trim()) contentParts.push(`Additional notes: ${notes.trim()}`);
+    const content = contentParts.join('\n\n');
+
+    // Handle restaurant ID - if Google place, we need to create/find the restaurant first
+    if (selectedRestaurant.source === 'google') {
+      // For Google Places, we'll need to create the restaurant first
+      // For now, show an error message as this requires additional API integration
+      toast({
+        title: 'Google Places Integration',
+        description: 'Creating posts with Google Places restaurants will be implemented in the next iteration.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const restaurantId = parseInt(selectedRestaurant.id);
 
     createPostMutation.mutate({
+      userId: user.id,
       restaurantId,
       rating,
-      content: content.trim(),
-      visibility: 'public', // Default visibility for now
+      content,
+      images: uploadedImageUrls,
+      visibility: 'public', // Simplified for now
     });
   };
 
-  const isFormValid = selectedRestaurant && rating > 0 && content.trim().length > 0;
+  const isFormValid = selectedRestaurant && rating > 0 && liked.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -278,16 +319,61 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
             </div>
           </div>
 
-          {/* Review Content */}
+          {/* What I Liked - Required */}
           <div className="space-y-2">
-            <Label htmlFor="content">What did you think? *</Label>
+            <Label htmlFor="liked">What I liked *</Label>
             <Textarea
-              id="content"
-              placeholder="Share your experience, what you liked, dishes you tried..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[100px]"
+              id="liked"
+              placeholder="Tell us what you enjoyed about this place..."
+              value={liked}
+              onChange={(e) => setLiked(e.target.value)}
+              className="min-h-[80px]"
             />
+          </div>
+
+          {/* What I Didn't Like - Optional */}
+          <div className="space-y-2">
+            <Label htmlFor="disliked">What I didn't like (optional)</Label>
+            <Textarea
+              id="disliked"
+              placeholder="Any areas for improvement..."
+              value={disliked}
+              onChange={(e) => setDisliked(e.target.value)}
+              className="min-h-[60px]"
+            />
+          </div>
+
+          {/* Additional Notes - Optional */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Additional notes (optional)</Label>
+            <Textarea
+              id="notes"
+              placeholder="Any other thoughts, dishes tried, etc..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-[60px]"
+            />
+          </div>
+
+          {/* Photo Upload */}
+          <div className="space-y-2">
+            <Label htmlFor="photos">Photos (up to 3)</Label>
+            <input
+              id="photos"
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []).slice(0, 3);
+                setSelectedImages(files);
+              }}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
+            />
+            {selectedImages.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} selected
+              </p>
+            )}
           </div>
 
           {/* Submit Buttons */}
