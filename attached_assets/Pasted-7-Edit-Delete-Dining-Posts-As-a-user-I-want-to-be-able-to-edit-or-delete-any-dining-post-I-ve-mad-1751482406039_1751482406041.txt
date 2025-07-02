@@ -1,0 +1,126 @@
+7. Edit & Delete Dining Posts
+As a user
+I want to be able to edit or delete any dining post I’ve made
+So that I can correct mistakes or remove outdated entries from my feed
+
+Acceptance Criteria
+Edit Button
+
+Given I’m viewing my own post in the Feed or a Circle view,
+When I hover over or focus on the post card,
+Then I see an ✏️ Edit icon.
+
+Edit Flow
+
+Given I click ✏️ on my post,
+Then the <PostModal> opens pre-populated with that post’s data (restaurant, visit date/time, ratings, dishes, price range, liked/disliked/notes, photos, visibility).
+
+Given I change any fields and click Save,
+Then a
+
+bash
+Copy
+Edit
+PUT /api/posts/:postId
+Content-Type: application/json
+request is sent with the full updated payload.
+
+Then the modal closes and the updated post replaces the old one in the Feed (optimistically), or shows an error toast on failure.
+
+Delete Button
+
+Given I’m viewing my own post,
+When I hover over or focus on it,
+Then I see a 🗑️ Delete icon.
+
+Delete Flow
+
+Given I click 🗑️,
+Then a confirmation dialog appears:
+
+“Are you sure you want to delete this post? This action cannot be undone.”
+
+Given I confirm,
+Then the app calls
+
+bash
+Copy
+Edit
+DELETE /api/posts/:postId
+and optimistically removes the post card from the Feed.
+
+On Success, show a toast “Post deleted.”
+
+On Failure, show “Could not delete post. Please try again.” and leave the card in place.
+
+Implementation Notes
+API – Update & Delete (server/routes/posts.ts)
+
+ts
+Copy
+Edit
+// PUT /api/posts/:id
+router.put('/:id', authenticate, async (req, res) => {
+  const postId = Number(req.params.id);
+  // validate req.body (same schema as POST), ensure req.user.id === existing.post.userId
+  const updated = await db
+    .update(db.posts)
+    .set({ /* all fields from req.body */ })
+    .where(db.posts.id.eq(postId))
+    .returning();
+  res.json(updated[0]);
+});
+
+// DELETE /api/posts/:id
+router.delete('/:id', authenticate, async (req, res) => {
+  const postId = Number(req.params.id);
+  // ensure ownership
+  await db.delete(db.posts).where(
+    db.posts.id.eq(postId).and(db.posts.userId.eq(req.user.id))
+  );
+  res.sendStatus(204);
+});
+Frontend – PostCard & PostModal
+
+File: src/components/PostCard.tsx
+
+Add props onEdit(post), onDelete(postId) and render the icons conditionally when data.userId === currentUser.id.
+
+File: src/components/PostModal.tsx
+
+If passed an existing post prop, prefill all state hooks (restaurantId, visitDate, etc.) and switch the submit to call PUT /api/posts/:id instead of POST.
+
+Frontend – FeedPage
+
+Track an editingPost state.
+
+In your .map(posts), for each post:
+
+tsx
+Copy
+Edit
+{editingPost?.id === post.id && (
+  <PostModal post={editingPost} onClose={()=>setEditingPost(null)} />
+)}
+<PostCard
+  key={post.id}
+  data={post}
+  onEdit={p=>setEditingPost(p)}
+  onDelete={id=>handleDeletePost(id)}
+/>
+Implement handleDeletePost(id) to call DELETE and update local state.
+
+Tests
+
+tests/posts-edit.test.ts: verify PUT updates fields and returns 200 with new data.
+
+tests/posts-delete.test.ts: verify DELETE returns 204 and that subsequent GET /api/posts does not include the deleted post.
+
+Commit Messages
+
+feat(api): add PUT /api/posts/:id and DELETE /api/posts/:id endpoints
+
+feat(ui): enable editing & deleting of posts in PostCard and FeedPage
+
+test: add edit/delete tests for posts
+

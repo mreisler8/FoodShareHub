@@ -16,7 +16,7 @@ import { Link } from "wouter";
 import { SocialShare } from "@/components/common/SocialShare";
 import { TrustIndicators } from "@/components/shared/TrustIndicators";
 import { PostActions } from "@/components/post/PostActions";
-import { EditPostForm } from "@/components/post/EditPostForm";
+import { PostModal } from "@/components/post/PostModal";
 import { useAuth } from "@/hooks/use-auth";
 
 interface PostCardProps {
@@ -376,9 +376,9 @@ export function PostCard({ post }: PostCardProps) {
         </div>
       </div>
       
-      {/* Edit Post Form Dialog */}
+      {/* Edit Post Modal Dialog */}
       {isEditFormOpen && (
-        <EditPostForm
+        <PostModal
           post={post}
           open={isEditFormOpen}
           onOpenChange={setIsEditFormOpen}

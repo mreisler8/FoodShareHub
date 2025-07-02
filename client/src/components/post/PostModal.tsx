@@ -14,6 +14,7 @@ import { useLocation } from 'wouter';
 interface PostModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  post?: any; // Optional post for editing mode
 }
 
 interface RestaurantSearchResult {
@@ -32,10 +33,11 @@ interface SelectedRestaurant {
   source: 'database' | 'google';
 }
 
-export function PostModal({ open, onOpenChange }: PostModalProps) {
+export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const isEditMode = !!post;
 
   // Form state
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,30 +68,91 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (isEditMode && post && open) {
+      // Set restaurant info
+      if (post.restaurant) {
+        setSelectedRestaurant({
+          id: post.restaurantId.toString(),
+          name: post.restaurant.name,
+          location: post.restaurant.location,
+          source: 'database'
+        });
+        setSearchQuery(post.restaurant.name);
+      }
+
+      // Set rating
+      setRating(post.rating || 0);
+
+      // Parse content to extract structured fields
+      const content = post.content || '';
+      const lines = content.split('\n\n');
+      
+      let likedText = '';
+      let dislikedText = '';
+      let notesText = '';
+
+      lines.forEach(line => {
+        if (line.startsWith('What I liked:')) {
+          likedText = line.replace('What I liked:', '').trim();
+        } else if (line.startsWith('What I didn\'t like:')) {
+          dislikedText = line.replace('What I didn\'t like:', '').trim();
+        } else if (line.startsWith('Additional notes:')) {
+          notesText = line.replace('Additional notes:', '').trim();
+        } else if (!line.startsWith('What I liked:') && !line.startsWith('What I didn\'t like:') && !line.startsWith('Additional notes:')) {
+          // If content doesn't follow the structured format, put it all in liked
+          if (!likedText) likedText = line;
+        }
+      });
+
+      setLiked(likedText);
+      setDisliked(dislikedText);
+      setNotes(notesText);
+
+      // Set existing images
+      if (post.images && Array.isArray(post.images)) {
+        setImageUrls(post.images);
+      }
+    }
+  }, [isEditMode, post, open]);
+
   // Search restaurants
   const { data: searchResults = [], isLoading: isSearching } = useQuery<RestaurantSearchResult[]>({
     queryKey: ['/api/search', debouncedQuery],
     enabled: debouncedQuery.length >= 1 && showSearchResults,
   });
 
-  // Create post mutation
-  const createPostMutation = useMutation({
+  // Create/Update post mutation
+  const savePostMutation = useMutation({
     mutationFn: async (postData: any) => {
       if (!user) throw new Error('User not authenticated');
       
-      const response = await apiRequest('POST', '/api/posts', {
-        ...postData,
-        userId: user.id,
-      });
-      return response.json();
+      if (isEditMode && post) {
+        // Update existing post
+        const response = await apiRequest('PUT', `/api/posts/${post.id}`, postData);
+        return response.json();
+      } else {
+        // Create new post
+        const response = await apiRequest('POST', '/api/posts', {
+          ...postData,
+          userId: user.id,
+        });
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      if (isEditMode && post) {
+        queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}`] });
+      }
       
       toast({
-        title: 'Post created',
-        description: 'Your dining post has been published successfully!',
+        title: isEditMode ? 'Post updated' : 'Post created',
+        description: isEditMode 
+          ? 'Your dining post has been updated successfully!' 
+          : 'Your dining post has been published successfully!',
       });
       
       // Reset form and close modal
@@ -99,7 +162,7 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create post. Please try again.',
+        description: error.message || `Failed to ${isEditMode ? 'update' : 'create'} post. Please try again.`,
         variant: 'destructive',
       });
     },
@@ -177,7 +240,7 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
 
     const restaurantId = parseInt(selectedRestaurant.id);
 
-    createPostMutation.mutate({
+    savePostMutation.mutate({
       userId: user.id,
       restaurantId,
       rating,
@@ -193,7 +256,7 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Share Your Dining Experience</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Your Dining Experience' : 'Share Your Dining Experience'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -388,16 +451,16 @@ export function PostModal({ open, onOpenChange }: PostModalProps) {
             </Button>
             <Button
               type="submit"
-              disabled={!isFormValid || createPostMutation.isPending}
+              disabled={!isFormValid || savePostMutation.isPending}
               className="flex-1"
             >
-              {createPostMutation.isPending ? (
+              {savePostMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Posting...
+                  {isEditMode ? 'Updating...' : 'Posting...'}
                 </>
               ) : (
-                'Share Post'
+                isEditMode ? 'Update Post' : 'Share Post'
               )}
             </Button>
           </div>

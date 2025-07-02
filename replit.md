@@ -248,6 +248,38 @@ The application uses a comprehensive PostgreSQL schema including:
   - Added comprehensive error handling for 409 responses with existing list ID
   - Created extensive test suite covering duplicate detection, case sensitivity, and edge cases
   - **Feature Status**: Complete duplicate list name validation with user-friendly warnings and navigation options
+- July 02, 2025: **Edit & Delete Dining Posts Functionality (User Story 7)**:
+  - Enhanced PostModal component to support both create and edit modes with isEditMode detection
+  - Added form pre-population for editing posts with existing content, rating, and restaurant data  
+  - Implemented unified savePostMutation handling both POST (create) and PUT (edit) operations
+  - Updated PostCard component to use PostModal for editing instead of separate EditPostForm
+  - Added proper authentication and authorization checks for edit and delete operations
+  - Enhanced UI with conditional titles, button text, and loading states for edit mode
+  - Created comprehensive test suites for both edit (tests/posts-edit.test.ts) and delete (tests/posts-delete.test.ts) operations
+  - Implemented proper error handling with user-friendly messages and validation
+  - Added authorization protection preventing users from editing/deleting others' posts
+  - **Feature Status**: Complete edit and delete functionality with comprehensive test coverage and proper security
+## Development Backlog
+
+### Next Priority: Comments & Likes on Dining Posts (User Story 8)
+**As a user, I want to like and comment on other people's dining posts so that I can engage with friends' restaurant experiences and share feedback**
+
+**Acceptance Criteria:**
+- Like button with toggle functionality (❤️ icon)
+- POST/DELETE /api/posts/:postId/likes endpoints
+- Comment input field with "Add a comment..." placeholder  
+- POST /api/posts/:postId/comments endpoint
+- View comments with "View all X comments" expansion
+- Comment deletion for comment authors
+- DELETE /api/comments/:commentId endpoint
+
+**Implementation Requirements:**
+- Schema updates: comments table with postId, userId, content, createdAt
+- API routes for likes and comments with authentication
+- Frontend components: PostCard enhancements, CommentList component
+- Real-time like count updates and optimistic UI
+- Comprehensive test coverage (tests/likes.test.ts, tests/comments.test.ts)
+
 ## Changelog
 - July 01, 2025: Initial setup and MVP P1 backlog implementation
 
