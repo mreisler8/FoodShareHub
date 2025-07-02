@@ -1587,8 +1587,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add lists routes
   // Register lists routes
-  // app.use("/api/recommendations", recommendationsRouter);
-  // app.use('/api/lists', listsRouter);
+  app.use("/api/recommendations", recommendationsRouter);
+  app.use('/api/lists', listsRouter);
 
   return httpServer;
 }

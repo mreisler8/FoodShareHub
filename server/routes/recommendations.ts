@@ -35,9 +35,10 @@ router.delete('/:id', authenticate, async (req, res) => {
   await db
     .delete(recommendations)
     .where(
-      recommendations.id
-        .eq(recId)
-        ), eq(recommendations.userId, req.user.id))
+      and(
+        eq(recommendations.id, recId),
+        eq(recommendations.userId, req.user!.id)
+      )
     );
   res.sendStatus(204);
 });
