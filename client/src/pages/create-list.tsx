@@ -44,7 +44,7 @@ export default function CreateList() {
     defaultValues: {
       name: "",
       description: "",
-      circleId: "",
+      circleId: "none",
       isPublic: true,
       tags: "",
     },
@@ -57,7 +57,7 @@ export default function CreateList() {
       const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
       
       // Convert circleId from string to number or null
-      const circleId = values.circleId ? parseInt(values.circleId) : null;
+      const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
       
       // Create payload
       const payload = {
@@ -84,7 +84,7 @@ export default function CreateList() {
       });
       
       // Navigate to the new list
-      navigate(`/lists/${data.id}`);
+      navigate(`/lists/${(data as any).id}`);
     },
     onError: () => {
       toast({
@@ -189,7 +189,7 @@ export default function CreateList() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Don't share with a circle</SelectItem>
+                          <SelectItem value="none">Don't share with a circle</SelectItem>
                           {circles?.map(circle => (
                             <SelectItem key={circle.id} value={circle.id.toString()}>
                               {circle.name}
