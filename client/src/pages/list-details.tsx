@@ -41,10 +41,10 @@ export default function ListDetails() {
 
   // Sync server data with local state when it loads
   useEffect(() => {
-    if (list?.restaurants) {
-      setListItems(list.restaurants.map((item: RestaurantListItemWithDetails) => ({ ...item, isOptimistic: false })));
+    if (list?.items) {
+      setListItems(list.items.map((item: RestaurantListItemWithDetails) => ({ ...item, isOptimistic: false })));
     }
-  }, [list?.restaurants]);
+  }, [list?.items]);
 
   // Optimistic add function for handling inline form submissions
   const handleOptimisticAdd = async (data: {
