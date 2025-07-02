@@ -8,6 +8,7 @@ import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { WelcomeSplash } from "@/components/onboarding/WelcomeSplash";
 import { QuickAddRestaurant } from "@/components/restaurant/QuickAddRestaurant";
 import { PostCard } from "@/components/home/PostCard";
+import { PostModal } from "@/components/post/PostModal";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
@@ -19,6 +20,7 @@ import { useLocation } from "wouter";
 export default function Home() {
   const { user } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
   const [, setLocation] = useLocation();
   
   // Check if user has joined any circles
@@ -179,7 +181,16 @@ export default function Home() {
 
         {/* Feed Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Latest Posts</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Latest Posts</h2>
+            <Button 
+              onClick={() => setShowPostModal(true)}
+              className="flex items-center gap-2"
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Post
+            </Button>
+          </div>
           
           {isLoadingFeed ? (
             <div className="flex justify-center p-8">
@@ -273,6 +284,9 @@ export default function Home() {
       
       {/* Onboarding Modal */}
       <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
+      
+      {/* Post Modal */}
+      <PostModal open={showPostModal} onOpenChange={setShowPostModal} />
       
       {/* Mobile navigation at bottom of screen - only on mobile */}
       {isMobile && <MobileNavigation />}

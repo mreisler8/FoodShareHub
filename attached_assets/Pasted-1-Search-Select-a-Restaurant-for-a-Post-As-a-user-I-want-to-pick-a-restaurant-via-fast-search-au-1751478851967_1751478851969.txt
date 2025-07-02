@@ -1,0 +1,329 @@
+1. Search & Select a Restaurant for a Post
+As a user
+I want to pick a restaurant (via fast search/autocomplete) when I’m creating a dining post
+So that I never mistype the name and my posts link back to that restaurant’s profile
+
+Acceptance Criteria
+Given I’m on the Feed page, When I click the New Post button, Then a <PostModal> opens with a “Find a restaurant…” input.
+
+Given I type 1+ characters, When 300 ms have passed without more typing, Then call
+
+sql
+Copy
+Edit
+GET /api/search?q=<term>
+and display up to 5 suggestions showing name, thumbnail, address.
+
+Given there are no suggestions, Then show a single line: “No matches found.”
+
+Given I click a suggestion, Then set restaurantId in state (hidden) and display the chosen name/address above the rest of the form.
+
+Implementation Notes
+UI: src/components/PostModal.tsx
+
+Use useState/useEffect + setTimeout for debounce.
+
+Render <ul className="dropdown"> of suggestions.
+
+API Route:
+
+File: server/routes/search.ts
+
+Ensure it does router.get('/', authenticate, async (req, res) => { … }).
+
+Router Registration:
+
+In server/index.ts (or app.ts):
+
+ts
+Copy
+Edit
+import searchRouter from './routes/search';
+app.use('/api/search', searchRouter);
+Test: Add a Jest/Supertest test in tests/search.test.ts for GET /api/search?q=pizza.
+
+2. Create & Save a Dining Post
+As a user
+I want to record what I ate, what I liked/disliked, my rating, and optional photos
+So that my friends (and my future self) can see detailed, concise restaurant reviews
+
+Acceptance Criteria
+Given I have selected a restaurant in PostModal, Then I see inputs for:
+
+Star‐rating (1–5)
+
+“What I liked” (required)
+
+“What I didn’t like” (optional)
+
+“Additional notes” (optional)
+
+Photo uploader (accepts up to 3 images)
+
+Visibility toggles: Feed, Circle (dropdown), List (dropdown)
+
+Given any required field is empty (restaurant, rating, “What I liked”), Then the Save button remains disabled.
+
+When I click Save, Then a
+
+bash
+Copy
+Edit
+POST /api/posts
+Content-Type: application/json
+request is made with the payload:
+
+jsonc
+Copy
+Edit
+{
+  "restaurantId": "...",
+  "rating": 4,
+  "liked": "Great crust!",
+  "disliked": "",
+  "notes": "Came with friends.",
+  "imageUrls": ["https://…","https://…"],
+  "visibility": { "feed":true, "circleIds":[2], "listIds":[5] }
+}
+Then the modal closes and the new post appears at the top of the Feed.
+
+Implementation Notes
+UI: src/components/PostModal.tsx
+
+Reuse your <StarRating> component.
+
+Use <input type="file" multiple accept="image/*" /> and limit selection to 3.
+
+API Route:
+
+File: server/routes/posts.ts
+
+Handler:
+
+ts
+Copy
+Edit
+router.post('/', authenticate, async (req, res) => {
+  const { restaurantId, rating, liked, disliked, notes, imageUrls, visibility } = req.body;
+  // insert into db.posts and any join tables for circles/lists
+  res.json(newPost);
+});
+Router Registration:
+
+ts
+Copy
+Edit
+import postsRouter from './routes/posts';
+app.use('/api/posts', postsRouter);
+Test: Add tests/posts-create.test.ts covering a valid POST and 400 on missing fields.
+
+3. Feed & Circle Timeline
+As a follower or circle member
+I want to scroll a feed of “Dining Posts” by people I follow or in my circles
+So that I’m always up to date on their latest restaurant discoveries
+
+Acceptance Criteria
+Given I’m on the Dashboard, When I click the Feed tab, Then call:
+
+sql
+Copy
+Edit
+GET /api/posts?scope=feed&page=1
+returning posts by followed users where visibility.feed === true.
+
+Given I click the Circle tab, Then call:
+
+bash
+Copy
+Edit
+GET /api/posts?scope=circle&circleId=<id>&page=1
+returning posts shared to that circle.
+
+Then each <PostCard> shows:
+
+Restaurant name (link)
+
+Star rating
+
+“What I liked” snippet
+
+Author name + avatar + timestamp
+
+Thumbnail of first image (if any)
+
+Then at the bottom, a Load more button fetches the next page (page=2, etc.) and appends results.
+
+Implementation Notes
+API Route: In server/routes/posts.ts, add:
+
+ts
+Copy
+Edit
+router.get('/', authenticate, async (req, res) => {
+  // read req.query.scope, req.query.circleId, req.query.page
+  // query db.posts with joins/filters, return paginated
+});
+UI Page: src/pages/FeedPage.tsx
+
+use useState for posts and page, useEffect to fetch, and onClick for Load more.
+
+Router: In src/Router.tsx:
+
+tsx
+Copy
+Edit
+<Route path="/" element={<FeedPage />} />
+<Route path="/circle/:circleId" element={<FeedPage scope="circle" />} />
+Test: Add tests/posts-list.test.ts for both scopes.
+
+4. Consolidated “Top Picks” View
+As an audience member
+I want a page showing the top 5 most-recommended restaurants across my circles and lists
+So that I get a quick, consolidated view of community favorites
+
+Acceptance Criteria
+Given I click the Top Picks link in the sidebar, Then I navigate to /top-picks.
+
+Then call:
+
+bash
+Copy
+Edit
+GET /api/recommendations/top?limit=5
+returning the top 5 restaurants by number of recommendations and average rating.
+
+Then render each <RestaurantCard> showing:
+
+Name (link to its profile)
+
+Total recommendations count
+
+Average star rating
+
+“View details” button/link to /restaurants/:id
+
+Implementation Notes
+API Route: server/routes/recommendations.ts
+
+ts
+Copy
+Edit
+router.get('/top', async (req, res) => {
+  const limit = Number(req.query.limit) || 5;
+  // SELECT restaurantId, COUNT(*) as count, AVG(rating) as avg
+  // FROM recommendations GROUP BY restaurantId
+  // ORDER BY count DESC LIMIT :limit
+  res.json(topPicks);
+});
+UI Page: src/pages/TopPicksPage.tsx
+
+useEffect to fetch /api/recommendations/top?limit=5, map to cards.
+
+Router: In src/Router.tsx:
+
+tsx
+Copy
+Edit
+<Route path="/top-picks" element={<TopPicksPage />} />
+Test: Add tests/top-picks.test.ts for the top endpoint.
+
+5. Structured Dining Post (Revised)
+As a user
+I want to log each visit with structured fields—date/time, multi-category ratings, actual menu items, and a simple price-range icon
+So that my posts stay consistent and concise without needing exact spend or party size
+
+Acceptance Criteria
+Given I’ve selected a restaurant, Then in PostModal I see controls for:
+
+Visit date (date picker, required)
+
+Visit time (time picker, required)
+
+Then I see four star-rating controls for Food, Service, Ambiance, and Value (all required).
+
+Then I see a Dishes Tried multi-select populated from:
+
+bash
+Copy
+Edit
+GET /api/restaurants/:id/menu
+with an “Other” free-text fallback.
+
+Then I see a Price Range selector ($ / $$ / $$$ / $$$$), rendered as icons (required).
+
+Then I see fields:
+
+“What I Liked” (required)
+
+“What I Didn’t Like” (optional)
+
+“Additional Notes” (optional)
+
+Photo uploader (up to 5 images)
+
+Given any required field is empty, Then Save is disabled.
+
+When I click Save, Then a POST /api/posts request is sent with the full payload:
+
+jsonc
+Copy
+Edit
+{
+  "restaurantId":"…",
+  "visitDate":"YYYY-MM-DD",
+  "visitTime":"HH:mm",
+  "priceRange":"$$",
+  "ratings":{ "food":5, "service":4, "ambiance":4, "value":3 },
+  "dishesTried":["Margherita Pizza","Other: Garlic Knots"],
+  "liked":"Perfect crust!","disliked":"","notes":"Great vibe.",
+  "imageUrls":["…"],"visibility":{ "feed":true,"circleIds":[2],"listIds":[5] }
+}
+Implementation Notes
+Schema Update (shared/schema.ts):
+
+diff
+Copy
+Edit
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  restaurantId: integer("restaurant_id").notNull(),
+- content: text("content").notNull(),
++ visitDate: timestamp("visit_date").notNull(),
++ visitTime: text("visit_time").notNull(),
++ priceRange: text("price_range").notNull(),  // '$','$$','$$$','$$$$'
+  rating: integer("rating").notNull(),
+  visibility: text("visibility").notNull(),
+  dishesTried: text("dishes_tried").array(),
+  images: text("images").array(),
+  // … other existing columns …
+});
+Menu Endpoint (server/routes/menu.ts):
+
+ts
+Copy
+Edit
+router.get('/:id/menu', authenticate, async (req, res) => {
+  // fetch or mock restaurant menu items
+  res.json(menuItems);
+});
+Register with app.use('/api/restaurants', menuRouter).
+
+Posts API (server/routes/posts.ts):
+
+Validate new fields (use Zod or your existing validation).
+
+Insert into db.posts.
+
+PostModal UI (src/components/PostModal.tsx):
+
+After restaurant select, fetch /api/restaurants/${id}/menu.
+
+Render date/time pickers, star ratings, multi-select, price-range radios, text fields, file uploader.
+
+Disable Save until all required inputs are set.
+
+Tests:
+
+tests/posts-structured.test.ts: cover the structured payload to POST /api/posts.
+
