@@ -240,11 +240,11 @@ export function PostCard({ post }: PostCardProps) {
               <p className="text-sm text-neutral-700">{post.content}</p>
               
               {/* Dishes Tried Section - Horizontal Scrolling */}
-              {post.dishesTried && post.dishesTried.length > 0 && (
+              {dishesTried.length > 0 && (
                 <div className="mt-2 overflow-x-auto">
                   <h4 className="text-xs font-medium text-neutral-500 mb-1">Dishes:</h4>
                   <div className="flex gap-1 pb-1">
-                    {post.dishesTried.map((dish, index) => (
+                    {dishesTried.map((dish: string, index: number) => (
                       <span key={index} className="px-2 py-0.5 bg-neutral-100 rounded-full text-xs whitespace-nowrap text-neutral-700">
                         {dish}
                       </span>
