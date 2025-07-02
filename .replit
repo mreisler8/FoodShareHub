@@ -40,3 +40,21 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Run Cypress Tests"
+author = 41470336
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx cypress run"
+
+[[workflows.workflow]]
+name = "Run Cypress Tests"
+author = 41470336
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx cypress run"
