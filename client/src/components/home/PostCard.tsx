@@ -30,17 +30,14 @@ export function PostCard({ post }: PostCardProps) {
   const { user } = useAuth();
   
   // Safety check for post data
-  if (!post || !safePost.author || !safePost.restaurant) {
+  if (!post || !post.author || !post.restaurant) {
     return null;
   }
   
-  // Ensure arrays are never null
-  const safePost = {
-    ...post,
-    images: safePost.images || [],
-    dishesTried: safePost.dishesTried || [],
-    comments: safePost.comments || []
-  };
+  // Safely access arrays with fallbacks
+  const images = post.images || [];
+  const dishesTried = post.dishesTried || [];
+  const comments = post.comments || [];
   
   const formatTimeAgo = (date: Date) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
@@ -53,12 +50,12 @@ export function PostCard({ post }: PostCardProps) {
         throw new Error("You must be logged in to like posts");
       }
       
-      if (safePost.isLiked) {
+      if (post.isLiked) {
         // Unlike
-        return await apiRequest("DELETE", `/api/posts/${safePost.id}/likes/${user.id}`);
+        return await apiRequest("DELETE", `/api/posts/${post.id}/likes/${user.id}`);
       } else {
         // Like
-        return await apiRequest("POST", "/api/likes", { postId: safePost.id, userId: user.id });
+        return await apiRequest("POST", "/api/likes", { postId: post.id, userId: user.id });
       }
     },
     onSuccess: () => {
@@ -67,7 +64,7 @@ export function PostCard({ post }: PostCardProps) {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to like safePost. Please try again.",
+        description: "Failed to like post. Please try again.",
         variant: "destructive",
       });
     }
@@ -81,7 +78,7 @@ export function PostCard({ post }: PostCardProps) {
       }
       
       return await apiRequest("POST", "/api/comments", {
-        postId: safePost.id,
+        postId: post.id,
         userId: user.id,
         content: newComment
       });
@@ -107,7 +104,7 @@ export function PostCard({ post }: PostCardProps) {
       }
       
       return await apiRequest("POST", "/api/saved-restaurants", {
-        restaurantId: safePost.restaurantId,
+        restaurantId: post.restaurantId,
         userId: user.id
       });
     },
@@ -115,7 +112,7 @@ export function PostCard({ post }: PostCardProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
       toast({
         title: "Restaurant saved",
-        description: `${safePost.restaurant.name} has been saved to your list.`,
+        description: `${post.restaurant.name} has been saved to your list.`,
       });
     },
     onError: (error) => {
@@ -155,10 +152,10 @@ export function PostCard({ post }: PostCardProps) {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-4 transition-transform duration-200 hover:translate-y-[-2px] border border-neutral-100">
         <div className="flex">
           {/* Left column - minimal image */}
-          {safePost.images.length > 0 && (
+          {images.length > 0 && (
             <div className="hidden sm:block w-24 h-24 sm:w-32 sm:h-full bg-neutral-100 flex-shrink-0">
               <img 
-                src={safePost.images[0]} 
+                src={images[0]} 
                 alt="Post image" 
                 className="w-full h-full object-cover"
               />
@@ -170,30 +167,30 @@ export function PostCard({ post }: PostCardProps) {
             {/* Post Header */}
             <div className="p-3 flex items-center justify-between border-b border-neutral-100">
               <div className="flex items-center">
-                <Link href={`/profile/${safePost.userId}`} className="cursor-pointer">
+                <Link href={`/profile/${post.userId}`} className="cursor-pointer">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={safePost.author?.profilePicture || ''} alt={safePost.author?.name || 'User'} />
-                    <AvatarFallback>{safePost.author?.name?.charAt(0) || 'U'}</AvatarFallback>
+                    <AvatarImage src={post.author?.profilePicture || ''} alt={post.author?.name || 'User'} />
+                    <AvatarFallback>{post.author?.name?.charAt(0) || 'U'}</AvatarFallback>
                   </Avatar>
                 </Link>
                 <div className="ml-2">
                   <div className="flex items-center">
-                    <Link href={`/profile/${safePost.userId}`} className="font-medium text-sm text-neutral-900 hover:underline">
-                      {safePost.author?.name || 'User'}
+                    <Link href={`/profile/${post.userId}`} className="font-medium text-sm text-neutral-900 hover:underline">
+                      {post.author?.name || 'User'}
                     </Link>
                     <span className="text-xs text-neutral-500 ml-2">
-                      {formatTimeAgo(safePost.createdAt)}
+                      {formatTimeAgo(post.createdAt)}
                     </span>
                   </div>
                   <div className="text-xs text-neutral-500 flex items-center">
                     <span>rated</span>
-                    <Rating value={safePost.rating} size="xs" className="ml-1 mr-2" />
-                    {safePost.visibility === "Public" ? (
+                    <Rating value={post.rating} size="xs" className="ml-1 mr-2" />
+                    {post.visibility === "Public" ? (
                       <Globe className="text-xs mr-1 h-3 w-3" />
                     ) : (
                       <Users className="text-xs mr-1 h-3 w-3" />
                     )}
-                    <span>{safePost.visibility}</span>
+                    <span>{post.visibility}</span>
                   </div>
                 </div>
               </div>
@@ -202,25 +199,25 @@ export function PostCard({ post }: PostCardProps) {
             
             {/* Restaurant & Rating Info - Emphasized */}
             <div className="px-3 py-2">
-              <Link href={`/restaurants/${safePost.restaurantId}`} className="flex items-center">
-                <h3 className="text-base font-medium text-primary hover:underline">{safePost.restaurant?.name || 'Restaurant'}</h3>
+              <Link href={`/restaurants/${post.restaurantId}`} className="flex items-center">
+                <h3 className="text-base font-medium text-primary hover:underline">{post.restaurant?.name || 'Restaurant'}</h3>
               </Link>
               <div className="flex flex-wrap items-center mt-1 gap-2">
                 <span className="inline-flex items-center text-xs text-neutral-700">
                   <MapPin className="mr-1 text-neutral-500 h-3 w-3" /> 
-                  {safePost.restaurant?.location || 'Location unknown'}
+                  {post.restaurant?.location || 'Location unknown'}
                 </span>
                 <span className="inline-flex items-center text-xs text-neutral-700">
                   <Utensils className="mr-1 text-neutral-500 h-3 w-3" /> 
-                  {safePost.restaurant?.category || 'Cuisine'}
+                  {post.restaurant?.category || 'Cuisine'}
                 </span>
-                <span className="text-xs font-medium">{safePost.restaurant?.priceRange || '$'}</span>
+                <span className="text-xs font-medium">{post.restaurant?.priceRange || '$'}</span>
               </div>
               
               {/* Trust Indicators - More Prominent */}
               <div className="mt-2">
                 <TrustIndicators 
-                  restaurantId={safePost.restaurantId} 
+                  restaurantId={post.restaurantId} 
                   type="restaurant" 
                   size="sm" 
                 />
@@ -228,10 +225,10 @@ export function PostCard({ post }: PostCardProps) {
             </div>
             
             {/* Mobile only image - Small & Compact */}
-            {safePost.images && safePost.images.length > 0 && (
+            {images.length > 0 && (
               <div className="sm:hidden w-full h-32 bg-neutral-100">
                 <img 
-                  src={safePost.images[0]} 
+                  src={images[0]} 
                   alt="Post image" 
                   className="w-full h-full object-cover"
                 />
@@ -240,14 +237,14 @@ export function PostCard({ post }: PostCardProps) {
             
             {/* Condensed Content & Dishes */}
             <div className="px-3 py-2">
-              <p className="text-sm text-neutral-700">{safePost.content}</p>
+              <p className="text-sm text-neutral-700">{post.content}</p>
               
               {/* Dishes Tried Section - Horizontal Scrolling */}
-              {safePost.dishesTried && safePost.dishesTried.length > 0 && (
+              {post.dishesTried && post.dishesTried.length > 0 && (
                 <div className="mt-2 overflow-x-auto">
                   <h4 className="text-xs font-medium text-neutral-500 mb-1">Dishes:</h4>
                   <div className="flex gap-1 pb-1">
-                    {safePost.dishesTried.map((dish, index) => (
+                    {post.dishesTried.map((dish, index) => (
                       <span key={index} className="px-2 py-0.5 bg-neutral-100 rounded-full text-xs whitespace-nowrap text-neutral-700">
                         {dish}
                       </span>
@@ -257,24 +254,24 @@ export function PostCard({ post }: PostCardProps) {
               )}
               
               {/* Additional information */}
-              {(safePost.priceAssessment || safePost.atmosphere || safePost.serviceRating) && (
+              {(post.priceAssessment || post.atmosphere || post.serviceRating) && (
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                  {safePost.priceAssessment && (
+                  {post.priceAssessment && (
                     <div>
                       <span className="font-medium text-neutral-500">Price: </span>
-                      <span className="text-neutral-700">{safePost.priceAssessment}</span>
+                      <span className="text-neutral-700">{post.priceAssessment}</span>
                     </div>
                   )}
-                  {safePost.atmosphere && (
+                  {post.atmosphere && (
                     <div>
                       <span className="font-medium text-neutral-500">Atmosphere: </span>
-                      <span className="text-neutral-700">{safePost.atmosphere}</span>
+                      <span className="text-neutral-700">{post.atmosphere}</span>
                     </div>
                   )}
-                  {safePost.serviceRating && (
+                  {post.serviceRating && (
                     <div>
                       <span className="font-medium text-neutral-500">Service: </span>
-                      <span className="text-neutral-700">{safePost.serviceRating}/5</span>
+                      <span className="text-neutral-700">{post.serviceRating}/5</span>
                     </div>
                   )}
                 </div>
@@ -284,33 +281,33 @@ export function PostCard({ post }: PostCardProps) {
               <div className="flex items-center justify-between mt-3 pt-2 border-t border-neutral-100">
                 <div className="flex items-center space-x-3">
                   <button 
-                    className={`flex items-center ${safePost.isLiked ? 'text-primary' : 'text-neutral-500'}`}
+                    className={`flex items-center ${post.isLiked ? 'text-primary' : 'text-neutral-500'}`}
                     onClick={handleLike}
                     disabled={likeMutation.isPending}
                   >
-                    <Heart className={`mr-1 h-3.5 w-3.5 ${safePost.isLiked ? 'fill-current' : ''}`} />
-                    <span className="text-xs">{safePost.likeCount}</span>
+                    <Heart className={`mr-1 h-3.5 w-3.5 ${post.isLiked ? 'fill-current' : ''}`} />
+                    <span className="text-xs">{post.likeCount}</span>
                   </button>
                   <button className="flex items-center text-neutral-500">
                     <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                    <span className="text-xs">{safePost.comments?.length || 0}</span>
+                    <span className="text-xs">{post.comments?.length || 0}</span>
                   </button>
                 </div>
                 <div className="flex items-center space-x-3">
                   <button 
-                    className={`flex items-center ${safePost.isSaved ? 'text-secondary' : 'text-neutral-500'}`}
+                    className={`flex items-center ${post.isSaved ? 'text-secondary' : 'text-neutral-500'}`}
                     onClick={handleSave}
                     disabled={saveMutation.isPending}
                   >
-                    <Bookmark className={`mr-1 h-3.5 w-3.5 ${safePost.isSaved ? 'fill-current' : ''}`} />
+                    <Bookmark className={`mr-1 h-3.5 w-3.5 ${post.isSaved ? 'fill-current' : ''}`} />
                     <span className="text-xs">Save</span>
                   </button>
                   <SocialShare 
-                    url={`${window.location.origin}/posts/${safePost.id}`}
-                    title={`${safePost.author?.name || 'Someone'} recommends ${safePost.restaurant?.name || 'a restaurant'}`}
-                    description={safePost.content}
-                    image={safePost.images.length > 0 ? safePost.images[0] : ''}
-                    contentId={safePost.id}
+                    url={`${window.location.origin}/posts/${post.id}`}
+                    title={`${post.author?.name || 'Someone'} recommends ${post.restaurant?.name || 'a restaurant'}`}
+                    description={post.content}
+                    image={post.images.length > 0 ? post.images[0] : ''}
+                    contentId={post.id}
                     userId={user?.id ?? 0}
                     variant="icon"
                     className="text-neutral-500"
@@ -319,17 +316,17 @@ export function PostCard({ post }: PostCardProps) {
               </div>
               
               {/* Comments Preview - Simplified */}
-              {safePost.comments?.length > 0 && (
+              {post.comments?.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-neutral-100">
                   <div className="flex items-center justify-between mb-1.5">
                     <h4 className="text-xs font-medium text-neutral-500">
                       Latest comments
                     </h4>
-                    <Link href={`/posts/${safePost.id}#comments`} className="text-xs text-primary">
+                    <Link href={`/posts/${post.id}#comments`} className="text-xs text-primary">
                       See all
                     </Link>
                   </div>
-                  {safePost.comments?.slice(0, 1).map((comment) => (
+                  {post.comments?.slice(0, 1).map((comment) => (
                     <div key={comment.id} className="flex items-start">
                       <Link href={`/profile/${comment.author?.id || comment.userId}`} className="block">
                         <Avatar className="w-6 h-6 mt-0.5">
