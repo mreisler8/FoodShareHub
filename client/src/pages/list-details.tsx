@@ -7,13 +7,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft, Edit, MapPin, Utensils, ChefHat, Clock, Plus, Star, 
-  Share2, Eye, BookmarkPlus, BookmarkCheck, Users
+  Share2, Eye, BookmarkPlus, BookmarkCheck, Users, Trash2, MoreVertical
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RestaurantList, RestaurantListItemWithDetails } from "@/lib/types";
 import { ShareListModal } from "@/components/lists/ShareListModal";
+import { RestaurantSearch } from "@/components/lists/RestaurantSearch";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,11 +24,34 @@ export default function ListDetails() {
   const listId = parseInt(id || "0");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
+  const [editingItem, setEditingItem] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
   const { data: list, isLoading } = useQuery<RestaurantList>({
     queryKey: [`/api/lists/${id}`],
+  });
+
+  // Delete list item mutation
+  const deleteItemMutation = useMutation({
+    mutationFn: async (itemId: number) => {
+      return await apiRequest("DELETE", `/api/lists/${listId}/items/${itemId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
+      toast({
+        title: "Restaurant removed",
+        description: "The restaurant has been removed from your list.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove restaurant.",
+        variant: "destructive",
+      });
+    }
   });
   
   // Increment view count when the component mounts
@@ -210,11 +235,29 @@ export default function ListDetails() {
               <h2 className="text-xl font-heading font-bold text-neutral-900">
                 Restaurants in this list ({list.restaurants?.length || 0})
               </h2>
-              <Button size="sm" className="flex items-center gap-1">
+              <Button 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={() => setShowRestaurantSearch(!showRestaurantSearch)}
+              >
                 <Plus className="h-4 w-4" />
-                <span>Add Restaurant</span>
+                <span>{showRestaurantSearch ? "Cancel" : "Add Restaurant"}</span>
               </Button>
             </div>
+            
+            {/* Restaurant Search Interface */}
+            {showRestaurantSearch && (
+              <div className="mb-6">
+                <RestaurantSearch 
+                  listId={listId}
+                  onRestaurantAdded={() => {
+                    setShowRestaurantSearch(false);
+                    // Refresh list items
+                    queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
+                  }}
+                />
+              </div>
+            )}
             
             {/* Restaurant List Items */}
             {list.restaurants && list.restaurants.length > 0 ? (
