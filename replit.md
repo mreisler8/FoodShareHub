@@ -164,6 +164,23 @@ The application uses a comprehensive PostgreSQL schema including:
   - Fixed navigation routing to ensure /lists/:id route exists and functions properly
   - Added comprehensive error handling with toast notifications for failed navigation
   - **Feature Status**: Complete robust list creation with proper sharing controls and navigation
+- July 02, 2025: **List Visibility & Sharing Controls (User Story 5)**:
+  - Added shareWithCircle and makePublic boolean database columns to restaurant_lists table
+  - Updated API endpoints with proper access control and sharing field validation
+  - Created EditListModal component with sharing controls checkboxes
+  - Implemented sharing badges display (Circle/Public) on list detail headers
+  - Added Share button functionality for public lists (copies URL to clipboard)
+  - Added access control enforcement: lists visible if public, shared with user's circle, or user-owned
+  - Enhanced list filtering API endpoint to support visibility-based access
+  - **Feature Status**: Complete list visibility and sharing controls implementation
+- July 02, 2025: **Cross-Platform Authentication Synchronization**:
+  - Fixed web app authentication redirects after login/registration
+  - Updated mobile app authentication to match web app requirements (added name field)
+  - Synchronized authentication flows between web and mobile applications
+  - Added native app bridge authentication handling with localStorage integration
+  - Enhanced useAuth hook to handle both web session and native app token authentication
+  - Implemented consistent user experience across web and mobile platforms
+  - **Feature Status**: Unified authentication system across web and mobile platforms
 ## Changelog
 - July 01, 2025: Initial setup and MVP P1 backlog implementation
 

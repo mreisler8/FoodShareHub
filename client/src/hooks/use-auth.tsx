@@ -8,6 +8,7 @@ import { insertUserSchema, User as SelectUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { isNativeApp, listenForNativeAuthEvents } from "../lib/nativeAppBridge";
 
 // Define the types for auth-related data structures
 type AuthContextType = {
@@ -58,6 +59,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
+        
+        // Check if running in native app and has stored auth data
+        if (isNativeApp() && typeof window !== 'undefined') {
+          const storedToken = localStorage.getItem('authToken');
+          const storedUserData = localStorage.getItem('userData');
+          
+          if (storedToken && storedUserData) {
+            try {
+              const userData = JSON.parse(storedUserData);
+              setUser(userData);
+              setError(null);
+              setIsLoading(false);
+              return;
+            } catch (e) {
+              console.error('Error parsing stored user data:', e);
+            }
+          }
+        }
+        
+        // Fall back to API check
         const response = await fetch('/api/user');
         if (response.ok) {
           const userData = await response.json();
@@ -68,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setError('Authentication failed');
         }
       } catch (err: any) {
-        setError('Network error: ' + err.message); //More informative error message
+        setError('Network error: ' + err.message);
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -76,6 +97,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkAuth();
+    
+    // Listen for native auth events if in native app
+    if (isNativeApp()) {
+      const cleanup = listenForNativeAuthEvents((event) => {
+        if (event.detail && event.detail.user) {
+          setUser(event.detail.user);
+          setError(null);
+        }
+      });
+      
+      return cleanup;
+    }
   }, []);
 
   // Login mutation
@@ -94,11 +127,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return userData;
     },
     onSuccess: (userData: SelectUser) => {
+      setUser(userData);
       queryClient.setQueryData(["/api/user"], userData);
+      
+      // Store auth data for native app
+      if (isNativeApp() && typeof window !== 'undefined') {
+        const authToken = `auth_${Date.now()}`;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('userData', JSON.stringify(userData));
+      }
+      
       toast({
         title: "Login successful",
         description: `Welcome back, ${userData.name}!`,
       });
+      
+      // Navigate to home page after successful login
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -120,11 +167,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: SelectUser) => {
+      setUser(userData);
       queryClient.setQueryData(["/api/user"], userData);
+      
+      // Store auth data for native app
+      if (isNativeApp() && typeof window !== 'undefined') {
+        const authToken = `auth_${Date.now()}`;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('userData', JSON.stringify(userData));
+      }
+      
       toast({
         title: "Registration successful",
         description: `Welcome, ${userData.name}!`,
       });
+      
+      // Navigate to home page after successful registration
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -145,11 +206,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
+      setUser(null);
       queryClient.setQueryData(["/api/user"], null);
+      
+      // Clear auth data for native app
+      if (isNativeApp() && typeof window !== 'undefined') {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+      }
+      
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
       });
+      
+      // Navigate to auth page after logout
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth';
+      }
     },
     onError: (error: Error) => {
       toast({

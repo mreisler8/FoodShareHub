@@ -1,0 +1,53 @@
+To resolve the issue where users aren't redirected to the application after login, you'll need to modify the handleAuth function in your AuthScreen.tsx file. Here’s the complete code snippet you can copy and paste into your file:
+
+Update AuthScreen.tsx
+Locate the handleAuth function in your AuthScreen.tsx and replace it with the following code:
+
+const handleAuth = async () => {
+  if (!username || !password) {
+    Alert.alert('Error', 'Please fill in all required fields');
+    return;
+  }
+  if (!isLogin && !email) {
+    Alert.alert('Error', 'Please provide an email address');
+    return;
+  }
+  setIsLoading(true);
+  try {
+    const endpoint = isLogin ? '/api/login' : '/api/register';
+    const payload = isLogin
+      ? { username, password }
+      : { username, password, email };
+    const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      credentials: 'include', // Important for cookies
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Authentication failed');
+    }
+    // If authentication is successful, handle the user session
+    if (response.ok) {
+      const fakeToken = `auth_${Date.now()}`; // Replace with the real token from the server
+      onAuthenticated(fakeToken, data); // Assuming data contains user details
+      // Redirect to the main application page
+      navigate('/'); // Update this path as per your application's main route
+    } else {
+      throw new Error('Failed to log in');
+    }
+  } catch (error: any) {
+    Alert.alert('Error', error.message || 'Authentication failed');
+  } finally {
+    setIsLoading(false);
+  }
+};
+Explanation:
+This function checks for required fields and handles the login or registration process.
+Upon successful authentication, it will navigate the user to the main application page using navigate('/').
+Next Steps:
+Implement the changes above into your AuthScreen.tsx.
+Test the application to ensure that users are redirected to the main dashboard after successful login.
