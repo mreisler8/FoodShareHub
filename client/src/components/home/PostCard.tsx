@@ -6,7 +6,7 @@ import {
   Users, Send, MapPin, Utensils
 } from "lucide-react";
 import { PostWithDetails } from "@/lib/types";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -17,6 +17,7 @@ import { SocialShare } from "@/components/common/SocialShare";
 import { TrustIndicators } from "@/components/shared/TrustIndicators";
 import { PostActions } from "@/components/post/PostActions";
 import { PostModal } from "@/components/post/PostModal";
+import { CommentList } from "@/components/post/CommentList";
 import { useAuth } from "@/hooks/use-auth";
 
 interface PostCardProps {
@@ -24,8 +25,10 @@ interface PostCardProps {
 }
 
 export function PostCard({ post }: PostCardProps) {
-  const [newComment, setNewComment] = useState("");
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [showAllComments, setShowAllComments] = useState(false);
+  const [localLikeCount, setLocalLikeCount] = useState(post.likeCount || 0);
+  const [isLiked, setIsLiked] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -42,55 +45,58 @@ export function PostCard({ post }: PostCardProps) {
   const formatTimeAgo = (date: Date) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
+
+  // Check if user has liked this post
+  const { data: userLikeStatus } = useQuery({
+    queryKey: [`/api/posts/${post.id}/likes`],
+    queryFn: async () => {
+      if (!user) return [];
+      const response = await apiRequest('GET', `/api/posts/${post.id}/likes`);
+      const likes = await response.json();
+      const userHasLiked = likes.some((like: any) => like.userId === user.id);
+      setIsLiked(userHasLiked);
+      return likes;
+    },
+    enabled: !!user && !!post.id,
+  });
   
-  // Add like mutation
+  // Like/Unlike mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
       if (!user) {
         throw new Error("You must be logged in to like posts");
       }
       
-      if (post.isLiked) {
+      if (isLiked) {
         // Unlike
-        return await apiRequest("DELETE", `/api/posts/${post.id}/likes/${user.id}`);
+        const response = await apiRequest("DELETE", `/api/posts/${post.id}/likes`);
+        return response.json();
       } else {
         // Like
-        return await apiRequest("POST", "/api/likes", { postId: post.id, userId: user.id });
+        const response = await apiRequest("POST", `/api/posts/${post.id}/likes`);
+        return response.json();
       }
+    },
+    onMutate: async () => {
+      // Optimistic update
+      setIsLiked(!isLiked);
+      setLocalLikeCount(prev => isLiked ? prev - 1 : prev + 1);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
-    },
-    onError: (error) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}/likes`] });
       toast({
-        title: "Error",
-        description: "Failed to like post. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-  
-  // Add comment mutation
-  const commentMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) {
-        throw new Error("You must be logged in to comment");
-      }
-      
-      return await apiRequest("POST", "/api/comments", {
-        postId: post.id,
-        userId: user.id,
-        content: newComment
+        title: isLiked ? "Post unliked" : "Post liked",
+        description: isLiked ? "Removed from your liked posts" : "Added to your liked posts",
       });
     },
-    onSuccess: () => {
-      setNewComment("");
-      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
-    },
-    onError: (error) => {
+    onError: (error: any) => {
+      // Revert optimistic update on error
+      setIsLiked(isLiked);
+      setLocalLikeCount(post.likeCount || 0);
       toast({
         title: "Error",
-        description: "Failed to add comment. Please try again.",
+        description: error.message || "Failed to update like status. Please try again.",
         variant: "destructive",
       });
     }
@@ -124,18 +130,7 @@ export function PostCard({ post }: PostCardProps) {
     }
   });
   
-  // Handle like button click
-  const handleLike = () => {
-    likeMutation.mutate();
-  };
-  
-  // Handle comment submission
-  const handleSubmitComment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newComment.trim()) {
-      commentMutation.mutate();
-    }
-  };
+
   
   // Handle save button click
   const handleSave = () => {
@@ -281,14 +276,17 @@ export function PostCard({ post }: PostCardProps) {
               <div className="flex items-center justify-between mt-3 pt-2 border-t border-neutral-100">
                 <div className="flex items-center space-x-3">
                   <button 
-                    className={`flex items-center ${post.isLiked ? 'text-primary' : 'text-neutral-500'}`}
-                    onClick={handleLike}
-                    disabled={likeMutation.isPending}
+                    className={`flex items-center transition-colors ${isLiked ? 'text-red-500' : 'text-neutral-500 hover:text-red-400'}`}
+                    onClick={() => likeMutation.mutate()}
+                    disabled={likeMutation.isPending || !user}
                   >
-                    <Heart className={`mr-1 h-3.5 w-3.5 ${post.isLiked ? 'fill-current' : ''}`} />
-                    <span className="text-xs">{post.likeCount}</span>
+                    <Heart className={`mr-1 h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                    <span className="text-xs">{localLikeCount}</span>
                   </button>
-                  <button className="flex items-center text-neutral-500">
+                  <button 
+                    className="flex items-center text-neutral-500 hover:text-blue-400 transition-colors"
+                    onClick={() => setShowAllComments(!showAllComments)}
+                  >
                     <MessageCircle className="mr-1 h-3.5 w-3.5" />
                     <span className="text-xs">{comments.length}</span>
                   </button>
@@ -315,62 +313,12 @@ export function PostCard({ post }: PostCardProps) {
                 </div>
               </div>
               
-              {/* Comments Preview - Simplified */}
-              {comments.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-neutral-100">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <h4 className="text-xs font-medium text-neutral-500">
-                      Latest comments
-                    </h4>
-                    <Link href={`/posts/${post.id}#comments`} className="text-xs text-primary">
-                      See all
-                    </Link>
-                  </div>
-                  {comments.slice(0, 1).map((comment: any) => (
-                    <div key={comment.id} className="flex items-start">
-                      <Link href={`/profile/${comment.author?.id || comment.userId}`} className="block">
-                        <Avatar className="w-6 h-6 mt-0.5">
-                          <AvatarImage src={comment.author?.profilePicture || ''} alt={comment.author?.name || 'User'} />
-                          <AvatarFallback>{comment.author?.name?.charAt(0) || 'U'}</AvatarFallback>
-                        </Avatar>
-                      </Link>
-                      <div className="ml-2 flex-1">
-                        <p className="text-xs">
-                          <Link href={`/profile/${comment.author?.id || comment.userId}`} className="font-medium text-neutral-700 hover:underline">
-                            {comment.author?.name || 'User'}
-                          </Link>
-                          <span className="text-neutral-600"> {comment.content}</span>
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Simplified Comment Input */}
-              <form onSubmit={handleSubmitComment} className="flex items-center mt-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={user?.profilePicture || ''} alt="Your profile" />
-                  <AvatarFallback>{user?.name?.charAt(0) || 'Y'}</AvatarFallback>
-                </Avatar>
-                <div className="ml-2 flex-1 relative">
-                  <Input
-                    type="text"
-                    placeholder="Add a comment..."
-                    className="w-full py-1 px-3 bg-neutral-100 rounded-full text-xs focus:outline-none h-7"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    disabled={commentMutation.isPending || !user}
-                  />
-                  <button 
-                    type="submit"
-                    className="absolute right-2 top-1.5 text-primary"
-                    disabled={commentMutation.isPending || !newComment.trim() || !user}
-                  >
-                    <Send className="h-3 w-3" />
-                  </button>
-                </div>
-              </form>
+              {/* Comments Section with CommentList Component */}
+              <CommentList 
+                postId={post.id}
+                showAll={showAllComments}
+                onToggleShowAll={() => setShowAllComments(!showAllComments)}
+              />
             </div>
           </div>
         </div>

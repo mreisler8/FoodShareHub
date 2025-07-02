@@ -63,6 +63,7 @@ export interface IStorage {
   // Comment operations
   getComment(id: number): Promise<Comment | undefined>;
   createComment(comment: InsertComment): Promise<Comment>;
+  deleteComment(id: number): Promise<void>;
   getCommentsByPost(postId: number): Promise<Comment[]>;
   
   // Circle operations
@@ -438,6 +439,10 @@ export class DatabaseStorage implements IStorage {
       createdAt: new Date()
     }).returning();
     return comment;
+  }
+
+  async deleteComment(id: number): Promise<void> {
+    await db.delete(comments).where(eq(comments.id, id));
   }
 
   async getCommentsByPost(postId: number): Promise<Comment[]> {

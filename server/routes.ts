@@ -861,7 +861,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Comment routes
+  // Like routes - User Story 8: Comments & Likes on Dining Posts
+  app.post("/api/posts/:postId/likes", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.postId);
+      const userId = req.user!.id;
+
+      // Check if user already liked this post
+      const existingLike = await storage.isPostLikedByUser(postId, userId);
+      if (existingLike) {
+        return res.status(400).json({ error: "Post already liked" });
+      }
+
+      const newLike = await storage.createLike({ postId, userId });
+      res.status(201).json(newLike);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/posts/:postId/likes", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.postId);
+      const userId = req.user!.id;
+
+      await storage.deleteLike(postId, userId);
+      res.status(200).json({ message: "Like removed successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/posts/:postId/likes", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const likes = await storage.getLikesByPost(postId);
+      res.json(likes);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Comment routes - User Story 8: Comments & Likes on Dining Posts
   app.get("/api/posts/:postId/comments", async (req, res) => {
     try {
       const comments = await storage.getCommentsByPost(
@@ -873,6 +922,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/posts/:postId/comments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.postId);
+      const userId = req.user!.id;
+      const { content } = req.body;
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ error: "Comment content is required" });
+      }
+
+      const commentData = { postId, userId, content: content.trim() };
+      const newComment = await storage.createComment(commentData);
+      res.status(201).json(newComment);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/comments/:commentId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const commentId = parseInt(req.params.commentId);
+      const userId = req.user!.id;
+
+      // Check if comment exists and user owns it
+      const comment = await storage.getComment(commentId);
+      if (!comment) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+
+      if (comment.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to delete this comment" });
+      }
+
+      await storage.deleteComment(commentId);
+      res.status(200).json({ message: "Comment deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Legacy comment route (for backward compatibility)
   app.post("/api/comments", async (req, res) => {
     try {
       const commentData = insertCommentSchema.parse(req.body);
