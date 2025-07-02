@@ -194,6 +194,11 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   console.log('Session ID:', req.sessionID);
   console.log('Is authenticated:', req.isAuthenticated());
   console.log('Session user:', req.session?.passport?.user);
+  console.log('Headers:', req.headers);
+
+  // Set CORS headers for all authenticated requests
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:5000');
 
   if (req.isAuthenticated()) {
     return next();
