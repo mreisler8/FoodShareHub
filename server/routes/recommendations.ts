@@ -1,6 +1,7 @@
 
 // server/routes/recommendations.ts
 import { Router } from 'express';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../db.js';
 import { authenticate } from '../auth.js';
 import { recommendations } from '../../shared/schema';
@@ -13,7 +14,7 @@ router.get('/:circleId', authenticate, async (req, res) => {
   const recs = await db
     .select()
     .from(recommendations)
-    .where(recommendations.circleId.eq(Number(circleId)));
+    .where(eq(recommendations.circleId, Number(circleId)));
   res.json(recs);
 });
 
@@ -36,7 +37,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     .where(
       recommendations.id
         .eq(recId)
-        .and(recommendations.userId.eq(req.user.id))
+        ), eq(recommendations.userId, req.user.id))
     );
   res.sendStatus(204);
 });
