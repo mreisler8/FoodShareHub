@@ -142,7 +142,7 @@ export function PostCard({ post }: PostCardProps) {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-4 transition-transform duration-200 hover:translate-y-[-2px] border border-neutral-100">
         <div className="flex">
           {/* Left column - minimal image */}
-          {post.images.length > 0 && (
+          {post.images && post.images.length > 0 && (
             <div className="hidden sm:block w-24 h-24 sm:w-32 sm:h-full bg-neutral-100 flex-shrink-0">
               <img 
                 src={post.images[0]} 
