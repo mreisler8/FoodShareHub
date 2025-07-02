@@ -206,9 +206,9 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
       setSearchResults([]);
       setShowDropdown(false);
       
-      // Call callback if provided
-      if (onRestaurantAdded) {
-        onRestaurantAdded();
+      // Call completion callback if provided (only for legacy non-optimistic usage)
+      if (onAddCompleted) {
+        onAddCompleted();
       }
     },
     onError: (error: any) => {
@@ -224,10 +224,47 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
   const handleSave = async (data: { rating: number; liked: string; disliked: string; notes: string }) => {
     if (!addingId) return;
     
-    addToListMutation.mutate({
-      restaurantId: addingId,
-      ...data
-    });
+    // Find the restaurant name for the optimistic callback
+    const restaurant = searchResults.find(r => r.id === addingId);
+    const restaurantName = restaurant?.name || "Unknown Restaurant";
+    
+    // If we have an optimistic callback, use it
+    if (onRestaurantAdded) {
+      try {
+        await onRestaurantAdded({
+          restaurantId: addingId,
+          restaurantName: restaurantName,
+          rating: data.rating,
+          liked: data.liked,
+          disliked: data.disliked,
+          notes: data.notes
+        });
+        
+        // Reset state on success
+        setAddingId(null);
+        setSearchQuery("");
+        setDebouncedQuery("");
+        setSearchResults([]);
+        setShowDropdown(false);
+        
+        // Call completion callback
+        if (onAddCompleted) {
+          onAddCompleted();
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to add restaurant to list.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Fallback to old mutation pattern
+      addToListMutation.mutate({
+        restaurantId: addingId,
+        ...data
+      });
+    }
   };
 
   // Handle canceling inline form

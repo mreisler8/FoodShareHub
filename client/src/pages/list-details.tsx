@@ -394,7 +394,7 @@ export default function ListDetails() {
             
             <div className="mb-6 flex justify-between items-center">
               <h2 className="text-xl font-heading font-bold text-neutral-900">
-                Restaurants in this list ({list.restaurants?.length || 0})
+                Restaurants in this list ({listItems?.length || 0})
               </h2>
               <Button 
                 size="sm" 
@@ -420,9 +420,9 @@ export default function ListDetails() {
             )}
             
             {/* Restaurant List Items */}
-            {list.restaurants && list.restaurants.length > 0 ? (
+            {listItems && listItems.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {list.restaurants.map((item: RestaurantListItemWithDetails) => {
+                {listItems.map((item: OptimisticListItem) => {
                   const renderStars = (rating: number | null) => {
                     if (!rating) return null;
                     return Array(5).fill(0).map((_, i) => (
@@ -437,8 +437,15 @@ export default function ListDetails() {
                   const canEditItem = item.addedById === list.createdById; // For now, allow list owner to edit all items
 
                   return (
-                    <Card key={item.id} className="overflow-hidden">
+                    <Card key={item.id} className={`overflow-hidden ${item.isOptimistic ? 'opacity-70 border-dashed' : ''}`}>
                       <div className="flex flex-col h-full">
+                        {/* Optimistic loading indicator */}
+                        {item.isOptimistic && (
+                          <div className="bg-blue-50 px-3 py-1 text-xs text-blue-600 flex items-center">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse mr-2"></div>
+                            Saving...
+                          </div>
+                        )}
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
