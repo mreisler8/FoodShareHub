@@ -19,6 +19,11 @@ import { RestaurantSearch } from "@/components/lists/RestaurantSearch";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Extended interface for optimistic list items
+interface OptimisticListItem extends RestaurantListItemWithDetails {
+  isOptimistic?: boolean;
+}
+
 export default function ListDetails() {
   const { id } = useParams();
   const listId = parseInt(id || "0");
@@ -26,12 +31,117 @@ export default function ListDetails() {
   const [isSaved, setIsSaved] = useState(false);
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
   const [editingItem, setEditingItem] = useState<number | null>(null);
+  const [listItems, setListItems] = useState<OptimisticListItem[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
   const { data: list, isLoading } = useQuery<RestaurantList>({
     queryKey: [`/api/lists/${id}`],
   });
+
+  // Sync server data with local state when it loads
+  useEffect(() => {
+    if (list?.restaurants) {
+      setListItems(list.restaurants.map((item: RestaurantListItemWithDetails) => ({ ...item, isOptimistic: false })));
+    }
+  }, [list?.restaurants]);
+
+  // Optimistic add function for handling inline form submissions
+  const handleOptimisticAdd = async (data: {
+    restaurantId: string;
+    restaurantName: string;
+    rating: number;
+    liked: string;
+    disliked: string;
+    notes: string;
+  }) => {
+    // Create optimistic item with all required properties
+    const optimisticItem: OptimisticListItem = {
+      id: `temp-${data.restaurantId}`,
+      listId: listId,
+      restaurantId: parseInt(data.restaurantId.replace('google_', '')),
+      rating: data.rating,
+      liked: data.liked || null,
+      disliked: data.disliked || null,
+      notes: data.notes || null,
+      mustTryDishes: [],
+      addedById: list?.createdById || 0, // Use the list creator ID
+      position: 0,
+      addedAt: new Date(),
+      isOptimistic: true,
+      restaurant: {
+        id: parseInt(data.restaurantId.replace('google_', '')),
+        name: data.restaurantName,
+        location: "Loading...",
+        category: "Restaurant",
+        priceRange: "$$",
+        cuisine: "Restaurant",
+        imageUrl: null,
+        googlePlaceId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    };
+
+    // Add optimistic item to the beginning of the list
+    setListItems(prev => [optimisticItem, ...prev]);
+
+    try {
+      // Create restaurant if needed (Google Places result)
+      let restaurantId: number;
+      if (data.restaurantId.startsWith('google_')) {
+        const response = await apiRequest("POST", "/api/restaurants", {
+          name: data.restaurantName,
+          location: "Unknown location",
+          category: "Restaurant",
+          priceRange: "$$",
+          cuisine: "Restaurant",
+          imageUrl: null,
+          googlePlaceId: data.restaurantId.replace('google_', ''),
+        });
+        const newRestaurant = await response.json() as { id: number };
+        restaurantId = newRestaurant.id;
+      } else {
+        restaurantId = parseInt(data.restaurantId);
+      }
+
+      // Add to list
+      const listResponse = await apiRequest("POST", `/api/lists/${listId}/items`, {
+        restaurantId: restaurantId,
+        rating: data.rating,
+        liked: data.liked || null,
+        disliked: data.disliked || null,
+        notes: data.notes || null,
+      });
+      
+      const realItem = await listResponse.json();
+      
+      // Replace optimistic item with real data
+      setListItems(prev =>
+        prev.map(item => item.id === optimisticItem.id ? { ...realItem, isOptimistic: false } : item)
+      );
+
+      toast({
+        title: "Restaurant added!",
+        description: `${data.restaurantName} has been added to your list.`,
+      });
+
+      // Invalidate queries to sync with server
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
+      
+    } catch (error: any) {
+      // Remove optimistic item on failure
+      setListItems(prev => prev.filter(item => item.id !== optimisticItem.id));
+      
+      toast({
+        title: "Failed to add restaurant",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+      
+      throw error; // Re-throw to handle in calling component
+    }
+  };
 
   // Delete list item mutation
   const deleteItemMutation = useMutation({
