@@ -16,8 +16,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { RestaurantList, RestaurantListItemWithDetails } from "@/lib/types";
 import { ShareListModal } from "@/components/lists/ShareListModal";
 import { RestaurantSearch } from "@/components/lists/RestaurantSearch";
+import { ListItemCard } from "@/components/lists/ListItemCard";
+import { ListItemForm } from "@/components/ListItemForm";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 // Extended interface for optimistic list items
 interface OptimisticListItem extends RestaurantListItemWithDetails {

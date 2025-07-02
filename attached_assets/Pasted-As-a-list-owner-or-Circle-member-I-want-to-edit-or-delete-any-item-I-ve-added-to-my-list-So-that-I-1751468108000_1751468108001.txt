@@ -1,0 +1,153 @@
+As a list owner (or Circle member)
+I want to edit or delete any item I’ve added to my list
+So that I can keep my lists up-to-date and correct mistakes
+
+Acceptance Criteria
+ListItemCard Controls
+
+Each rendered list item (in ListPage.tsx) shows:
+
+Restaurant name
+
+Rating stars
+
+“What I liked” / “What I didn’t like” snippets
+
+Notes
+
+If item.userId === currentUser.id, display two icons:
+
+✏️ Edit
+
+🗑️ Delete
+
+Delete Flow
+
+Clicking 🗑️ opens a confirmation (window.confirm("Delete this item?")).
+
+On confirm, call:
+
+ts
+Copy
+Edit
+await apiFetch(
+  `/api/lists/${listId}/items/${itemId}`,
+  { method: 'DELETE' }
+);
+Optimistically remove the card:
+
+ts
+Copy
+Edit
+setListItems(prev => prev.filter(i => i.id !== itemId));
+On failure, show showToast('Delete failed.') and leave the card in place.
+
+Edit Flow
+
+Clicking ✏️ replaces the card with <ListItemForm> pre-populated:
+
+ts
+Copy
+Edit
+<ListItemForm
+  restaurantId={item.restaurantId}
+  initial={{ rating, liked, disliked, notes }}
+  onSave={updatedData => handleUpdate(item.id, updatedData)}
+  onCancel={() => setEditingId(null)}
+/>
+handleUpdate(itemId, data) should:
+
+Optimistically update the card in state.
+
+Call:
+
+ts
+Copy
+Edit
+const realItem = await apiFetch(
+  `/api/lists/${listId}/items/${itemId}`,
+  {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }
+);
+Replace the optimistic item with realItem.
+
+On failure, revert to original data and showToast('Update failed.').
+
+Clear editingId.
+
+State Management
+In ListPage.tsx add:
+
+ts
+Copy
+Edit
+const [editingId, setEditingId] = useState<string|null>(null);
+Pass editingId and setEditingId into your .map() logic.
+
+Implementation Steps
+Update ListItemCard.tsx:
+
+Add two buttons (Edit & Delete) visible only when props.data.userId === currentUser.id.
+
+Wire 🗑️ to props.onDelete(item.id).
+
+Wire ✏️ to props.onEdit(item.id).
+
+Enhance ListPage.tsx:
+
+Import and track editingId alongside addingId.
+
+In your .map(listItems) render:
+
+tsx
+Copy
+Edit
+listItems.map(item =>
+  editingId === item.id ? (
+    <ListItemForm
+      key={item.id}
+      restaurantId={item.restaurantId}
+      initial={item}
+      onSave={data => handleUpdate(item.id, data)}
+      onCancel={() => setEditingId(null)}
+    />
+  ) : (
+    <ListItemCard
+      key={item.id}
+      data={item}
+      onDelete={handleDelete}
+      onEdit={id => setEditingId(id)}
+    />
+  )
+)
+Implement handleDelete(itemId) per Criterion 2.
+
+Implement handleUpdate(itemId, data) per Criterion 3.
+
+API endpoints (if not yet):
+
+PUT /api/lists/:listId/items/:itemId to update.
+
+DELETE /api/lists/:listId/items/:itemId to delete.
+
+Both protected by authenticate.
+
+Style & UX:
+
+Confirm dialog on delete.
+
+Disable Save in edit form until rating is set.
+
+Spinner or opacity during optimistic update.
+
+Commit & Push:
+
+bash
+Copy
+Edit
+git add src/components/ListItemCard.tsx src/pages/ListPage.tsx src/routes/lists.ts
+git commit -m "feat(ui): add edit & delete controls for list items with optimistic updates"
+git push

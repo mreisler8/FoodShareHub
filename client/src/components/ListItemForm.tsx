@@ -7,6 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 interface ListItemFormProps {
   restaurantId: string;
   restaurantName: string;
+  initial?: {
+    rating?: number | null;
+    liked?: string | null;
+    disliked?: string | null;
+    notes?: string | null;
+  };
   onSave: (data: { rating: number; liked: string; disliked: string; notes: string }) => void;
   onCancel: () => void;
 }
@@ -45,11 +51,11 @@ function StarRating({ value, onChange }: StarRatingProps) {
   );
 }
 
-export function ListItemForm({ restaurantId, restaurantName, onSave, onCancel }: ListItemFormProps) {
-  const [rating, setRating] = useState<number | null>(null);
-  const [liked, setLiked] = useState('');
-  const [disliked, setDisliked] = useState('');
-  const [notes, setNotes] = useState('');
+export function ListItemForm({ restaurantId, restaurantName, initial, onSave, onCancel }: ListItemFormProps) {
+  const [rating, setRating] = useState<number | null>(initial?.rating || null);
+  const [liked, setLiked] = useState(initial?.liked || '');
+  const [disliked, setDisliked] = useState(initial?.disliked || '');
+  const [notes, setNotes] = useState(initial?.notes || '');
 
   const handleSave = () => {
     if (rating === null) return;
