@@ -1124,19 +1124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Current user's restaurant lists - Authenticated endpoint
-  app.get("/api/lists/user", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const lists = await storage.getRestaurantListsByUser(req.user.id);
-      res.json(lists);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+  // Note: User lists endpoint is now handled by /api/lists router
 
   app.get("/api/restaurant-lists/:id", async (req, res) => {
     try {

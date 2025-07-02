@@ -215,7 +215,7 @@ export function PostCard({ post }: PostCardProps) {
             </div>
             
             {/* Mobile only image - Small & Compact */}
-            {post.images.length > 0 && (
+            {post.images && post.images.length > 0 && (
               <div className="sm:hidden w-full h-32 bg-neutral-100">
                 <img 
                   src={post.images[0]} 

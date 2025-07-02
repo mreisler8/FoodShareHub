@@ -23,13 +23,13 @@ export default function Home() {
   
   // Check if user has joined any circles
   const { data: userCircles = [], isLoading: isLoadingCircles } = useQuery<any[]>({
-    queryKey: ["/api/circles/user"],
+    queryKey: ["/api/me/circles"],
     enabled: !!user,
   });
   
   // Check if user has any restaurant lists
   const { data: userLists = [], isLoading: isLoadingLists } = useQuery<any[]>({
-    queryKey: ["/api/lists/user"],
+    queryKey: ["/api/lists"],
     enabled: !!user,
   });
   
