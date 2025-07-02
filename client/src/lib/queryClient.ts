@@ -7,36 +7,36 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  console.log(`API Request: ${method} ${url}`, data);
-
-  const headers: Record<string, string> = {};
-  if (data) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  const options = {
+export async function apiRequest(method: string, url: string, data?: any) {
+  const options: RequestInit = {
     method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include" as RequestCredentials,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
   };
 
-  console.log("Request options:", options);
-
-  const res = await fetch(url, options);
-
-  console.log(`Response status: ${res.status} ${res.statusText}`);
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
 
   try {
-    await throwIfResNotOk(res);
-    return res;
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch (e) {
+        // Ignore JSON parsing errors
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response;
   } catch (error) {
-    console.error("API request error:", error);
+    console.error(`API request failed: ${method} ${url}`, error);
     throw error;
   }
 }
