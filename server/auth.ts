@@ -62,17 +62,28 @@ export function setupAuth(app: Express) {
         const normalizedUsername = username.toLowerCase();
         console.log("Normalized username:", normalizedUsername);
 
+        // Basic input validation
+        if (!username || !password) {
+          return done(null, false, { message: "Please enter both email and password" });
+        }
+
+        // Check if email format is valid
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(normalizedUsername)) {
+          return done(null, false, { message: "Please enter a valid email address" });
+        }
+
         const user = await storage.getUserByUsername(normalizedUsername);
         if (!user) {
           console.log("User not found");
-          return done(null, false, { message: "Invalid username or password" });
+          return done(null, false, { message: "No account found with this email address" });
         }
 
         console.log("User found, verifying password");
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
           console.log("Invalid password");
-          return done(null, false, { message: "Invalid username or password" });
+          return done(null, false, { message: "Incorrect password. Please try again" });
         }
 
         console.log("Password verified successfully");

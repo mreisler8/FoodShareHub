@@ -41,7 +41,19 @@ export function DesktopSidebar() {
     <div className="hidden md:flex md:flex-col md:w-64 bg-white p-5 h-screen sticky top-0 border-r border-neutral-200">
       <div className="flex items-center mb-10">
         <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            aria-label="Circles app logo"
+            role="img"
+          >
             <path d="M15 11h.01"></path>
             <path d="M11 15h.01"></path>
             <path d="M16 16h.01"></path>
@@ -52,44 +64,44 @@ export function DesktopSidebar() {
         <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">Circles</h1>
       </div>
       
-      <nav className="flex-1">
+      <nav className="flex-1" role="navigation" aria-label="Main navigation">
         <ul className="space-y-2">
           <li>
-            <Link href="/">
-              <div className={getNavItemClasses("/")}>
-                <Home className="w-6 mr-2" />
+            <Link href="/" aria-label="View your feed">
+              <div className={getNavItemClasses("/")} role="menuitem" tabIndex={0}>
+                <Home className="w-6 mr-2" aria-hidden="true" />
                 <span>Feed</span>
               </div>
             </Link>
           </li>
           <li>
-            <Link href="/discover">
-              <div className={getNavItemClasses("/discover")}>
-                <Search className="w-6 mr-2" />
+            <Link href="/discover" aria-label="Discover new restaurants">
+              <div className={getNavItemClasses("/discover")} role="menuitem" tabIndex={0}>
+                <Search className="w-6 mr-2" aria-hidden="true" />
                 <span>Discover</span>
               </div>
             </Link>
           </li>
           <li>
-            <Link href="/create-post">
-              <div className={getNavItemClasses("/create-post")}>
-                <PlusCircle className="w-6 mr-2" />
+            <Link href="/create-post" aria-label="Create a new post">
+              <div className={getNavItemClasses("/create-post")} role="menuitem" tabIndex={0}>
+                <PlusCircle className="w-6 mr-2" aria-hidden="true" />
                 <span>Create Post</span>
               </div>
             </Link>
           </li>
           <li>
-            <Link href="/circles/1">
-              <div className={getNavItemClasses("/circles")}>
-                <Users className="w-6 mr-2" />
+            <Link href="/circles/1" aria-label="View your circles">
+              <div className={getNavItemClasses("/circles")} role="menuitem" tabIndex={0}>
+                <Users className="w-6 mr-2" aria-hidden="true" />
                 <span>Circles</span>
               </div>
             </Link>
           </li>
           <li>
-            <Link href="/lists">
-              <div className={getNavItemClasses("/lists")}>
-                <List className="w-6 mr-2" />
+            <Link href="/lists" aria-label="View your restaurant lists">
+              <div className={getNavItemClasses("/lists")} role="menuitem" tabIndex={0}>
+                <List className="w-6 mr-2" aria-hidden="true" />
                 <span>My Lists</span>
               </div>
             </Link>

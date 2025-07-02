@@ -148,9 +148,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onError: (error: Error) => {
+      // More specific error handling based on error message
+      let title = "Sign in failed";
+      let description = error.message;
+      
+      if (error.message.includes("email")) {
+        title = "Invalid email address";
+        description = "Please check your email address and try again.";
+      } else if (error.message.includes("password")) {
+        title = "Incorrect password";
+        description = "Please check your password and try again.";
+      } else if (error.message.includes("account")) {
+        title = "Account not found";
+        description = "No account found with this email address. Please sign up first.";
+      }
+      
       toast({
-        title: "Login failed",
-        description: error.message,
+        title,
+        description,
         variant: "destructive",
       });
     },
@@ -188,9 +203,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onError: (error: Error) => {
+      // More specific error handling for registration
+      let title = "Account creation failed";
+      let description = error.message;
+      
+      if (error.message.includes("exists") || error.message.includes("already")) {
+        title = "Account already exists";
+        description = "An account with this email already exists. Please sign in instead.";
+      } else if (error.message.includes("email")) {
+        title = "Invalid email address";
+        description = "Please enter a valid email address.";
+      } else if (error.message.includes("password")) {
+        title = "Password requirements not met";
+        description = "Password must be at least 6 characters long.";
+      } else if (error.message.includes("name")) {
+        title = "Name required";
+        description = "Please enter your full name.";
+      }
+      
       toast({
-        title: "Registration failed",
-        description: error.message,
+        title,
+        description,
         variant: "destructive",
       });
     },
