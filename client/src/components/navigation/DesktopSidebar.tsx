@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,14 @@ export function DesktopSidebar() {
               <div className={getNavItemClasses("/circles")}>
                 <Users className="w-6 mr-2" />
                 <span>Circles</span>
+              </div>
+            </Link>
+          </li>
+          <li>
+            <Link href="/lists">
+              <div className={getNavItemClasses("/lists")}>
+                <List className="w-6 mr-2" />
+                <span>My Lists</span>
               </div>
             </Link>
           </li>

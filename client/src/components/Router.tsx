@@ -15,6 +15,7 @@ import CreateList from "../pages/create-list";
 import PostDetails from "../pages/post-details";
 import JoinPage from "../pages/join";
 import AuthPage from "../pages/auth-page";
+import Lists from "./Lists";
 
 function Router() {
   // Add native app class to body for CSS targeting if running in native app
@@ -31,6 +32,7 @@ function Router() {
       <ProtectedRoute path="/profile/:id?" component={Profile} />
       <ProtectedRoute path="/discover" component={Discover} />
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
+      <ProtectedRoute path="/lists" component={Lists} />
       <ProtectedRoute path="/lists/create" component={CreateList} />
       <ProtectedRoute path="/lists/:id" component={ListDetails} />
       <ProtectedRoute path="/posts/:id" component={PostDetails} />

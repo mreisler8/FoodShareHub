@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, User, LogIn, LogOut } from "lucide-react";
+import { Home, Search, PlusCircle, Users, User, LogIn, LogOut, List } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { User as UserType } from "@shared/schema";
@@ -41,10 +41,10 @@ export function MobileNavigation() {
           </div>
         </Link>
         
-        <Link href="/create-post" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center ${isActive('/create-post') ? 'text-primary' : 'text-neutral-500'}`}>
-            <PlusCircle className="h-5 w-5" />
-            <span className="text-xs mt-1">Post</span>
+        <Link href="/lists" className="flex-1 h-full">
+          <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/lists') ? 'text-primary' : 'text-neutral-500'}`}>
+            <List className="h-5 w-5" />
+            <span className="text-xs mt-1">Lists</span>
           </div>
         </Link>
         
