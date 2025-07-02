@@ -1,7 +1,7 @@
 
 import request from 'supertest';
-import { db } from '../server/db';
-import app from '../server/index';
+import { db } from '../server/db.js';
+import app from '../server/index.js';
 
 describe('List & Recommendation API Flow', () => {
   let token: string;

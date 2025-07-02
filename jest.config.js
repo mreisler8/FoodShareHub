@@ -1,6 +1,7 @@
 
-module.exports = {
-  preset: 'ts-jest',
+export default {
+  preset: 'ts-jest/presets/default-esm',
+  extensionsToTreatAsEsm: ['.ts'],
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
@@ -9,4 +10,12 @@ module.exports = {
     'server/**/*.{ts,js}',
     '!server/**/*.d.ts',
   ],
+  globals: {
+    'ts-jest': {
+      useESM: true
+    }
+  },
+  moduleNameMapping: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
+  }
 };

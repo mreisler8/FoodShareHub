@@ -1,7 +1,8 @@
+
 // server/routes/recommendations.ts
 import { Router } from 'express';
-import { db } from '../db';
-import { authenticate } from '../middleware/auth';
+import { db } from '../db.js';
+import { authenticate } from '../auth.js';
 
 const router = Router();
 
