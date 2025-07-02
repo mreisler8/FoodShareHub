@@ -43,7 +43,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
       name: "",
       description: "",
       visibility: "public",
-      circleId: "",
+      circleId: undefined,
     },
   });
 
@@ -81,8 +81,8 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
       onOpenChange(false);
       
       // Call success callback with the new list ID
-      if (onSuccess) {
-        onSuccess(data.id);
+      if (onSuccess && data && typeof data === 'object' && 'id' in data) {
+        onSuccess(Number((data as any).id));
       }
     },
     onError: (error: any) => {
@@ -177,7 +177,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Select Circle</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Choose a circle" />
