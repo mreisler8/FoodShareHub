@@ -33,10 +33,79 @@ export default function ListDetails() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
-  const [editingItem, setEditingItem] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [listItems, setListItems] = useState<OptimisticListItem[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
+  
+  // Edit item handler
+  const handleEdit = (itemId: number) => {
+    setEditingId(itemId);
+  };
+
+  // Delete item handler
+  const handleDelete = async (itemId: number) => {
+    const originalItems = [...listItems];
+    try {
+      // Optimistically remove item
+      setListItems(prev => prev.filter(item => item.id !== itemId));
+      
+      await apiRequest("DELETE", `/api/lists/items/${itemId}`, {});
+      
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
+      toast({
+        title: "Item deleted",
+        description: "The restaurant has been removed from your list.",
+      });
+    } catch (error) {
+      // Restore original items on error
+      setListItems(originalItems);
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete the item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Update item handler
+  const handleUpdate = async (itemId: number, data: any) => {
+    const originalItems = [...listItems];
+    try {
+      // Optimistically update item
+      setListItems(prev => prev.map(item => 
+        item.id === itemId 
+          ? { ...item, ...data, isOptimistic: true }
+          : item
+      ));
+      
+      const updatedItem = await apiRequest("PUT", `/api/lists/items/${itemId}`, data);
+      
+      // Replace optimistic item with real data
+      setListItems(prev => prev.map(item => 
+        item.id === itemId 
+          ? { ...item, ...updatedItem, isOptimistic: false }
+          : item
+      ));
+      
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
+      setEditingId(null);
+      toast({
+        title: "Item updated",
+        description: "The restaurant details have been updated.",
+      });
+    } catch (error) {
+      // Restore original data on error
+      setListItems(originalItems);
+      setEditingId(null);
+      toast({
+        title: "Update failed",
+        description: "Failed to update the item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
   const { data: list, isLoading, error } = useQuery<RestaurantList>({
     queryKey: [`/api/lists/${id}`],
@@ -427,135 +496,34 @@ export default function ListDetails() {
             {listItems && listItems.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {listItems.map((item: OptimisticListItem) => {
-                  const renderStars = (rating: number | null) => {
-                    if (!rating) return null;
-                    return Array(5).fill(0).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                  // Show edit form if this item is being edited
+                  if (editingId === item.id) {
+                    return (
+                      <ListItemForm
+                        key={item.id}
+                        restaurantId={item.restaurantId.toString()}
+                        restaurantName={item.restaurant?.name || "Restaurant"}
+                        initial={{
+                          rating: item.rating,
+                          liked: item.liked,
+                          disliked: item.disliked,
+                          notes: item.notes
+                        }}
+                        onSave={(data) => handleUpdate(item.id, data)}
+                        onCancel={() => setEditingId(null)}
                       />
-                    ));
-                  };
+                    );
+                  }
 
-                  // Check if current user can edit/delete this item
-                  const canEditItem = item.addedById === list.createdById; // For now, allow list owner to edit all items
-
+                  // Show regular list item card
                   return (
-                    <Card key={item.id} className={`overflow-hidden ${item.isOptimistic ? 'opacity-70 border-dashed' : ''}`}>
-                      <div className="flex flex-col h-full">
-                        {/* Optimistic loading indicator */}
-                        {item.isOptimistic && (
-                          <div className="bg-blue-50 px-3 py-1 text-xs text-blue-600 flex items-center">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse mr-2"></div>
-                            Saving...
-                          </div>
-                        )}
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <CardTitle className="text-lg font-heading">
-                                {item.restaurant?.name}
-                              </CardTitle>
-                              <div className="flex items-center text-sm text-neutral-500 mt-1">
-                                <MapPin className="h-3 w-3 mr-1" />
-                                <span>{item.restaurant?.location}</span>
-                                <span className="mx-2">•</span>
-                                <span>{item.restaurant?.category}</span>
-                                <span className="mx-2">•</span>
-                                <span>{item.restaurant?.priceRange}</span>
-                              </div>
-                              
-                              {/* Rating */}
-                              {item.rating && (
-                                <div className="flex items-center mt-2">
-                                  <div className="flex">{renderStars(item.rating)}</div>
-                                  <span className="ml-2 text-sm text-neutral-600">({item.rating}/5)</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Edit/Delete actions for items the user can manage */}
-                            {canEditItem && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => setEditingItem(item.id)}>
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => deleteItemMutation.mutate(item.id)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
-                        </CardHeader>
-                        
-                        <CardContent className="pb-4 pt-2 flex-grow">
-                          {/* What I liked */}
-                          {item.liked && (
-                            <div className="mt-2">
-                              <h4 className="text-sm font-medium text-green-700 mb-1">What I liked:</h4>
-                              <p className="text-sm text-neutral-700">{item.liked}</p>
-                            </div>
-                          )}
-                          
-                          {/* What I didn't like */}
-                          {item.disliked && (
-                            <div className="mt-2">
-                              <h4 className="text-sm font-medium text-red-700 mb-1">What I didn't like:</h4>
-                              <p className="text-sm text-neutral-700">{item.disliked}</p>
-                            </div>
-                          )}
-                          
-                          {/* Additional notes */}
-                          {item.notes && (
-                            <div className="mt-2">
-                              <h4 className="text-sm font-medium text-neutral-700 mb-1">Notes:</h4>
-                              <p className="text-sm text-neutral-700">{item.notes}</p>
-                            </div>
-                          )}
-                          
-                          {/* Must-try dishes (legacy field) */}
-                          {item.mustTryDishes && item.mustTryDishes.length > 0 && (
-                            <div className="mt-3">
-                              <div className="flex items-center text-sm font-semibold">
-                                <ChefHat className="h-4 w-4 mr-1 text-primary" />
-                                <span>Must-try dishes:</span>
-                              </div>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {item.mustTryDishes.map((dish: string, i: number) => (
-                                  <Badge key={i} variant="outline" className="bg-primary/5">
-                                    {dish}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="mt-4 flex justify-between items-end">
-                            <div className="flex items-center text-sm text-neutral-500">
-                              <Clock className="h-3 w-3 mr-1" />
-                              <span>Added by {item.addedBy?.name || "anonymous"}</span>
-                              {item.addedAt && (
-                                <span className="ml-2">
-                                  • {new Date(item.addedAt).toLocaleDateString()}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </div>
-                    </Card>
+                    <ListItemCard
+                      key={item.id}
+                      data={item}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      isOptimistic={item.isOptimistic}
+                    />
                   );
                 })}
               </div>
