@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Search, Plus, Star, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,23 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+// Create apiFetch function for GET requests with authentication
+async function apiFetch(url: string): Promise<any> {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  
+  return response.json();
+}
 
 // Updated search result interface to match new API
 interface SearchResult {
@@ -43,6 +60,8 @@ interface RestaurantSearchProps {
 export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState<SearchResult | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -60,28 +79,37 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Update dropdown visibility
+  // Search using apiFetch when debounced term changes
   useEffect(() => {
-    setShowDropdown(debouncedQuery.trim().length >= 2);
-  }, [debouncedQuery]);
+    const searchRestaurants = async () => {
+      if (debouncedQuery.trim().length < 2) {
+        setSearchResults([]);
+        setShowDropdown(false);
+        return;
+      }
 
-  // Debounced search query (only search when query is 2+ characters)
-  const shouldSearch = debouncedQuery.trim().length >= 2;
+      setIsSearching(true);
+      setShowDropdown(true);
 
-  // Search restaurants query with debounced input
-  const { data: allSearchResults, isLoading: isSearching } = useQuery({
-    queryKey: ["/api/search", debouncedQuery.trim()],
-    queryFn: async () => {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery.trim())}`);
-      if (!res.ok) throw new Error('Search failed');
-      return res.json() as Promise<SearchResult[]>;
-    },
-    enabled: shouldSearch,
-    staleTime: 30000, // Cache results for 30 seconds
-  });
+      try {
+        const results = await apiFetch(`/api/search?q=${encodeURIComponent(debouncedQuery.trim())}`);
+        // Limit results to 5 maximum as per user story
+        setSearchResults(results.slice(0, 5));
+      } catch (error) {
+        console.error('Search failed:', error);
+        setSearchResults([]);
+        toast({
+          title: "Search Error",
+          description: "Failed to search restaurants. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSearching(false);
+      }
+    };
 
-  // Limit results to 5 maximum as per user story
-  const searchResults = allSearchResults ? allSearchResults.slice(0, 5) : [];
+    searchRestaurants();
+  }, [debouncedQuery, toast]);
 
   // Keyboard navigation handler
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -155,7 +183,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
         restaurantId = parseInt(selectedRestaurant.id);
       } else {
         // For Google Places results, we need to create a restaurant first
-        const newRestaurant = await apiRequest("POST", "/api/restaurants", {
+        const response = await apiRequest("POST", "/api/restaurants", {
           name: selectedRestaurant.name,
           location: selectedRestaurant.location || "Unknown location",
           category: "Restaurant",
@@ -164,6 +192,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
           imageUrl: selectedRestaurant.thumbnailUrl,
           googlePlaceId: selectedRestaurant.id.replace('google_', ''),
         });
+        const newRestaurant = await response.json() as { id: number };
         restaurantId = newRestaurant.id;
       }
       
@@ -248,7 +277,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
               </div>
             ) : searchResults && searchResults.length > 0 ? (
               <div className="py-2">
-                {searchResults.map((restaurant, index) => (
+                {searchResults.map((restaurant: SearchResult, index: number) => (
                   <div
                     key={restaurant.id}
                     className={`px-4 py-3 flex items-center space-x-3 cursor-pointer transition-colors ${
