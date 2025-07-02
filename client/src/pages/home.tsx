@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PostWithDetails } from "@/lib/types";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 export default function Home() {
   const { user } = useAuth();
@@ -94,7 +94,7 @@ export default function Home() {
       <div className="flex-1 max-w-5xl mx-auto px-4 py-6 pb-24 md:pb-6 md:px-8">
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between mb-6 sticky top-0 bg-background z-10 pt-2">
-          <div className="flex items-center">
+          <Link href="/" className="flex items-center hover:opacity-80 transition-opacity" aria-label="Go to home page">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 11h.01"></path>
@@ -105,7 +105,7 @@ export default function Home() {
               </svg>
             </div>
             <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">Circles</h1>
-          </div>
+          </Link>
           <div className="flex items-center">
             <button className="p-3 touch-manipulation">
               <Bell className="text-neutral-700 h-5 w-5" />

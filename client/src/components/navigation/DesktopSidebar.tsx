@@ -39,7 +39,7 @@ export function DesktopSidebar() {
 
   return (
     <div className="hidden md:flex md:flex-col md:w-64 bg-white p-5 h-screen sticky top-0 border-r border-neutral-200">
-      <div className="flex items-center mb-10">
+      <Link href="/" className="flex items-center mb-10 hover:opacity-80 transition-opacity" aria-label="Go to home page">
         <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
@@ -62,7 +62,7 @@ export function DesktopSidebar() {
           </svg>
         </div>
         <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">Circles</h1>
-      </div>
+      </Link>
       
       <nav className="flex-1" role="navigation" aria-label="Main navigation">
         <ul className="space-y-2">

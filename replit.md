@@ -259,6 +259,18 @@ The application uses a comprehensive PostgreSQL schema including:
   - Implemented proper error handling with user-friendly messages and validation
   - Added authorization protection preventing users from editing/deleting others' posts
   - **Feature Status**: Complete edit and delete functionality with comprehensive test coverage and proper security
+- July 02, 2025: **Comments & Likes on Dining Posts Implementation (User Story 8)**:
+  - Added proper API endpoints (POST/DELETE /api/posts/:postId/likes, POST /api/posts/:postId/comments, DELETE /api/comments/:commentId)
+  - Created CommentList component with comment viewing, adding, and deletion features
+  - Enhanced PostCard with like button toggle functionality and optimistic UI updates
+  - Added real-time like count updates and comment management
+  - Created comprehensive test coverage for both likes and comments functionality
+  - **Feature Status**: Complete comments and likes system with proper authentication and real-time updates
+- July 02, 2025: **Navigation Enhancement - Clickable Logo**:
+  - Made Circles logo clickable in both desktop sidebar and mobile header
+  - Added hover effects and proper accessibility labels for logo navigation
+  - Ensured consistent home page navigation across all application pages
+  - **Feature Status**: Logo navigation fully operational on all pages
 ## Development Backlog
 
 ### Next Priority: Comments & Likes on Dining Posts (User Story 8)
