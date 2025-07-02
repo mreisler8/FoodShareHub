@@ -25,6 +25,7 @@ import { db } from "./db.js";
 import { authenticate } from "./auth.js";
 import recommendationsRouter from "./routes/recommendations.js";
 import listsRouter from "./routes/lists.js";
+import searchRouter from "./routes/search.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -1583,6 +1584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register lists routes
   app.use("/api/recommendations", recommendationsRouter);
   app.use('/api/lists', listsRouter);
+  app.use('/api/search', searchRouter);
 
   return httpServer;
 }

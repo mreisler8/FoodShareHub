@@ -15,15 +15,14 @@ import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Search result interface
+// Updated search result interface to match new API
 interface SearchResult {
-  id: number;
+  id: string;
   name: string;
-  cuisine: string;
-  location: string;
-  imageUrl?: string;
-  priceRange: string;
-  rating: number;
+  thumbnailUrl: string | null;
+  avgRating: number;
+  location?: string;
+  source: 'database' | 'google';
 }
 
 // Add restaurant form schema
@@ -149,8 +148,27 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
     mutationFn: async (values: AddRestaurantFormValues) => {
       if (!selectedRestaurant) throw new Error("No restaurant selected");
       
+      // Handle both database and Google Places results
+      let restaurantId: number;
+      
+      if (selectedRestaurant.source === 'database') {
+        restaurantId = parseInt(selectedRestaurant.id);
+      } else {
+        // For Google Places results, we need to create a restaurant first
+        const newRestaurant = await apiRequest("POST", "/api/restaurants", {
+          name: selectedRestaurant.name,
+          location: selectedRestaurant.location || "Unknown location",
+          category: "Restaurant",
+          priceRange: "$$",
+          cuisine: "Restaurant",
+          imageUrl: selectedRestaurant.thumbnailUrl,
+          googlePlaceId: selectedRestaurant.id.replace('google_', ''),
+        });
+        restaurantId = newRestaurant.id;
+      }
+      
       const payload = {
-        restaurantId: selectedRestaurant.id,
+        restaurantId: restaurantId,
         rating: parseInt(values.rating),
         liked: values.liked || null,
         disliked: values.disliked || null,
@@ -247,9 +265,9 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
                     }}
                   >
                     {/* Thumbnail Image */}
-                    {restaurant.imageUrl ? (
+                    {restaurant.thumbnailUrl ? (
                       <img 
-                        src={restaurant.imageUrl} 
+                        src={restaurant.thumbnailUrl} 
                         alt={restaurant.name}
                         className="w-12 h-12 rounded object-cover flex-shrink-0"
                       />
@@ -264,11 +282,11 @@ export function RestaurantSearch({ listId, onRestaurantAdded }: RestaurantSearch
                       <h3 className="font-medium text-gray-900 truncate">{restaurant.name}</h3>
                       {/* Average Rating */}
                       <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-sm text-gray-600">{formatRating(restaurant.rating)}</span>
-                        {restaurant.cuisine && (
+                        <span className="text-sm text-gray-600">{formatRating(restaurant.avgRating)}</span>
+                        {restaurant.location && (
                           <>
                             <span className="text-gray-400">•</span>
-                            <span className="text-sm text-gray-500">{restaurant.cuisine}</span>
+                            <span className="text-sm text-gray-500 truncate">{restaurant.location}</span>
                           </>
                         )}
                       </div>
