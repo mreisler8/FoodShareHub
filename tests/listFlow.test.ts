@@ -1,6 +1,7 @@
 
 import request from 'supertest';
 import { db } from '../server/db';
+import { users, restaurants, restaurantLists, restaurantListItems } from '../shared/schema';
 import app from '../server/index';
 
 describe('List & Recommendation API Flow', () => {

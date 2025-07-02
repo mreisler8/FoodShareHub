@@ -30,6 +30,7 @@ import { storage } from "./storage.js";
 import { authenticate } from "./auth.js";
 import { searchGooglePlaces } from "./services/google-places.js";
 import recommendationsRouter from "./routes/recommendations.js";
+import listsRouter from "./routes/lists.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
