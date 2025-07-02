@@ -13,6 +13,10 @@ const createListSchema = z.object({
   description: z.string().nullable().optional(),
   circleId: z.number().nullable().optional(),
   visibility: z.enum(['public', 'circle']).default('public'),
+  isPublic: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
+  shareWithCircle: z.boolean().optional(),
+  makePublic: z.boolean().optional(),
 });
 
 const updateListSchema = z.object({
@@ -103,6 +107,11 @@ router.post('/', authenticate, async (req, res) => {
     const data = createListSchema.parse(req.body);
     const userId = req.user!.id;
 
+    // Handle the frontend's sharing model
+    const isPublic = data.makePublic || data.isPublic || false;
+    const shareWithCircle = data.shareWithCircle || false;
+    const visibility = isPublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
+
     const [list] = await db
       .insert(restaurantLists)
       .values({
@@ -110,7 +119,11 @@ router.post('/', authenticate, async (req, res) => {
         description: data.description || null,
         createdById: userId,
         circleId: data.circleId || null,
-        visibility: data.visibility,
+        visibility: visibility,
+        isPublic: isPublic,
+        tags: data.tags || [],
+        shareWithCircle: shareWithCircle,
+        makePublic: isPublic,
       })
       .returning();
 
