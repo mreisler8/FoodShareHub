@@ -921,8 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       res.json(comments);
     } catch (err: any) {
-      res.status```text
-(500).json({ error: err.message });
+      res.status(500).json({ error: err.message });
     }
   });
 
