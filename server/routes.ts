@@ -790,8 +790,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const postData = insertPostSchema.parse(req.body);
-      const newPost = await storage.createPost(postData);
+      const { listIds, ...postDataRaw } = req.body;
+      const postData = insertPostSchema.parse(postDataRaw);
+      
+      // Use createPostWithLists if listIds are provided
+      const newPost = await storage.createPostWithLists(postData, listIds);
       res.status(201).json(newPost);
     } catch (err: any) {
       handleZodError(err, res);
@@ -965,6 +968,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.deleteComment(commentId);
       res.status(200).json({ message: "Comment deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Post List Item routes - User Story: Tag a Post into Lists
+  app.get("/api/posts/:postId/lists", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const lists = await storage.getListsByPost(postId);
+      res.json(lists);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/posts/:postId/lists", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.postId);
+      const { listIds } = req.body;
+
+      if (!listIds || !Array.isArray(listIds)) {
+        return res.status(400).json({ error: "listIds must be an array" });
+      }
+
+      // Verify post exists
+      const post = await storage.getPost(postId);
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      // Clear existing list associations for this post
+      const existingItems = await storage.getPostListItems(postId);
+      for (const item of existingItems) {
+        await storage.deletePostListItem(postId, item.listId);
+      }
+
+      // Add new list associations
+      const createdItems = [];
+      for (const listId of listIds) {
+        const item = await storage.createPostListItem({ postId, listId });
+        createdItems.push(item);
+      }
+
+      res.status(201).json(createdItems);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

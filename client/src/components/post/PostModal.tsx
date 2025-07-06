@@ -7,9 +7,12 @@ import { Label } from '@/components/ui/label';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Search, MapPin, Star, X, Loader2 } from 'lucide-react';
+import { Search, MapPin, Star, X, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
+import { MultiSelect } from '@/components/ui/multi-select';
+import { CreateListModal } from '@/components/lists/CreateListModal';
+import { RestaurantList } from '@shared/schema';
 
 interface PostModalProps {
   open: boolean;
@@ -49,6 +52,8 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [taggedListIds, setTaggedListIds] = useState<number[]>([]);
+  const [isCreateListOpen, setIsCreateListOpen] = useState(false);
   
   // Visibility state
   const [visibilitySettings, setVisibilitySettings] = useState({
@@ -123,6 +128,12 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     enabled: debouncedQuery.length >= 1 && showSearchResults,
   });
 
+  // Fetch user lists for tagging
+  const { data: userLists = [] } = useQuery<RestaurantList[]>({
+    queryKey: ['/api/lists'],
+    enabled: !!user,
+  });
+
   // Create/Update post mutation
   const savePostMutation = useMutation({
     mutationFn: async (postData: any) => {
@@ -137,6 +148,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
         const response = await apiRequest('POST', '/api/posts', {
           ...postData,
           userId: user.id,
+          listIds: taggedListIds,
         });
         return response.json();
       }
@@ -439,6 +451,30 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
             )}
           </div>
 
+          {/* List Tagging */}
+          <div className="space-y-2">
+            <Label htmlFor="lists">Add to list(s) (optional)</Label>
+            <MultiSelect
+              options={userLists.map(list => ({ id: list.id, name: list.name }))}
+              selected={taggedListIds}
+              onChange={setTaggedListIds}
+              placeholder="Select lists to tag this post..."
+              emptyMessage="You have no lists"
+              emptyAction={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreateListOpen(true)}
+                  className="text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Create one now
+                </Button>
+              }
+            />
+          </div>
+
           {/* Submit Buttons */}
           <div className="flex gap-3 pt-4">
             <Button
@@ -466,6 +502,16 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
           </div>
         </form>
       </DialogContent>
+      
+      {/* Create List Modal */}
+      <CreateListModal
+        open={isCreateListOpen}
+        onOpenChange={setIsCreateListOpen}
+        onSuccess={(newList) => {
+          queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
+          setTaggedListIds([...taggedListIds, newList.id]);
+        }}
+      />
     </Dialog>
   );
 }

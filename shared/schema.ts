@@ -403,5 +403,21 @@ export const insertContentReportSchema = createInsertSchema(contentReports).pick
 export type ContentReport = typeof contentReports.$inferSelect;
 export type InsertContentReport = z.infer<typeof insertContentReportSchema>;
 
+// Post List Items model (for tagging posts into lists)
+export const postListItems = pgTable("post_list_items", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").references(() => posts.id).notNull(),
+  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+});
+
+export const insertPostListItemSchema = createInsertSchema(postListItems).pick({
+  postId: true,
+  listId: true,
+});
+
+export type PostListItem = typeof postListItems.$inferSelect;
+export type InsertPostListItem = z.infer<typeof insertPostListItemSchema>;
+
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations

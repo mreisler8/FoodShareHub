@@ -12,7 +12,8 @@ import {
   restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem,
   sharedLists, type SharedList, type InsertSharedList,
   userFollowers, type UserFollower, type InsertUserFollower,
-  contentReports, type ContentReport, type InsertContentReport
+  contentReports, type ContentReport, type InsertContentReport,
+  postListItems, type PostListItem, type InsertPostListItem
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, like, desc, gt, or } from "drizzle-orm";
@@ -52,6 +53,7 @@ export interface IStorage {
   // Post operations
   getPost(id: number): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
+  createPostWithLists(post: InsertPost, listIds?: number[]): Promise<Post>;
   updatePost(id: number, post: Partial<InsertPost>): Promise<Post>;
   deletePost(id: number): Promise<void>;
   getAllPosts(): Promise<Post[]>;
@@ -65,6 +67,12 @@ export interface IStorage {
   createComment(comment: InsertComment): Promise<Comment>;
   deleteComment(id: number): Promise<void>;
   getCommentsByPost(postId: number): Promise<Comment[]>;
+  
+  // Post List Item operations
+  createPostListItem(postListItem: InsertPostListItem): Promise<PostListItem>;
+  deletePostListItem(postId: number, listId: number): Promise<void>;
+  getPostListItems(postId: number): Promise<PostListItem[]>;
+  getListsByPost(postId: number): Promise<RestaurantList[]>;
   
   // Circle operations
   getCircle(id: number): Promise<Hub | undefined>;
@@ -286,6 +294,27 @@ export class DatabaseStorage implements IStorage {
     }).returning();
     return post;
   }
+
+  async createPostWithLists(insertPost: InsertPost, listIds?: number[]): Promise<Post> {
+    const [post] = await db.insert(posts).values({
+      ...insertPost,
+      createdAt: new Date()
+    }).returning();
+    
+    // If listIds are provided, create post list items
+    if (listIds && listIds.length > 0) {
+      const postListItems = listIds.map(listId => ({
+        postId: post.id,
+        listId: listId
+      }));
+      
+      await Promise.all(
+        postListItems.map(item => this.createPostListItem(item))
+      );
+    }
+    
+    return post;
+  }
   
   async updatePost(id: number, postUpdates: Partial<InsertPost>): Promise<Post> {
     const [updatedPost] = await db
@@ -447,6 +476,37 @@ export class DatabaseStorage implements IStorage {
 
   async getCommentsByPost(postId: number): Promise<Comment[]> {
     return await db.select().from(comments).where(eq(comments.postId, postId));
+  }
+  
+  // Post List Item operations
+  async createPostListItem(insertPostListItem: InsertPostListItem): Promise<PostListItem> {
+    const [item] = await db.insert(postListItems).values({
+      ...insertPostListItem,
+      addedAt: new Date()
+    }).returning();
+    return item;
+  }
+
+  async deletePostListItem(postId: number, listId: number): Promise<void> {
+    await db.delete(postListItems).where(and(
+      eq(postListItems.postId, postId),
+      eq(postListItems.listId, listId)
+    ));
+  }
+
+  async getPostListItems(postId: number): Promise<PostListItem[]> {
+    return await db.select().from(postListItems).where(eq(postListItems.postId, postId));
+  }
+
+  async getListsByPost(postId: number): Promise<RestaurantList[]> {
+    const result = await db.select({
+      list: restaurantLists
+    })
+    .from(postListItems)
+    .innerJoin(restaurantLists, eq(postListItems.listId, restaurantLists.id))
+    .where(eq(postListItems.postId, postId));
+    
+    return result.map(item => item.list);
   }
   
   // Circle operations

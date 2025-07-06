@@ -18,7 +18,10 @@ import { TrustIndicators } from "@/components/shared/TrustIndicators";
 import { PostActions } from "@/components/post/PostActions";
 import { PostModal } from "@/components/post/PostModal";
 import { CommentList } from "@/components/post/CommentList";
+import { ListTagDisplay } from "@/components/post/ListTagDisplay";
+import { AddToListModal } from "@/components/post/AddToListModal";
 import { useAuth } from "@/hooks/use-auth";
+import { RestaurantList } from "@shared/schema";
 
 interface PostCardProps {
   post: PostWithDetails;
@@ -29,6 +32,7 @@ export function PostCard({ post }: PostCardProps) {
   const [showAllComments, setShowAllComments] = useState(false);
   const [localLikeCount, setLocalLikeCount] = useState(post.likeCount || 0);
   const [isLiked, setIsLiked] = useState(false);
+  const [isAddToListOpen, setIsAddToListOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -45,6 +49,11 @@ export function PostCard({ post }: PostCardProps) {
   const formatTimeAgo = (date: Date) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
+
+  // Fetch post lists
+  const { data: postLists = [] } = useQuery<RestaurantList[]>({
+    queryKey: [`/api/posts/${post.id}/lists`],
+  });
 
   // Check if user has liked this post
   const { data: userLikeStatus } = useQuery({
@@ -189,7 +198,11 @@ export function PostCard({ post }: PostCardProps) {
                   </div>
                 </div>
               </div>
-              <PostActions post={post} onEditClick={handleEditClick} />
+              <PostActions 
+                post={post} 
+                onEditClick={handleEditClick}
+                onAddToListClick={() => setIsAddToListOpen(true)}
+              />
             </div>
             
             {/* Restaurant & Rating Info - Emphasized */}
@@ -217,6 +230,9 @@ export function PostCard({ post }: PostCardProps) {
                   size="sm" 
                 />
               </div>
+              
+              {/* List Tags Display */}
+              <ListTagDisplay lists={postLists} className="mt-2" />
             </div>
             
             {/* Mobile only image - Small & Compact */}
@@ -332,6 +348,13 @@ export function PostCard({ post }: PostCardProps) {
           onOpenChange={setIsEditFormOpen}
         />
       )}
+      
+      {/* Add to List Modal */}
+      <AddToListModal
+        open={isAddToListOpen}
+        onOpenChange={setIsAddToListOpen}
+        postId={post.id}
+      />
     </>
   );
 }
