@@ -4,7 +4,7 @@ import { useParams, Link } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { 
   ArrowLeft, Edit, MapPin, Utensils, ChefHat, Clock, Plus, Star, 
   Share2, Eye, BookmarkPlus, BookmarkCheck, Users, Trash2, MoreVertical

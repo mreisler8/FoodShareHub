@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { ArrowLeft, User, Users } from "lucide-react";
 import { CircleWithStats } from "@/lib/types";
 

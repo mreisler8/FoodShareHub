@@ -5,7 +5,7 @@ import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { DesktopRightSidebar } from "@/components/navigation/DesktopRightSidebar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Rating } from "@/components/ui/rating";

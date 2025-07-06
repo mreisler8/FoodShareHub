@@ -5,7 +5,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
 import { Circle } from "@shared/schema";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

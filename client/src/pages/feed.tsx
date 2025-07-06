@@ -6,7 +6,7 @@ import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { PostCard } from '@/components/home/PostCard';
 import { PostModal } from '@/components/post/PostModal';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Users, Home } from 'lucide-react';
 import { PostWithDetails } from '@/lib/types';

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -10,7 +10,7 @@ interface FollowButtonProps {
   initialIsFollowing?: boolean;
   className?: string;
   size?: "sm" | "md" | "lg";
-  variant?: "default" | "secondary" | "outline" | "ghost" | "link";
+  variant?: "primary" | "secondary" | "outline";
 }
 
 export function FollowButton({

@@ -9,7 +9,7 @@ import { WelcomeSplash } from "@/components/onboarding/WelcomeSplash";
 import { QuickAddRestaurant } from "@/components/restaurant/QuickAddRestaurant";
 import { PostCard } from "@/components/home/PostCard";
 import { PostModal } from "@/components/post/PostModal";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";

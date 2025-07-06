@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 

@@ -6,7 +6,7 @@ import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostCard } from "@/components/home/PostCard";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { CreatePostButton } from "@/components/create-post/CreatePostButton";
 import { ArrowLeft, CalendarDays, MapPin, Settings, Share2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";

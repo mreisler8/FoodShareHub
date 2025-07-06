@@ -7,7 +7,7 @@ import {
   ArrowLeft, Heart, MessageCircle, Bookmark, Share2, 
   MoreHorizontal, MapPin, Utensils, Globe, Users, Send
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Rating } from "@/components/ui/rating";
 import { Badge } from "@/components/ui/badge";

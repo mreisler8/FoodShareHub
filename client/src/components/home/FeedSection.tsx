@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { PostCard } from "./PostCard";
 import { PostWithDetails } from "@/lib/types";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Filter, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
