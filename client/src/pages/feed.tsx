@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import InfiniteScroll from 'react-infinite-scroll-component';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { PostCard } from '@/components/home/PostCard';
@@ -10,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Users, Home } from 'lucide-react';
 import { PostWithDetails } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
+import './FeedPage.css';
 
 interface FeedPageProps {
   scope?: 'feed' | 'circle';
@@ -34,6 +36,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const [allPosts, setAllPosts] = useState<PostWithDetails[]>([]);
   const [showPostModal, setShowPostModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'feed' | 'circle'>(scope);
+  const [hasMore, setHasMore] = useState(true);
   const limit = 10;
 
   // Get user's circles for tab navigation
@@ -46,6 +49,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   useEffect(() => {
     setAllPosts([]);
     setPage(1);
+    setHasMore(true);
   }, [activeTab, circleId]);
 
   // Fetch posts based on current scope and page
@@ -54,7 +58,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
     enabled: !!user,
   });
 
-  // Accumulate posts for "Load more" functionality
+  // Accumulate posts for infinite scroll
   useEffect(() => {
     if (feedData?.posts) {
       if (page === 1) {
@@ -62,14 +66,18 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
       } else {
         setAllPosts(prev => [...prev, ...feedData.posts]);
       }
+      setHasMore(feedData.pagination?.hasMore ?? false);
     }
   }, [feedData, page]);
 
-  const handleLoadMore = () => {
-    if (feedData?.pagination?.hasMore) {
+  // Fetch more posts for infinite scroll
+  const fetchMorePosts = () => {
+    if (hasMore && !isLoading) {
       setPage(prev => prev + 1);
     }
   };
+
+
 
   const handleTabChange = (newTab: string) => {
     if (newTab === 'feed' || newTab === 'circle') {
@@ -145,25 +153,27 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     <p className="text-red-500">Failed to load feed posts</p>
                   </div>
                 ) : allPosts.length > 0 ? (
-                  <>
+                  <InfiniteScroll
+                    dataLength={allPosts.length}
+                    next={fetchMorePosts}
+                    hasMore={hasMore}
+                    loader={
+                      <div className="flex justify-center py-6">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    }
+                    endMessage={
+                      <div className="end-msg">
+                        You've reached the end.
+                      </div>
+                    }
+                  >
                     <div className="space-y-6">
                       {allPosts.map((post) => (
                         <PostCard key={post.id} post={post} />
                       ))}
                     </div>
-                    
-                    {feedData?.pagination?.hasMore && (
-                      <div className="flex justify-center mt-6">
-                        <Button 
-                          onClick={handleLoadMore}
-                          disabled={isLoading}
-                          variant="outline"
-                        >
-                          {isLoading ? 'Loading...' : 'Load more'}
-                        </Button>
-                      </div>
-                    )}
-                  </>
+                  </InfiniteScroll>
                 ) : (
                   <div className="text-center p-8">
                     <p className="text-muted-foreground">No posts in your feed yet</p>
@@ -203,25 +213,27 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                         <p className="text-red-500">Failed to load circle posts</p>
                       </div>
                     ) : allPosts.length > 0 ? (
-                      <>
+                      <InfiniteScroll
+                        dataLength={allPosts.length}
+                        next={fetchMorePosts}
+                        hasMore={hasMore}
+                        loader={
+                          <div className="flex justify-center py-6">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          </div>
+                        }
+                        endMessage={
+                          <div className="end-msg">
+                            You've reached the end.
+                          </div>
+                        }
+                      >
                         <div className="space-y-6">
                           {allPosts.map((post) => (
                             <PostCard key={post.id} post={post} />
                           ))}
                         </div>
-                        
-                        {feedData?.pagination?.hasMore && (
-                          <div className="flex justify-center mt-6">
-                            <Button 
-                              onClick={handleLoadMore}
-                              disabled={isLoading}
-                              variant="outline"
-                            >
-                              {isLoading ? 'Loading...' : 'Load more'}
-                            </Button>
-                          </div>
-                        )}
-                      </>
+                      </InfiniteScroll>
                     ) : (
                       <div className="text-center p-8">
                         <p className="text-muted-foreground">No posts shared with your circles yet</p>

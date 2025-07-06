@@ -1,0 +1,168 @@
+Ticket 1 – Infinite‐Scroll Feed
+From the Senior PM & UI Lead
+
+Context / Persona Alignment:
+
+Tracker Taylor needs to browse friends’ posts without hunting tiny “Previous/Next” links.
+
+Explorer Alex expects a seamless discovery experience as they scroll.
+
+User Story
+
+As a frequent feed user
+I want the feed to automatically load more posts as I scroll
+So that I can continue browsing without manual pagination clicks
+
+Acceptance Criteria
+
+Auto‐Load Trigger
+
+Given I am on the Feed page (/),
+
+When I scroll within 200px of the bottom of the post list,
+
+Then the next page of posts is fetched (GET /api/posts?scope=feed&page=<next>) and appended.
+
+Loading Indicator
+
+Given there are more posts,
+
+Then show a centered <Spinner /> below the posts while loading.
+
+End‐Of‐Feed Message
+
+Given there are no more posts,
+
+Then replace the spinner with a centered message:
+
+“You’ve reached the end.”
+
+Implementation Notes
+
+Dependency: npm install react-infinite-scroll-component
+
+File: src/pages/FeedPage.tsx
+
+Import and wrap post list in <InfiniteScroll> from react-infinite-scroll-component.
+
+Manage posts, page, and hasMore in state.
+
+Move initial and subsequent fetch logic into a single fetchPosts() function.
+
+Remove existing <Pagination> or “Previous/Next” links.
+
+Styling:
+
+Add .end-msg { text-align: center; color: var(--muted); margin: 1em 0; } in FeedPage.css.
+
+Test:
+
+Create tests/feed-infinite.test.ts that mocks two pages of /api/posts and asserts that scrolling loads the second page.
+
+Commit Message:
+
+csharp
+Copy
+Edit
+feat(ui): add infinite scroll to FeedPage and remove pagination links
+Ticket 2 – Unified Button Component
+From the Senior PM & UI Lead
+
+Context / Persona Alignment:
+
+Consistent affordances help Tracker Taylor and Explorer Alex know exactly where to click.
+
+A single <Button> API prevents style drift as the app grows.
+
+User Story
+
+As a UI‐driven developer
+I want every button in the app to use a single <Button> component
+So that all click targets share consistent spacing, shape, and interaction feedback
+
+Acceptance Criteria
+
+Consistent API
+
+Given any call‐to‐action (primary, secondary, icon‐only),
+
+Then it uses <Button variant="primary|secondary" shape="default|circle">…</Button>.
+
+Unified Styles
+
+Given any <button> in the codebase,
+
+Then it renders with the new button CSS (.btn, .btn--primary, .btn--secondary, .btn--circle).
+
+No Visual Regressions
+
+Given all existing flows (Sidebar, Quick Actions, Modals, Load More),
+
+Then behavior and spacing remain consistent, with improved hover/focus states.
+
+Implementation Notes
+
+New Component: src/components/Button.tsx
+
+tsx
+Copy
+Edit
+import React from 'react';
+import './Button.css';
+
+export type ButtonVariant = 'primary' | 'secondary';
+export type ButtonShape   = 'default' | 'circle';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  shape?: ButtonShape;
+}
+
+export function Button({
+  variant = 'primary',
+  shape   = 'default',
+  className,
+  ...props
+}: ButtonProps) {
+  const classes = ['btn', `btn--${variant}`, shape === 'circle' && 'btn--circle', className]
+    .filter(Boolean)
+    .join(' ');
+  return <button className={classes} {...props} />;
+}
+Stylesheet: src/components/Button.css
+
+css
+Copy
+Edit
+.btn { padding: .5em 1em; border: none; border-radius: .375em; font-size: 1rem; cursor: pointer; }
+.btn--primary { background: hsl(210,80%,50%); color: #fff; }
+.btn--secondary { background: hsl(210,20%,90%); color: hsl(210,80%,30%); }
+.btn--primary:hover { background: hsl(210,80%,45%); }
+.btn--secondary:hover { background: hsl(210,20%,80%); }
+.btn--circle { padding: .5em; border-radius: 50%; }
+.btn:focus { outline: 3px solid hsl(210,90%,60%); outline-offset: 2px; }
+Refactor:
+
+Replace all raw <button> tags in:
+
+Sidebar (src/components/Sidebar.tsx)
+
+Quick Actions (src/components/QuickAddPanel.tsx)
+
+Modals (CreateListModal.tsx, PostModal.tsx)
+
+Load More / Pagination
+
+Swap to <Button variant="…" shape="…">…</Button>.
+
+Test:
+
+Add tests/button.test.ts to render <Button> with different props and assert the correct CSS classes appear.
+
+Commit Message:
+
+scss
+Copy
+Edit
+refactor(ui): introduce unified <Button> component and update all button usages
+Please implement Ticket 1 first. Once the infinite‐scroll flow is verified in Preview (with our personas’ experiences in mind), move on to Ticket 2 for the button refactor
