@@ -262,9 +262,19 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'List not found or unauthorized' });
     }
 
+    // Handle visibility logic consistently with creation
+    let updateData = { ...data };
+    if (data.shareWithCircle !== undefined || data.makePublic !== undefined) {
+      const shareWithCircle = data.shareWithCircle !== undefined ? data.shareWithCircle : existingList.shareWithCircle;
+      const makePublic = data.makePublic !== undefined ? data.makePublic : existingList.makePublic;
+      
+      updateData.visibility = makePublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
+      updateData.isPublic = makePublic;
+    }
+
     const [updatedList] = await db
       .update(restaurantLists)
-      .set(data)
+      .set(updateData)
       .where(eq(restaurantLists.id, listId))
       .returning();
 

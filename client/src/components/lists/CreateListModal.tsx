@@ -310,44 +310,50 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
             />
 
             <div className="space-y-3">
-              <FormLabel>Sharing Settings</FormLabel>
-              
-              <FormField
-                control={form.control}
-                name="shareWithCircle"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Share with Circle</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
+                  <FormLabel>Sharing Settings</FormLabel>
+                  
+                  <FormField
+                    control={form.control}
+                    name="shareWithCircle"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Share with Circle</FormLabel>
+                          <p className="text-xs text-muted-foreground">
+                            Allow members of your circles to view this list
+                          </p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="makePublic"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Make Public</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
+                  <FormField
+                    control={form.control}
+                    name="makePublic"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Make Public</FormLabel>
+                          <p className="text-xs text-muted-foreground">
+                            Anyone can view and share this list
+                          </p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>v>
 
             {shareWithCircle && (
               <FormField

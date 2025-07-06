@@ -11,7 +11,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses = {
   primary: 'btn-primary',
-  secondary: 'btn-secondary',
+  secondary: 'btn-secondary', 
   outline: 'btn-outline',
   ghost: 'btn-ghost',
   destructive: 'btn-destructive'
@@ -28,7 +28,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   variant = 'primary',
   size = 'md',
   loading = false,
-  disabled,
+  disabled = false,
   className,
   children,
   ...props

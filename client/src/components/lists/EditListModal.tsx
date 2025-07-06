@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import type { RestaurantList } from '@shared/schema';
+
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/Button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RestaurantList } from "@/lib/types";
 
 interface EditListModalProps {
   open: boolean;
@@ -18,29 +26,46 @@ interface EditListModalProps {
 
 export function EditListModal({ open, onOpenChange, list }: EditListModalProps) {
   const [name, setName] = useState(list.name);
-  const [description, setDescription] = useState(list.description || '');
+  const [description, setDescription] = useState(list.description || "");
   const [shareWithCircle, setShareWithCircle] = useState(list.shareWithCircle || false);
   const [makePublic, setMakePublic] = useState(list.makePublic || false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Reset form when list changes
+  useEffect(() => {
+    setName(list.name);
+    setDescription(list.description || "");
+    setShareWithCircle(list.shareWithCircle || false);
+    setMakePublic(list.makePublic || false);
+  }, [list]);
+
   const updateListMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string; shareWithCircle: boolean; makePublic: boolean }) => {
-      return apiRequest('PUT', `/api/lists/${list.id}`, data);
+    mutationFn: async () => {
+      const data = {
+        name,
+        description: description || null,
+        shareWithCircle,
+        makePublic,
+        visibility: makePublic ? 'public' : (shareWithCircle ? 'circle' : 'private')
+      };
+      
+      const res = await apiRequest("PUT", `/api/lists/${list.id}`, data);
+      return res.json();
     },
     onSuccess: () => {
       toast({
         title: "List updated",
-        description: "Your list settings have been saved.",
+        description: "Your list has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
       queryClient.invalidateQueries({ queryKey: [`/api/lists/${list.id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Update failed",
-        description: error.message || "Failed to update list. Please try again.",
+        title: "Failed to update list",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -48,29 +73,28 @@ export function EditListModal({ open, onOpenChange, list }: EditListModalProps) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateListMutation.mutate({
-      name,
-      description,
-      shareWithCircle,
-      makePublic,
-    });
+    if (!name.trim()) return;
+    updateListMutation.mutate();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit List Settings</DialogTitle>
+          <DialogTitle>Edit List</DialogTitle>
+          <DialogDescription>
+            Update your list details and sharing settings.
+          </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">List Name</Label>
+            <Label htmlFor="name">Name</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter list name"
+              placeholder="List name"
               required
             />
           </div>
@@ -81,13 +105,13 @@ export function EditListModal({ open, onOpenChange, list }: EditListModalProps) 
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a description (optional)"
-              rows={3}
+              placeholder="Describe your list (optional)"
+              className="min-h-20"
             />
           </div>
 
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Sharing Options</Label>
+          <div className="space-y-3">
+            <Label>Sharing Settings</Label>
             
             <div className="flex items-center space-x-2">
               <Checkbox
