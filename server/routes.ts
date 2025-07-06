@@ -599,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { status, contentType, limit } = req.query;
       const options: any = {};
-      
+
       if (status && typeof status === 'string') {
         options.status = status;
       }
@@ -628,7 +628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { contentType, contentId } = req.params;
       const parsedContentId = parseInt(contentId);
-      
+
       if (isNaN(parsedContentId)) {
         return res.status(400).json({ error: "Invalid content ID" });
       }
@@ -668,7 +668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.user!.id, 
         resolution
       );
-      
+
       res.json(updatedReport);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -707,7 +707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             imageUrl: item.imageUrl,
             type: 'restaurant'
           }));
-        
+
         topPicks.restaurants = restaurantPicks;
       }
 
@@ -736,7 +736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             createdAt: item.createdAt,
             type: 'post'
           }));
-        
+
         topPicks.posts = postPicks;
       }
 
@@ -792,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { listIds, ...postDataRaw } = req.body;
       const postData = insertPostSchema.parse(postDataRaw);
-      
+
       // Use createPostWithLists if listIds are provided
       const newPost = await storage.createPostWithLists(postData, listIds);
       res.status(201).json(newPost);
@@ -921,7 +921,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       res.json(comments);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      res.status```text
+(500).json({ error: err.message });
     }
   });
 
@@ -1863,6 +1864,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({ message: "Successfully joined circle", circle });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get current user information endpoint
+  app.get("/api/user", (req, res) => {
+    console.log("Checking authentication, session id:", req.sessionID);
+    console.log("Session:", req.session);
+    console.log("Is authenticated:", req.isAuthenticated());
+
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    // Return user without password
+    const { password, ...userWithoutPassword } = req.user as Express.User;
+    console.log("User authenticated:", userWithoutPassword);
+    res.json(userWithoutPassword);
+  });
+
+  // Alternative endpoint for current user (used by some components)
+  app.get("/api/me", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    // Return user without password
+    const { password, ...userWithoutPassword } = req.user as Express.User;
+    res.json(userWithoutPassword);
+  });
+
+  // Get current user's circles
+  app.get("/api/me/circles", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const circles = await storage.getCirclesByUser(req.user!.id);
+      res.json(circles);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

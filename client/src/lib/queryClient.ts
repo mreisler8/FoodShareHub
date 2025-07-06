@@ -74,13 +74,42 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      retry: 2,
-      staleTime: 60000,
-      refetchOnWindowFocus: false,
+      queryFn: async ({ queryKey }) => {
+        console.log("Query request for key:", queryKey[0]);
+
+        try {
+          const response = await fetch(queryKey[0] as string, {
+            credentials: "include",
+          });
+
+          console.log("Query response status:", response.status, response.statusText);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Query failed for", queryKey[0], ":", errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+
+          const data = await response.json();
+          console.log("Query response data:", data);
+          return data;
+        } catch (error) {
+          console.error("Query function error:", error);
+          throw error;
+        }
+      },
+      retry: (failureCount, error) => {
+        // Don't retry on 401 (authentication) or 404 (not found) errors
+        if (error.message.includes('401') || error.message.includes('404')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
     },
     mutations: {
-      retry: 2,
-    }
-  }
+      retry: false,
+    },
+  },
 });
