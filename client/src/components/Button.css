@@ -39,6 +39,34 @@
   cursor: pointer;
   transition: background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
   user-select: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: var(--shadow-focus);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Icon button specific styles */
+.btn--circle {
+  padding: var(--space-sm);
+  border-radius: var(--radius-pill);
+  width: 2.5em;  /* e.g. ~40px */
+  height: 2.5em;
 }
 
 .btn:disabled {
@@ -107,12 +135,7 @@
 }
 
 /* Circle Shape (icon buttons) */
-.btn--circle {
-  padding: var(--space-sm);
-  border-radius: var(--radius-pill);
-  width: 2.5em;  /* e.g. ~40px */
-  height: 2.5em;
-}
+
 
 /* Sizes (optional) */
 .btn--sm { 

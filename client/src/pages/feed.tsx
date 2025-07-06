@@ -77,6 +77,12 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
     }
   };
 
+  // Handle errors for infinite scroll
+  const handleError = () => {
+    // You could add toast notification here
+    console.error('Failed to load more posts');
+  };
+
 
 
   const handleTabChange = (newTab: string) => {
@@ -163,8 +169,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       </div>
                     }
                     endMessage={
-                      <div className="end-msg">
-                        You've reached the end.
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">You've reached the end.</p>
                       </div>
                     }
                   >
@@ -223,8 +229,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                           </div>
                         }
                         endMessage={
-                          <div className="end-msg">
-                            You've reached the end.
+                          <div className="text-center py-8">
+                            <p className="text-muted-foreground">You've reached the end.</p>
                           </div>
                         }
                       >
