@@ -353,7 +353,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                       </FormItem>
                     )}
                   />
-                </div>v>
+                </div>
 
             {shareWithCircle && (
               <FormField
