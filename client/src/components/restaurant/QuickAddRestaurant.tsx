@@ -328,7 +328,7 @@ export function QuickAddRestaurant() {
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             {step === "search" && "Find a Restaurant"}

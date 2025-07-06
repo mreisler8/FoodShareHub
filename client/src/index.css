@@ -13,6 +13,10 @@
     height: 100%;
     /* Prevent pull-to-refresh and overscroll behaviors on iOS */
     overscroll-behavior-y: none;
+    /* Better font rendering */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
@@ -88,5 +92,39 @@
     .h-screen {
       height: -webkit-fill-available;
     }
+  }
+}
+
+@layer utilities {
+  /* Responsive text utilities */
+  .text-responsive {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-lg {
+    @apply text-base sm:text-lg;
+  }
+  
+  /* Better touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Content width utilities */
+  .content-width {
+    @apply max-w-2xl mx-auto px-3 sm:px-4;
+  }
+  
+  .content-width-wide {
+    @apply max-w-4xl mx-auto px-3 sm:px-6;
+  }
+  
+  /* Responsive spacing */
+  .space-mobile {
+    @apply space-y-3 sm:space-y-4;
+  }
+  
+  .gap-mobile {
+    @apply gap-3 sm:gap-4;
   }
 }

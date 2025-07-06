@@ -25,62 +25,62 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg z-50 border-t border-gray-200" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
-      <div className="flex justify-around items-center h-16 max-h-16">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm shadow-lg z-50 border-t border-border" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+      <div className="flex justify-around items-center h-14 max-h-14 px-2">
         <Link href="/" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center ${isActive('/') ? 'text-primary' : 'text-neutral-500'}`}>
-            <Home className="h-5 w-5" />
-            <span className="text-xs mt-1">Home</span>
+          <div className={`h-full flex flex-col items-center justify-center transition-colors ${isActive('/') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
+            <Home className="h-4 w-4" />
+            <span className="text-xs mt-0.5">Home</span>
           </div>
         </Link>
         
         <Link href="/discover" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center ${isActive('/discover') ? 'text-primary' : 'text-neutral-500'}`}>
-            <Search className="h-5 w-5" />
-            <span className="text-xs mt-1">Discover</span>
+          <div className={`h-full flex flex-col items-center justify-center transition-colors ${isActive('/discover') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
+            <Search className="h-4 w-4" />
+            <span className="text-xs mt-0.5">Discover</span>
           </div>
         </Link>
         
         <Link href="/lists" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/lists') ? 'text-primary' : 'text-neutral-500'}`}>
-            <List className="h-5 w-5" />
-            <span className="text-xs mt-1">Lists</span>
+          <div className={`h-full flex flex-col items-center justify-center transition-colors ${location.startsWith('/lists') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
+            <List className="h-4 w-4" />
+            <span className="text-xs mt-0.5">Lists</span>
           </div>
         </Link>
         
         {isAuthenticated ? (
           <>
             <Link href="/circles" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/circles') ? 'text-primary' : 'text-neutral-500'}`}>
-                <Users className="h-5 w-5" />
-                <span className="text-xs mt-1">Circles</span>
+              <div className={`h-full flex flex-col items-center justify-center transition-colors ${location.startsWith('/circles') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
+                <Users className="h-4 w-4" />
+                <span className="text-xs mt-0.5">Circles</span>
               </div>
             </Link>
             
             <Link href="/profile" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/profile') ? 'text-primary' : 'text-neutral-500'}`}>
-                <User className="h-5 w-5" />
-                <span className="text-xs mt-1">Profile</span>
+              <div className={`h-full flex flex-col items-center justify-center transition-colors ${location.startsWith('/profile') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
+                <User className="h-4 w-4" />
+                <span className="text-xs mt-0.5">Profile</span>
               </div>
             </Link>
           </>
         ) : (
           <>
             <Link href="/auth" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center ${isActive('/auth') ? 'text-primary' : 'text-neutral-500'}`}>
-                <LogIn className="h-5 w-5" />
-                <span className="text-xs mt-1">Login</span>
+              <div className={`h-full flex flex-col items-center justify-center transition-colors ${isActive('/auth') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
+                <LogIn className="h-4 w-4" />
+                <span className="text-xs mt-0.5">Login</span>
               </div>
             </Link>
             
             <button 
-              className="flex-1 h-full outline-none border-0 bg-transparent"
+              className="flex-1 h-full outline-none border-0 bg-transparent transition-colors hover:text-red-400 touch-manipulation"
               onClick={handleLogout}
               aria-label="Logout"
             >
               <div className="h-full flex flex-col items-center justify-center text-red-500">
-                <LogOut className="h-5 w-5" />
-                <span className="text-xs mt-1">Logout</span>
+                <LogOut className="h-4 w-4" />
+                <span className="text-xs mt-0.5">Logout</span>
               </div>
             </button>
           </>

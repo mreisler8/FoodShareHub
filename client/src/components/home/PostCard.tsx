@@ -153,7 +153,7 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-4 transition-transform duration-200 hover:translate-y-[-2px] border border-neutral-100">
+      <div className="bg-card rounded-lg shadow-sm overflow-hidden mb-3 border">
         <div className="flex">
           {/* Left column - minimal image */}
           {images.length > 0 && (
@@ -169,7 +169,7 @@ export function PostCard({ post }: PostCardProps) {
           {/* Right column - text-focused content */}
           <div className="flex-1">
             {/* Post Header */}
-            <div className="p-3 flex items-center justify-between border-b border-neutral-100">
+            <div className="p-2.5 flex items-center justify-between border-b border-border/50">
               <div className="flex items-center">
                 <Link href={`/profile/${post.userId}`} className="cursor-pointer">
                   <Avatar className="w-8 h-8">
@@ -206,7 +206,7 @@ export function PostCard({ post }: PostCardProps) {
             </div>
             
             {/* Restaurant & Rating Info - Emphasized */}
-            <div className="px-3 py-2">
+            <div className="px-2.5 py-2">
               <Link href={`/restaurants/${post.restaurantId}`} className="flex items-center">
                 <h3 className="text-base font-medium text-primary hover:underline">{post.restaurant?.name || 'Restaurant'}</h3>
               </Link>
@@ -247,7 +247,7 @@ export function PostCard({ post }: PostCardProps) {
             )}
             
             {/* Condensed Content & Dishes */}
-            <div className="px-3 py-2">
+            <div className="px-2.5 py-2">
               <p className="text-sm text-neutral-700">{post.content}</p>
               
               {/* Dishes Tried Section - Horizontal Scrolling */}
@@ -289,7 +289,7 @@ export function PostCard({ post }: PostCardProps) {
               )}
               
               {/* Action Buttons - Simplified & Compact */}
-              <div className="flex items-center justify-between mt-3 pt-2 border-t border-neutral-100">
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
                 <div className="flex items-center space-x-3">
                   <button 
                     className={`flex items-center transition-colors ${isLiked ? 'text-red-500' : 'text-neutral-500 hover:text-red-400'}`}

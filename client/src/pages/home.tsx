@@ -86,17 +86,17 @@ export default function Home() {
   const isMobile = useIsMobile();
   
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       {/* Desktop Sidebar - only on desktop */}
       {!isMobile && <DesktopSidebar />}
       
       {/* Main Content Area */}
-      <div className="flex-1 max-w-5xl mx-auto px-4 py-6 pb-24 md:pb-6 md:px-8">
+      <div className="flex-1 w-full max-w-4xl mx-auto px-3 py-4 pb-20 md:pb-6 md:px-6 lg:px-8 overflow-x-hidden">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between mb-6 sticky top-0 bg-background z-10 pt-2">
+        <header className="md:hidden flex items-center justify-between mb-4 sticky top-0 bg-background z-20 py-3 -mx-3 px-3 border-b border-border/50">
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity" aria-label="Go to home page">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 11h.01"></path>
                 <path d="M11 15h.01"></path>
                 <path d="M16 16h.01"></path>
@@ -104,13 +104,13 @@ export default function Home() {
                 <path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"></path>
               </svg>
             </div>
-            <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">Circles</h1>
+            <h1 className="ml-2 text-xl font-heading font-bold text-neutral-900 truncate">Circles</h1>
           </Link>
-          <div className="flex items-center">
-            <button className="p-3 touch-manipulation">
+          <div className="flex items-center -mr-1">
+            <button className="p-2 touch-manipulation rounded-full hover:bg-accent">
               <Bell className="text-neutral-700 h-5 w-5" />
             </button>
-            <button className="p-3 ml-1 touch-manipulation">
+            <button className="p-2 ml-1 touch-manipulation rounded-full hover:bg-accent">
               <MessageSquare className="text-neutral-700 h-5 w-5" />
             </button>
           </div>
@@ -151,27 +151,27 @@ export default function Home() {
         )}
         
         {/* Quick Add Section - Easily add restaurants and dishes */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <QuickAddRestaurant />
             
             {/* Quick Create List */}
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <PlusCircle className="h-5 w-5 text-primary" />
+            <div className="bg-card rounded-lg p-3 shadow-sm border">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <PlusCircle className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Create Restaurant List</h3>
-                  <p className="text-sm text-gray-600">Curate and share your favorites</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-sm text-foreground truncate">Create List</h3>
+                  <p className="text-xs text-muted-foreground truncate">Curate favorites</p>
                 </div>
               </div>
               <Button 
                 onClick={() => setLocation('/lists/create')} 
                 variant="outline" 
                 size="sm" 
-                className="w-full"
+                className="w-full text-xs"
               >
                 Create New List
               </Button>
@@ -180,15 +180,17 @@ export default function Home() {
         </div>
 
         {/* Feed Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Latest Posts</h2>
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold">Latest Posts</h2>
             <Button 
               onClick={() => setShowPostModal(true)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+              size="sm"
             >
-              <PlusCircle className="h-4 w-4" />
-              New Post
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">New Post</span>
+              <span className="sm:hidden">Post</span>
             </Button>
           </div>
           
