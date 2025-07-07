@@ -13,7 +13,9 @@ import {
   sharedLists, type SharedList, type InsertSharedList,
   userFollowers, type UserFollower, type InsertUserFollower,
   contentReports, type ContentReport, type InsertContentReport,
-  postListItems, type PostListItem, type InsertPostListItem
+  postListItems, type PostListItem, type InsertPostListItem,
+  searchAnalytics, type SearchAnalytics, type InsertSearchAnalytics,
+  userSearchPreferences, type UserSearchPreferences, type InsertUserSearchPreferences
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, like, desc, gt, or, not, inArray } from "drizzle-orm";
@@ -154,6 +156,14 @@ export interface IStorage {
   getCircleByInviteCode(inviteCode: string): Promise<Circle | undefined>;
   getPersonalizedCircleSuggestions(userId: number): Promise<Circle[]>;
   joinCircleByInviteCode(inviteCode: string, userId: number): Promise<{ success: boolean; circle?: Circle; error?: string }>;
+  
+  // Search Analytics operations
+  trackSearchAnalytics(data: InsertSearchAnalytics & { timestamp: Date }): Promise<SearchAnalytics>;
+  getTrendingSearches(limit: number, timeframe: string): Promise<any[]>;
+  getPopularSearchesByCategory(category: string, limit: number): Promise<any[]>;
+  getSearchSuggestions(query: string, limit: number): Promise<string[]>;
+  getUserRecentSearches(userId: number, limit: number): Promise<string[]>;
+  updateUserRecentSearches(userId: number, query: string): Promise<void>;
 }
 
 // Implementation using PostgreSQL Database via Drizzle ORM
@@ -1180,6 +1190,117 @@ export class DatabaseStorage implements IStorage {
     .where(eq(sharedLists.listId, listId));
 
     return sharedWithData;
+  }
+
+  // Search Analytics implementation
+  async trackSearchAnalytics(data: InsertSearchAnalytics & { timestamp: Date }): Promise<SearchAnalytics> {
+    try {
+      const [analytics] = await db.insert(searchAnalytics).values({
+        userId: data.userId,
+        query: data.query,
+        category: data.category || 'all',
+        resultCount: data.resultCount || 0,
+        clicked: data.clicked || false,
+        clickedResultId: data.clickedResultId,
+        clickedResultType: data.clickedResultType,
+        timestamp: data.timestamp
+      }).returning();
+      
+      return analytics;
+    } catch (error) {
+      console.error('Error tracking search analytics:', error);
+      throw error;
+    }
+  }
+
+  async getTrendingSearches(limit: number = 10, timeframe: string = '7d'): Promise<any[]> {
+    try {
+      const days = timeframe === '30d' ? 30 : timeframe === 'all' ? 365 : 7;
+      
+      const trending = await db.execute(`
+        SELECT 
+          query,
+          COUNT(*) as search_count,
+          COUNT(DISTINCT user_id) as unique_users,
+          AVG(result_count::numeric) as avg_results
+        FROM search_analytics 
+        WHERE timestamp >= NOW() - INTERVAL '${days} days'
+        AND LENGTH(query) >= 2
+        GROUP BY query
+        HAVING COUNT(*) >= 2
+        ORDER BY COUNT(*) DESC
+        LIMIT $1
+      `, [limit]);
+      
+      return trending.rows;
+    } catch (error) {
+      console.error('Error getting trending searches:', error);
+      return [];
+    }
+  }
+
+  async getPopularSearchesByCategory(category: string, limit: number = 5): Promise<any[]> {
+    try {
+      const popular = await db.execute(`
+        SELECT 
+          query,
+          COUNT(*) as search_count
+        FROM search_analytics 
+        WHERE category = $1 
+        AND timestamp >= NOW() - INTERVAL '30 days'
+        AND LENGTH(query) >= 2
+        GROUP BY query
+        ORDER BY COUNT(*) DESC
+        LIMIT $2
+      `, [category, limit]);
+      
+      return popular.rows;
+    } catch (error) {
+      console.error('Error getting popular searches by category:', error);
+      return [];
+    }
+  }
+
+  async getSearchSuggestions(query: string, limit: number = 5): Promise<string[]> {
+    try {
+      const suggestions = await db.execute(`
+        SELECT DISTINCT query
+        FROM search_analytics 
+        WHERE query ILIKE $1
+        AND LENGTH(query) >= 2
+        AND result_count > 0
+        GROUP BY query
+        ORDER BY COUNT(*) DESC
+        LIMIT $2
+      `, [`${query}%`, limit]);
+      
+      return suggestions.rows.map((row: any) => row.query);
+    } catch (error) {
+      console.error('Error getting search suggestions:', error);
+      return [];
+    }
+  }
+
+  async getUserRecentSearches(userId: number, limit: number = 10): Promise<string[]> {
+    try {
+      const recent = await db.execute(`
+        SELECT DISTINCT query
+        FROM search_analytics 
+        WHERE user_id = $1
+        AND LENGTH(query) >= 2
+        ORDER BY MAX(timestamp) DESC
+        LIMIT $2
+      `, [userId, limit]);
+      
+      return recent.rows.map((row: any) => row.query);
+    } catch (error) {
+      console.error('Error getting user recent searches:', error);
+      return [];
+    }
+  }
+
+  async updateUserRecentSearches(userId: number, query: string): Promise<void> {
+    // This is handled automatically by trackSearchAnalytics
   }
 }
 

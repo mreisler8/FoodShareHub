@@ -441,5 +441,51 @@ export const insertPostListItemSchema = createInsertSchema(postListItems).pick({
 export type PostListItem = typeof postListItems.$inferSelect;
 export type InsertPostListItem = z.infer<typeof insertPostListItemSchema>;
 
+// Search Analytics model for tracking user search behavior
+export const searchAnalytics = pgTable("search_analytics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id), // null for anonymous users
+  query: text("query").notNull(),
+  category: text("category").default("all").notNull(), // 'restaurant', 'list', 'post', 'user', 'all'
+  resultCount: integer("result_count").default(0).notNull(),
+  clicked: boolean("clicked").default(false).notNull(),
+  clickedResultId: text("clicked_result_id"),
+  clickedResultType: text("clicked_result_type"), // 'restaurant', 'list', 'post', 'user'
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export const insertSearchAnalyticsSchema = createInsertSchema(searchAnalytics).pick({
+  userId: true,
+  query: true,
+  category: true,
+  resultCount: true,
+  clicked: true,
+  clickedResultId: true,
+  clickedResultType: true,
+});
+
+export type SearchAnalytics = typeof searchAnalytics.$inferSelect;
+export type InsertSearchAnalytics = z.infer<typeof insertSearchAnalyticsSchema>;
+
+// User Search Preferences model for personalized search
+export const userSearchPreferences = pgTable("user_search_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  recentSearches: text("recent_searches").array(), // Last 20 searches
+  favoriteCategories: text("favorite_categories").array(), // Preferred search categories
+  searchFilters: json("search_filters"), // User's preferred default filters
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserSearchPreferencesSchema = createInsertSchema(userSearchPreferences).pick({
+  userId: true,
+  recentSearches: true,
+  favoriteCategories: true,
+  searchFilters: true,
+});
+
+export type UserSearchPreferences = typeof userSearchPreferences.$inferSelect;
+export type InsertUserSearchPreferences = z.infer<typeof insertUserSearchPreferencesSchema>;
+
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations

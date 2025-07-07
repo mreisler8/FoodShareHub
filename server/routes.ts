@@ -26,6 +26,7 @@ import { authenticate } from "./auth.js";
 import recommendationsRouter from "./routes/recommendations.js";
 import listsRouter from "./routes/lists.js";
 import searchRouter from "./routes/search.js";
+import searchAnalyticsRouter from "./routes/search-analytics.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -2013,6 +2014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Search
   app.use('/api/search', searchRouter);
+  app.use('/api/search-analytics', searchAnalyticsRouter);
 
   return httpServer;
 }
