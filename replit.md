@@ -324,6 +324,32 @@ The application uses a comprehensive PostgreSQL schema including:
     - Eliminated style drift potential through consistent component API
     - Added proper TypeScript interfaces with strict variant and size typing
   - **Feature Status**: Complete unified Button component with design spec compliance and full codebase integration
+- July 02, 2025: **One-Click Circle Joining with Shareable Links Implementation**:
+  - **Database Schema Enhancement**:
+    - Added invite_code, allow_public_join, primary_cuisine, price_range, location, member_count, featured, and trending columns to circles table
+    - Auto-generated unique 8-character alphanumeric invite codes for new circles
+    - Enhanced circle metadata for better discovery and personalization capabilities
+  - **Backend API Development**:
+    - Implemented GET /api/circles/invite/:inviteCode endpoint for circle preview before joining
+    - Created POST /api/circles/join/:inviteCode endpoint for one-click circle joining
+    - Added invite code generation logic in circle creation with uniqueness validation
+    - Enhanced circle creation to support public joining settings and metadata
+  - **Frontend Components**:
+    - Built JoinCircleModal component with live circle preview and invite code validation
+    - Created JoinCirclePage for dedicated shareable link handling with auto-join functionality
+    - Enhanced circles page with invite code display and copy-to-clipboard functionality
+    - Added public joining checkbox to circle creation form for granular control
+  - **Shareable Links System**:
+    - Implemented URL format /join/{inviteCode} for direct circle joining
+    - Added auto-join logic for authenticated users on shareable link visits
+    - Enhanced invite code display in circle management with visual indicators
+    - Integrated copy-to-clipboard functionality for easy link sharing
+  - **User Experience Enhancements**:
+    - Added circle preview cards showing cuisine, price range, location, and member count
+    - Implemented security controls to restrict joining to public-enabled circles only
+    - Created seamless routing between join modal, join page, and circle details
+    - Enhanced homepage Quick Actions with prominent "Create Circle" functionality
+  - **Feature Status**: Complete one-click circle joining system with shareable links, auto-join, and comprehensive circle management
 ## Development Backlog
 
 ### Next Priority: Comments & Likes on Dining Posts (User Story 8)
