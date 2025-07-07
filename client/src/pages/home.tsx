@@ -35,7 +35,7 @@ function TopPicks() {
   return (
     <div className="picks-grid">
       {restaurants.slice(0, 3).map((restaurant: any) => (
-        <Card key={restaurant.id} className="pick-card" hover>
+        <Card key={restaurant.id} className="pick-card">
           <div className="pick-card-image" />
           <div className="pick-card-content">
             <h4 className="pick-card-title">{restaurant.name}</h4>
@@ -55,7 +55,7 @@ function TopPicks() {
       ))}
 
       {posts.slice(0, 2).map((post: any) => (
-        <Card key={`post-${post.id}`} className="pick-card" hover>
+        <Card key={`post-${post.id}`} className="pick-card">
           <div className="pick-card-image" />
           <div className="pick-card-content">
             <h4 className="pick-card-title">{post.restaurant.name}</h4>
