@@ -19,11 +19,11 @@ async function apiFetch(url: string): Promise<any> {
     },
     credentials: 'include',
   });
-  
+
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  
+
   return response.json();
 }
 
@@ -158,10 +158,10 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
       // Find the restaurant being added
       const restaurant = searchResults.find(r => r.id === data.restaurantId);
       if (!restaurant) throw new Error("Restaurant not found");
-      
+
       // Handle both database and Google Places results
       let restaurantId: number;
-      
+
       if (restaurant.source === 'database') {
         restaurantId = parseInt(restaurant.id);
       } else {
@@ -178,7 +178,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
         const newRestaurant = await response.json() as { id: number };
         restaurantId = newRestaurant.id;
       }
-      
+
       const payload = {
         restaurantId: restaurantId,
         rating: data.rating,
@@ -186,26 +186,26 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
         disliked: data.disliked || null,
         notes: data.notes || null,
       };
-      
+
       return await apiRequest("POST", `/api/lists/${listId}/items`, payload);
     },
     onSuccess: (_, variables) => {
       // Invalidate list details to refresh items
       queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
-      
+
       const restaurant = searchResults.find(r => r.id === variables.restaurantId);
       toast({
         title: "Restaurant added!",
         description: `${restaurant?.name} has been added to your list.`,
       });
-      
+
       // Reset state
       setAddingId(null);
       setSearchQuery("");
       setDebouncedQuery("");
       setSearchResults([]);
       setShowDropdown(false);
-      
+
       // Call completion callback if provided (only for legacy non-optimistic usage)
       if (onAddCompleted) {
         onAddCompleted();
@@ -223,11 +223,11 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
   // Handle saving from inline form
   const handleSave = async (data: { rating: number; liked: string; disliked: string; notes: string }) => {
     if (!addingId) return;
-    
+
     // Find the restaurant name for the optimistic callback
     const restaurant = searchResults.find(r => r.id === addingId);
     const restaurantName = restaurant?.name || "Unknown Restaurant";
-    
+
     // If we have an optimistic callback, use it
     if (onRestaurantAdded) {
       try {
@@ -239,14 +239,14 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
           disliked: data.disliked,
           notes: data.notes
         });
-        
+
         // Reset state on success
         setAddingId(null);
         setSearchQuery("");
         setDebouncedQuery("");
         setSearchResults([]);
         setShowDropdown(false);
-        
+
         // Call completion callback
         if (onAddCompleted) {
           onAddCompleted();
@@ -299,7 +299,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
           className="pl-10"
           autoComplete="off"
         />
-        
+
         {/* Dropdown Results */}
         {showDropdown && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
@@ -344,7 +344,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
                             <span className="text-gray-500 text-xs">No img</span>
                           </div>
                         )}
-                        
+
                         <div className="flex-1 min-w-0">
                           {/* Restaurant Name */}
                           <h3 className="font-medium text-gray-900 truncate">{restaurant.name}</h3>
@@ -359,7 +359,7 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
                             )}
                           </div>
                         </div>
-                        
+
                         {/* Add Button */}
                         <Button
                           className="add-btn flex-shrink-0"

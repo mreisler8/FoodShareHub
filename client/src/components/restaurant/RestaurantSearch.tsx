@@ -80,11 +80,11 @@ export function RestaurantSearch({
           
           <div className="space-y-4 my-4">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-neutral-500" />
+              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-neutral-500" />
               <Input
                 type="text"
                 placeholder="Search by name, location, or cuisine..."
-                className="pl-9"
+                className="pl-11"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
