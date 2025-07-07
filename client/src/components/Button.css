@@ -1,8 +1,8 @@
 :root {
-  /* Colors */
+  /* Colors - Fresh & Natural Theme */
   --color-primary:    #E76F51;  /* Burnt Sienna */
   --color-primary-hover: hsl(14, 63%, 50%);/* Slightly darker */
-  --color-primary-active:#D63E1F;/* Burnt Sienna active */
+  --color-primary-active: hsl(14, 63%, 45%);/* Burnt Sienna active */
   --color-secondary:  #E5E7EB;  /* Gray-200 */
   --color-secondary-hover:#D1D5DB;/* Gray-300 */
   --color-secondary-active:#9CA3AF;/* Gray-400 */
@@ -82,18 +82,18 @@
 
 /* Style Variants */
 .btn-primary {
-  background: linear-gradient(135deg, rgb(29 78 216) 0%, rgb(30 64 175) 100%);
+  background: var(--color-primary); /* Burnt Sienna */
   color: white;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgb(30 64 175) 0%, rgb(30 58 138) 100%);
+    background: var(--color-primary-hover);
     transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px -1px rgba(231, 111, 81, 0.3), 0 2px 4px -1px rgba(231, 111, 81, 0.2);
   }
 
   &:active:not(:disabled) {
-    background: linear-gradient(135deg, rgb(30 58 138) 0%, rgb(23 37 84) 100%);
+    background: var(--color-primary-active);
     transform: translateY(0);
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   }

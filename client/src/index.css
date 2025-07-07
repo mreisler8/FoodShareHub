@@ -13,19 +13,19 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 5%;
     
-    /* Primary - Modern Teal (Professional & Versatile) */
-    --primary: 175 82% 25%; /* #0F766E */
+    /* Primary - Burnt Sienna (Fresh & Natural Theme) */
+    --primary: 14 73% 61%; /* #E76F51 - Burnt Sienna */
     --primary-foreground: 0 0% 100%;
-    --primary-50: 175 100% 97%;
-    --primary-100: 175 95% 93%;
-    --primary-200: 175 97% 87%;
-    --primary-300: 175 96% 78%;
-    --primary-400: 175 94% 68%;
-    --primary-500: 175 82% 25%;
-    --primary-600: 175 92% 20%; /* hover state */
-    --primary-700: 175 100% 18%;
-    --primary-800: 175 100% 15%;
-    --primary-900: 175 100% 12%;
+    --primary-50: 14 100% 97%;
+    --primary-100: 14 95% 93%;
+    --primary-200: 14 97% 87%;
+    --primary-300: 14 96% 78%;
+    --primary-400: 14 94% 68%;
+    --primary-500: 14 73% 61%;
+    --primary-600: 14 63% 50%; /* hover state - slightly darker */
+    --primary-700: 14 100% 45%;
+    --primary-800: 14 100% 40%;
+    --primary-900: 14 100% 35%;
     
     /* Secondary - Subtle Gray */
     --secondary: 210 40% 98%;
@@ -39,14 +39,19 @@
     --accent: 175 43% 96%; /* Very light Teal */
     --accent-foreground: 215 25% 27%;
     
-    /* Complementary warm orange for highlights */
-    --warm-orange: 24 95% 58%; /* #F97316 */
-    --warm-orange-30: 24 95% 58% / 0.3;
-    --warm-orange-50: 24 95% 58% / 0.5;
+    /* Fresh & Natural Color Palette */
+    --burnt-sienna: 14 73% 61%; /* #E76F51 - Primary */
+    --burnt-sienna-30: 14 73% 61% / 0.3;
+    --burnt-sienna-50: 14 73% 61% / 0.5;
     
-    /* Teal variations for backgrounds */
-    --teal-light: 175 57% 39%; /* #14B8A6 */
-    --teal-light-5: 175 57% 39% / 0.05;
+    /* Soft Sand for borders and accents */
+    --soft-sand: 44 73% 66%; /* #E9C46A */
+    --soft-sand-30: 44 73% 66% / 0.3;
+    --soft-sand-50: 44 73% 66% / 0.5;
+    
+    /* Persian Green for subtle backgrounds */
+    --persian-green: 175 57% 39%; /* #2A9D8F */
+    --persian-green-5: 175 57% 39% / 0.05;
     
     /* Status Colors */
     --destructive: 0 84% 60%;
@@ -56,10 +61,10 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
     
-    /* Border & Input */
+    /* Border & Input - Fresh & Natural Theme */
     --border: 44 73% 66% / 0.3; /* Soft Sand at 30% */
     --input: 44 73% 66% / 0.3; /* Soft Sand at 30% */
-    --ring: 14 73% 61%; /* Burnt Sienna for focus rings */
+    --ring: 44 73% 66%; /* Soft Sand for focus rings */
     
     /* Typography */
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

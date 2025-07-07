@@ -48,8 +48,8 @@
 }
 
 .hero-search-btn {
-  background: hsl(var(--persian-green-5)); /* Very light Persian Green tint */
-  border: 1.5px solid hsl(var(--soft-sand-30)); /* Soft Sand at 30% */
+  background: rgba(42, 157, 143, 0.05); /* Persian Green at 5% */
+  border: 1.5px solid rgba(233, 196, 106, 0.3); /* Soft Sand at 30% */
   color: hsl(var(--foreground));
   transition: all 0.2s ease;
   display: flex;
@@ -62,26 +62,26 @@
 }
 
 .hero-search-btn::placeholder {
-  color: hsl(0 0% 40%); /* Darker placeholder text */
+  color: hsl(0, 0%, 40%); /* Darker placeholder text */
   opacity: 1;
 }
 
 .hero-search-btn:hover {
   background: hsl(var(--accent));
-  border-color: hsl(var(--primary));
+  border-color: #E76F51; /* Burnt Sienna */
   transform: none; /* Remove transforms for cleaner feel */
   color: hsl(var(--foreground));
 }
 
 .hero-search-btn:focus {
   outline: none;
-  box-shadow: 0 0 0 3px hsl(var(--soft-sand-50)); /* Soft Sand focus ring */
+  box-shadow: 0 0 0 3px rgba(233, 196, 106, 0.5); /* Soft Sand focus ring */
 }
 
 .hero-cta {
-  background: hsl(var(--primary)); /* Burnt Sienna */
-  border: 1.5px solid hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: #E76F51; /* Burnt Sienna */
+  border: 1.5px solid #E76F51;
+  color: white;
   transition: all 0.2s ease;
   font-weight: 600;
   border-radius: 50px; /* Pill-shaped */
@@ -93,10 +93,10 @@
 }
 
 .hero-cta:hover {
-  background: hsl(var(--primary-600)); /* Slightly darker on hover */
-  border-color: hsl(var(--primary-600));
+  background: hsl(14, 63%, 50%); /* Slightly darker on hover */
+  border-color: hsl(14, 63%, 50%);
   transform: none;
-  color: hsl(var(--primary-foreground));
+  color: white;
 }
 
 /* Mobile optimizations */

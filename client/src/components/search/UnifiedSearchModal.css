@@ -82,7 +82,7 @@
 
 .suggestion-item:hover {
   background: hsl(var(--accent));
-  border-color: hsl(var(--primary));
+  border-color: #E76F51; /* Burnt Sienna */
 }
 
 .trending-list {
@@ -102,7 +102,7 @@
 
 .trending-item:hover {
   background: hsl(var(--accent));
-  border-color: hsl(var(--primary));
+  border-color: #E76F51; /* Burnt Sienna */
 }
 
 .trending-content {
