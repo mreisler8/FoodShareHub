@@ -487,21 +487,5 @@ export const insertUserSearchPreferencesSchema = createInsertSchema(userSearchPr
 export type UserSearchPreferences = typeof userSearchPreferences.$inferSelect;
 export type InsertUserSearchPreferences = z.infer<typeof insertUserSearchPreferencesSchema>;
 
-// User Followers model for public following feature
-export const userFollowers = pgTable("user_followers", {
-  id: serial("id").primaryKey(),
-  followerId: integer("follower_id").references(() => users.id).notNull(),
-  followingId: integer("following_id").references(() => users.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertUserFollowerSchema = createInsertSchema(userFollowers).pick({
-  followerId: true,
-  followingId: true,
-});
-
-export type UserFollower = typeof userFollowers.$inferSelect;
-export type InsertUserFollower = z.infer<typeof insertUserFollowerSchema>;
-
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations

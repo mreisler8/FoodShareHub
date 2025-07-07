@@ -27,18 +27,18 @@ export function FollowsPanel({ userId, className = "" }: FollowsPanelProps) {
 
   // Fetch followers
   const { data: followers, isLoading: followersLoading } = useQuery<FollowUser[]>({
-    queryKey: [`/api/user/${userId}/followers`],
+    queryKey: [`/api/follow/followers/${userId}`],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/user/${userId}/followers`);
+      const res = await apiRequest("GET", `/api/follow/followers/${userId}`);
       return res.json();
     },
   });
 
   // Fetch following
   const { data: following, isLoading: followingLoading } = useQuery<FollowUser[]>({
-    queryKey: [`/api/user/${userId}/following`],
+    queryKey: [`/api/follow/following/${userId}`],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/user/${userId}/following`);
+      const res = await apiRequest("GET", `/api/follow/following/${userId}`);
       return res.json();
     },
   });

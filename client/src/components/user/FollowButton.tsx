@@ -25,6 +25,7 @@ export function FollowButton({
 }: FollowButtonProps) {
   const currentUser = useCurrentUser();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Don't show follow button for self
   if (currentUser?.id === userId) {
