@@ -7,7 +7,7 @@
   top: 0;
   z-index: 50;
   backdrop-filter: blur(8px);
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: hsl(var(--background) / 0.95);
 }
 
 .hero-content {
@@ -25,7 +25,7 @@
 .hero-title {
   font-size: 1.75rem;
   font-weight: 800;
-  color: hsl(var(--foreground));
+  color: hsl(var(--primary));
   margin-bottom: 0.5rem;
   line-height: 1.2;
   letter-spacing: -0.025em; /* Tight letter spacing like modern apps */

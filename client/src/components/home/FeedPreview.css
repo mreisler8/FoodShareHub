@@ -11,7 +11,7 @@
 }
 
 .feed-preview-post {
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--border));
   border-radius: 12px;
   overflow: hidden;
 }
@@ -20,7 +20,7 @@
   display: flex;
   justify-content: center;
   padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid hsl(var(--border));
 }
 
 .load-more-button {

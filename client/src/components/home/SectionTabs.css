@@ -7,10 +7,10 @@
 .tabs-container {
   display: flex;
   gap: 0.5rem;
-  background: #f8fafc;
+  background: hsl(var(--muted));
   border-radius: 12px;
   padding: 4px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--border));
 }
 
 .tab-button {
@@ -18,7 +18,7 @@
   padding: 12px 24px;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   font-weight: 500;
   font-size: 14px;
   border-radius: 8px;
@@ -28,14 +28,14 @@
 }
 
 .tab-button:hover {
-  background: #e2e8f0;
-  color: #475569;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 .tab-button.active {
-  background: #ffffff;
-  color: #0f172a;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: hsl(var(--background));
+  color: hsl(var(--primary));
+  box-shadow: var(--shadow-sm);
   font-weight: 600;
 }
 

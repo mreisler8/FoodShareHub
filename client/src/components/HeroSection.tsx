@@ -37,7 +37,7 @@ export function HeroSection() {
         <div className="hero-content">
           <div className="hero-text">
             <h1 className="hero-title">
-              {getGreeting()}, {user?.name?.split(' ')[0] || 'Foodie'}! 🍽️
+              {getGreeting()}, {user?.name?.split(' ')[0] || 'Foodie'}! 
             </h1>
             <p className="hero-subtitle">
               Find amazing restaurants through friends you trust, not strangers online
