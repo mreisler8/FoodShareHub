@@ -2,6 +2,8 @@
 .home-page {
   min-height: 100vh;
   background: hsl(var(--background));
+  margin: 0;
+  padding: 0;
 }
 
 .main-content {
