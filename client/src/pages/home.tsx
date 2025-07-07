@@ -140,7 +140,7 @@ export default function Home() {
           {/* Hero Section */}
           <HeroSection />
 
-          <div className="home-main">
+          <div className="main-content">
             {/* Main Content with Tabs */}
             <section className="home-section main-content-section">
               <SectionTabs 

@@ -7,14 +7,14 @@
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 0.75rem;
 }
 
 .content-wrapper {
   display: grid;
   grid-template-columns: 1fr 300px;
-  gap: 2rem;
-  padding: 2rem 0;
+  gap: 1.5rem;
+  padding: 1rem 0;
 }
 
 .primary-content {
@@ -84,14 +84,14 @@
 }
 
 .home-section {
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .section-title {
@@ -114,13 +114,13 @@
 .main-content-section {
   background: hsl(var(--card));
   border-radius: 16px;
-  padding: 2rem;
+  padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid hsl(var(--border));
 }
 
 .tab-content {
-  margin-top: 2rem;
+  margin-top: 1rem;
 }
 
 .quick-actions-section .grid {
@@ -144,7 +144,7 @@
 .feed-section {
   background: white;
   border-radius: 16px;
-  padding: 2rem;
+  padding: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   border: 1px solid #e2e8f0;
 }
