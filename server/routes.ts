@@ -923,8 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newLike = await storage.createLike({ postId, userId });
       res.status(201).json(newLike);
     } catch (err: any) {
-```tool_code
-      res.status(500).json({ error: err.message });
+res.status(500).json({ error: err.message });
     }
   });
 
@@ -1839,8 +1838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  ```tool_code
-app.get("/api/circles/:circleId/shared-lists", async (req, res) => {
+  app.get("/api/circles/:circleId/shared-lists", async (req, res) => {
     try {
       const circleId = parseInt(req.params.circleId);
 
