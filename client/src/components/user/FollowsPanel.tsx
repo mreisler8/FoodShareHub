@@ -121,3 +121,142 @@ export function FollowsPanel({ userId, className = "" }: FollowsPanelProps) {
     </Card>
   );
 }
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FollowButton } from "./FollowButton";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Users, UserCheck } from "lucide-react";
+import { Link } from "wouter";
+
+interface FollowsPanelProps {
+  userId: number;
+  userName: string;
+  activeTab?: "followers" | "following";
+}
+
+interface FollowUser {
+  id: number;
+  name: string;
+  username: string;
+  profilePicture?: string;
+  bio?: string;
+  followedAt: string;
+}
+
+export function FollowsPanel({ userId, userName, activeTab = "followers" }: FollowsPanelProps) {
+  const { data: followers, isLoading: followersLoading } = useQuery<FollowUser[]>({
+    queryKey: [`/api/follow/followers/${userId}`],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/follow/followers/${userId}`);
+      return res.json();
+    },
+  });
+
+  const { data: following, isLoading: followingLoading } = useQuery<FollowUser[]>({
+    queryKey: [`/api/follow/following/${userId}`],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/follow/following/${userId}`);
+      return res.json();
+    },
+  });
+
+  const renderUserList = (users: FollowUser[] | undefined, isLoading: boolean, emptyMessage: string) => {
+    if (isLoading) {
+      return (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center space-x-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-32 mb-1" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (!users || users.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+          <p>{emptyMessage}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {users.map((user) => (
+          <div key={user.id} className="flex items-center space-x-3">
+            <Link href={`/profile/${user.id}`} className="flex items-center space-x-3 flex-1 min-w-0">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={user.profilePicture} />
+                <AvatarFallback>
+                  {user.name?.charAt(0)?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{user.name}</p>
+                <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
+                {user.bio && (
+                  <p className="text-xs text-muted-foreground truncate mt-1">{user.bio}</p>
+                )}
+              </div>
+            </Link>
+            <FollowButton userId={user.id} userName={user.name} size="sm" />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="h-5 w-5" />
+            <span>Followers</span>
+            <Badge variant="secondary">{followers?.length || 0}</Badge>
+          </CardTitle>
+          <CardDescription>
+            People following {userName}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {renderUserList(
+            followers, 
+            followersLoading, 
+            `${userName} doesn't have any followers yet.`
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <UserCheck className="h-5 w-5" />
+            <span>Following</span>
+            <Badge variant="secondary">{following?.length || 0}</Badge>
+          </CardTitle>
+          <CardDescription>
+            People {userName} follows
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {renderUserList(
+            following, 
+            followingLoading, 
+            `${userName} isn't following anyone yet.`
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

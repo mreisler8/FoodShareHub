@@ -27,6 +27,9 @@ import recommendationsRouter from "./routes/recommendations.js";
 import listsRouter from "./routes/lists.js";
 import searchRouter from "./routes/search.js";
 import searchAnalyticsRouter from "./routes/search-analytics.js";
+import followRoutes from './routes/follow';
+import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
+import { userFollowers, posts, restaurants, users } from "./db/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -454,56 +457,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/feed", async (req, res) => {
+  // GET /feed - get paginated feed posts for authenticated user
+  app.get('/api/feed', authenticate, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res
-          .status(401)
-          .json({ error: "You must be logged in to view your feed" });
-      }
-
-      // Get feed posts with pagination support and scope filtering
-      const page = req.query.page ? parseInt(req.query.page as string) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const scope = req.query.scope as string || 'feed'; // 'feed' or 'circle'
-      const circleId = req.query.circleId ? parseInt(req.query.circleId as string) : undefined;
-
-      // Add query validation
-      if (isNaN(page) || page < 1) {
-        return res.status(400).json({ error: "Invalid page parameter" });
-      }
-
-      if (isNaN(limit) || limit < 1 || limit > 50) {
-        return res.status(400).json({ error: "Invalid limit parameter" });
-      }
-
-      if (scope === 'circle' && (!circleId || isNaN(circleId))) {
-        return res.status(400).json({ error: "Circle ID is required for circle scope" });
-      }
-
-      // Apply offset pagination
+      const userId = req.user!.id;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
 
-      // Get paginated posts based on scope
-      let feedPosts;
-      if (scope === 'circle' && circleId) {
-        // Get posts shared to the specific circle
-        feedPosts = await storage.getFeedPosts({
-          userId: req.user.id,
-          offset,
-          limit,
-          scope: 'circle',
-          circleId,
-        });
-      } else {
-        // Default feed - posts by followed users where visibility.feed === true
-        feedPosts = await storage.getFeedPosts({
-          userId: req.user.id,
-          offset,
-          limit,
-          scope: 'feed',
-        });
-      }
+      // Get users that current user follows
+      const followingUsers = await db
+        .select({ id: userFollowers.followingId })
+        .from(userFollowers)
+        .where(eq(userFollowers.followerId, userId));
+
+      const followingUserIds = followingUsers.map(u => u.id);
+
+      const feedPosts = await db
+        .select({
+          id: posts.id,
+          userId: posts.userId,
+          restaurantId: posts.restaurantId,
+          content: posts.content,
+          rating: posts.rating,
+          visibility: posts.visibility,
+          dishesTried: posts.dishesTried,
+          images: posts.images,
+          priceAssessment: posts.priceAssessment,
+          atmosphere: posts.atmosphere,
+          serviceRating: posts.serviceRating,
+          dietaryOptions: posts.dietaryOptions,
+          createdAt: posts.createdAt,
+          restaurant: {
+            id: restaurants.id,
+            name: restaurants.name,
+            location: restaurants.location,
+            category: restaurants.category,
+            priceRange: restaurants.priceRange,
+            openTableId: restaurants.openTableId,
+            resyId: restaurants.resyId,
+            googlePlaceId: restaurants.googlePlaceId,
+            address: restaurants.address,
+            neighborhood: restaurants.neighborhood,
+            city: restaurants.city,
+            state: restaurants.state,
+            country: restaurants.country,
+            postalCode: restaurants.postalCode,
+            latitude: restaurants.latitude,
+            longitude: restaurants.longitude,
+            phone: restaurants.phone,
+            website: restaurants.website,
+            cuisine: restaurants.cuisine,
+            hours: restaurants.hours,
+            description: restaurants.description,
+            imageUrl: restaurants.imageUrl,
+            verified: restaurants.verified,
+            createdAt: restaurants.createdAt,
+            updatedAt: restaurants.updatedAt,
+          },
+          author: {
+            id: users.id,
+            username: users.username,
+            name: users.name,
+            bio: users.bio,
+            profilePicture: users.profilePicture,
+            preferredCuisines: users.preferredCuisines,
+            preferredPriceRange: users.preferredPriceRange,
+            preferredLocation: users.preferredLocation,
+            diningInterests: users.diningInterests,
+          },
+        })
+        .from(posts)
+        .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+        .innerJoin(users, eq(posts.userId, users.id))
+        .where(
+          and(
+            eq(posts.visibility, 'public'),
+            // Include posts from users you follow OR your own posts
+            or(
+              inArray(posts.userId, [...followingUserIds, userId]),
+              eq(posts.userId, userId)
+            )
+          )
+        )
+        .orderBy(desc(posts.createdAt))
+        .limit(limit)
+        .offset(offset);
 
       // Make sure the posts are safe (no password info)
       const safeFeedPosts = feedPosts.map((post) => {
@@ -884,6 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newLike = await storage.createLike({ postId, userId });
       res.status(201).json(newLike);
     } catch (err: any) {
+```tool_code
       res.status(500).json({ error: err.message });
     }
   });
@@ -1799,7 +1839,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/circles/:circleId/shared-lists", async (req, res) => {
+  ```tool_code
+app.get("/api/circles/:circleId/shared-lists", async (req, res) => {
     try {
       const circleId = parseInt(req.params.circleId);
 
@@ -2015,6 +2056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Search
   app.use('/api/search', searchRouter);
   app.use('/api/search-analytics', searchAnalyticsRouter);
+  app.use('/api/follow', followRoutes);
 
   return httpServer;
 }
