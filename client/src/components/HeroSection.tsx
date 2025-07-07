@@ -1,14 +1,15 @@
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/Button';
 import { PlusCircle, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PostModal } from '@/components/post/PostModal';
+import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
 import './HeroSection.css';
 
 export function HeroSection() {
   const { user } = useAuth();
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -17,13 +18,18 @@ export function HeroSection() {
     return 'Good evening';
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      // Navigate to search results or trigger search
-      window.location.href = `/discover?q=${encodeURIComponent(searchQuery)}`;
-    }
-  };
+  // Handle Cmd+K keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchModalOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <>
@@ -33,18 +39,17 @@ export function HeroSection() {
             <h1 className="hero-title">
               Hi, {user?.name?.split(' ')[0] || 'Explorer'}! What's on your plate today?
             </h1>
-            <form onSubmit={handleSearch} className="hero-search">
-              <div className="search-container">
-                <Search className="search-icon" size={20} />
-                <input
-                  type="text"
-                  placeholder="Find a restaurant..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-input"
-                />
-              </div>
-            </form>
+            <div className="hero-search-actions">
+              <Button
+                shape="circle"
+                variant="secondary"
+                onClick={() => setIsSearchModalOpen(true)}
+                aria-label="Open search (Cmd+K)"
+                className="search-trigger-btn"
+              >
+                <Search size={20} />
+              </Button>
+            </div>
           </div>
           <div className="hero-action">
             <Button
@@ -63,6 +68,11 @@ export function HeroSection() {
       <PostModal
         open={isPostModalOpen}
         onOpenChange={setIsPostModalOpen}
+      />
+      
+      <UnifiedSearchModal
+        open={isSearchModalOpen}
+        onOpenChange={setIsSearchModalOpen}
       />
     </>
   );

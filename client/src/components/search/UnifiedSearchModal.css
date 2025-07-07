@@ -1,0 +1,248 @@
+.unified-search-modal {
+  max-width: 600px;
+  max-height: 80vh;
+  padding: 0;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+}
+
+.search-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.search-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: hsl(var(--muted-foreground));
+  z-index: 1;
+}
+
+.search-input {
+  padding-left: 40px;
+  font-size: 16px;
+  border: 2px solid hsl(var(--border));
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: hsl(var(--primary));
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1);
+}
+
+.search-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.search-empty-state {
+  padding: 20px;
+}
+
+.search-section {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 12px;
+}
+
+.recent-searches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recent-search-item {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  transition: background-color 0.2s;
+}
+
+.recent-search-item:hover {
+  background: hsl(var(--muted) / 0.8);
+}
+
+.trending-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trending-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.trending-item:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+.trending-icon {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.trending-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.trending-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  truncate: true;
+}
+
+.trending-subtitle {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  truncate: true;
+}
+
+.search-results {
+  padding: 0;
+}
+
+.search-loading {
+  padding: 40px 20px;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+}
+
+.search-tabs {
+  padding: 0 20px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  border-radius: 0;
+}
+
+.search-tab-content {
+  padding: 0;
+  margin: 0;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  transition: background-color 0.2s;
+}
+
+.search-result-item:hover,
+.search-result-item.selected {
+  background: hsl(var(--muted) / 0.5);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.result-icon {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.result-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  truncate: true;
+}
+
+.result-subtitle {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  truncate: true;
+  margin-top: 2px;
+}
+
+.search-no-results {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.no-results-icon {
+  margin: 0 auto 16px;
+  width: fit-content;
+}
+
+.no-results-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  margin-bottom: 8px;
+}
+
+.no-results-subtitle {
+  font-size: 14px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Keyboard navigation styles */
+.search-result-item.selected {
+  background: hsl(var(--primary) / 0.1);
+  border-color: hsl(var(--primary) / 0.2);
+}
+
+/* Mobile responsive styles */
+@media (max-width: 640px) {
+  .unified-search-modal {
+    max-width: 95vw;
+    max-height: 85vh;
+  }
+  
+  .search-header {
+    padding: 16px;
+  }
+  
+  .search-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .search-tabs {
+    padding: 0 16px;
+  }
+  
+  .search-result-item {
+    padding: 12px 16px;
+  }
+  
+  .search-empty-state {
+    padding: 16px;
+  }
+}

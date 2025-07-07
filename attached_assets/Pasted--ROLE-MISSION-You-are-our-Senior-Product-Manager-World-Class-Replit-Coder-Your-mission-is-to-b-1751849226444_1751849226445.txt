@@ -1,0 +1,76 @@
+# ROLE & MISSION
+You are our Senior Product Manager & World-Class Replit Coder. Your mission is to build the **Smart Search & Discovery Hub** that:
+- Fixes the current search-icon overlap in the HeroSection.
+- Delivers a unified, modal-based search experience for restaurants, lists, posts, and users.
+- Serves **Tracker Taylor**, **Explorer Alex**, **Seeker Sam**, and **Influencer Riley** with one powerful discovery interface.
+
+# PERSONAS (for reference)
+1. **Tracker Taylor** (30, engineer)  
+   - Quick restaurant look-up while logging meals.  
+2. **Explorer Alex** (24, student)  
+   - Discover trending “hidden gems.”  
+3. **Seeker Sam** (26, marketer)  
+   - Find occasion-specific recs from friends.  
+4. **Influencer Riley** (32, creator)  
+   - Curate and share top content across categories.
+
+# CURRENT STATE
+- Infinite-scroll feed ✅  
+- Unified `<Button>` ✅  
+- Lean homepage with Hero / Tabs / Carousel / Feed ✅  
+- Inline search icon currently overlaps input in HeroSection (needs a clean fix)
+
+# USER STORY
+> **As** any user  
+> **I want** a single, modal-based “Unified Search” that I can open from the Hero  
+> **So that** I can quickly find restaurants, lists, posts, or people—and never suffer from overlapping UI  
+
+# ACCEPTANCE CRITERIA
+1. **Trigger**  
+   - *Given* I’m on the homepage, *When* I click the magnifying-glass icon or press `Cmd+K`, *Then* a `<UnifiedSearchModal>` opens centered on screen.  
+2. **Modal Layout**  
+   - Contains a single search input at top (`placeholder="Search restaurants, lists, posts, people…"`).  
+   - Below input, show **two sections**:  
+     - **Recent Searches** (last 5 terms)  
+     - **Trending** (top 5 trending restaurants or lists)  
+3. **Tabbed Results**  
+   - As I type, show results in tabs: **Restaurants**, **Lists**, **Posts**, **People**.  
+   - Each tab displays up to 5 matching items with name + subtitle.  
+4. **Keyboard & A11y**  
+   - Arrow keys navigate suggestions; `Enter` selects.  
+   - Modal traps focus and closes on `Esc`.  
+5. **Backend**  
+   - `GET /api/search/unified?q=<term>` returns `{ restaurants:[], lists:[], posts:[], users:[] }`.  
+   - Falls back to existing `/api/search` for restaurants if needed.
+
+# IMPLEMENTATION TASKS & FILES
+1. **UnifiedSearchModal**  
+   - **File:** `client/src/components/search/UnifiedSearchModal.tsx` + `UnifiedSearchModal.css`  
+   - Build modal using your existing `<Modal>` wrapper.  
+   - Implement input, tabs, and result lists per criteria.
+2. **HeroSection**  
+   - **File:** `client/src/components/HeroSection.tsx` + `HeroSection.css`  
+   - Remove inline search input.  
+   - Add `<Button shape="circle" variant="secondary" aria-label="Open search">🔍</Button>` next to “New Post” to open modal.
+3. **Search API**  
+   - **File:** `server/routes/search.ts`  
+   - Add `router.get('/unified', authenticate, async (req, res) => { /* call Drizzle to query all four entities */ })`.  
+   - Register in `server/index.ts`:  
+     ```ts
+     app.use('/api/search', searchRouter);
+     ```
+4. **Hookup & State**  
+   - Use React context or local state in `HeroSection` to toggle the modal.  
+   - Debounce the unified search input at 300ms.
+5. **Tests**  
+   - Create `client/src/__tests__/UnifiedSearchModal.test.tsx` to snapshot render and keyboard navigation.  
+   - Add `tests/search-unified.test.ts` to verify backend returns correct JSON shape.
+
+# COMMIT MESSAGE
+feat(search): add UnifiedSearchModal + /api/search/unified endpoint
+
+css
+Copy
+Edit
+
+Please implement this top‐priority feature next, then we’ll verify the fix for the overlap issue and test against all personas’ flows.

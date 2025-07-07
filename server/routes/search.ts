@@ -1,154 +1,168 @@
 import { Router } from "express";
-import { db } from "../db";
-import { restaurants } from "@shared/schema";
-import { like, or } from "drizzle-orm";
 import { authenticate } from "../auth";
+import { db } from "../db";
+import { restaurants, restaurantLists, posts, users } from "../../shared/schema";
+import { eq, and, or, like, desc, sql } from "drizzle-orm";
 
 const router = Router();
 
-interface GooglePlaceResult {
-  place_id: string;
-  name: string;
-  rating?: number;
-  photos?: Array<{
-    photo_reference: string;
-    height: number;
-    width: number;
-  }>;
-  formatted_address?: string;
-  geometry?: {
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
-  price_level?: number;
-  types?: string[];
-}
-
-interface SearchResult {
-  id: string;
-  name: string;
-  thumbnailUrl: string | null;
-  avgRating: number;
-  location?: string;
-  source: 'database' | 'google';
-}
-
-// Helper function to get Google Places photo URL
-function getPhotoUrl(photoReference: string): string {
-  const baseUrl = 'https://maps.googleapis.com/maps/api/place/photo';
-  const maxWidth = 400;
-  return `${baseUrl}?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
-}
-
-// Helper function to determine cuisine type from Google Places types
-function getCuisineFromTypes(types: string[]): string {
-  const cuisineMap: { [key: string]: string } = {
-    'italian_restaurant': 'Italian',
-    'chinese_restaurant': 'Chinese',
-    'japanese_restaurant': 'Japanese',
-    'mexican_restaurant': 'Mexican',
-    'indian_restaurant': 'Indian',
-    'thai_restaurant': 'Thai',
-    'french_restaurant': 'French',
-    'american_restaurant': 'American',
-    'pizza_restaurant': 'Pizza',
-    'seafood_restaurant': 'Seafood',
-    'steakhouse': 'Steakhouse',
-    'fast_food_restaurant': 'Fast Food'
-  };
-
-  for (const type of types) {
-    if (cuisineMap[type]) {
-      return cuisineMap[type];
-    }
-  }
-  return 'Restaurant';
-}
-
-router.get('/', authenticate, async (req, res) => {
+// Unified search endpoint
+router.get("/unified", authenticate, async (req, res) => {
   try {
-    const q = req.query.q as string;
-
-    if (!q || q.trim().length < 2) {
+    const { q } = req.query;
+    
+    if (!q || typeof q !== "string") {
+      return res.status(400).json({ error: "Search query is required" });
+    }
+    
+    const searchTerm = q.trim();
+    if (searchTerm.length < 2) {
       return res.status(400).json({ error: "Search query must be at least 2 characters" });
     }
-
-    const query = q.trim();
-    const results: SearchResult[] = [];
-
-    // First, search local database
-    const dbResults = await db
+    
+    const searchPattern = `%${searchTerm}%`;
+    
+    // Search restaurants
+    const restaurantResults = await db
       .select({
         id: restaurants.id,
         name: restaurants.name,
-        thumbnailUrl: restaurants.imageUrl,
-        location: restaurants.location
+        location: restaurants.location,
+        category: restaurants.category,
+        priceRange: restaurants.priceRange,
+        imageUrl: restaurants.imageUrl,
+        type: sql<string>`'restaurant'`.as('type')
       })
       .from(restaurants)
       .where(
         or(
-          like(restaurants.name, `%${query}%`),
-          like(restaurants.cuisine, `%${query}%`),
-          like(restaurants.category, `%${query}%`)
+          like(restaurants.name, searchPattern),
+          like(restaurants.location, searchPattern),
+          like(restaurants.category, searchPattern)
         )
       )
-      .limit(3); // Limit local results to leave room for Google results
-
-    // Convert database results to SearchResult format
-    dbResults.forEach(restaurant => {
-      results.push({
-        id: restaurant.id.toString(),
-        name: restaurant.name,
-        thumbnailUrl: restaurant.thumbnailUrl,
-        avgRating: 4.0, // Default rating for database restaurants
-        location: restaurant.location || undefined,
-        source: 'database'
-      });
+      .limit(5);
+    
+    // Search lists
+    const listResults = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        tags: restaurantLists.tags,
+        createdById: restaurantLists.createdById,
+        isPublic: restaurantLists.isPublic,
+        type: sql<string>`'list'`.as('type')
+      })
+      .from(restaurantLists)
+      .where(
+        and(
+          or(
+            like(restaurantLists.name, searchPattern),
+            like(restaurantLists.description, searchPattern)
+          ),
+          or(
+            eq(restaurantLists.isPublic, true),
+            eq(restaurantLists.createdById, req.user!.id)
+          )
+        )
+      )
+      .limit(5);
+    
+    // Search posts
+    const postResults = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        rating: posts.rating,
+        userId: posts.userId,
+        restaurantId: posts.restaurantId,
+        createdAt: posts.createdAt,
+        type: sql<string>`'post'`.as('type')
+      })
+      .from(posts)
+      .where(
+        and(
+          like(posts.content, searchPattern),
+          eq(posts.visibility, "public")
+        )
+      )
+      .orderBy(desc(posts.createdAt))
+      .limit(5);
+    
+    // Search users
+    const userResults = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        bio: users.bio,
+        profilePicture: users.profilePicture,
+        type: sql<string>`'user'`.as('type')
+      })
+      .from(users)
+      .where(
+        or(
+          like(users.name, searchPattern),
+          like(users.username, searchPattern),
+          like(users.bio, searchPattern)
+        )
+      )
+      .limit(5);
+    
+    res.json({
+      restaurants: restaurantResults,
+      lists: listResults,
+      posts: postResults,
+      users: userResults
     });
-
-    // If we have room for more results and Google Places API is available, search Google Places
-    if (results.length < 5 && process.env.GOOGLE_PLACES_API_KEY) {
-      try {
-        const googleApiUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&type=restaurant&key=${process.env.GOOGLE_PLACES_API_KEY}`;
-        
-        const response = await fetch(googleApiUrl);
-        const data = await response.json();
-
-        if (data.status === 'OK' && data.results) {
-          const googleResults = data.results.slice(0, 5 - results.length).map((place: GooglePlaceResult): SearchResult => {
-            const thumbnailUrl = place.photos && place.photos.length > 0 
-              ? getPhotoUrl(place.photos[0].photo_reference)
-              : null;
-
-            return {
-              id: `google_${place.place_id}`,
-              name: place.name,
-              thumbnailUrl,
-              avgRating: place.rating || 4.0,
-              location: place.formatted_address,
-              source: 'google'
-            };
-          });
-
-          results.push(...googleResults);
-        }
-      } catch (googleError) {
-        console.error('Google Places API error:', googleError);
-        // Continue with database results only
-      }
-    }
-
-    // Limit to 5 results maximum as per user story
-    const finalResults = results.slice(0, 5);
-
-    console.log(`Search for "${query}" returned ${finalResults.length} results`);
-    res.json(finalResults);
-
+    
   } catch (error) {
-    console.error('Search error:', error);
-    res.status(500).json({ error: 'Search failed' });
+    console.error("Unified search error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get trending content for search modal
+router.get("/trending", authenticate, async (req, res) => {
+  try {
+    // Get trending restaurants (by post count)
+    const trendingRestaurants = await db
+      .select({
+        id: restaurants.id,
+        name: restaurants.name,
+        location: restaurants.location,
+        category: restaurants.category,
+        postCount: sql<number>`COUNT(${posts.id})`.as('postCount'),
+        type: sql<string>`'restaurant'`.as('type')
+      })
+      .from(restaurants)
+      .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
+      .groupBy(restaurants.id)
+      .orderBy(desc(sql`COUNT(${posts.id})`))
+      .limit(3);
+    
+    // Get trending lists (by view count)
+    const trendingLists = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        viewCount: restaurantLists.viewCount,
+        type: sql<string>`'list'`.as('type')
+      })
+      .from(restaurantLists)
+      .where(eq(restaurantLists.isPublic, true))
+      .orderBy(desc(restaurantLists.viewCount))
+      .limit(2);
+    
+    res.json({
+      trending: [...trendingRestaurants, ...trendingLists]
+    });
+    
+  } catch (error) {
+    console.error("Trending search error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
