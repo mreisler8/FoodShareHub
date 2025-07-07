@@ -16,7 +16,7 @@ import {
   postListItems, type PostListItem, type InsertPostListItem
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, like, desc, gt, or } from "drizzle-orm";
+import { eq, and, like, desc, gt, or, not, inArray } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -150,6 +150,10 @@ export interface IStorage {
   getContentReports(options?: { status?: string; contentType?: string; limit?: number }): Promise<ContentReport[]>;
   updateContentReportStatus(reportId: number, status: string, reviewedById: number, resolution?: string): Promise<ContentReport>;
   getReportsByContent(contentType: string, contentId: number): Promise<ContentReport[]>;
+  // New methods for personalized suggestions and invite codes
+  getCircleByInviteCode(inviteCode: string): Promise<Circle | undefined>;
+  getPersonalizedCircleSuggestions(userId: number): Promise<Circle[]>;
+  joinCircleByInviteCode(inviteCode: string, userId: number): Promise<{ success: boolean; circle?: Circle; error?: string }>;
 }
 
 // Implementation using PostgreSQL Database via Drizzle ORM
@@ -516,11 +520,128 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCircle(insertCircle: InsertCircle): Promise<Circle> {
+    // Generate unique invite code
+    const inviteCode = this.generateInviteCode();
+    
     const [circle] = await db.insert(circles).values({
       ...insertCircle,
+      inviteCode,
+      memberCount: 1, // Creator is the first member
       createdAt: new Date()
     }).returning();
     return circle;
+  }
+
+  private generateInviteCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  async getCircleByInviteCode(inviteCode: string): Promise<Circle | undefined> {
+    const [circle] = await db.select().from(circles).where(eq(circles.inviteCode, inviteCode));
+    return circle;
+  }
+
+  async getPersonalizedCircleSuggestions(userId: number): Promise<Circle[]> {
+    // Get user's dining preferences
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return [];
+
+    // Get circles user isn't already a member of
+    const userCircleIds = await db.select({ circleId: circleMembers.circleId })
+      .from(circleMembers)
+      .where(eq(circleMembers.userId, userId));
+    
+    const excludeIds = userCircleIds.map(m => m.circleId);
+
+    // Base query for available circles
+    let query = db.select().from(circles)
+      .where(and(
+        eq(circles.allowPublicJoin, true),
+        ...(excludeIds.length > 0 ? [not(inArray(circles.id, excludeIds))] : [])
+      ))
+      .limit(10);
+
+    const allCircles = await query;
+
+    // Score circles based on user preferences
+    const scoredCircles = allCircles.map(circle => {
+      let score = 0;
+      
+      // Match by cuisine preference
+      if (user.preferredCuisines && circle.primaryCuisine) {
+        if (user.preferredCuisines.includes(circle.primaryCuisine)) {
+          score += 10;
+        }
+      }
+      
+      // Match by price range
+      if (user.preferredPriceRange && circle.priceRange) {
+        if (user.preferredPriceRange === circle.priceRange) {
+          score += 8;
+        }
+      }
+      
+      // Match by location
+      if (user.preferredLocation && circle.location) {
+        if (user.preferredLocation.toLowerCase().includes(circle.location.toLowerCase()) ||
+            circle.location.toLowerCase().includes(user.preferredLocation.toLowerCase())) {
+          score += 6;
+        }
+      }
+      
+      // Boost featured and trending circles
+      if (circle.featured) score += 5;
+      if (circle.trending) score += 3;
+      
+      // Boost circles with more members (popularity)
+      if (circle.memberCount) {
+        score += Math.min(circle.memberCount / 10, 5);
+      }
+      
+      return { ...circle, score };
+    });
+
+    // Sort by score and return top matches
+    return scoredCircles
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6);
+  }
+
+  async joinCircleByInviteCode(inviteCode: string, userId: number): Promise<{ success: boolean; circle?: Circle; error?: string }> {
+    const circle = await this.getCircleByInviteCode(inviteCode);
+    
+    if (!circle) {
+      return { success: false, error: "Invalid invite code" };
+    }
+
+    if (!circle.allowPublicJoin) {
+      return { success: false, error: "This circle doesn't allow public joining" };
+    }
+
+    // Check if user is already a member
+    const isAlreadyMember = await this.isUserMemberOfCircle(userId, circle.id);
+    if (isAlreadyMember) {
+      return { success: false, error: "You're already a member of this circle" };
+    }
+
+    // Add user to circle
+    await this.createCircleMember({
+      circleId: circle.id,
+      userId,
+      role: "member"
+    });
+
+    // Update member count
+    await db.update(circles)
+      .set({ memberCount: (circle.memberCount || 0) + 1 })
+      .where(eq(circles.id, circle.id));
+
+    return { success: true, circle };
   }
 
   async getAllCircles(): Promise<Circle[]> {

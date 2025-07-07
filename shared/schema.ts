@@ -10,6 +10,11 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   bio: text("bio"),
   profilePicture: text("profile_picture"),
+  // Dining preferences for personalized suggestions
+  preferredCuisines: text("preferred_cuisines").array(),
+  preferredPriceRange: text("preferred_price_range"),
+  preferredLocation: text("preferred_location"),
+  diningInterests: text("dining_interests").array(), // e.g., ["fine-dining", "casual", "street-food"]
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -134,6 +139,17 @@ export const circles = pgTable("circles", {
   isPrivate: boolean("is_private").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   creatorId: integer("creator_id").references(() => users.id).notNull(),
+  // Shareable join link features
+  inviteCode: text("invite_code").unique(),
+  allowPublicJoin: boolean("allow_public_join").default(false),
+  // Personalization features
+  tags: text("tags").array(),
+  primaryCuisine: text("primary_cuisine"),
+  priceRange: text("price_range"), // "$", "$$", "$$$", "$$$$"
+  location: text("location"), // City/region focus
+  memberCount: integer("member_count").default(0),
+  featured: boolean("featured").default(false),
+  trending: boolean("trending").default(false),
 });
 export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
@@ -160,6 +176,12 @@ export const insertCircleSchema = createInsertSchema(circles).pick({
   name: true,
   description: true,
   creatorId: true,
+  isPrivate: true,
+  allowPublicJoin: true,
+  tags: true,
+  primaryCuisine: true,
+  priceRange: true,
+  location: true,
 });
 
 // CircleMember model

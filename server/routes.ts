@@ -1130,6 +1130,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Personalized circle suggestions endpoint
+  app.get("/api/circles/suggestions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const suggestions = await storage.getPersonalizedCircleSuggestions(req.user!.id);
+      res.json(suggestions);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Join circle by invite code endpoint
+  app.post("/api/circles/join/:inviteCode", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { inviteCode } = req.params;
+      const result = await storage.joinCircleByInviteCode(inviteCode, req.user!.id);
+      
+      if (result.success) {
+        res.json({ 
+          message: "Successfully joined circle",
+          circle: result.circle 
+        });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get circle by invite code (for preview before joining)
+  app.get("/api/circles/invite/:inviteCode", async (req, res) => {
+    try {
+      const { inviteCode } = req.params;
+      const circle = await storage.getCircleByInviteCode(inviteCode);
+      
+      if (!circle) {
+        return res.status(404).json({ error: "Invalid invite code" });
+      }
+
+      // Return basic circle info for preview
+      res.json({
+        id: circle.id,
+        name: circle.name,
+        description: circle.description,
+        memberCount: circle.memberCount,
+        primaryCuisine: circle.primaryCuisine,
+        location: circle.location,
+        allowPublicJoin: circle.allowPublicJoin,
+        inviteCode: circle.inviteCode
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Like routes
   app.post("/api/likes", async (req, res) => {
     try {
