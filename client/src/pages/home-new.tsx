@@ -3,7 +3,7 @@ import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { HeroSection } from "@/components/HeroSection";
 import { QuickAddPanel } from "@/components/QuickAddPanel";
 import { FeedSection } from "@/components/home/FeedSection";
-import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
+import { MyLists } from "@/components/home/MyLists";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/Card";
@@ -106,11 +106,7 @@ export default function Home() {
                   </Link>
                 </div>
               </div>
-              <RestaurantListsSection 
-                isCompact={true}
-                maxLists={6}
-                showCreateButton={false}
-              />
+              <MyLists />
             </section>
 
             {/* Top Picks Section */}

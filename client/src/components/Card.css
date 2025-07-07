@@ -1,0 +1,110 @@
+/* Card Component - Unified styling for all preview items */
+.card {
+  border-radius: 12px;
+  background: white;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Variants */
+.card--default {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.card--elevated {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.card--outlined {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+}
+
+/* Padding variants */
+.card--sm {
+  padding: 0.75rem;
+}
+
+.card--md {
+  padding: 1.25rem;
+}
+
+.card--lg {
+  padding: 2rem;
+}
+
+/* Interactive states */
+.card--hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.card--clickable {
+  cursor: pointer;
+}
+
+.card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.card--clickable:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.card--clickable:focus {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .card {
+    background: #1a1a1a;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .card--default {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card--elevated {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+  
+  .card--hover:hover,
+  .card--clickable:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .card--lg {
+    padding: 1.5rem;
+  }
+  
+  .card--md {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .card--lg {
+    padding: 1rem;
+  }
+  
+  .card--md {
+    padding: 0.875rem;
+  }
+  
+  .card--sm {
+    padding: 0.625rem;
+  }
+}
