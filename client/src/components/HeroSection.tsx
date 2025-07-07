@@ -14,8 +14,8 @@ export function HeroSection() {
   };
 
   return (
-    <section className="hero-section">
-      <div className="hero-content">
+    <section className="hero-section responsive-container">
+      <div className="hero-content content-spacing">
         <div className="hero-text">
           <h1 className="hero-title">Circles</h1>
           <p className="hero-subtitle">
@@ -23,21 +23,22 @@ export function HeroSection() {
           </p>
         </div>
 
-        <div className="hero-actions">
+        <div className="hero-actions flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md">
           <Button
             variant="outline"
             size="md"
-            className="hero-search-btn"
+            className="hero-search-btn btn-responsive focus-improved w-full sm:flex-1"
             onClick={() => setIsSearchOpen(true)}
           >
             <Search className="h-4 w-4" />
-            Search restaurants, dishes, or friends
+            <span className="hidden sm:inline">Search restaurants, dishes, or friends</span>
+            <span className="sm:hidden">Search</span>
           </Button>
 
           <Button
             variant="primary"
             size="md"
-            className="hero-cta"
+            className="hero-cta btn-responsive focus-improved w-full sm:flex-1"
             onClick={handleCreatePost}
           >
             <Plus className="h-4 w-4" />

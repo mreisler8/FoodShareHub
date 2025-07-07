@@ -30,15 +30,15 @@ export function DesktopSidebar() {
   };
 
   const getNavItemClasses = (path: string) => {
-    return `flex items-center p-2.5 lg:p-3 rounded-lg font-medium transition-colors ${
+    return `flex items-center p-3 lg:p-3.5 rounded-xl font-medium transition-all duration-200 focus-improved ${
       isActive(path)
-        ? "bg-primary/10 text-primary"
-        : "hover:bg-accent text-foreground hover:text-accent-foreground"
+        ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+        : "hover:bg-soft-sand-50 text-foreground hover:text-primary border border-transparent"
     }`;
   };
 
   return (
-    <div className="hidden md:flex md:flex-col md:w-56 lg:w-64 bg-background p-4 lg:p-5 h-screen sticky top-0 border-r border-border">
+    <div className="nav-desktop md:flex-col md:w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-6 h-screen sticky top-0 border-r border-soft-sand-30">
       <Link href="/" className="flex items-center mb-10 hover:opacity-80 transition-opacity" aria-label="Go to home page">
         <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
           <svg 

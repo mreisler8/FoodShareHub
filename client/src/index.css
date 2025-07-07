@@ -397,4 +397,152 @@
       grid-template-columns: 1fr;
     }
   }
+  
+  /* Mobile-First Responsive Fixes */
+  .mobile-optimized {
+    @apply w-full max-w-none;
+  }
+  
+  .mobile-padding {
+    @apply px-4 py-3;
+  }
+  
+  .mobile-text {
+    @apply text-sm leading-5;
+  }
+  
+  .mobile-button {
+    @apply min-h-[44px] px-4 py-2 text-base;
+  }
+  
+  .mobile-input {
+    @apply min-h-[44px] px-3 py-2 text-base;
+  }
+  
+  /* Prevent overlaps and ensure proper spacing */
+  .safe-area {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  .content-spacing {
+    @apply space-y-4 md:space-y-6;
+  }
+  
+  .section-spacing {
+    @apply mb-6 md:mb-8;
+  }
+  
+  /* Responsive containers */
+  .responsive-container {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+  }
+  
+  /* Navigation fixes */
+  .nav-mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: hsl(var(--background));
+    border-top: 1px solid hsl(var(--border));
+  }
+  
+  @media (min-width: 768px) {
+    .nav-mobile {
+      display: none;
+    }
+  }
+  
+  .nav-desktop {
+    display: none;
+  }
+  
+  @media (min-width: 768px) {
+    .nav-desktop {
+      display: flex;
+    }
+  }
+  
+  /* Modal responsive fixes */
+  .modal-responsive {
+    @apply w-[95vw] max-w-lg mx-auto;
+  }
+  
+  @media (min-width: 768px) {
+    .modal-responsive {
+      @apply w-full max-w-2xl;
+    }
+  }
+  
+  /* Button responsive sizing */
+  .btn-responsive {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 40px;
+  }
+  
+  @media (min-width: 768px) {
+    .btn-responsive {
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      min-height: 44px;
+    }
+  }
+  
+  /* Text responsive sizing */
+  .text-responsive-title {
+    @apply text-lg font-semibold;
+  }
+  
+  @media (min-width: 768px) {
+    .text-responsive-title {
+      @apply text-xl font-semibold;
+    }
+  }
+  
+  .text-responsive-body {
+    @apply text-sm leading-5;
+  }
+  
+  @media (min-width: 768px) {
+    .text-responsive-body {
+      @apply text-base leading-6;
+    }
+  }
+  
+  /* Form responsive improvements */
+  .form-responsive {
+    @apply space-y-4;
+  }
+  
+  .form-responsive .input {
+    @apply min-h-[44px] text-base;
+  }
+  
+  /* Card responsive improvements */
+  .card-responsive {
+    @apply p-4 rounded-lg border bg-card shadow-sm;
+  }
+  
+  @media (min-width: 768px) {
+    .card-responsive {
+      @apply p-6 rounded-xl;
+    }
+  }
+  
+  /* Loading states */
+  .loading-skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+  
+  /* Focus improvements for accessibility */
+  .focus-improved {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
 }

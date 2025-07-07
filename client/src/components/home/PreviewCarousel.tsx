@@ -36,15 +36,15 @@ export function PreviewCarousel({ items, type }: PreviewCarouselProps) {
     <div className="preview-carousel">
       <div className="carousel-container">
         {items.slice(0, 3).map((item) => (
-          <Card key={item.id} className="carousel-item" hover={true}>
+          <Card key={item.id} className="carousel-item card-hover">
             <div className="carousel-item-image">
               {item.image ? (
                 <img src={item.image} alt={item.name} />
               ) : (
-                <div className="placeholder-image">
-                  {type === 'restaurants' && <MapPin size={24} />}
-                  {type === 'lists' && <Star size={24} />}
-                  {type === 'circles' && <Users size={24} />}
+                <div className="placeholder-image bg-primary/5 border border-soft-sand-30">
+                  {type === 'restaurants' && <MapPin size={24} className="text-primary" />}
+                  {type === 'lists' && <Star size={24} className="text-primary" />}
+                  {type === 'circles' && <Users size={24} className="text-primary" />}
                 </div>
               )}
             </div>

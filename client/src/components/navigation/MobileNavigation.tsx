@@ -25,26 +25,26 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm shadow-lg z-50 border-t border-border" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
-      <div className="flex justify-around items-center h-14 max-h-14 px-2">
+    <div className="nav-mobile bg-background/98 backdrop-blur-md shadow-lg border-t border-soft-sand-30" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+      <div className="flex justify-around items-center h-16 px-3 max-w-screen-sm mx-auto">
         <Link href="/" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center transition-colors ${isActive('/') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
-            <Home className="h-4 w-4" />
-            <span className="text-xs mt-0.5">Home</span>
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+            <Home className="h-5 w-5" />
+            <span className="text-xs mt-1 font-medium">Home</span>
           </div>
         </Link>
         
         <Link href="/discover" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center transition-colors ${isActive('/discover') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
-            <Search className="h-4 w-4" />
-            <span className="text-xs mt-0.5">Discover</span>
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/discover') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+            <Search className="h-5 w-5" />
+            <span className="text-xs mt-1 font-medium">Discover</span>
           </div>
         </Link>
         
         <Link href="/lists" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center transition-colors ${location.startsWith('/lists') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
-            <List className="h-4 w-4" />
-            <span className="text-xs mt-0.5">Lists</span>
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${location.startsWith('/lists') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+            <List className="h-5 w-5" />
+            <span className="text-xs mt-1 font-medium">Lists</span>
           </div>
         </Link>
         

@@ -132,11 +132,11 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {!isMobile && <DesktopSidebar />}
+    <div className="min-h-screen bg-background">
+      <DesktopSidebar />
 
-      <main className="flex-1">
-        <div className="home-page">
+      <main className="md:ml-56 lg:ml-64 safe-area">
+        <div className="min-h-screen">
           {/* Hero Section */}
           <HeroSection />
 
@@ -166,7 +166,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="quick-action-card" hover onClick={() => window.location.href = '/circles'}>
+                <Card className="quick-action-card card-hover" onClick={() => window.location.href = '/circles'}>
                   <div className="p-6">
                     <div className="flex items-center space-x-4">
                       <div className="bg-purple-100 p-3 rounded-lg">
@@ -181,7 +181,7 @@ export default function Home() {
                 </Card>
 
                 <Link href="/create-list">
-                  <Card className="quick-action-card" hover>
+                  <Card className="quick-action-card card-hover">
                     <div className="p-6">
                       <div className="flex items-center space-x-4">
                         <div className="bg-blue-100 p-3 rounded-lg">
