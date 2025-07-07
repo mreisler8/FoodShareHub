@@ -1,4 +1,3 @@
-
 .unified-search-modal {
   padding: 0;
   max-height: 80vh;
@@ -240,27 +239,42 @@
     max-width: 95vw;
     max-height: 90vh;
   }
-  
+
   .search-header {
     padding: 1rem;
   }
-  
+
   .search-suggestions,
   .search-results {
     padding: 1rem;
   }
-  
+
   .tabs-list {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .tab-trigger {
     font-size: 0.75rem;
     padding: 0.5rem;
   }
-  
+
   .suggestion-item {
     font-size: 0.75rem;
     padding: 0.5rem;
   }
+}
+.search-modal-content {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.8);
+  max-width: 640px;
+  width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
