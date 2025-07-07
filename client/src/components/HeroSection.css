@@ -1,117 +1,115 @@
-.hero-section {
-  background: linear-gradient(to bottom, #ffffff 0%, #f8fafc 100%);
-  border-bottom: 1px solid #e2e8f0;
-  color: #1a202c;
-  padding: 4rem 2rem 3rem;
-  text-align: center;
-  position: relative;
-}
 
-.hero-section::before {
-  content: '';
-  position: absolute;
+.hero-section {
+  background: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 1rem 1.5rem;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
-  pointer-events: none;
+  z-index: 50;
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.95);
 }
 
 .hero-content {
-  max-width: 800px;
+  max-width: 600px; /* Instagram-style narrow content width */
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2.5rem;
-  position: relative;
-  z-index: 1;
+  gap: 1rem;
 }
 
 .hero-text {
-  flex: 1;
+  text-align: center;
 }
 
 .hero-title {
-  font-size: 3rem;
+  font-size: 1.75rem;
   font-weight: 800;
-  margin-bottom: 1rem;
-  line-height: 1.1;
-  background: linear-gradient(to right, #1a202c 0%, #4a5568 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.025em;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em; /* Tight letter spacing like modern apps */
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
-  color: #64748b;
-  margin-top: 0.5rem;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
   font-weight: 400;
-  line-height: 1.6;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .hero-actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: center;
 }
 
 .hero-search-btn {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  background: hsl(var(--background));
+  border: 1.5px solid hsl(var(--border));
+  color: hsl(var(--foreground));
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  backdrop-filter: blur(10px);
   font-weight: 500;
+  border-radius: 50px; /* Pill-shaped like Instagram */
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
 }
 
 .hero-search-btn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-  color: #475569;
+  background: hsl(var(--muted));
+  border-color: hsl(var(--primary));
+  transform: none; /* Remove transforms for cleaner feel */
+  color: hsl(var(--foreground));
 }
 
 .hero-cta {
-  background: #1d4ed8;
-  border: 1px solid #1d4ed8;
-  color: white;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  background: hsl(var(--primary));
+  border: 1.5px solid hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   transition: all 0.2s ease;
   font-weight: 600;
+  border-radius: 50px; /* Pill-shaped */
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
 }
 
 .hero-cta:hover {
-  background: #1e40af;
-  border-color: #1e40af;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-  color: white;
+  background: hsl(var(--primary));
+  opacity: 0.9;
+  border-color: hsl(var(--primary));
+  transform: none;
+  color: hsl(var(--primary-foreground));
 }
 
-@media (max-width: 768px) {
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .hero-section {
+    padding: 0.75rem 1rem;
+  }
+  
   .hero-title {
-    font-size: 2.25rem;
+    font-size: 1.5rem;
   }
   
   .hero-subtitle {
-    font-size: 1.125rem;
+    font-size: 0.8rem;
   }
   
-  .hero-section {
-    padding: 3rem 1rem 2rem;
+  .hero-actions {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  .hero-search-btn,
+  .hero-cta {
+    flex: 1;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
   }
 }

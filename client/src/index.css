@@ -180,33 +180,33 @@ The CSS variables in the :root block and base layer are updated for a more moder
 }
 
 :root {
-  /* Food-centric warm color palette */
-  --background: 46 20% 98%; /* Warm cream */
-  --foreground: 20 14% 15%; /* Rich dark brown */
+  /* Modern high-contrast palette inspired by Instagram/Pinterest */
+  --background: 0 0% 100%; /* Pure white for maximum clarity */
+  --foreground: 0 0% 3.9%; /* Near-black for sharp text */
   --card: 0 0% 100%;
-  --card-foreground: 20 14% 15%;
+  --card-foreground: 0 0% 3.9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 20 14% 15%;
-  --primary: 25 85% 55%; /* Warm orange - like fresh tomatoes */
-  --primary-foreground: 46 20% 98%;
-  --secondary: 120 25% 85%; /* Soft sage green */
-  --secondary-foreground: 20 14% 15%;
-  --muted: 46 15% 92%; /* Light warm gray */
-  --muted-foreground: 25 10% 45%;
-  --accent: 35 80% 92%; /* Warm peach accent */
-  --accent-foreground: 20 14% 15%;
+  --popover-foreground: 0 0% 3.9%;
+  --primary: 142 76% 36%; /* Instagram-inspired vibrant green */
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 96.1%; /* Ultra-light gray for subtle backgrounds */
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96.1%; /* Clean light gray */
+  --muted-foreground: 0 0% 45.1%; /* Medium gray for secondary text */
+  --accent: 0 0% 96.1%; /* Consistent with secondary */
+  --accent-foreground: 0 0% 9%;
   --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 25 20% 88%; /* Warm border */
-  --input: 25 20% 88%;
-  --ring: 25 85% 55%;
-  --radius: 0.75rem; /* Slightly more rounded for warmth */
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 89.8%; /* Clean, sharp borders */
+  --input: 0 0% 89.8%;
+  --ring: 142 76% 36%; /* Matches primary */
+  --radius: 0.5rem; /* Tighter radius for modern feel */
 
-  /* Food-specific accent colors */
-  --fresh-green: 140 40% 45%; /* Fresh herbs */
-  --golden-yellow: 45 90% 60%; /* Golden crust */
-  --deep-red: 355 75% 50%; /* Rich wine */
-  --warm-brown: 25 35% 35%; /* Coffee/chocolate */
+  /* Modern accent colors for food context */
+  --success-green: 142 76% 36%; /* Matches primary */
+  --warning-amber: 38 92% 50%; /* Vibrant amber for ratings */
+  --error-red: 0 84% 60%; /* Clean red for errors */
+  --info-blue: 217 91% 60%; /* Modern blue for info */
 }
 ```@tailwind base;
 @tailwind components;

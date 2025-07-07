@@ -153,21 +153,91 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm border border-border p-5 hover:shadow-lg transition-all duration-300 hover:border-primary/20">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <Avatar className="h-11 w-11 ring-2 ring-accent">
-              <AvatarImage
-                src={post.author.profilePicture || undefined}
-                alt={post.author.name}
-              />
-              <AvatarFallback className="bg-primary text-white font-medium">
-                {post.author.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+      <div className="bg-white rounded-lg border border-border hover:shadow-md transition-all duration-200 overflow-hidden">
+        {/* Mobile only image - Full width at top */}
+        {images.length > 0 && (
+          <div className="sm:hidden w-full h-64 bg-neutral-50">
+            <img 
+              src={images[0]} 
+              alt="Post image" 
+              className="w-full h-full object-cover"
+            />
           </div>
-          {/* Right column - text-focused content */}
-          <div className="flex-1">
+        )}
+        
+        <div className="p-4">
+          {/* Header with clean typography */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <Link href={`/profile/${post.userId}`} className="cursor-pointer">
+                <Avatar className="w-10 h-10 ring-2 ring-neutral-100">
+                  <AvatarImage src={post.author?.profilePicture || ''} alt={post.author?.name || 'User'} />
+                  <AvatarFallback className="bg-neutral-200 text-neutral-700 font-semibold text-sm">
+                    {post.author?.name?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Link href={`/profile/${post.userId}`} className="font-semibold text-neutral-900 hover:underline text-sm">
+                    {post.author?.name || 'User'}
+                  </Link>
+                  <span className="text-xs text-neutral-500">
+                    {formatTimeAgo(post.createdAt)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Rating value={post.rating} size="xs" className="mr-1" />
+                  {post.visibility === "Public" ? (
+                    <Globe className="h-3 w-3 text-neutral-400" />
+                  ) : (
+                    <Users className="h-3 w-3 text-neutral-400" />
+                  )}
+                </div>
+              </div>
+            </div>
+            <PostActions 
+              post={post} 
+              onEditClick={handleEditClick}
+              onAddToListClick={() => setIsAddToListOpen(true)}
+            />
+          </div>
+
+          {/* Restaurant Info - Bold and prominent */}
+          <div className="mb-3">
+            <Link href={`/restaurants/${post.restaurantId}`}>
+              <h3 className="text-lg font-bold text-neutral-900 hover:text-primary transition-colors line-clamp-1">
+                {post.restaurant?.name || 'Restaurant'}
+              </h3>
+            </Link>
+            <div className="flex items-center gap-3 mt-1 text-sm text-neutral-600">
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" /> 
+                {post.restaurant?.location || 'Location unknown'}
+              </span>
+              <span className="flex items-center gap-1">
+                <Utensils className="h-3.5 w-3.5" /> 
+                {post.restaurant?.category || 'Cuisine'}
+              </span>
+              <span className="font-medium">{post.restaurant?.priceRange || '$'}</span>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="mt-2">
+              <TrustIndicators 
+                restaurantId={post.restaurantId} 
+                type="restaurant" 
+                size="sm" 
+              />
+            </div>
+          </div>
+
+          {/* List Tags */}
+          <ListTagDisplay lists={postLists} className="mb-3" />
+
+          {/* Content with better typography */}
+          <div className="mb-4">
+            <p className="text-neutral-800 leading-relaxed">{post.content}</p></div>
             {/* Post Header */}
             <div className="p-2.5 flex items-center justify-between border-b border-border/50">
               <div className="flex items-center">
