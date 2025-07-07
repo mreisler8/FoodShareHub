@@ -1,8 +1,9 @@
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { HeroSection } from "@/components/HeroSection";
-import { QuickAddPanel } from "@/components/QuickAddPanel";
-import { FeedSection } from "@/components/home/FeedSection";
+import { SectionTabs } from "@/components/home/SectionTabs";
+import { PreviewCarousel } from "@/components/home/PreviewCarousel";
+import { FeedPreview } from "@/components/home/FeedPreview";
 import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import { Button } from "@/components/Button";
 import { Plus, TrendingUp, Star, MapPin, Users } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 import "./HomePage.css";
 
 // TopPicks component for homepage
@@ -76,6 +78,58 @@ function TopPicks() {
 export default function Home() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState('My Lists');
+
+  // Data queries
+  const { data: myLists } = useQuery({
+    queryKey: ['/api/lists'],
+  });
+
+  const { data: topPicks } = useQuery({
+    queryKey: ['/api/top-picks'],
+  });
+
+  const { data: circles } = useQuery({
+    queryKey: ['/api/circles'],
+  });
+
+  // Transform data for carousel
+  const getCarouselData = () => {
+    switch (activeTab) {
+      case 'My Lists':
+        return (myLists || []).map(list => ({
+          id: list.id,
+          name: list.name,
+          description: list.description,
+          category: list.tags?.[0],
+          itemCount: list.itemCount || 0,
+          type: 'list' as const
+        }));
+      
+      case 'Top Picks':
+        const restaurants = topPicks?.data?.restaurants || [];
+        return restaurants.map(restaurant => ({
+          id: restaurant.id,
+          name: restaurant.name,
+          location: restaurant.location,
+          category: restaurant.category,
+          rating: parseFloat(restaurant.averageRating),
+          type: 'restaurant' as const
+        }));
+      
+      case 'Circles':
+        return (circles || []).map(circle => ({
+          id: circle.id,
+          name: circle.name,
+          description: circle.description,
+          memberCount: circle.memberCount || 0,
+          type: 'circle' as const
+        }));
+      
+      default:
+        return [];
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -87,10 +141,23 @@ export default function Home() {
           <HeroSection />
           
           <div className="home-main">
-            {/* Quick Add Panel */}
-            <QuickAddPanel />
-            
-            {/* Quick Actions for Circle Creation */}
+            {/* Main Content with Tabs */}
+            <section className="home-section main-content-section">
+              <SectionTabs 
+                onTabChange={setActiveTab}
+                activeTab={activeTab}
+              />
+              
+              <div className="tab-content">
+                <PreviewCarousel 
+                  items={getCarouselData()}
+                  type={activeTab === 'My Lists' ? 'lists' : 
+                       activeTab === 'Top Picks' ? 'restaurants' : 'circles'}
+                />
+              </div>
+            </section>
+
+            {/* Quick Actions */}
             <section className="home-section quick-actions-section">
               <div className="section-header">
                 <div>
@@ -113,7 +180,7 @@ export default function Home() {
                   </div>
                 </Card>
                 
-                <Link href="/lists/new">
+                <Link href="/create-list">
                   <Card className="quick-action-card" hover>
                     <div className="p-6">
                       <div className="flex items-center space-x-4">
@@ -130,68 +197,16 @@ export default function Home() {
                 </Link>
               </div>
             </section>
-            
-            {/* My Lists Section */}
-            <section className="home-section my-lists-section">
-              <div className="section-header">
-                <div>
-                  <h2 className="section-title">My Lists</h2>
-                  <p className="section-subtitle">Your curated restaurant collections</p>
-                </div>
-                <div className="section-action">
-                  <Link href="/lists/new">
-                    <Button variant="outline" size="sm">
-                      <Plus className="mr-2 h-4 w-4" />
-                      New List
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-              <RestaurantListsSection 
-                isCompact={true}
-                maxLists={6}
-                showCreateButton={false}
-              />
-            </section>
 
-            {/* Top Picks Section */}
-            <section className="home-section top-picks-section">
-              <div className="section-header">
-                <div>
-                  <h2 className="section-title">Top Picks</h2>
-                  <p className="section-subtitle">Trending restaurants and reviews</p>
-                </div>
-                <div className="section-action">
-                  <Link href="/top-picks">
-                    <Button variant="outline" size="sm">
-                      <TrendingUp className="mr-2 h-4 w-4" />
-                      View All
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-              <TopPicks />
-            </section>
-
-            {/* Feed Section */}
+            {/* Feed Preview */}
             <section className="home-section feed-section">
               <div className="section-header">
                 <div>
                   <h2 className="section-title">Latest Posts</h2>
                   <p className="section-subtitle">Recent dining experiences from your network</p>
                 </div>
-                <div className="section-action">
-                  <Link href="/feed">
-                    <Button variant="outline" size="sm">
-                      <Users className="mr-2 h-4 w-4" />
-                      Full Feed
-                    </Button>
-                  </Link>
-                </div>
               </div>
-              <div className="feed-grid">
-                <FeedSection />
-              </div>
+              <FeedPreview maxPosts={2} />
             </section>
           </div>
         </div>
