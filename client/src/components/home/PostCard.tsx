@@ -35,17 +35,17 @@ export function PostCard({ post }: PostCardProps) {
   const [isAddToListOpen, setIsAddToListOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  
+
   // Safety check for post data
   if (!post || !post.author || !post.restaurant) {
     return null;
   }
-  
+
   // Safely access arrays with fallbacks
   const images = post.images || [];
   const dishesTried = post.dishesTried || [];
   const comments = post.comments || [];
-  
+
   const formatTimeAgo = (date: Date) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
@@ -68,14 +68,14 @@ export function PostCard({ post }: PostCardProps) {
     },
     enabled: !!user && !!post.id,
   });
-  
+
   // Like/Unlike mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
       if (!user) {
         throw new Error("You must be logged in to like posts");
       }
-      
+
       if (isLiked) {
         // Unlike
         const response = await apiRequest("DELETE", `/api/posts/${post.id}/likes`);
@@ -110,14 +110,14 @@ export function PostCard({ post }: PostCardProps) {
       });
     }
   });
-  
+
   // Save restaurant mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!user) {
         throw new Error("You must be logged in to save restaurants");
       }
-      
+
       return await apiRequest("POST", "/api/saved-restaurants", {
         restaurantId: post.restaurantId,
         userId: user.id
@@ -138,14 +138,14 @@ export function PostCard({ post }: PostCardProps) {
       });
     }
   });
-  
 
-  
+
+
   // Handle save button click
   const handleSave = () => {
     saveMutation.mutate();
   };
-  
+
   // Handle edit click
   const handleEditClick = () => {
     setIsEditFormOpen(true);
@@ -153,19 +153,19 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <>
-      <div className="bg-card rounded-lg shadow-sm overflow-hidden mb-3 border">
-        <div className="flex">
-          {/* Left column - minimal image */}
-          {images.length > 0 && (
-            <div className="hidden sm:block w-24 h-24 sm:w-32 sm:h-full bg-neutral-100 flex-shrink-0">
-              <img 
-                src={images[0]} 
-                alt="Post image" 
-                className="w-full h-full object-cover"
+      <div className="bg-white rounded-xl shadow-sm border border-border p-5 hover:shadow-lg transition-all duration-300 hover:border-primary/20">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <Avatar className="h-11 w-11 ring-2 ring-accent">
+              <AvatarImage
+                src={post.author.profilePicture || undefined}
+                alt={post.author.name}
               />
-            </div>
-          )}
-          
+              <AvatarFallback className="bg-primary text-white font-medium">
+                {post.author.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
           {/* Right column - text-focused content */}
           <div className="flex-1">
             {/* Post Header */}
@@ -204,7 +204,7 @@ export function PostCard({ post }: PostCardProps) {
                 onAddToListClick={() => setIsAddToListOpen(true)}
               />
             </div>
-            
+
             {/* Restaurant & Rating Info - Emphasized */}
             <div className="px-2.5 py-2">
               <Link href={`/restaurants/${post.restaurantId}`} className="flex items-center">
@@ -221,7 +221,7 @@ export function PostCard({ post }: PostCardProps) {
                 </span>
                 <span className="text-xs font-medium">{post.restaurant?.priceRange || '$'}</span>
               </div>
-              
+
               {/* Trust Indicators - More Prominent */}
               <div className="mt-2">
                 <TrustIndicators 
@@ -230,11 +230,11 @@ export function PostCard({ post }: PostCardProps) {
                   size="sm" 
                 />
               </div>
-              
+
               {/* List Tags Display */}
               <ListTagDisplay lists={postLists} className="mt-2" />
             </div>
-            
+
             {/* Mobile only image - Small & Compact */}
             {images.length > 0 && (
               <div className="sm:hidden w-full h-32 bg-neutral-100">
@@ -245,11 +245,11 @@ export function PostCard({ post }: PostCardProps) {
                 />
               </div>
             )}
-            
+
             {/* Condensed Content & Dishes */}
             <div className="px-2.5 py-2">
               <p className="text-sm text-neutral-700">{post.content}</p>
-              
+
               {/* Dishes Tried Section - Horizontal Scrolling */}
               {dishesTried.length > 0 && (
                 <div className="mt-2 overflow-x-auto">
@@ -263,7 +263,7 @@ export function PostCard({ post }: PostCardProps) {
                   </div>
                 </div>
               )}
-              
+
               {/* Additional information */}
               {(post.priceAssessment || post.atmosphere || post.serviceRating) && (
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
@@ -287,7 +287,7 @@ export function PostCard({ post }: PostCardProps) {
                   )}
                 </div>
               )}
-              
+
               {/* Action Buttons - Simplified & Compact */}
               <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
                 <div className="flex items-center space-x-3">
@@ -328,7 +328,7 @@ export function PostCard({ post }: PostCardProps) {
                   />
                 </div>
               </div>
-              
+
               {/* Comments Section with CommentList Component */}
               <CommentList 
                 postId={post.id}
@@ -339,7 +339,7 @@ export function PostCard({ post }: PostCardProps) {
           </div>
         </div>
       </div>
-      
+
       {/* Edit Post Modal Dialog */}
       {isEditFormOpen && (
         <PostModal
@@ -348,7 +348,7 @@ export function PostCard({ post }: PostCardProps) {
           onOpenChange={setIsEditFormOpen}
         />
       )}
-      
+
       {/* Add to List Modal */}
       <AddToListModal
         open={isAddToListOpen}

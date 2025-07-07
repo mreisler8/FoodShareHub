@@ -32,14 +32,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-md);
+  white-space: nowrap;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
   font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
   cursor: pointer;
-  transition: background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
-  user-select: none;
-  transition: all 0.2s ease-in-out;
+  border: none;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn:hover {

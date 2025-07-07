@@ -37,10 +37,10 @@ export function HeroSection() {
         <div className="hero-content">
           <div className="hero-text">
             <h1 className="hero-title">
-              Hi, {user?.name?.split(' ')[0] || 'Explorer'}! What's on your plate today?
+              {getGreeting()}, {user?.name?.split(' ')[0] || 'Foodie'}! 🍽️
             </h1>
             <p className="hero-subtitle">
-              Discover restaurants, lists, and recommendations from your trusted network
+              Find amazing restaurants through friends you trust, not strangers online
             </p>
           </div>
           <div className="hero-actions">
