@@ -12,14 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Link as LinkIcon, MapPin } from "lucide-react";
+import { Users, Plus, Link as LinkIcon, MapPin, Copy, ExternalLink } from "lucide-react";
+import { JoinCircleModal } from "@/components/circles/JoinCircleModal";
 
 export default function CirclesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
-  const [joinCode, setJoinCode] = useState("");
+  const [allowPublicJoin, setAllowPublicJoin] = useState(true);
   
   const currentUser = useCurrentUser();
   const { toast } = useToast();
@@ -45,7 +46,7 @@ export default function CirclesPage() {
 
   // Create circle mutation
   const createCircleMutation = useMutation({
-    mutationFn: async (data: { name: string; description?: string }) => {
+    mutationFn: async (data: { name: string; description?: string; allowPublicJoin?: boolean }) => {
       const res = await apiRequest("POST", "/api/circles", data);
       return res.json();
     },
@@ -54,6 +55,7 @@ export default function CirclesPage() {
       setIsCreateOpen(false);
       setCreateName("");
       setCreateDescription("");
+      setAllowPublicJoin(true);
       toast({
         title: "Circle created!",
         description: `${newCircle.name} is ready for your recommendations.`,
@@ -68,29 +70,15 @@ export default function CirclesPage() {
     },
   });
 
-  // Join circle mutation
-  const joinCircleMutation = useMutation({
-    mutationFn: async (circleId: number) => {
-      const res = await apiRequest("POST", `/api/circles/${circleId}/join`);
-      return res.json();
-    },
-    onSuccess: (circle) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
-      setIsJoinOpen(false);
-      setJoinCode("");
-      toast({
-        title: "Joined circle!",
-        description: `Welcome to ${circle.name}!`,
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Failed to join circle",
-        description: "Please check the invite code and try again.",
-        variant: "destructive",
-      });
-    },
-  });
+  // Copy invite link to clipboard
+  const copyInviteLink = (inviteCode: string) => {
+    const inviteLink = `${window.location.origin}/join/${inviteCode}`;
+    navigator.clipboard.writeText(inviteLink);
+    toast({
+      title: "Invite link copied!",
+      description: "Share this link with friends to invite them to your circle.",
+    });
+  };
 
   const handleCreateCircle = () => {
     if (!createName.trim()) {
@@ -104,6 +92,7 @@ export default function CirclesPage() {
     createCircleMutation.mutate({
       name: createName.trim(),
       description: createDescription.trim() || undefined,
+      allowPublicJoin,
     });
   };
 
@@ -152,41 +141,13 @@ export default function CirclesPage() {
           <p className="text-muted-foreground">Create trusted circles of friends and discover each other's favorite spots.</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isJoinOpen} onOpenChange={setIsJoinOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <LinkIcon className="mr-2 h-4 w-4" />
-                Join Circle
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Join a Circle</DialogTitle>
-                <DialogDescription>
-                  Enter an invite code or link to join an existing circle.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="join-code">Invite Code or Link</Label>
-                  <Input
-                    id="join-code"
-                    placeholder="Paste invite code or link here..."
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value)}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsJoinOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleJoinCircle} disabled={joinCircleMutation.isPending}>
-                  {joinCircleMutation.isPending ? "Joining..." : "Join Circle"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button
+            variant="outline"
+            onClick={() => setIsJoinOpen(true)}
+          >
+            <LinkIcon className="mr-2 h-4 w-4" />
+            Join Circle
+          </Button>
 
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
@@ -221,6 +182,16 @@ export default function CirclesPage() {
                     onChange={(e) => setCreateDescription(e.target.value)}
                   />
                 </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    id="allow-public-join"
+                    type="checkbox"
+                    checked={allowPublicJoin}
+                    onChange={(e) => setAllowPublicJoin(e.target.checked)}
+                    className="rounded"
+                  />
+                  <Label htmlFor="allow-public-join">Allow anyone to join with invite link</Label>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
@@ -232,6 +203,12 @@ export default function CirclesPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          
+          {/* Join Circle Modal */}
+          <JoinCircleModal
+            open={isJoinOpen}
+            onOpenChange={setIsJoinOpen}
+          />
         </div>
       </div>
 
@@ -270,14 +247,34 @@ export default function CirclesPage() {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between items-center">
-                    <Badge variant="outline">
-                      {circle.isPrivate ? "Private" : "Public"}
-                    </Badge>
-                    <Button variant="outline" size="sm">
-                      <MapPin className="mr-1 h-3 w-3" />
-                      View
-                    </Button>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Badge variant="outline">
+                        {circle.isPrivate ? "Private" : "Public"}
+                      </Badge>
+                      <Button variant="outline" size="sm">
+                        <MapPin className="mr-1 h-3 w-3" />
+                        View
+                      </Button>
+                    </div>
+                    
+                    {circle.inviteCode && circle.allowPublicJoin && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Invite Code</p>
+                            <p className="font-mono text-sm font-semibold">{circle.inviteCode}</p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyInviteLink(circle.inviteCode)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

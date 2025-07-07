@@ -16,6 +16,7 @@ import ListDetails from "../pages/list-details";
 import CreateList from "../pages/create-list";
 import PostDetails from "../pages/post-details";
 import JoinPage from "../pages/join";
+import JoinCirclePage from "../pages/join/[inviteCode]";
 import AuthPage from "../pages/auth-page";
 import Lists from "./Lists";
 
@@ -42,6 +43,7 @@ function Router() {
       <ProtectedRoute path="/lists/:id" component={ListDetails} />
       <ProtectedRoute path="/posts/:id" component={PostDetails} />
       <ProtectedRoute path="/join" component={JoinPage} />
+      <ProtectedRoute path="/join/:inviteCode" component={JoinCirclePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
