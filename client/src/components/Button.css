@@ -1,8 +1,8 @@
 :root {
   /* Colors */
-  --color-primary:    #1D4ED8;  /* Blue-600 */
-  --color-primary-hover: #1E40AF;/* Blue-700 */
-  --color-primary-active:#1E3A8A;/* Blue-800 */
+  --color-primary:    #E76F51;  /* Burnt Sienna */
+  --color-primary-hover: hsl(14, 63%, 50%);/* Slightly darker */
+  --color-primary-active:#D63E1F;/* Burnt Sienna active */
   --color-secondary:  #E5E7EB;  /* Gray-200 */
   --color-secondary-hover:#D1D5DB;/* Gray-300 */
   --color-secondary-active:#9CA3AF;/* Gray-400 */

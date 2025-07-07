@@ -26,13 +26,20 @@
   padding-left: 2.5rem;
   font-size: 1rem;
   height: 3rem;
-  border: 2px solid hsl(var(--border));
-  background: hsl(var(--background));
+  border: 1px solid hsl(var(--soft-sand-30));
+  background-color: hsl(var(--persian-green-5));
+  color: #111;
+  border-radius: 6px;
+}
+
+.search-input::placeholder {
+  color: hsl(0, 0%, 40%);
+  opacity: 1;
 }
 
 .search-input:focus {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--soft-sand-50));
 }
 
 .search-suggestions {

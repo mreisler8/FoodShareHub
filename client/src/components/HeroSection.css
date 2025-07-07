@@ -48,8 +48,8 @@
 }
 
 .hero-search-btn {
-  background: hsl(var(--background));
-  border: 1.5px solid hsl(var(--border));
+  background: hsl(var(--persian-green-5)); /* Very light Persian Green tint */
+  border: 1.5px solid hsl(var(--soft-sand-30)); /* Soft Sand at 30% */
   color: hsl(var(--foreground));
   transition: all 0.2s ease;
   display: flex;
@@ -61,15 +61,25 @@
   font-size: 0.875rem;
 }
 
+.hero-search-btn::placeholder {
+  color: hsl(0 0% 40%); /* Darker placeholder text */
+  opacity: 1;
+}
+
 .hero-search-btn:hover {
-  background: hsl(var(--muted));
+  background: hsl(var(--accent));
   border-color: hsl(var(--primary));
   transform: none; /* Remove transforms for cleaner feel */
   color: hsl(var(--foreground));
 }
 
+.hero-search-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--soft-sand-50)); /* Soft Sand focus ring */
+}
+
 .hero-cta {
-  background: hsl(var(--primary));
+  background: hsl(var(--primary)); /* Burnt Sienna */
   border: 1.5px solid hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   transition: all 0.2s ease;
@@ -77,12 +87,14 @@
   border-radius: 50px; /* Pill-shaped */
   padding: 0.625rem 1.25rem;
   font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .hero-cta:hover {
-  background: hsl(var(--primary));
-  opacity: 0.9;
-  border-color: hsl(var(--primary));
+  background: hsl(var(--primary-600)); /* Slightly darker on hover */
+  border-color: hsl(var(--primary-600));
   transform: none;
   color: hsl(var(--primary-foreground));
 }
