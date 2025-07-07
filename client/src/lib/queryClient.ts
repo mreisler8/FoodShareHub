@@ -12,6 +12,7 @@ export async function apiRequest(method: string, url: string, data?: any) {
     method,
     headers: {
       'Content-Type': 'application/json',
+      "Cache-Control": "no-cache",
     },
     credentials: 'include',
   };
@@ -34,6 +35,18 @@ export async function apiRequest(method: string, url: string, data?: any) {
       throw new Error(errorMessage);
     }
 
+    // Invalidate queries after successful mutations
+    if (response.ok && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          predicate: (query) => {
+            const key = query.queryKey[0] as string;
+            return key?.startsWith('/api/');
+          }
+        });
+      }, 100);
+    }
+
     return response;
   } catch (error) {
     console.error(`API request failed: ${method} ${url}`, error);
@@ -51,6 +64,9 @@ export const getQueryFn: <T>(options: {
 
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        "Cache-Control": "no-cache",
+      },
     });
 
     console.log(`Query response status: ${res.status} ${res.statusText}`);
@@ -80,6 +96,9 @@ export const queryClient = new QueryClient({
         try {
           const response = await fetch(queryKey[0] as string, {
             credentials: "include",
+            headers: {
+              "Cache-Control": "no-cache",
+            },
           });
 
           console.log("Query response status:", response.status, response.statusText);
@@ -100,16 +119,37 @@ export const queryClient = new QueryClient({
       },
       retry: (failureCount, error) => {
         // Don't retry on 401 (authentication) or 404 (not found) errors
-        if (error.message.includes('401') || error.message.includes('404')) {
+        if (error.message.includes('401')) {
+           queryClient.setQueryData(["/api/user"], null);
+           queryClient.setQueryData(["/api/me"], null);
+          return false;
+        }
+        if (error.message.includes('404')) {
           return false;
         }
         return failureCount < 3;
       },
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
       cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
-      retry: false,
+      retry: 1,
+      onError: (error) => {
+        console.error('Mutation error:', error);
+      },
+      onSuccess: () => {
+        // Invalidate related queries on successful mutations
+        queryClient.invalidateQueries({ 
+          predicate: (query) => {
+            const key = query.queryKey[0] as string;
+            return key?.startsWith('/api/');
+          }
+        });
+      },
     },
   },
 });

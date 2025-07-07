@@ -28,114 +28,71 @@
   --shadow-focus: 0 0 0 3px rgba(59,130,246,0.5); /* Blue-500 at 50% */
 }
 
-/* Modern Button Component Styles */
+/* Modern Button System */
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--btn-border-radius, 0.5rem);
-  font-weight: 600;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  transform: translateY(0px);
   cursor: pointer;
-  border: 1px solid transparent;
-  text-decoration: none;
-  gap: 0.5rem;
-  position: relative;
-  outline: none;
-  letter-spacing: -0.025em;
-
-  /* Focus styles for accessibility */
-  &:focus-visible {
-    outline: 2px solid rgb(29 78 216);
-    outline-offset: 2px;
-  }
-
-  /* Disabled state */
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-  }
 }
 
-/* Size Variants */
-.btn-sm {
-  padding: 0.5rem 0.875rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  min-height: 2rem;
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  @apply pointer-events-none opacity-50 cursor-not-allowed;
+  transform: translateY(0px) !important;
+  box-shadow: none !important;
 }
 
-.btn-md {
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  min-height: 2.5rem;
-}
-
-.btn-lg {
-  padding: 0.875rem 1.75rem;
-  font-size: 1rem;
-  line-height: 1.5rem;
-  min-height: 3rem;
-}
-
-/* Style Variants */
 .btn-primary {
-  background: var(--color-primary); /* Burnt Sienna */
-  color: white;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  @apply bg-primary text-primary-foreground;
+  background-color: #E76F51;
+  box-shadow: 0 4px 12px hsl(14 73% 61% / 0.3);
+}
 
-  &:hover:not(:disabled) {
-    background: var(--color-primary-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(231, 111, 81, 0.3), 0 2px 4px -1px rgba(231, 111, 81, 0.2);
-  }
+.btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background-color: hsl(14, 63%, 50%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px hsl(14 73% 61% / 0.4);
+}
 
-  &:active:not(:disabled) {
-    background: var(--color-primary-active);
-    transform: translateY(0);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  }
+.btn-primary:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(0px);
+  box-shadow: 0 2px 8px hsl(14 73% 61% / 0.4);
 }
 
 .btn-secondary {
-  background: white;
-  color: rgb(71 85 105);
-  border-color: rgb(226 232 240);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  @apply bg-secondary text-secondary-foreground border border-input shadow-sm;
+}
 
-  &:hover:not(:disabled) {
-    background: rgb(248 250 252);
-    border-color: rgb(203 213 225);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  }
-
-  &:active:not(:disabled) {
-    background: rgb(241 245 249);
-    transform: translateY(0);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  }
+.btn-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  @apply bg-secondary/80;
 }
 
 .btn-outline {
-  background: transparent;
-  color: rgb(29 78 216);
-  border-color: rgb(29 78 216);
+  @apply border border-input bg-background shadow-sm;
+}
 
-  &:hover:not(:disabled) {
-    background: rgb(29 78 216);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(29, 78, 216, 0.2), 0 2px 4px -1px rgba(29, 78, 216, 0.1);
-  }
+.btn-outline:hover:not(:disabled):not([aria-disabled="true"]) {
+  @apply bg-accent text-accent-foreground;
+}
 
-  &:active:not(:disabled) {
-    background: rgb(30 64 175);
-    border-color: rgb(30 64 175);
-    transform: translateY(0);
-  }
+.btn-ghost {
+  @apply bg-transparent;
+}
+
+.btn-ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  @apply bg-accent text-accent-foreground;
+}
+
+.btn-sm {
+  @apply h-8 px-3 text-xs rounded-md;
+}
+
+.btn-md {
+  @apply h-10 px-4 py-2;
+}
+
+.btn-lg {
+  @apply h-12 px-8 text-base rounded-lg;
 }
 
 /* Shape Variants */

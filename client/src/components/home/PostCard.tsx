@@ -245,7 +245,7 @@ export function PostCard({ post }: PostCardProps) {
         {/* Post Content */}
         <div className="post-content">
           <p className="content-text">{post.content}</p>
-          
+
           {/* List Tags */}
           <ListTagDisplay lists={postLists} className="mt-3" />
 
@@ -299,7 +299,7 @@ export function PostCard({ post }: PostCardProps) {
               <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
               <span>{localLikeCount}</span>
             </button>
-            
+
             <button 
               className="action-btn comment-btn"
               onClick={() => setShowAllComments(!showAllComments)}
@@ -307,7 +307,7 @@ export function PostCard({ post }: PostCardProps) {
               <MessageCircle className="h-5 w-5" />
               <span>{comments.length}</span>
             </button>
-            
+
             <button 
               className={`action-btn save-btn ${post.isSaved ? 'saved' : ''}`}
               onClick={handleSave}
@@ -316,7 +316,7 @@ export function PostCard({ post }: PostCardProps) {
               <Bookmark className={`h-5 w-5 ${post.isSaved ? 'fill-current' : ''}`} />
             </button>
           </div>
-          
+
           <SocialShare 
             url={`${window.location.origin}/posts/${post.id}`}
             title={`Check out this review of ${post.restaurant?.name}`}

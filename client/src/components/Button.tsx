@@ -5,10 +5,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "outline" | "ghost";
   size?: "sm" | "md" | "lg";
   shape?: "default" | "circle";
+  loading?: boolean;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", shape = "default", ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", shape = "default", loading = false, disabled, children, onClick, ...props }, ref) => {
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (loading || disabled) {
+        e.preventDefault();
+        return;
+      }
+      onClick?.(e);
+    };
+
     return (
       <button
         className={cn(
@@ -22,12 +31,23 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             "btn-md": size === "md",
             "btn-lg": size === "lg",
             "rounded-full w-10 h-10 p-0": shape === "circle",
+            "opacity-50 cursor-not-allowed": loading || disabled,
           },
           className
         )}
         ref={ref}
+        disabled={disabled || loading}
+        onClick={handleClick}
+        aria-disabled={disabled || loading}
         {...props}
-      />
+      >
+        {loading ? (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            {typeof children === 'string' ? 'Loading...' : children}
+          </div>
+        ) : children}
+      </button>
     );
   }
 );
