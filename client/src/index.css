@@ -197,8 +197,12 @@
   }
   
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary-600;
+    @apply bg-primary text-primary-foreground;
     box-shadow: 0 4px 12px hsl(14 73% 61% / 0.3);
+  }
+  
+  .btn-primary:hover {
+    background: hsl(var(--primary-600));
   }
   
   .btn-primary:hover {
