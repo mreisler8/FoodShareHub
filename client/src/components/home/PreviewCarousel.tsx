@@ -36,7 +36,7 @@ export function PreviewCarousel({ items, type }: PreviewCarouselProps) {
     <div className="preview-carousel">
       <div className="carousel-container">
         {items.slice(0, 3).map((item) => (
-          <Card key={item.id} className="carousel-item" hover>
+          <Card key={item.id} className="carousel-item" hover={true}>
             <div className="carousel-item-image">
               {item.image ? (
                 <img src={item.image} alt={item.name} />
