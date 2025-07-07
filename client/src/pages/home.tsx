@@ -135,7 +135,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <DesktopSidebar />
 
-      <main className="md:ml-56 lg:ml-64 safe-area">
+      <main className="md:ml-56 lg:ml-64">
         <div className="min-h-screen">
           {/* Hero Section */}
           <HeroSection />

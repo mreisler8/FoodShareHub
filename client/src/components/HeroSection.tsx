@@ -30,8 +30,8 @@ export function HeroSection() {
             className="hero-search-btn btn-responsive focus-improved w-full sm:flex-1"
             onClick={() => setIsSearchOpen(true)}
           >
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">Search restaurants, dishes, or friends</span>
+            <Search className="h-4 w-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Search restaurants, dishes, or friends</span>
             <span className="sm:hidden">Search</span>
           </Button>
 
