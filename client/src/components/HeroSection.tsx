@@ -47,8 +47,8 @@ export function HeroSection() {
       </div>
 
       <UnifiedSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
       />
     </section>
   );

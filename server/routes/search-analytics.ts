@@ -1,110 +1,97 @@
-import { Router, Request, Response } from "express";
-import { authenticate } from "../auth.js";
-import { storage } from "../storage.js";
-import { z } from "zod";
+import { Router } from 'express';
+import { storage } from '../storage.js';
+import { z } from 'zod';
 
 const router = Router();
 
-// Schema for search analytics
-const searchAnalyticsSchema = z.object({
-  query: z.string().min(1).max(100),
-  category: z.enum(['restaurant', 'list', 'post', 'user', 'all']).optional(),
-  resultCount: z.number().min(0).optional(),
-  clicked: z.boolean().optional(),
-  clickedResultId: z.string().optional(),
-  clickedResultType: z.enum(['restaurant', 'list', 'post', 'user']).optional()
-});
-
-// Track search query
-router.post("/track", authenticate, async (req: Request, res: Response) => {
+// Track search analytics
+router.post('/track', async (req, res) => {
   try {
-    const data = searchAnalyticsSchema.parse(req.body);
-    const userId = req.user?.id;
+    const trackingSchema = z.object({
+      query: z.string().min(1),
+      category: z.string().optional().default('all'),
+      resultCount: z.number().optional().default(0),
+      clicked: z.boolean().optional().default(false),
+      clickedResultId: z.string().optional(),
+      clickedResultType: z.string().optional()
+    });
 
-    // Store search analytics
-    await storage.trackSearchAnalytics({
-      userId: userId || null,
-      query: data.query,
-      category: data.category || 'all',
-      resultCount: data.resultCount || 0,
-      clicked: data.clicked || false,
-      clickedResultId: data.clickedResultId || null,
-      clickedResultType: data.clickedResultType || null,
+    const data = trackingSchema.parse(req.body);
+    
+    const userId = req.isAuthenticated() ? req.user!.id : null;
+    
+    const analytics = await storage.trackSearchAnalytics({
+      ...data,
+      userId,
       timestamp: new Date()
     });
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Search analytics error:", error);
-    res.status(400).json({ error: "Invalid search analytics data" });
+    res.json(analytics);
+  } catch (error: any) {
+    console.error('Error tracking search analytics:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // Get trending searches
-router.get("/trending", async (req: Request, res: Response) => {
+router.get('/trending', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
-    const timeframe = req.query.timeframe as string || '7d'; // 7d, 30d, all
-
+    const timeframe = req.query.timeframe as string || '7d';
+    
     const trending = await storage.getTrendingSearches(limit, timeframe);
     res.json(trending);
-  } catch (error) {
-    console.error("Get trending searches error:", error);
-    res.status(500).json({ error: "Failed to get trending searches" });
+  } catch (error: any) {
+    console.error('Error getting trending searches:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Get popular queries by category
-router.get("/popular/:category", async (req: Request, res: Response) => {
-  try {
-    const category = req.params.category;
-    const limit = parseInt(req.query.limit as string) || 5;
-    
-    if (!['restaurant', 'list', 'post', 'user', 'all'].includes(category)) {
-      return res.status(400).json({ error: "Invalid category" });
-    }
+// Get recent searches for authenticated user
+router.get('/recent', async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
 
-    const popular = await storage.getPopularSearchesByCategory(category, limit);
-    res.json(popular);
-  } catch (error) {
-    console.error("Get popular searches error:", error);
-    res.status(500).json({ error: "Failed to get popular searches" });
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    const recent = await storage.getUserRecentSearches(req.user!.id, limit);
+    res.json(recent);
+  } catch (error: any) {
+    console.error('Error getting recent searches:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // Get search suggestions
-router.get("/suggestions", async (req: Request, res: Response) => {
+router.get('/suggestions', async (req, res) => {
   try {
     const query = req.query.q as string;
     const limit = parseInt(req.query.limit as string) || 5;
-
-    if (!query || query.length < 2) {
+    
+    if (!query || query.length === 0) {
       return res.json([]);
     }
-
+    
     const suggestions = await storage.getSearchSuggestions(query, limit);
     res.json(suggestions);
-  } catch (error) {
-    console.error("Get search suggestions error:", error);
-    res.status(500).json({ error: "Failed to get search suggestions" });
+  } catch (error: any) {
+    console.error('Error getting search suggestions:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Get user's recent searches
-router.get("/recent", authenticate, async (req: Request, res: Response) => {
+// Get popular searches by category
+router.get('/popular/:category', async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const limit = parseInt(req.query.limit as string) || 10;
-
-    if (!userId) {
-      return res.json([]);
-    }
-
-    const recent = await storage.getUserRecentSearches(userId, limit);
-    res.json(recent);
-  } catch (error) {
-    console.error("Get recent searches error:", error);
-    res.status(500).json({ error: "Failed to get recent searches" });
+    const category = req.params.category;
+    const limit = parseInt(req.query.limit as string) || 5;
+    
+    const popular = await storage.getPopularSearchesByCategory(category, limit);
+    res.json(popular);
+  } catch (error: any) {
+    console.error('Error getting popular searches by category:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
