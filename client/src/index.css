@@ -134,12 +134,19 @@
     @apply border-border;
   }
 
-  html, body {
+  html, body, #root {
     margin: 0;
     padding: 0;
     color: hsl(var(--foreground));
     background: hsl(var(--background));
     font-feature-settings: "rlig" 1, "calt" 1;
+    height: 100%;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 
   /* Typography Scale - Modern Hierarchy */

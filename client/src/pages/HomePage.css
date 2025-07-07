@@ -4,6 +4,8 @@
   background: hsl(var(--background));
   margin: 0;
   padding: 0;
+  position: relative;
+  top: 0;
 }
 
 .main-content {
