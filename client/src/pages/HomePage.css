@@ -165,9 +165,24 @@
   color: #f59e0b;
 }
 
+/* Quick Actions Section */
+.quick-actions-section {
+  order: 2;
+}
+
+.quick-action-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* Feed Section */
 .feed-section {
-  order: 3;
+  order: 4;
 }
 
 .feed-grid {
@@ -195,8 +210,12 @@
     order: 1;
   }
   
-  .top-picks-section {
+  .quick-actions-section {
     order: 2;
+  }
+  
+  .top-picks-section {
+    order: 3;
   }
   
   .feed-section {

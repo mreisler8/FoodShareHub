@@ -90,6 +90,47 @@ export default function Home() {
             {/* Quick Add Panel */}
             <QuickAddPanel />
             
+            {/* Quick Actions for Circle Creation */}
+            <section className="home-section quick-actions-section">
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">Quick Actions</h2>
+                  <p className="section-subtitle">Create and discover new food communities</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="quick-action-card" hover onClick={() => window.location.href = '/circles'}>
+                  <div className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-purple-100 p-3 rounded-lg">
+                        <Users className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Create Circle</h3>
+                        <p className="text-sm text-gray-600">Start a food community</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Link href="/lists/new">
+                  <Card className="quick-action-card" hover>
+                    <div className="p-6">
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-blue-100 p-3 rounded-lg">
+                          <Plus className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Create List</h3>
+                          <p className="text-sm text-gray-600">Curate restaurants</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              </div>
+            </section>
+            
             {/* My Lists Section */}
             <section className="home-section my-lists-section">
               <div className="section-header">
