@@ -2,12 +2,13 @@
 .hero-section {
   background: hsl(var(--background));
   border-bottom: 1px solid hsl(var(--border));
-  padding: 1rem 1.5rem;
+  padding: 1.5rem;
   position: sticky;
   top: 0;
   z-index: 50;
   backdrop-filter: blur(8px);
   background-color: hsl(var(--background) / 0.95);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 }
 
 .hero-content {

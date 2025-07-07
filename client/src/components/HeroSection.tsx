@@ -1,81 +1,55 @@
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/Button';
-import { PlusCircle, Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { PostModal } from '@/components/post/PostModal';
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
-import './HeroSection.css';
+import { useState } from "react";
+import { Search, Plus } from "lucide-react";
+import { Button } from "./Button";
+import { UnifiedSearchModal } from "./search/UnifiedSearchModal";
+import { useLocation } from "wouter";
+import "./HeroSection.css";
 
 export function HeroSection() {
-  const { user } = useAuth();
-  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+  const handleCreatePost = () => {
+    setLocation("/create-post");
   };
 
-  // Handle Cmd+K / Ctrl+K shortcut
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchModalOpen(true);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   return (
-    <>
-      <section className="hero-section">
-        <div className="hero-content">
-          <div className="hero-text">
-            <h1 className="hero-title">
-              {getGreeting()}, {user?.name?.split(' ')[0] || 'Foodie'}! 
-            </h1>
-            <p className="hero-subtitle">
-              Find amazing restaurants through friends you trust, not strangers online
-            </p>
-          </div>
-          <div className="hero-actions">
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => setIsSearchModalOpen(true)}
-              className="hero-search-btn"
-              aria-label="Open search"
-            >
-              <Search className="h-5 w-5" />
-              Search
-            </Button>
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => setIsPostModalOpen(true)}
-              className="hero-cta"
-            >
-              <PlusCircle className="mr-2 h-5 w-5" />
-              New Post
-            </Button>
-          </div>
+    <section className="hero-section">
+      <div className="hero-content">
+        <div className="hero-text">
+          <h1 className="hero-title">Circles</h1>
+          <p className="hero-subtitle">
+            Trusted restaurant recommendations from your inner circle
+          </p>
         </div>
-      </section>
 
-      <PostModal
-        open={isPostModalOpen}
-        onOpenChange={setIsPostModalOpen}
-      />
-      
+        <div className="hero-actions">
+          <Button
+            variant="outline"
+            size="md"
+            className="hero-search-btn"
+            onClick={() => setIsSearchOpen(true)}
+          >
+            <Search className="h-4 w-4" />
+            Search restaurants, dishes, or friends
+          </Button>
+
+          <Button
+            variant="primary"
+            size="md"
+            className="hero-cta"
+            onClick={handleCreatePost}
+          >
+            <Plus className="h-4 w-4" />
+            Share Experience
+          </Button>
+        </div>
+      </div>
+
       <UnifiedSearchModal
-        open={isSearchModalOpen}
-        onOpenChange={setIsSearchModalOpen}
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
       />
-    </>
+    </section>
   );
 }

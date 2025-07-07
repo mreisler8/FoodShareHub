@@ -1,79 +1,66 @@
-import { RestaurantList } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Utensils, Tag, Users } from "lucide-react";
+import { RestaurantList } from "@shared/schema";
+import { MapPin, Users, Eye, Heart } from "lucide-react";
 
 interface RestaurantListCardProps {
   list: RestaurantList;
-  isCompact?: boolean;
 }
 
-export function RestaurantListCard({ list, isCompact = false }: RestaurantListCardProps) {
+export function RestaurantListCard({ list }: RestaurantListCardProps) {
   return (
-    <Link href={`/lists/${list.id}`} className="block">
-      <Card className="h-full transition-all duration-200 hover:shadow-md">
-        <CardHeader className={isCompact ? "p-4 pb-2" : "p-6 pb-3"}>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className={`text-primary font-heading ${isCompact ? "text-lg" : "text-xl"}`}>
-                {list.name}
-              </CardTitle>
-              {!isCompact && (
-                <CardDescription className="mt-1 line-clamp-2">
-                  {list.description}
-                </CardDescription>
-              )}
-            </div>
-            <Badge variant="outline" className="flex items-center gap-1 ml-2">
-              <Utensils className="h-3 w-3" />
-              <span>{list.restaurantCount || 0}</span>
-            </Badge>
+    <Link href={`/lists/${list.id}`}>
+      <div className="card card-hover p-6 cursor-pointer bg-card border border-border">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-xl font-semibold text-foreground truncate">{list.name}</h3>
+            {list.description && (
+              <p className="text-muted-foreground mt-1 text-sm line-clamp-2">{list.description}</p>
+            )}
           </div>
-        </CardHeader>
-        
-        <CardContent className={isCompact ? "p-4 pt-0" : "p-6 pt-0"}>
-          {list.tags && list.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {list.tags.slice(0, isCompact ? 2 : 3).map((tag, i) => (
-                <Badge key={i} variant="secondary" className="flex items-center gap-1">
-                  <Tag className="h-3 w-3" />
-                  <span>{tag}</span>
-                </Badge>
-              ))}
-              {list.tags.length > (isCompact ? 2 : 3) && (
-                <Badge variant="outline">+{list.tags.length - (isCompact ? 2 : 3)}</Badge>
-              )}
-            </div>
-          )}
-          
-          {list.circleId && !isCompact && (
-            <div className="flex items-center mt-3 text-sm text-neutral-500">
-              <Users className="h-4 w-4 mr-1" />
-              <span>Shared with {list.circleName || "a circle"}</span>
-            </div>
-          )}
-          
-          {!isCompact && list.creator && (
-            <div className="flex items-center mt-2 text-sm text-neutral-500">
-              <div className="flex items-center gap-2">
-                {list.creator.profilePicture ? (
-                  <img 
-                    src={list.creator.profilePicture} 
-                    alt={list.creator.name} 
-                    className="h-5 w-5 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="h-5 w-5 rounded-full bg-secondary/20 flex items-center justify-center text-secondary text-xs">
-                    {list.creator.name.charAt(0)}
-                  </div>
-                )}
-                <span>Created by {list.creator.name}</span>
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground ml-4">
+            <Eye className="h-4 w-4" />
+            <span>{list.viewCount || 0}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+            {list.primaryLocation && (
+              <div className="flex items-center space-x-1">
+                <MapPin className="h-4 w-4" />
+                <span className="truncate">{list.primaryLocation}</span>
               </div>
+            )}
+            <div className="flex items-center space-x-1">
+              <Users className="h-4 w-4" />
+              <span className="capitalize">{list.visibility}</span>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <Heart className="h-4 w-4" />
+            <span>{list.saveCount || 0}</span>
+          </div>
+        </div>
+
+        {list.tags && list.tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {list.tags.slice(0, 3).map((tag, index) => (
+              <span
+                key={index}
+                className="px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium"
+              >
+                {tag}
+              </span>
+            ))}
+            {list.tags.length > 3 && (
+              <span className="px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs">
+                +{list.tags.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     </Link>
   );
 }

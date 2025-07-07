@@ -53,7 +53,7 @@ function TopPicks() {
           </div>
         </Card>
       ))}
-      
+
       {posts.slice(0, 2).map((post: any) => (
         <Card key={`post-${post.id}`} className="pick-card" hover>
           <div className="pick-card-image" />
@@ -105,7 +105,7 @@ export default function Home() {
           itemCount: list.itemCount || 0,
           type: 'list' as const
         }));
-      
+
       case 'Top Picks':
         const restaurants = topPicks?.data?.restaurants || [];
         return restaurants.map(restaurant => ({
@@ -116,7 +116,7 @@ export default function Home() {
           rating: parseFloat(restaurant.averageRating),
           type: 'restaurant' as const
         }));
-      
+
       case 'Circles':
         return (circles || []).map(circle => ({
           id: circle.id,
@@ -125,7 +125,7 @@ export default function Home() {
           memberCount: circle.memberCount || 0,
           type: 'circle' as const
         }));
-      
+
       default:
         return [];
     }
@@ -134,12 +134,12 @@ export default function Home() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {!isMobile && <DesktopSidebar />}
-      
+
       <main className="flex-1">
         <div className="home-page">
           {/* Hero Section */}
           <HeroSection />
-          
+
           <div className="home-main">
             {/* Main Content with Tabs */}
             <section className="home-section main-content-section">
@@ -147,7 +147,7 @@ export default function Home() {
                 onTabChange={setActiveTab}
                 activeTab={activeTab}
               />
-              
+
               <div className="tab-content">
                 <PreviewCarousel 
                   items={getCarouselData()}
@@ -179,7 +179,7 @@ export default function Home() {
                     </div>
                   </div>
                 </Card>
-                
+
                 <Link href="/create-list">
                   <Card className="quick-action-card" hover>
                     <div className="p-6">
@@ -211,7 +211,7 @@ export default function Home() {
           </div>
         </div>
       </main>
-      
+
       {isMobile && <MobileNavigation />}
     </div>
   );
