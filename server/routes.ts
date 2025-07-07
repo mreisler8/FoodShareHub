@@ -1153,7 +1153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { inviteCode } = req.params;
       const result = await storage.joinCircleByInviteCode(inviteCode, req.user!.id);
-      
+
       if (result.success) {
         res.json({ 
           message: "Successfully joined circle",
@@ -1172,7 +1172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { inviteCode } = req.params;
       const circle = await storage.getCircleByInviteCode(inviteCode);
-      
+
       if (!circle) {
         return res.status(404).json({ error: "Invalid invite code" });
       }
@@ -2010,6 +2010,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register lists routes
   app.use("/api/recommendations", recommendationsRouter);
   app.use('/api/lists', listsRouter);
+
+  // Search
   app.use('/api/search', searchRouter);
 
   return httpServer;

@@ -18,7 +18,7 @@ export function HeroSection() {
     return 'Good evening';
   };
 
-  // Handle Cmd+K keyboard shortcut
+  // Handle Cmd+K / Ctrl+K shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -39,19 +39,21 @@ export function HeroSection() {
             <h1 className="hero-title">
               Hi, {user?.name?.split(' ')[0] || 'Explorer'}! What's on your plate today?
             </h1>
-            <div className="hero-search-actions">
-              <Button
-                shape="circle"
-                variant="secondary"
-                onClick={() => setIsSearchModalOpen(true)}
-                aria-label="Open search (Cmd+K)"
-                className="search-trigger-btn"
-              >
-                <Search size={20} />
-              </Button>
-            </div>
+            <p className="hero-subtitle">
+              Discover restaurants, lists, and recommendations from your trusted network
+            </p>
           </div>
-          <div className="hero-action">
+          <div className="hero-actions">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => setIsSearchModalOpen(true)}
+              className="hero-search-btn"
+              aria-label="Open search"
+            >
+              <Search className="h-5 w-5" />
+              Search
+            </Button>
             <Button
               variant="primary"
               size="lg"
