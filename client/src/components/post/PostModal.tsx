@@ -137,7 +137,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
 
   // Search restaurants
   const { data: searchResults = [], isLoading: isSearching } = useQuery<RestaurantSearchResult[]>({
-    queryKey: ['/api/search', debouncedQuery],
+    queryKey: ['/api/restaurants', debouncedQuery],
     enabled: debouncedQuery.length >= 1 && showSearchResults,
   });
 
