@@ -240,7 +240,7 @@ export function PostCard({ post }: PostCardProps) {
                 ...(post.images || []).map(url => ({ url, type: 'image' as const })),
                 ...(post.videos || []).map(url => ({ url, type: 'video' as const }))
               ]} 
-              className="rounded-lg"
+              className="media-carousel"
             />
           </div>
         )}

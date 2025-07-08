@@ -1,19 +1,29 @@
-/* PostCard Component Styles - Modern Design System */
+/* PostCard Component Styles - Modern Instagram-style Design */
 
 .post-card {
   background: hsl(var(--card));
-  border-radius: var(--radius-lg);
-  border: 1px solid hsl(var(--border));
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid hsl(var(--border) / 0.3);
+  border-bottom: 1px solid hsl(var(--border) / 0.3);
   overflow: hidden;
   transition: all var(--transition-normal);
-  margin-bottom: 24px;
-  box-shadow: var(--shadow-sm);
+  margin-bottom: 0;
+  box-shadow: none;
 }
 
 .post-card:hover {
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.12), 0 4px 8px rgb(0 0 0 / 0.08);
-  transform: translateY(-4px);
-  border-color: hsl(var(--primary) / 0.2);
+  box-shadow: none;
+  transform: none;
+  border-color: hsl(var(--border) / 0.3);
+}
+
+.post-card:first-child {
+  border-top: none;
+}
+
+.post-card:last-child {
+  border-bottom: none;
 }
 
 /* Post Header */
@@ -21,8 +31,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  padding: 12px 16px;
+  border-bottom: none;
 }
 
 .user-avatar {
@@ -61,7 +71,7 @@
 
 /* Restaurant Info - Primary Focus */
 .restaurant-info {
-  padding: 20px 16px 16px;
+  padding: 0 16px 12px;
 }
 
 .restaurant-name {
@@ -106,13 +116,24 @@
   font-size: 12px;
 }
 
-/* Post Image */
+/* Post Media */
+.post-media {
+  width: 100%;
+  margin: 0 -16px 16px -16px;
+  overflow: hidden;
+}
+
+.post-media .media-carousel {
+  border-radius: 0;
+}
+
 .post-image {
   width: 100%;
   aspect-ratio: 4/3;
-  background: hsl(var(--muted));
+  background: hsl(var(--background));
   overflow: hidden;
-  margin-bottom: 16px;
+  border-radius: 0;
+  position: relative;
 }
 
 .post-image img {
@@ -120,10 +141,42 @@
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
+  background: hsl(var(--background));
 }
 
 .post-image:hover img {
   transform: scale(1.02);
+}
+
+/* Loading state for images */
+.post-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted) / 0.8) 50%,
+    hsl(var(--muted)) 100%
+  );
+  animation: shimmer 1.5s infinite;
+  z-index: 1;
+}
+
+.post-image img[src] + ::before {
+  display: none;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* Post Content */
@@ -203,8 +256,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-top: 1px solid hsl(var(--border) / 0.5);
+  padding: 8px 16px 16px;
+  border-top: none;
 }
 
 .action-buttons {
@@ -287,16 +340,16 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .post-card {
-    border-radius: 12px;
-    margin-bottom: 16px;
+    border-radius: 0;
+    margin-bottom: 0;
   }
   
   .post-header {
-    padding: 12px;
+    padding: 10px 12px;
   }
   
   .restaurant-info {
-    padding: 16px 12px 12px;
+    padding: 0 12px 10px;
   }
   
   .restaurant-name {
@@ -309,15 +362,15 @@
   }
   
   .post-content {
-    padding: 0 12px 12px;
+    padding: 0 12px 10px;
   }
   
   .content-text {
-    font-size: 13px;
+    font-size: 14px;
   }
   
   .post-actions {
-    padding: 10px 12px;
+    padding: 6px 12px 12px;
   }
   
   .action-buttons {
@@ -325,13 +378,18 @@
   }
   
   .action-btn {
-    font-size: 13px;
+    font-size: 14px;
     gap: 6px;
+    padding: 6px 8px;
   }
   
   .additional-details {
     grid-template-columns: 1fr;
     gap: 8px;
     padding: 8px;
+  }
+  
+  .post-media {
+    margin: 0 -12px 10px -12px;
   }
 }
