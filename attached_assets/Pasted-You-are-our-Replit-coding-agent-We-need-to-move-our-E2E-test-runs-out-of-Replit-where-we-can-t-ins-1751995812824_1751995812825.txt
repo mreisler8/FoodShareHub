@@ -1,0 +1,74 @@
+You are our Replit coding agent. We need to move our E2E test runs out of Replit (where we can’t install native browser libs) and into GitHub Actions on Ubuntu. Please follow these exact steps:
+
+1. **Create the GitHub Actions workflow directory**  
+   - In the project root, create a new folder:  
+     ```
+     .github/workflows/
+     ```
+
+2. **Add the E2E workflow file**  
+   - Under `.github/workflows/`, create a file called `e2e-tests.yml` with the following contents:
+     ```yaml
+     name: E2E Tests
+
+     on:
+       push:
+         branches: [ main ]
+       pull_request:
+         branches: [ main ]
+
+     jobs:
+       cypress-run:
+         runs-on: ubuntu-latest
+
+         steps:
+           - name: Checkout repository
+             uses: actions/checkout@v3
+
+           - name: Setup Node.js
+             uses: actions/setup-node@v3
+             with:
+               node-version: 18
+
+           - name: Install dependencies
+             run: npm ci
+
+           - name: Build client
+             run: npm run build --if-present
+
+           - name: Start server
+             run: npm run start &   # adjust if your start script differs
+
+           - name: Wait for server to be ready
+             run: npx wait-on http://localhost:5173  # adjust URL/port if needed
+
+           - name: Run Cypress tests
+             uses: cypress-io/github-action@v6
+             with:
+               working-directory: .
+               spec: "client/cypress/integration/**/*.spec.ts"
+
+           - name: Upload Cypress artifacts
+             if: failure()
+             uses: actions/upload-artifact@v3
+             with:
+               name: cypress-videos-and-screenshots
+               path: |
+                 cypress/videos/**/*.mp4
+                 cypress/screenshots/**/*.png
+     ```
+
+3. **Commit & push**  
+   - Stage and commit your new workflow and any changes:  
+     ```
+     git add .github/workflows/e2e-tests.yml
+     git commit -m "ci: add GitHub Actions workflow for Cypress E2E tests"
+     git push origin your-branch
+     ```
+
+4. **Verify on GitHub**  
+   - Open a pull request against `main` (or push to `main`).  
+   - Go to the **Actions** tab on GitHub and confirm the “E2E Tests” workflow runs through checkout, install, build, start, and Cypress tests.
+
+After this, your E2E suite will run automatically on every push/PR in a proper Ubuntu environment with all required libraries. Let me know if any step fails or needs tweaking!
+::contentReference[oaicite:0]{index=0}
