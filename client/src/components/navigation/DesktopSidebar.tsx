@@ -38,8 +38,8 @@ export function DesktopSidebar() {
   };
 
   return (
-    <div className="nav-desktop md:flex-col md:w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-6 h-screen sticky top-0 border-r border-soft-sand-30">
-      <Link href="/" className="flex items-center mb-10 hover:opacity-80 transition-opacity" aria-label="Go to home page">
+    <div className="nav-desktop md:flex-col md:w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-4 h-screen sticky top-0 border-r border-soft-sand-30">
+      <Link href="/" className="flex items-center mb-6 hover:opacity-80 transition-opacity" aria-label="Go to home page">
         <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 

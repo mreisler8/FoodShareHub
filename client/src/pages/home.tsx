@@ -136,79 +136,77 @@ export default function Home() {
       <DesktopSidebar />
 
       <main className="md:ml-56 lg:ml-64">
-        <div className="min-h-screen">
-          {/* Hero Section */}
-          <HeroSection />
+        {/* Hero Section */}
+        <HeroSection />
 
-          <div className="main-content">
-            {/* Main Content with Tabs */}
-            <section className="home-section main-content-section">
-              <SectionTabs 
-                onTabChange={setActiveTab}
-                activeTab={activeTab}
+        <div className="main-content">
+          {/* Main Content with Tabs */}
+          <section className="home-section main-content-section">
+            <SectionTabs 
+              onTabChange={setActiveTab}
+              activeTab={activeTab}
+            />
+
+            <div className="tab-content">
+              <PreviewCarousel 
+                items={getCarouselData()}
+                type={activeTab === 'My Lists' ? 'lists' : 
+                     activeTab === 'Top Picks' ? 'restaurants' : 'circles'}
               />
+            </div>
+          </section>
 
-              <div className="tab-content">
-                <PreviewCarousel 
-                  items={getCarouselData()}
-                  type={activeTab === 'My Lists' ? 'lists' : 
-                       activeTab === 'Top Picks' ? 'restaurants' : 'circles'}
-                />
+          {/* Quick Actions */}
+          <section className="home-section quick-actions-section">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Quick Actions</h2>
+                <p className="section-subtitle">Create and discover new food communities</p>
               </div>
-            </section>
-
-            {/* Quick Actions */}
-            <section className="home-section quick-actions-section">
-              <div className="section-header">
-                <div>
-                  <h2 className="section-title">Quick Actions</h2>
-                  <p className="section-subtitle">Create and discover new food communities</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="quick-action-card card-hover" onClick={() => window.location.href = '/circles'}>
+                <div className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-purple-100 p-3 rounded-lg">
+                      <Users className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Create Circle</h3>
+                      <p className="text-sm text-gray-600">Start a food community</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="quick-action-card card-hover" onClick={() => window.location.href = '/circles'}>
+              </Card>
+
+              <Link href="/create-list">
+                <Card className="quick-action-card card-hover">
                   <div className="p-6">
                     <div className="flex items-center space-x-4">
-                      <div className="bg-purple-100 p-3 rounded-lg">
-                        <Users className="h-6 w-6 text-purple-600" />
+                      <div className="bg-blue-100 p-3 rounded-lg">
+                        <Plus className="h-6 w-6 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">Create Circle</h3>
-                        <p className="text-sm text-gray-600">Start a food community</p>
+                        <h3 className="font-semibold text-gray-900">Create List</h3>
+                        <p className="text-sm text-gray-600">Curate restaurants</p>
                       </div>
                     </div>
                   </div>
                 </Card>
+              </Link>
+            </div>
+          </section>
 
-                <Link href="/create-list">
-                  <Card className="quick-action-card card-hover">
-                    <div className="p-6">
-                      <div className="flex items-center space-x-4">
-                        <div className="bg-blue-100 p-3 rounded-lg">
-                          <Plus className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">Create List</h3>
-                          <p className="text-sm text-gray-600">Curate restaurants</p>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
+          {/* Feed Preview */}
+          <section className="home-section feed-section">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Latest Posts</h2>
+                <p className="section-subtitle">Recent dining experiences from your network</p>
               </div>
-            </section>
-
-            {/* Feed Preview */}
-            <section className="home-section feed-section">
-              <div className="section-header">
-                <div>
-                  <h2 className="section-title">Latest Posts</h2>
-                  <p className="section-subtitle">Recent dining experiences from your network</p>
-                </div>
-              </div>
-              <FeedPreview maxPosts={2} />
-            </section>
-          </div>
+            </div>
+            <FeedPreview maxPosts={2} />
+          </section>
         </div>
       </main>
 
