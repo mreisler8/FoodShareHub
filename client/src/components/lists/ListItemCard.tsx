@@ -95,9 +95,9 @@ export function ListItemCard({ data: item, onEdit, onDelete, isOptimistic = fals
             
             {item.priceAssessment && (
               <div className="flex items-center">
-                <DollarSign className="h-4 w-4 text-green-600 mr-1" />
+                <DollarSign className="h-4 w-4 text-blue-600 mr-1" />
                 <span className={`text-sm px-2 py-1 rounded-full text-xs font-medium ${
-                  item.priceAssessment === 'Great value' ? 'bg-green-100 text-green-800' :
+                  item.priceAssessment === 'Great value' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                   item.priceAssessment === 'Fair' ? 'bg-yellow-100 text-yellow-800' :
                   'bg-red-100 text-red-800'
                 }`}>
@@ -112,7 +112,7 @@ export function ListItemCard({ data: item, onEdit, onDelete, isOptimistic = fals
             <div className="space-y-2 mb-3">
               {item.liked && (
                 <div className="flex items-start gap-2">
-                  <ThumbsUp className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <ThumbsUp className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-neutral-700">{item.liked}</p>
                 </div>
               )}

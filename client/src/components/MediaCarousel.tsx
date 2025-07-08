@@ -117,8 +117,9 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
           width: 100%;
           aspect-ratio: 4/3;
           background: #f8fafc;
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .media-carousel-image {
@@ -126,7 +127,7 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
           height: 100%;
           object-fit: cover;
           cursor: pointer;
-          transition: transform 0.2s ease;
+          transition: transform 0.2s ease, opacity 0.2s ease;
         }
 
         .media-carousel-image:hover {
@@ -165,6 +166,11 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
         .media-carousel-nav:hover {
           background: rgba(0, 0, 0, 0.9);
           transform: translateY(-50%) scale(1.1);
+        }
+
+        .media-carousel-nav:focus {
+          outline: 2px solid #3b82f6;
+          outline-offset: 2px;
         }
 
         .media-carousel-nav--prev {

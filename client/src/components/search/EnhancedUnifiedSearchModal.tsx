@@ -317,7 +317,7 @@ export function EnhancedUnifiedSearchModal({ open, onOpenChange }: EnhancedUnifi
     switch (type) {
       case 'restaurant': return <UtensilsCrossed className="h-4 w-4 text-primary" />;
       case 'list': return <FileText className="h-4 w-4 text-blue-500" />;
-      case 'post': return <MapPin className="h-4 w-4 text-green-500" />;
+      case 'post': return <MapPin className="h-4 w-4 text-blue-500" />;
       case 'user': return <User className="h-4 w-4 text-purple-500" />;
       default: return null;
     }

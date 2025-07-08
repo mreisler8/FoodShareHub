@@ -322,7 +322,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
 
               {/* Tags indicator */}
               {file.tags && file.tags.length > 0 && (
-                <div className="absolute top-2 left-2 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {file.tags.length}
                 </div>
               )}

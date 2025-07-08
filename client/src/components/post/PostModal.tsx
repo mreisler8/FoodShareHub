@@ -362,12 +362,12 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
 
           {/* Selected Restaurant Display */}
           {selectedRestaurant && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-green-900">{selectedRestaurant.name}</p>
+                  <p className="font-medium text-gray-900">{selectedRestaurant.name}</p>
                   {selectedRestaurant.location && (
-                    <p className="text-sm text-green-700 flex items-center gap-1">
+                    <p className="text-sm text-gray-600 flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
                       {selectedRestaurant.location}
                     </p>
@@ -381,7 +381,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
                     setSelectedRestaurant(null);
                     setSearchQuery('');
                   }}
-                  className="text-green-700 hover:text-green-900"
+                  className="text-gray-600 hover:text-gray-800"
                 >
                   <X className="h-4 w-4" />
                 </Button>

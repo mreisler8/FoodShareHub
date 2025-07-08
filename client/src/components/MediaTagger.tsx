@@ -156,7 +156,7 @@ export function MediaTagger({ mediaFiles, availableTags, onTagChange, onAddTag }
                 {(file.tags || []).map((tag) => (
                   <div
                     key={tag}
-                    className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center gap-1"
+                    className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center gap-1 border border-blue-200"
                   >
                     #{tag}
                     <button
