@@ -251,7 +251,7 @@ async function runFullTestSuite() {
 }
 
 // Execute the test suite
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   runFullTestSuite()
     .then(results => {
       if (results && results.overall >= 70) {
@@ -266,4 +266,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { runBasicTests, runFullTestSuite };
+export { runBasicTests, runFullTestSuite };
