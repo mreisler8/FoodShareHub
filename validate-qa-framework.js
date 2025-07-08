@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 // Colors for console output
 const colors = {
@@ -234,7 +234,7 @@ async function validateQAFramework() {
 }
 
 // Run the validation
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   validateQAFramework()
     .then(result => {
       process.exit(result.errors > 0 ? 1 : 0);
@@ -245,4 +245,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { validateQAFramework };
+export { validateQAFramework };

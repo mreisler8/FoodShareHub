@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const { validateQAFramework } = require('./validate-qa-framework');
+import fs from 'fs';
+import path from 'path';
+import { validateQAFramework } from './validate-qa-framework.js';
 
 // Simple test execution for components that don't require Node.js runtime
 async function runBasicTests() {

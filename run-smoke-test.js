@@ -1,6 +1,6 @@
 
-const { exec } = require('child_process');
-const fetch = require('node-fetch');
+import { exec } from 'child_process';
+import fetch from 'node-fetch';
 
 async function runSmokeTest() {
   console.log('🔍 Starting smoke test...');

@@ -1,5 +1,5 @@
 
-const axios = require('axios');
+import axios from 'axios';
 
 const baseURL = 'https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev';
 
