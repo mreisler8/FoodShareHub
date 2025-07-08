@@ -1,0 +1,70 @@
+# V1 Audit Scope & Goals
+
+### Context
+We’re building a private, trusted social network for restaurant recommendations.  
+Our core vision: enable users to create collaborative, persona-driven lists and posts, then share them privately (circles) or publicly.  
+Personas:  
+- **Tracker Taylor** – logs & resumes lists in ≤3 clicks  
+- **Explorer Alex** – discovers Top Picks easily  
+- **Seeker Sam** – finds occasion-specific recs in one place  
+- **Influencer Riley** – seamless content creation & sharing  
+
+---
+
+## 1. Core Flows (P1 Stability)
+1. **Search → Select Restaurant → Create Post/List**  
+2. **Create, Edit, Delete Lists**  
+3. **Tagging & Theming Lists (no duplicates)**  
+4. **Private vs. Public Sharing**
+
+## 2. Persona Checks
+| Persona          | Flow                          | Success Criteria                           |
+|------------------|-------------------------------|--------------------------------------------|
+| Tracker Taylor   | Create & resume lists         | ≤3 interactions, no errors                 |
+| Explorer Alex    | Discover Top Picks            | Switch tab → click card → view detail      |
+| Seeker Sam       | Tag & filter lists for occasions | Create “Date Night” tag → filter → see list |
+| Influencer Riley | Post creation & sharing       | Open PostModal → share to circle/public    |
+
+## 3. Quality Gates
+- **No Console Errors**  
+- **Error Boundaries & Loading States**  
+- **Accessibility Basics** (keyboard nav, ARIA labels, color contrast)
+
+---
+
+# Your Task as QA & Audit Lead
+
+Please generate, for **each** bullet above:
+
+1. **Manual Test Cases**  
+   - Format: Given / When / Then  
+   - Include persona & flow reference.
+
+2. **Cypress E2E Test Stubs**  
+   - File paths under `client/cypress/integration/`  
+   - Skeleton code with comments for steps and assertions.
+
+3. **Unit & API Test Suggestions**  
+   - File paths under `tests/` or `client/src/__tests__/`  
+   - Jest or supertest stubs for key service and route behaviors.
+
+4. **QA_PLAN.md**  
+   - A Markdown document summarizing all test cases in a table of contents.
+
+5. **Commit Message**  
+chore(qc): add detailed V1 QA plan, manual & automated test skeletons
+
+markdown
+Copy
+Edit
+
+## Output Expectations
+- Create a file `docs/QA_PLAN.md` in Markdown summarizing all test cases.
+- Scaffold E2E test files (empty) under `client/cypress/integration/` with `.spec.ts` extensions.
+- Scaffold API & unit test files under `tests/` and `client/src/__tests__/`.
+- Provide any code snippets directly in the scaffolded files.
+- Return a summary of created files and next steps.
+
+---
+
+Please proceed and let me know when the QA plan and test skeletons are in place!  
