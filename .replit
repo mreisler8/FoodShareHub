@@ -80,3 +80,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "./run-qa.sh"
+
+[[workflows.workflow]]
+name = "Run Simple Tests"
+author = 41470336
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node run-smoke-test.js"
