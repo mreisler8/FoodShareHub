@@ -13,8 +13,11 @@ module.exports = defineConfig({
     requestTimeout: 10000,
     responseTimeout: 10000,
     specPattern: 'cypress/integration/**/*.spec.{js,ts}',
+    experimentalStudio: true,
+    chromeWebSecurity: false,
     setupNodeEvents(on, config) {
       // implement node event listeners here
+      return config;
     },
   },
 })
