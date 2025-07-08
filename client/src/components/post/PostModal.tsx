@@ -53,6 +53,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [media, setMedia] = useState<any[]>([]);
+  const [imageTags, setImageTags] = useState<string[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [taggedListIds, setTaggedListIds] = useState<number[]>([]);
   const [isCreateListOpen, setIsCreateListOpen] = useState(false);
@@ -202,6 +203,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     setSelectedImages([]);
     setImageUrls([]);
     setMedia([]);
+    setImageTags([]);
     setShowSearchResults(false);
     setVisibilitySettings({
       feed: true,
@@ -273,6 +275,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       content,
       images,
       videos,
+      imageTags,
       visibility: 'public', // Simplified for now
     });
   };
@@ -448,7 +451,10 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
           {/* Media Upload */}
           <div className="space-y-2">
             <Label>Photos & Videos</Label>
-            <MediaUploader onChange={setMedia} />
+            <MediaUploader 
+              onChange={setMedia} 
+              onTagsChange={setImageTags}
+            />
           </div>
 
           {/* List Tagging */}

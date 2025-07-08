@@ -2,24 +2,45 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Cropper from 'react-easy-crop';
 import axios from 'axios';
+import { MediaTagger } from './MediaTagger';
+import { ChevronDown, Filter, X, Check } from 'lucide-react';
 
 interface MediaFile {
   url: string;
   thumbnailUrl: string;
   type: 'image' | 'video';
+  tags?: string[];
+  filter?: string;
 }
 
 interface MediaUploaderProps {
   onChange: (files: MediaFile[]) => void;
+  onTagsChange?: (imageTags: string[]) => void;
 }
 
-export default function MediaUploader({ onChange }: MediaUploaderProps) {
+const IMAGE_FILTERS = [
+  { id: 'none', name: 'None', css: '' },
+  { id: 'vivid', name: 'Vivid', css: 'saturate(1.5) contrast(1.2) brightness(1.1)' },
+  { id: 'retro', name: 'Retro', css: 'sepia(0.5) saturate(1.2) contrast(1.1) hue-rotate(15deg)' },
+  { id: 'mono', name: 'Mono', css: 'grayscale(1) contrast(1.1)' },
+];
+
+const DEFAULT_TAGS = [
+  'delicious', 'amazing', 'perfect', 'fresh', 'homemade', 'spicy', 'sweet', 'healthy',
+  'comfort-food', 'instagram-worthy', 'must-try', 'seasonal', 'authentic', 'fusion'
+];
+
+export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [previews, setPreviews] = useState<MediaFile[]>([]);
   const [cropIndex, setCropIndex] = useState<number | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState('none');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showTagger, setShowTagger] = useState(false);
+  const [availableTags, setAvailableTags] = useState<string[]>(DEFAULT_TAGS);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleUpload = useCallback(async (acceptedFiles: File[]) => {
@@ -49,16 +70,11 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
       for (const chunk of chunks) {
         const formData = new FormData();
         
-        // Optimize file compression before upload
         for (const file of chunk) {
-          if (file.type.startsWith('image/') && file.size > 1024 * 1024) {
-            // Compress images larger than 1MB
-            const compressedFile = await compressImage(file);
-            formData.append('images', compressedFile);
-          } else if (file.type.startsWith('video')) {
-            formData.append('videos', file);
-          } else {
+          if (file.type.startsWith('image/')) {
             formData.append('images', file);
+          } else if (file.type.startsWith('video/')) {
+            formData.append('videos', file);
           }
         }
 
@@ -73,73 +89,48 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
         allUploadedFiles.push(...(response.data.files || []));
       }
 
-      const newPreviews = [...previews, ...allUploadedFiles];
+      const newPreviews = [...previews, ...allUploadedFiles.map(file => ({
+        ...file,
+        filter: selectedFilter,
+        tags: []
+      }))];
       setPreviews(newPreviews);
       onChange(newPreviews);
     } catch (error: any) {
       if (error.name !== 'AbortError') {
-        console.error('Upload failed:', error);
+        console.error('Upload error:', error);
         setError(error.response?.data?.error || 'Upload failed. Please try again.');
       }
     } finally {
       setUploading(false);
-      abortControllerRef.current = null;
     }
-  }, [previews, onChange]);
-
-  // Image compression utility
-  const compressImage = useCallback((file: File): Promise<File> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        // Calculate new dimensions (max 1920x1080)
-        const MAX_WIDTH = 1920;
-        const MAX_HEIGHT = 1080;
-        let { width, height } = img;
-        
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height = (height * MAX_WIDTH) / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width = (width * MAX_HEIGHT) / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-          } else {
-            resolve(file);
-          }
-        }, 'image/jpeg', 0.8);
-      };
-      
-      img.src = URL.createObjectURL(file);
-    });
-  }, []);
+  }, [previews, selectedFilter, onChange]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleUpload,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif'],
-      'video/*': ['.mp4', '.mov', '.avi', '.mkv']
+      'video/*': ['.mp4', '.mov', '.avi', '.wmv']
     },
-    maxFiles: 12,
-    maxSize: 50 * 1024 * 1024, // 50MB limit
-    onDrop: handleUpload,
-    onDropRejected: (rejectedFiles) => {
-      const errors = rejectedFiles.map(f => f.errors[0]?.message).join(', ');
+    maxSize: 100 * 1024 * 1024, // 100MB
+    multiple: true,
+    disabled: uploading,
+    validator: (file) => {
+      const imageCount = previews.filter(p => p.type === 'image').length;
+      const videoCount = previews.filter(p => p.type === 'video').length;
+      
+      if (file.type.startsWith('image/') && imageCount >= 10) {
+        return { code: 'too-many-images', message: 'Maximum 10 images allowed' };
+      }
+      if (file.type.startsWith('video/') && videoCount >= 2) {
+        return { code: 'too-many-videos', message: 'Maximum 2 videos allowed' };
+      }
+      return null;
+    },
+    onDropRejected: (fileRejections) => {
+      const errors = fileRejections.map(rejection => 
+        rejection.errors.map(err => err.message).join(', ')
+      ).join('; ');
       setError(`File rejected: ${errors}`);
     }
   });
@@ -148,6 +139,39 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
     const newPreviews = previews.filter((_, i) => i !== index);
     setPreviews(newPreviews);
     onChange(newPreviews);
+    updateImageTags(newPreviews);
+  };
+
+  const applyFilterToFile = (index: number, filterId: string) => {
+    const newPreviews = [...previews];
+    newPreviews[index] = { ...newPreviews[index], filter: filterId };
+    setPreviews(newPreviews);
+    onChange(newPreviews);
+  };
+
+  const handleTagChange = (index: number, tags: string[]) => {
+    const newPreviews = [...previews];
+    newPreviews[index] = { ...newPreviews[index], tags };
+    setPreviews(newPreviews);
+    onChange(newPreviews);
+    updateImageTags(newPreviews);
+  };
+
+  const handleAddTag = (tag: string) => {
+    if (!availableTags.includes(tag)) {
+      setAvailableTags([...availableTags, tag]);
+    }
+  };
+
+  const updateImageTags = (files: MediaFile[]) => {
+    const allTags = files.flatMap(file => file.tags || []);
+    const uniqueTags = [...new Set(allTags)];
+    onTagsChange?.(uniqueTags);
+  };
+
+  const getFilterCSS = (filterId: string) => {
+    const filter = IMAGE_FILTERS.find(f => f.id === filterId);
+    return filter ? filter.css : '';
   };
 
   const openCropper = (index: number) => {
@@ -161,117 +185,165 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
   };
 
   return (
-    <div className="media-uploader">
-      {/* Dropzone */}
+    <div className="space-y-4">
+      {/* Upload Area */}
       <div
         {...getRootProps()}
-        className={`dropzone border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
           isDragActive 
             ? 'border-blue-500 bg-blue-50' 
             : 'border-gray-300 hover:border-gray-400'
-        } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
       >
-        <input {...getInputProps()} disabled={uploading} />
-        <div className="flex flex-col items-center space-y-2">
-          <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          <p className="text-lg font-medium text-gray-700">
-            {uploading ? 'Uploading...' : 'Drag & drop or click to upload'}
-          </p>
-          <p className="text-sm text-gray-500">
-            Max 10 images, 2 videos • JPEG, PNG, GIF, MP4, MOV
-          </p>
-        </div>
+        <input {...getInputProps()} />
+        
+        {uploading ? (
+          <div className="flex flex-col items-center space-y-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p className="text-gray-600">Uploading...</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="text-4xl">📸</div>
+            <p className="text-gray-600">
+              {isDragActive
+                ? "Drop files here..."
+                : "Drag & drop images/videos, or click to select"}
+            </p>
+            <p className="text-sm text-gray-500">
+              Supports: JPG, PNG, GIF, MP4, MOV (Max 10 images, 2 videos)
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Filter Controls */}
+      {previews.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="relative">
+            <button
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <Filter className="h-4 w-4" />
+              <span>Filter: {IMAGE_FILTERS.find(f => f.id === selectedFilter)?.name}</span>
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            
+            {showFilterDropdown && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 min-w-full">
+                {IMAGE_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    onClick={() => {
+                      setSelectedFilter(filter.id);
+                      setShowFilterDropdown(false);
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+                  >
+                    <span>{filter.name}</span>
+                    {selectedFilter === filter.id && (
+                      <Check className="h-4 w-4 text-blue-500" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowTagger(!showTagger)}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          >
+            {showTagger ? 'Hide' : 'Show'} Media Tagger
+          </button>
+        </div>
+      )}
 
       {/* Error display */}
       {error && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <div className="flex items-center justify-between">
             <span className="text-sm text-red-600">{error}</span>
             <button
               onClick={() => setError(null)}
-              className="ml-auto text-red-400 hover:text-red-600"
+              className="text-red-400 hover:text-red-600"
             >
-              ×
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Progress indicator */}
-      {uploading && (
-        <div className="mt-4">
-          <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-            <span className="text-sm text-gray-600">Processing files...</span>
-            <button
-              onClick={() => abortControllerRef.current?.abort()}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Thumbnail previews */}
+      {/* Media Previews with Filters */}
       {previews.length > 0 && (
-        <div className="mt-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">
-            Uploaded files ({previews.length})
-          </h4>
-          <div className="flex overflow-x-auto gap-3 pb-2">
-            {previews.map((file, index) => (
-              <div key={index} className="relative flex-shrink-0 group">
-                <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
-                     onClick={() => openCropper(index)}>
-                  {file.type === 'image' ? (
-                    <img
-                      src={file.thumbnailUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                      <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Remove button */}
-                <button
-                  onClick={() => removeFile(index)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                >
-                  ×
-                </button>
-                
-                {/* Crop button for images */}
-                {file.type === 'image' && (
-                  <button
-                    onClick={() => openCropper(index)}
-                    className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Crop image"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-2" />
-                    </svg>
-                  </button>
+        <div className="grid grid-cols-4 gap-4">
+          {previews.map((file, index) => (
+            <div key={index} className="relative group">
+              <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                {file.type === 'image' ? (
+                  <img
+                    src={file.thumbnailUrl}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    style={{ filter: getFilterCSS(file.filter || 'none') }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                    <div className="text-xs text-gray-500">VIDEO</div>
+                  </div>
                 )}
               </div>
-            ))}
-          </div>
+              
+              {/* Remove button */}
+              <button
+                onClick={() => removeFile(index)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+
+              {/* Filter selector for each image */}
+              {file.type === 'image' && (
+                <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <select
+                    value={file.filter || 'none'}
+                    onChange={(e) => applyFilterToFile(index, e.target.value)}
+                    className="w-full bg-black bg-opacity-50 text-white text-xs rounded px-2 py-1"
+                  >
+                    {IMAGE_FILTERS.map(filter => (
+                      <option key={filter.id} value={filter.id}>
+                        {filter.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Tags indicator */}
+              {file.tags && file.tags.length > 0 && (
+                <div className="absolute top-2 left-2 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {file.tags.length}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Crop modal */}
+      {/* Media Tagger */}
+      {showTagger && previews.length > 0 && (
+        <div className="bg-gray-50 rounded-lg p-4">
+          <MediaTagger
+            mediaFiles={previews}
+            availableTags={availableTags}
+            onTagChange={handleTagChange}
+            onAddTag={handleAddTag}
+          />
+        </div>
+      )}
+
+      {/* Crop Modal */}
       {cropIndex !== null && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -281,9 +353,7 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
                 onClick={closeCropper}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="h-6 w-6" />
               </button>
             </div>
             
@@ -295,10 +365,19 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
                 aspect={1}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
-                onCropComplete={(croppedArea, croppedAreaPixels) => {
-                  // Handle crop completion
-                  console.log('Crop completed:', croppedArea, croppedAreaPixels);
-                }}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-4 mb-4">
+              <label className="text-sm font-medium">Zoom:</label>
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.1"
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="flex-1"
               />
             </div>
             
