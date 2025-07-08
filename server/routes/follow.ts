@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { eq, and, or } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { userFollowers, users } from '../../shared/schema';
+import { userFollowers, users, circleMembers, posts, restaurants } from '../../shared/schema';
+import { sql, alias, desc } from 'drizzle-orm';
 
 const router = Router();
 
@@ -162,13 +163,116 @@ router.get('/suggestions', authenticate, async (req, res) => {
         username: users.username,
         profilePicture: users.profilePicture,
         bio: users.bio,
+        mutualCircles: sql<number>`COUNT(DISTINCT cm2.circle_id)`.as('mutualCircles'),
+        mutualConnections: sql<number>`COUNT(DISTINCT uf2.following_id)`.as('mutualConnections'),
       })
       .from(users)
+      .leftJoin(circleMembers, eq(circleMembers.userId, users.id))
+      .leftJoin(
+        alias(circleMembers, 'cm_current'), 
+        and(
+          eq(sql`cm_current.user_id`, currentUserId),
+          eq(sql`cm_current.circle_id`, circleMembers.circleId)
+        )
+      )
+      .leftJoin(
+        alias(circleMembers, 'cm2'),
+        and(
+          eq(sql`cm2.user_id`, users.id),
+          sql`cm2.circle_id IN (SELECT circle_id FROM circle_members WHERE user_id = ${currentUserId})`
+        )
+      )
+      .leftJoin(
+        alias(userFollowers, 'uf2'),
+        and(
+          sql`uf2.follower_id IN (SELECT following_id FROM user_followers WHERE follower_id = ${currentUserId})`,
+          eq(sql`uf2.following_id`, users.id)
+        )
+      )
       .where(and(
         // Exclude self
-        eq(users.id, currentUserId) === false,
-        // Add more sophisticated logic here for suggestions
+        sql`${users.id} != ${currentUserId}`,
+        // Exclude already followed users
+        sql`${users.id} NOT IN (SELECT following_id FROM user_followers WHERE follower_id = ${currentUserId})`,
+        // Include users with mutual circles or connections
+        or(
+          sql`cm2.circle_id IS NOT NULL`,
+
+
+// GET /api/follow/feed - Get posts from followed users for personalized feed
+router.get('/feed', authenticate, async (req, res) => {
+  try {
+    const currentUserId = req.user!.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const offset = (page - 1) * limit;
+
+    // Get posts from followed users
+    const followedUsersPosts = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        rating: posts.rating,
+        visibility: posts.visibility,
+        dishesTried: posts.dishesTried,
+        images: posts.images,
+        createdAt: posts.createdAt,
+        author: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+        },
+        restaurant: {
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          cuisine: restaurants.cuisine,
+        }
+      })
+      .from(posts)
+      .innerJoin(users, eq(posts.userId, users.id))
+      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+      .innerJoin(userFollowers, eq(userFollowers.followingId, posts.userId))
+      .where(and(
+        eq(userFollowers.followerId, currentUserId),
+        eq(posts.visibility, 'public')
       ))
+      .orderBy(desc(posts.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Get total count for pagination
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .innerJoin(userFollowers, eq(userFollowers.followingId, posts.userId))
+      .where(and(
+        eq(userFollowers.followerId, currentUserId),
+        eq(posts.visibility, 'public')
+      ));
+
+    res.json({
+      posts: followedUsersPosts,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit),
+        hasMore: page < Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching followed users feed:', error);
+    res.status(500).json({ error: 'Failed to fetch feed' });
+  }
+});
+
+          sql`uf2.following_id IS NOT NULL`
+        )
+      ))
+      .groupBy(users.id, users.name, users.username, users.profilePicture, users.bio)
+      .orderBy(sql`mutualCircles DESC, mutualConnections DESC`)
       .limit(10);
 
     res.json(suggestions);

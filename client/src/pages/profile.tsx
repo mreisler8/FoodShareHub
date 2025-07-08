@@ -102,9 +102,11 @@ export default function Profile() {
                   ) : (
                     <div className="md:ml-auto">
                       <FollowButton 
-                        userId={profileUser.id} 
+                        userId={profileUser.id}
+                        userName={profileUser.name}
                         variant="default"
                         size="sm"
+                        showTrustIndicator={true}
                         className="bg-primary text-white hover:bg-primary/90"
                       />
                     </div>

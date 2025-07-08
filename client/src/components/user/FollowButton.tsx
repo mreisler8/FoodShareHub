@@ -12,6 +12,9 @@ interface FollowButtonProps {
   size?: "sm" | "md" | "lg";
   variant?: "default" | "outline" | "ghost";
   showIcon?: boolean;
+  showTrustIndicator?: boolean;
+  mutualCircles?: number;
+  mutualConnections?: number;
   className?: string;
 }
 
@@ -96,28 +99,47 @@ export function FollowButton({
   }
 
   return (
-    <Button
-      variant={isFollowing ? "outline" : variant}
-      size={size}
-      onClick={handleClick}
-      disabled={followMutation.isPending}
-      className={`${className} ${isFollowing ? 'text-muted-foreground hover:text-destructive' : ''}`}
-    >
-      {followMutation.isPending ? (
-        <>
-          {showIcon && <Users className="h-4 w-4 mr-1" />}
-          {isFollowing ? "Unfollowing..." : "Following..."}
-        </>
-      ) : (
-        <>
-          {showIcon && (
-            isFollowing ? 
-              <UserMinus className="h-4 w-4 mr-1" /> : 
-              <UserPlus className="h-4 w-4 mr-1" />
+    <div className="flex flex-col gap-1">
+      <Button
+        variant={isFollowing ? "outline" : variant}
+        size={size}
+        onClick={handleClick}
+        disabled={followMutation.isPending}
+        className={`${className} ${isFollowing ? 'text-muted-foreground hover:text-destructive' : ''}`}
+      >
+        {followMutation.isPending ? (
+          <>
+            {showIcon && <Users className="h-4 w-4 mr-1" />}
+            {isFollowing ? "Unfollowing..." : "Following..."}
+          </>
+        ) : (
+          <>
+            {showIcon && (
+              isFollowing ? 
+                <UserMinus className="h-4 w-4 mr-1" /> : 
+                <UserPlus className="h-4 w-4 mr-1" />
+            )}
+            {isFollowing ? "Following" : "Follow"}
+          </>
+        )}
+      </Button>
+      
+      {showTrustIndicator && (mutualCircles || mutualConnections) && (
+        <div className="text-xs text-muted-foreground text-center">
+          {mutualCircles > 0 && (
+            <span className="flex items-center justify-center gap-1">
+              <Users className="h-3 w-3" />
+              {mutualCircles} mutual circle{mutualCircles !== 1 ? 's' : ''}
+            </span>
           )}
-          {isFollowing ? "Following" : "Follow"}
-        </>
+          {mutualConnections > 0 && (
+            <span className="flex items-center justify-center gap-1 mt-0.5">
+              <UserCheck className="h-3 w-3" />
+              {mutualConnections} mutual connection{mutualConnections !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
       )}
-    </Button>
+    </div>
   );
 }
