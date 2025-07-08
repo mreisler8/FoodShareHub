@@ -1,0 +1,48 @@
+
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build client
+        run: npm run build --if-present
+
+      - name: Start server
+        run: npm run start &   # adjust if your start script differs
+
+      - name: Wait for server to be ready
+        run: npx wait-on http://localhost:5000  # adjust URL/port if needed
+
+      - name: Run Cypress tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: .
+          spec: "cypress/integration/**/*.spec.ts"
+
+      - name: Upload Cypress artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: cypress-videos-and-screenshots
+          path: |
+            cypress/videos/**/*.mp4
+            cypress/screenshots/**/*.png
