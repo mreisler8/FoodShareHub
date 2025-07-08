@@ -132,10 +132,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <DesktopSidebar />
 
-      <main className="md:ml-56 lg:ml-64">
+      <main className="flex-1 min-w-0">
         {/* Hero Section */}
         <HeroSection />
 
