@@ -1,5 +1,36 @@
 {pkgs}: {
   deps = [
     pkgs.postgresql
+    pkgs.glib
+    pkgs.gtk3
+    pkgs.libX11
+    pkgs.libXcomposite
+    pkgs.libXcursor
+    pkgs.libXdamage
+    pkgs.libXext
+    pkgs.libXfixes
+    pkgs.libXi
+    pkgs.libXrandr
+    pkgs.libXrender
+    pkgs.libXss
+    pkgs.libXtst
+    pkgs.libxcb
+    pkgs.nspr
+    pkgs.nss
+    pkgs.at-spi2-atk
+    pkgs.at-spi2-core
+    pkgs.atk
+    pkgs.cairo
+    pkgs.cups
+    pkgs.dbus
+    pkgs.expat
+    pkgs.fontconfig
+    pkgs.freetype
+    pkgs.gdk-pixbuf
+    pkgs.gnome2.GConf
+    pkgs.xorg.libxshmfence
+    pkgs.pango
+    pkgs.mesa
+    pkgs.xorg.libXScrnSaver
   ];
 }
