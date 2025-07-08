@@ -13,6 +13,7 @@ import { useLocation } from 'wouter';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { CreateListModal } from '@/components/lists/CreateListModal';
 import { RestaurantList } from '@shared/schema';
+import MediaUploader from '@/components/MediaUploader';
 
 interface PostModalProps {
   open: boolean;
@@ -51,6 +52,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   const [notes, setNotes] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [media, setMedia] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [taggedListIds, setTaggedListIds] = useState<number[]>([]);
   const [isCreateListOpen, setIsCreateListOpen] = useState(false);
@@ -115,10 +117,20 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       setDisliked(dislikedText);
       setNotes(notesText);
 
-      // Set existing images
+      // Set existing media
       if (post.images && Array.isArray(post.images)) {
         setImageUrls(post.images);
       }
+      
+      // Set existing media for uploader
+      const existingMedia = [];
+      if (post.images && Array.isArray(post.images)) {
+        existingMedia.push(...post.images.map(url => ({ url, thumbnailUrl: url, type: 'image' as const })));
+      }
+      if (post.videos && Array.isArray(post.videos)) {
+        existingMedia.push(...post.videos.map(url => ({ url, thumbnailUrl: url, type: 'video' as const })));
+      }
+      setMedia(existingMedia);
     }
   }, [isEditMode, post, open]);
 
@@ -189,6 +201,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     setNotes('');
     setSelectedImages([]);
     setImageUrls([]);
+    setMedia([]);
     setShowSearchResults(false);
     setVisibilitySettings({
       feed: true,
@@ -228,15 +241,16 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       return;
     }
 
-    // Handle image upload (simplified for now - in real app would upload to cloud storage)
-    const uploadedImageUrls = selectedImages.map(file => URL.createObjectURL(file));
-
     // Combine the structured fields into content for current schema compatibility
     const contentParts = [];
     if (liked.trim()) contentParts.push(`What I liked: ${liked.trim()}`);
     if (disliked.trim()) contentParts.push(`What I didn't like: ${disliked.trim()}`);
     if (notes.trim()) contentParts.push(`Additional notes: ${notes.trim()}`);
     const content = contentParts.join('\n\n');
+
+    // Extract media URLs
+    const images = media.filter(f => f.type === 'image').map(f => f.url);
+    const videos = media.filter(f => f.type === 'video').map(f => f.url);
 
     // Handle restaurant ID - if Google place, we need to create/find the restaurant first
     if (selectedRestaurant.source === 'google') {
@@ -257,7 +271,8 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       restaurantId,
       rating,
       content,
-      images: uploadedImageUrls,
+      images,
+      videos,
       visibility: 'public', // Simplified for now
     });
   };
@@ -430,25 +445,10 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
             />
           </div>
 
-          {/* Photo Upload */}
+          {/* Media Upload */}
           <div className="space-y-2">
-            <Label htmlFor="photos">Photos (up to 3)</Label>
-            <input
-              id="photos"
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) => {
-                const files = Array.from(e.target.files || []).slice(0, 3);
-                setSelectedImages(files);
-              }}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
-            />
-            {selectedImages.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} selected
-              </p>
-            )}
+            <Label>Photos & Videos</Label>
+            <MediaUploader onChange={setMedia} />
           </div>
 
           {/* List Tagging */}

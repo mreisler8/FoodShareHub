@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import uploadsRouter from "./routes/uploads";
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use((req, res, next) => {
     console.log('Starting Circles server...');
 
     const server = await registerRoutes(app);
+    app.use('/api/uploads', uploadsRouter);
     console.log('Routes registered successfully');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

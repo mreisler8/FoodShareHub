@@ -1,0 +1,215 @@
+import React, { useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import Cropper from 'react-easy-crop';
+import axios from 'axios';
+
+interface MediaFile {
+  url: string;
+  thumbnailUrl: string;
+  type: 'image' | 'video';
+}
+
+interface MediaUploaderProps {
+  onChange: (files: MediaFile[]) => void;
+}
+
+export default function MediaUploader({ onChange }: MediaUploaderProps) {
+  const [uploading, setUploading] = useState(false);
+  const [previews, setPreviews] = useState<MediaFile[]>([]);
+  const [cropIndex, setCropIndex] = useState<number | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif'],
+      'video/*': ['.mp4', '.mov', '.avi', '.mkv']
+    },
+    maxFiles: 12,
+    onDrop: async (acceptedFiles) => {
+      if (acceptedFiles.length === 0) return;
+
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        
+        acceptedFiles.forEach((file) => {
+          if (file.type.startsWith('video')) {
+            formData.append('videos', file);
+          } else {
+            formData.append('images', file);
+          }
+        });
+
+        const response = await axios.post('/api/uploads', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        const uploadedFiles = response.data.files;
+        const newPreviews = [...previews, ...uploadedFiles];
+        setPreviews(newPreviews);
+        onChange(newPreviews);
+      } catch (error) {
+        console.error('Upload failed:', error);
+      } finally {
+        setUploading(false);
+      }
+    }
+  });
+
+  const removeFile = (index: number) => {
+    const newPreviews = previews.filter((_, i) => i !== index);
+    setPreviews(newPreviews);
+    onChange(newPreviews);
+  };
+
+  const openCropper = (index: number) => {
+    if (previews[index].type === 'image') {
+      setCropIndex(index);
+    }
+  };
+
+  const closeCropper = () => {
+    setCropIndex(null);
+  };
+
+  return (
+    <div className="media-uploader">
+      {/* Dropzone */}
+      <div
+        {...getRootProps()}
+        className={`dropzone border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+          isDragActive 
+            ? 'border-blue-500 bg-blue-50' 
+            : 'border-gray-300 hover:border-gray-400'
+        } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        <input {...getInputProps()} disabled={uploading} />
+        <div className="flex flex-col items-center space-y-2">
+          <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <p className="text-lg font-medium text-gray-700">
+            {uploading ? 'Uploading...' : 'Drag & drop or click to upload'}
+          </p>
+          <p className="text-sm text-gray-500">
+            Max 10 images, 2 videos • JPEG, PNG, GIF, MP4, MOV
+          </p>
+        </div>
+      </div>
+
+      {/* Progress indicator */}
+      {uploading && (
+        <div className="mt-4">
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+            <span className="text-sm text-gray-600">Processing files...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Thumbnail previews */}
+      {previews.length > 0 && (
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">
+            Uploaded files ({previews.length})
+          </h4>
+          <div className="flex overflow-x-auto gap-3 pb-2">
+            {previews.map((file, index) => (
+              <div key={index} className="relative flex-shrink-0 group">
+                <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                     onClick={() => openCropper(index)}>
+                  {file.type === 'image' ? (
+                    <img
+                      src={file.thumbnailUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                      <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Remove button */}
+                <button
+                  onClick={() => removeFile(index)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                >
+                  ×
+                </button>
+                
+                {/* Crop button for images */}
+                {file.type === 'image' && (
+                  <button
+                    onClick={() => openCropper(index)}
+                    className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Crop image"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-2" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Crop modal */}
+      {cropIndex !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Crop Image</h3>
+              <button
+                onClick={closeCropper}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="relative w-full h-64 bg-gray-100 mb-4">
+              <Cropper
+                image={previews[cropIndex].url}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(croppedArea, croppedAreaPixels) => {
+                  // Handle crop completion
+                  console.log('Crop completed:', croppedArea, croppedAreaPixels);
+                }}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={closeCropper}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={closeCropper}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -21,6 +21,7 @@ import { ListTagDisplay } from "@/components/post/ListTagDisplay";
 import { AddToListModal } from "@/components/post/AddToListModal";
 import { useAuth } from "@/hooks/use-auth";
 import { RestaurantList } from "@shared/schema";
+import MediaCarousel from "@/components/MediaCarousel";
 import "./PostCard.css";
 
 interface PostCardProps {
@@ -231,13 +232,15 @@ export function PostCard({ post }: PostCardProps) {
           </div>
         </div>
 
-        {/* Post Image */}
-        {images.length > 0 && (
-          <div className="post-image">
-            <img 
-              src={images[0]} 
-              alt="Post image" 
-              className="w-full h-full object-cover"
+        {/* Post Media */}
+        {((post.images && post.images.length > 0) || (post.videos && post.videos.length > 0)) && (
+          <div className="post-media">
+            <MediaCarousel 
+              items={[
+                ...(post.images || []).map(url => ({ url, type: 'image' as const })),
+                ...(post.videos || []).map(url => ({ url, type: 'video' as const }))
+              ]} 
+              className="rounded-lg"
             />
           </div>
         )}

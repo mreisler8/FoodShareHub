@@ -94,7 +94,8 @@ export const posts = pgTable("posts", {
   rating: integer("rating").notNull(),
   visibility: text("visibility").notNull(),
   dishesTried: text("dishes_tried").array(),
-  images: text("images").array(), // Made optional effectively
+  images: text("images").array().default([]),
+  videos: text("videos").array().default([]),
   priceAssessment: text("price_assessment"), // "great value", "overpriced", "fair"
   atmosphere: text("atmosphere"), // "quiet", "lively", "romantic", etc.
   serviceRating: integer("service_rating"), // 1-5 rating for service
@@ -110,6 +111,7 @@ export const insertPostSchema = createInsertSchema(posts).pick({
   visibility: true,
   dishesTried: true,
   images: true,
+  videos: true,
   priceAssessment: true,
   atmosphere: true,
   serviceRating: true,
