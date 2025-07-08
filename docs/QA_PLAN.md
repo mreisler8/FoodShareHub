@@ -15,6 +15,15 @@ This document outlines comprehensive testing strategies for the Circles social d
 ## Core User Flows
 
 ### 1. Search → Select Restaurant → Create Post/List
+**Persona:** Tracker Taylor  
+**Given** I’m logged in and on the homepage  
+**When** I click the Search icon and type “pizza”  
+**And** I see at least 1 suggestion in the dropdown  
+**And** I select “Best Pizza Place”  
+**And** I click “New Post”  
+**And** I fill in “What I liked” with “Great crust” and ★★★★☆  
+**Then** the post is created, appears in the feed, and the console shows no errors.
+
 **Priority: P1 - Critical**
 
 #### Manual Test Cases
