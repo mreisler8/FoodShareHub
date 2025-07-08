@@ -26,6 +26,7 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
   };
 
   const handleImageError = (index: number) => {
+    console.log('Image loading failed for index:', index, 'URL:', images[index]);
     setImageErrors(prev => ({ ...prev, [index]: true }));
   };
 
@@ -46,6 +47,13 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
               alt={`${alt} ${currentIndex + 1}`}
               className="media-carousel-image"
               onError={() => handleImageError(currentIndex)}
+              onLoad={(e) => {
+                const img = e.target as HTMLImageElement;
+                console.log('Image loaded:', img.naturalWidth, 'x', img.naturalHeight);
+                if (img.naturalWidth < 10 || img.naturalHeight < 10) {
+                  handleImageError(currentIndex);
+                }
+              }}
               onClick={() => setIsFullscreen(true)}
             />
           )}
@@ -115,19 +123,23 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
         .media-carousel-container {
           position: relative;
           width: 100%;
-          aspect-ratio: 4/3;
+          min-height: 200px;
           background: #ffffff !important;
           border-radius: 0;
           overflow: hidden;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .media-carousel-image {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
           cursor: pointer;
           transition: transform 0.2s ease, opacity 0.2s ease;
+          background: white;
         }
 
         .media-carousel-image:hover {
@@ -136,13 +148,15 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
 
         .media-error-state {
           width: 100%;
-          height: 100%;
+          height: 200px;
           display: flex;
           align-items: center;
           justify-content: center;
           background: #ffffff !important;
           color: #64748b;
           font-size: 0.875rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
         }
 
         .media-carousel-nav {
