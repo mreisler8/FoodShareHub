@@ -116,8 +116,8 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
           position: relative;
           width: 100%;
           aspect-ratio: 4/3;
-          background: #f1f5f9;
-          border-radius: 12px;
+          background: #f8fafc;
+          border-radius: 0;
           overflow: hidden;
         }
 

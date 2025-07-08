@@ -130,87 +130,8 @@
 }
 
 /* Media Container */
-.post-media-container {
-  position: relative;
+.post-media-carousel {
   width: 100%;
-  background: #f8fafc;
-}
-
-.post-media-wrapper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4/3;
-  overflow: hidden;
-}
-
-.post-media-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.3s ease;
-}
-
-.post-media-image:hover {
-  transform: scale(1.02);
-}
-
-/* Media Navigation */
-.media-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.7);
-  border: none;
-  color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 2;
-}
-
-.media-nav:hover {
-  background: rgba(0, 0, 0, 0.9);
-  transform: translateY(-50%) scale(1.1);
-}
-
-.media-nav--prev {
-  left: 0.75rem;
-}
-
-.media-nav--next {
-  right: 0.75rem;
-}
-
-/* Media Indicators */
-.media-indicators {
-  position: absolute;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 0.5rem;
-  z-index: 2;
-}
-
-.media-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.media-indicator--active {
-  background: white;
-  transform: scale(1.25);
 }
 
 /* Actions */
@@ -336,49 +257,21 @@
     height: 16px;
   }
 
-  .media-nav {
-    width: 32px;
-    height: 32px;
-  }
 
-  .media-nav--prev {
-    left: 0.5rem;
-  }
-
-  .media-nav--next {
-    right: 0.5rem;
-  }
 }
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   .post-card,
-  .action-button,
-  .media-nav,
-  .media-indicator,
-  .post-media-image {
+  .action-button {
     transition: none;
   }
 }
 
 /* Focus states */
-.action-button:focus-visible,
-.media-nav:focus-visible,
-.media-indicator:focus-visible {
+.action-button:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
 
-/* Loading state for images */
-.post-media-image[src=""] {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
-.post-media-image[src=""]:before {
-  content: "Loading...";
-  color: #64748b;
-  font-size: 0.875rem;
-}

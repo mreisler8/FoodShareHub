@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, MoreHorizontal } from 'lucide-react';
 import { PostWithDetails } from '@/lib/types';
 import { MediaCarousel } from '@/components/MediaCarousel';
 import { Button } from '@/components/ui/button';
@@ -17,26 +17,12 @@ interface PostCardProps {
 export function PostCard({ post, isCompact = false }: PostCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const handleLike = () => setIsLiked(!isLiked);
   const handleSave = () => setIsSaved(!isSaved);
 
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
   const hasMedia = post.images && post.images.length > 0;
-  const hasMultipleImages = hasMedia && post.images.length > 1;
-
-  const nextImage = () => {
-    if (hasMedia) {
-      setCurrentImageIndex((prev) => (prev + 1) % post.images.length);
-    }
-  };
-
-  const prevImage = () => {
-    if (hasMedia) {
-      setCurrentImageIndex((prev) => (prev - 1 + post.images.length) % post.images.length);
-    }
-  };
 
   return (
     <Card className={`post-card ${isCompact ? 'post-card--compact' : ''}`}>
@@ -84,49 +70,11 @@ export function PostCard({ post, isCompact = false }: PostCardProps) {
 
       {/* Media Gallery */}
       {hasMedia && (
-        <div className="post-media-container">
-          <div className="post-media-wrapper">
-            <img
-              src={post.images[currentImageIndex]}
-              alt={`Photo ${currentImageIndex + 1} from ${post.restaurant?.name}`}
-              className="post-media-image"
-              loading="lazy"
-            />
-
-            {/* Image Navigation */}
-            {hasMultipleImages && (
-              <>
-                <button
-                  onClick={prevImage}
-                  className="media-nav media-nav--prev"
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-
-                <button
-                  onClick={nextImage}
-                  className="media-nav media-nav--next"
-                  aria-label="Next image"
-                >
-                  <ChevronRight size={20} />
-                </button>
-
-                {/* Image Indicators */}
-                <div className="media-indicators">
-                  {post.images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`media-indicator ${index === currentImageIndex ? 'media-indicator--active' : ''}`}
-                      aria-label={`View image ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        <MediaCarousel 
+          images={post.images} 
+          alt={`Photos from ${post.restaurant?.name}`}
+          className="post-media-carousel"
+        />
       )}
 
       {/* Post Actions */}
