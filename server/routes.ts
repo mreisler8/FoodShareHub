@@ -25,7 +25,7 @@ import { db } from "./db.js";
 import { authenticate } from "./auth.js";
 import recommendationsRouter from "./routes/recommendations.js";
 import listsRouter from "./routes/lists.js";
-import searchRouter from "./routes/search.js";
+import searchRouter from "./routes/search.ts";
 import searchAnalyticsRouter from "./routes/search-analytics.js";
 import followRoutes from './routes/follow';
 import listItemCommentsRouter from './routes/list-item-comments.js';
