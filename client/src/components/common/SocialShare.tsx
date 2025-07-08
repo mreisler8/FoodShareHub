@@ -1,13 +1,13 @@
-import { Button } from "@/components/Button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import { useState, useCallback } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Share2, Instagram, Twitter, Facebook, Linkedin, Link, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Share2, Instagram, Twitter, Facebook, Linkedin, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { analytics } from "@/lib/analytics";
 
 interface SocialShareProps {
@@ -33,19 +33,19 @@ export function SocialShare({
 }: SocialShareProps) {
   const { toast } = useToast();
   const [isSharing, setIsSharing] = useState(false);
-  
+
   // Use the current URL if none provided
   const shareUrl = url || window.location.href;
-  
+
   const handleShare = async (platform: string) => {
     setIsSharing(true);
-    
+
     try {
       // Track sharing analytics
       if (userId && contentId) {
         analytics.trackSocialShare(userId, contentId, platform);
       }
-      
+
       // Handle native sharing if available
       if (navigator.share && (platform === 'native' || platform === 'mobile')) {
         await navigator.share({
@@ -53,19 +53,19 @@ export function SocialShare({
           text: description,
           url: shareUrl
         });
-        
+
         toast({
           title: "Shared successfully",
           description: "Your content has been shared"
         });
-        
+
         setIsSharing(false);
         return;
       }
-      
+
       // Platform specific sharing
       let shareLink = '';
-      
+
       switch (platform) {
         case 'instagram':
           // Instagram doesn't have a direct share URL, 
@@ -82,22 +82,22 @@ export function SocialShare({
             });
           }
           break;
-          
+
         case 'twitter':
           shareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(shareUrl)}`;
           window.open(shareLink, '_blank');
           break;
-          
+
         case 'facebook':
           shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
           window.open(shareLink, '_blank');
           break;
-          
+
         case 'linkedin':
           shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
           window.open(shareLink, '_blank');
           break;
-          
+
         case 'copy':
           await navigator.clipboard.writeText(shareUrl);
           toast({
@@ -117,10 +117,10 @@ export function SocialShare({
       setIsSharing(false);
     }
   };
-  
+
   // Determine if we can use the native share API
   const canUseNativeShare = !!navigator.share;
-  
+
   if (variant === "icon") {
     return (
       <DropdownMenu>
@@ -159,7 +159,7 @@ export function SocialShare({
       </DropdownMenu>
     );
   }
-  
+
   return (
     <div className={`flex flex-col space-y-3 ${className}`}>
       {canUseNativeShare && (
@@ -172,7 +172,7 @@ export function SocialShare({
           Share
         </Button>
       )}
-      
+
       <div className="flex space-x-2 justify-between">
         <Button 
           variant="outline" 

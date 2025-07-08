@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Cropper from 'react-easy-crop';
 import axios from 'axios';
@@ -19,6 +19,55 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
   const [cropIndex, setCropIndex] = useState<number | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleUpload = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    // Cancel any existing upload
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      
+      acceptedFiles.forEach((file) => {
+        if (file.type.startsWith('video')) {
+          formData.append('videos', file);
+        } else {
+          formData.append('images', file);
+        }
+      });
+
+      const response = await axios.post('/api/uploads', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        signal: abortControllerRef.current.signal,
+      });
+
+      const uploadedFiles = response.data.files || [];
+      const newPreviews = [...previews, ...uploadedFiles];
+      setPreviews(newPreviews);
+      onChange(newPreviews);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Upload failed:', error);
+        setError('Upload failed. Please try again.');
+      }
+    } finally {
+      setUploading(false);
+      abortControllerRef.current = null;
+    }
+  }, [previews, onChange]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -26,36 +75,11 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
       'video/*': ['.mp4', '.mov', '.avi', '.mkv']
     },
     maxFiles: 12,
-    onDrop: async (acceptedFiles) => {
-      if (acceptedFiles.length === 0) return;
-
-      setUploading(true);
-      try {
-        const formData = new FormData();
-        
-        acceptedFiles.forEach((file) => {
-          if (file.type.startsWith('video')) {
-            formData.append('videos', file);
-          } else {
-            formData.append('images', file);
-          }
-        });
-
-        const response = await axios.post('/api/uploads', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-
-        const uploadedFiles = response.data.files;
-        const newPreviews = [...previews, ...uploadedFiles];
-        setPreviews(newPreviews);
-        onChange(newPreviews);
-      } catch (error) {
-        console.error('Upload failed:', error);
-      } finally {
-        setUploading(false);
-      }
+    maxSize: 50 * 1024 * 1024, // 50MB limit
+    onDrop: handleUpload,
+    onDropRejected: (rejectedFiles) => {
+      const errors = rejectedFiles.map(f => f.errors[0]?.message).join(', ');
+      setError(`File rejected: ${errors}`);
     }
   });
 
@@ -100,12 +124,36 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
         </div>
       </div>
 
+      {/* Error display */}
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-red-600">{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-400 hover:text-red-600"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Progress indicator */}
       {uploading && (
         <div className="mt-4">
           <div className="flex items-center space-x-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
             <span className="text-sm text-gray-600">Processing files...</span>
+            <button
+              onClick={() => abortControllerRef.current?.abort()}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
