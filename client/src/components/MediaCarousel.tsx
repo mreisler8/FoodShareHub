@@ -13,24 +13,57 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
-  if (!images || images.length === 0) {
+  // Filter out empty or invalid image URLs
+  const validImages = images?.filter(img => img && img.trim() !== '') || [];
+  
+  if (validImages.length === 0) {
+    return null;
+  }
+
+  // Check if all valid images have failed to load
+  const allImagesFailedToLoad = validImages.every((_, index) => imageErrors[index]);
+  
+  if (allImagesFailedToLoad) {
     return null;
   }
 
   const nextImage = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
+    setCurrentIndex((prev) => findNextValidImage(prev + 1));
   };
 
   const prevImage = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+    setCurrentIndex((prev) => findNextValidImage(prev - 1 + validImages.length));
   };
 
   const handleImageError = (index: number) => {
-    console.log('Image loading failed for index:', index, 'URL:', images[index]);
-    setImageErrors(prev => ({ ...prev, [index]: true }));
+    console.log('Image loading failed for index:', index, 'URL:', validImages[index]);
+    setImageErrors(prev => {
+      const newErrors = { ...prev, [index]: true };
+      
+      // If current image failed and this is the current index, find next valid image
+      if (index === currentIndex) {
+        const nextValidIndex = findNextValidImage(index + 1);
+        if (nextValidIndex !== index) {
+          setTimeout(() => setCurrentIndex(nextValidIndex), 0);
+        }
+      }
+      
+      return newErrors;
+    });
   };
 
-  const currentImage = images[currentIndex];
+  // Skip to next valid image if current one has error
+  const findNextValidImage = (startIndex: number) => {
+    for (let i = 0; i < validImages.length; i++) {
+      const index = (startIndex + i) % validImages.length;
+      if (!imageErrors[index]) {
+        return index;
+      }
+    }
+    return startIndex; // fallback
+  };
+
+  const currentImage = validImages[currentIndex];
   const hasError = imageErrors[currentIndex];
 
   return (
@@ -38,9 +71,7 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
       <div className={`media-carousel ${className}`}>
         <div className="media-carousel-container">
           {hasError ? (
-            <div className="media-error-state">
-              <span>Image unavailable</span>
-            </div>
+            null // Don't show error state, component will hide if all images fail
           ) : (
             <img
               src={currentImage}
@@ -58,7 +89,7 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
             />
           )}
 
-          {images.length > 1 && !hasError && (
+          {validImages.length > 1 && !hasError && (
             <>
               <button
                 onClick={prevImage}
@@ -77,7 +108,7 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
               </button>
 
               <div className="media-carousel-indicators">
-                {images.map((_, index) => (
+                {validImages.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentIndex(index)}

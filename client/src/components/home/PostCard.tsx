@@ -22,7 +22,8 @@ export function PostCard({ post, isCompact = false }: PostCardProps) {
   const handleSave = () => setIsSaved(!isSaved);
 
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
-  const hasMedia = post.images && post.images.length > 0;
+  // Check if post has valid images (not empty or broken)
+  const hasMedia = post.images && post.images.length > 0 && post.images.some(img => img && img.trim() !== '');
 
   return (
     <Card className={`post-card ${isCompact ? 'post-card--compact' : ''}`}>
