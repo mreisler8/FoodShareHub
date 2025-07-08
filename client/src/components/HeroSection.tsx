@@ -10,6 +10,7 @@ export function HeroSection() {
   const [, setLocation] = useLocation();
 
   const handleCreatePost = () => {
+    console.log("Create post button clicked - navigating to /create-post");
     setLocation("/create-post");
   };
 
