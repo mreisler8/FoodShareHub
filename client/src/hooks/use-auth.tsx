@@ -59,12 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
-        
+
         // Check if running in native app and has stored auth data
         if (isNativeApp() && typeof window !== 'undefined') {
           const storedToken = localStorage.getItem('authToken');
           const storedUserData = localStorage.getItem('userData');
-          
+
           if (storedToken && storedUserData) {
             try {
               const userData = JSON.parse(storedUserData);
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         }
-        
+
         // Fall back to API check
         const response = await fetch('/api/user');
         if (response.ok) {
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkAuth();
-    
+
     // Listen for native auth events if in native app
     if (isNativeApp()) {
       const cleanup = listenForNativeAuthEvents((event) => {
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setError(null);
         }
       });
-      
+
       return cleanup;
     }
   }, []);
@@ -129,19 +129,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (userData: SelectUser) => {
       setUser(userData);
       queryClient.setQueryData(["/api/user"], userData);
-      
+
       // Store auth data for native app
       if (isNativeApp() && typeof window !== 'undefined') {
         const authToken = `auth_${Date.now()}`;
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('userData', JSON.stringify(userData));
       }
-      
+
       toast({
         title: "Login successful",
         description: `Welcome back, ${userData.name}!`,
       });
-      
+
       // Navigate to home page after successful login
       if (typeof window !== 'undefined') {
         window.location.href = '/';
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // More specific error handling based on error message
       let title = "Sign in failed";
       let description = error.message;
-      
+
       if (error.message.includes("email")) {
         title = "Invalid email address";
         description = "Please check your email address and try again.";
@@ -162,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title = "Account not found";
         description = "No account found with this email address. Please sign up first.";
       }
-      
+
       toast({
         title,
         description,
@@ -184,19 +184,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (userData: SelectUser) => {
       setUser(userData);
       queryClient.setQueryData(["/api/user"], userData);
-      
+
       // Store auth data for native app
       if (isNativeApp() && typeof window !== 'undefined') {
         const authToken = `auth_${Date.now()}`;
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('userData', JSON.stringify(userData));
       }
-      
+
       toast({
         title: "Registration successful",
         description: `Welcome, ${userData.name}!`,
       });
-      
+
       // Navigate to home page after successful registration
       if (typeof window !== 'undefined') {
         window.location.href = '/';
@@ -206,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // More specific error handling for registration
       let title = "Account creation failed";
       let description = error.message;
-      
+
       if (error.message.includes("exists") || error.message.includes("already")) {
         title = "Account already exists";
         description = "An account with this email already exists. Please sign in instead.";
@@ -220,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title = "Name required";
         description = "Please enter your full name.";
       }
-      
+
       toast({
         title,
         description,
@@ -241,18 +241,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       setUser(null);
       queryClient.setQueryData(["/api/user"], null);
-      
+
       // Clear auth data for native app
       if (isNativeApp() && typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
       }
-      
+
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
       });
-      
+
       // Navigate to auth page after logout
       if (typeof window !== 'undefined') {
         window.location.href = '/auth';

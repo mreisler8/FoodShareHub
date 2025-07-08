@@ -37,37 +37,98 @@ export default function MediaUploader({ onChange }: MediaUploaderProps) {
     setError(null);
 
     try {
-      const formData = new FormData();
-      
-      acceptedFiles.forEach((file) => {
-        if (file.type.startsWith('video')) {
-          formData.append('videos', file);
-        } else {
-          formData.append('images', file);
+      // Process files in chunks to avoid memory issues
+      const CHUNK_SIZE = 3;
+      const chunks = [];
+      for (let i = 0; i < acceptedFiles.length; i += CHUNK_SIZE) {
+        chunks.push(acceptedFiles.slice(i, i + CHUNK_SIZE));
+      }
+
+      const allUploadedFiles = [];
+
+      for (const chunk of chunks) {
+        const formData = new FormData();
+        
+        // Optimize file compression before upload
+        for (const file of chunk) {
+          if (file.type.startsWith('image/') && file.size > 1024 * 1024) {
+            // Compress images larger than 1MB
+            const compressedFile = await compressImage(file);
+            formData.append('images', compressedFile);
+          } else if (file.type.startsWith('video')) {
+            formData.append('videos', file);
+          } else {
+            formData.append('images', file);
+          }
         }
-      });
 
-      const response = await axios.post('/api/uploads', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        signal: abortControllerRef.current.signal,
-      });
+        const response = await axios.post('/api/uploads', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          signal: abortControllerRef.current.signal,
+          timeout: 30000, // 30 second timeout
+        });
 
-      const uploadedFiles = response.data.files || [];
-      const newPreviews = [...previews, ...uploadedFiles];
+        allUploadedFiles.push(...(response.data.files || []));
+      }
+
+      const newPreviews = [...previews, ...allUploadedFiles];
       setPreviews(newPreviews);
       onChange(newPreviews);
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('Upload failed:', error);
-        setError('Upload failed. Please try again.');
+        setError(error.response?.data?.error || 'Upload failed. Please try again.');
       }
     } finally {
       setUploading(false);
       abortControllerRef.current = null;
     }
   }, [previews, onChange]);
+
+  // Image compression utility
+  const compressImage = useCallback((file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions (max 1920x1080)
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1080;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = (height * MAX_WIDTH) / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = (width * MAX_HEIGHT) / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          } else {
+            resolve(file);
+          }
+        }, 'image/jpeg', 0.8);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
