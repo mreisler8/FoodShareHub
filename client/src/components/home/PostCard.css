@@ -1,395 +1,384 @@
-/* PostCard Component Styles - Modern Instagram-style Design */
 
 .post-card {
-  background: hsl(var(--card));
-  border-radius: 0;
-  border: none;
-  border-top: 1px solid hsl(var(--border) / 0.3);
-  border-bottom: 1px solid hsl(var(--border) / 0.3);
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  transition: all var(--transition-normal);
-  margin-bottom: 0;
-  box-shadow: none;
+  transition: all 0.2s ease;
+  margin-bottom: 1.5rem;
 }
 
 .post-card:hover {
-  box-shadow: none;
-  transform: none;
-  border-color: hsl(var(--border) / 0.3);
-}
-
-.post-card:first-child {
-  border-top: none;
-}
-
-.post-card:last-child {
-  border-bottom: none;
-}
-
-/* Post Header */
-.post-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: none;
-}
-
-.user-avatar {
-  display: block;
-  transition: transform 0.2s ease;
-}
-
-.user-avatar:hover {
-  transform: scale(1.05);
-}
-
-.user-name {
-  font-weight: 600;
-  color: hsl(var(--foreground));
-  text-decoration: none;
-  font-size: 14px;
-  line-height: 1.4;
-  transition: color 0.2s ease;
-}
-
-.user-name:hover {
-  color: hsl(var(--primary));
-}
-
-.post-time {
-  color: hsl(var(--muted-foreground));
-  font-size: 12px;
-  font-weight: 400;
-}
-
-.visibility-icon {
-  color: hsl(var(--muted-foreground));
-  display: flex;
-  align-items: center;
-}
-
-/* Restaurant Info - Primary Focus */
-.restaurant-info {
-  padding: 0 16px 12px;
-}
-
-.restaurant-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: hsl(var(--foreground));
-  line-height: 1.3;
-  margin-bottom: 8px;
-  text-decoration: none;
-  display: block;
-  transition: color var(--transition-fast);
-  letter-spacing: -0.025em;
-}
-
-.restaurant-name:hover {
-  color: hsl(var(--primary));
-}
-
-.restaurant-details {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 14px;
-  color: hsl(var(--muted-foreground));
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.restaurant-details .location,
-.restaurant-details .cuisine {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.restaurant-details .price-range {
-  font-weight: 600;
-  color: hsl(var(--foreground));
-  background: hsl(var(--muted));
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-}
-
-/* Post Media */
-.post-media {
-  width: 100%;
-  margin: 0 -16px 16px -16px;
-  overflow: hidden;
-}
-
-.post-media .media-carousel {
-  border-radius: 0;
-}
-
-.post-image {
-  width: 100%;
-  aspect-ratio: 4/3;
-  background: hsl(var(--background));
-  overflow: hidden;
-  border-radius: 0;
-  position: relative;
-}
-
-.post-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-  background: hsl(var(--background));
-}
-
-.post-image:hover img {
-  transform: scale(1.02);
-}
-
-/* Loading state for images */
-.post-image::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    hsl(var(--muted)) 0%,
-    hsl(var(--muted) / 0.8) 50%,
-    hsl(var(--muted)) 100%
-  );
-  animation: shimmer 1.5s infinite;
-  z-index: 1;
-}
-
-.post-image img[src] + ::before {
-  display: none;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* Post Content */
-.post-content {
-  padding: 0 16px 16px;
-}
-
-.content-text {
-  color: hsl(var(--foreground));
-  line-height: 1.6;
-  font-size: 14px;
-  margin-bottom: 12px;
-  font-weight: 400;
-}
-
-.dishes-section {
-  margin-top: 16px;
-}
-
-.dishes-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: hsl(var(--muted-foreground));
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.dishes-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.dish-tag {
-  background: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.additional-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin-top: 16px;
-  padding: 12px;
-  background: hsl(var(--muted) / 0.5);
-  border-radius: 8px;
-}
-
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.detail-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: hsl(var(--muted-foreground));
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.detail-value {
-  font-size: 13px;
-  font-weight: 500;
-  color: hsl(var(--foreground));
-}
-
-/* Post Actions */
-.post-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px 16px;
-  border-top: none;
-}
-
-.action-buttons {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  color: hsl(var(--muted-foreground));
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-}
-
-.action-btn:hover {
-  color: hsl(var(--foreground));
-  background: hsl(var(--accent));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
 }
 
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.post-card--compact {
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.like-btn.liked {
-  color: #ef4444;
+/* Header */
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem 1.25rem 0.75rem;
 }
 
-.like-btn:hover {
-  color: #ef4444;
+.post-author-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1;
 }
 
-.comment-btn:hover {
-  color: hsl(var(--primary));
+.post-avatar {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #f1f5f9;
 }
 
-.save-btn.saved {
-  color: hsl(var(--primary));
+.post-author-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
-.save-btn:hover {
-  color: hsl(var(--primary));
+.post-author-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1e293b;
+  line-height: 1.2;
 }
 
-/* Comments Section */
-.comments-section {
-  border-top: 1px solid hsl(var(--border) / 0.5);
-  padding: 16px;
-  background: hsl(var(--muted) / 0.3);
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.2;
 }
 
-/* Loading Skeleton */
-.post-card-skeleton {
-  margin-bottom: 24px;
+.post-meta-icon {
+  width: 12px;
+  height: 12px;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 
-.post-card-skeleton .animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.post-restaurant-name {
+  font-weight: 500;
+  color: #475569;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+.post-location {
+  color: #64748b;
 }
 
-/* Mobile Responsive */
+.post-time {
+  color: #94a3b8;
+}
+
+/* Rating */
+.post-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.star {
+  color: #e2e8f0;
+  transition: color 0.1s ease;
+}
+
+.star--filled {
+  color: #f59e0b;
+  fill: currentColor;
+}
+
+.rating-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-left: 0.25rem;
+}
+
+/* Content */
+.post-content {
+  padding: 0 1.25rem 1rem;
+}
+
+.post-text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #374151;
+  margin: 0;
+}
+
+.post-text--compact {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Media Container */
+.post-media-container {
+  position: relative;
+  width: 100%;
+  background: #f8fafc;
+}
+
+.post-media-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+}
+
+.post-media-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.post-media-image:hover {
+  transform: scale(1.02);
+}
+
+/* Media Navigation */
+.media-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.media-nav:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.media-nav--prev {
+  left: 0.75rem;
+}
+
+.media-nav--next {
+  right: 0.75rem;
+}
+
+/* Media Indicators */
+.media-indicators {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+.media-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.media-indicator--active {
+  background: white;
+  transform: scale(1.25);
+}
+
+/* Actions */
+.post-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.post-actions-primary {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+}
+
+.action-button:hover {
+  color: #374151;
+  background: #f8fafc;
+}
+
+.action-button--active {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.action-button--active:hover {
+  background: #fee2e2;
+}
+
+.action-icon {
+  width: 18px;
+  height: 18px;
+  transition: all 0.2s ease;
+}
+
+.action-icon--filled {
+  fill: currentColor;
+}
+
+/* Tags */
+.post-tags {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1rem;
+}
+
+.restaurant-category {
+  background: #ede9fe;
+  color: #7c3aed;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.price-range {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .post-card {
-    border-radius: 0;
-    margin-bottom: 0;
+    border-radius: 12px;
+    margin-bottom: 1rem;
   }
-  
+
   .post-header {
-    padding: 10px 12px;
+    padding: 0.875rem 1rem 0.625rem;
   }
-  
-  .restaurant-info {
-    padding: 0 12px 10px;
-  }
-  
-  .restaurant-name {
-    font-size: 16px;
-  }
-  
-  .restaurant-details {
-    gap: 12px;
-    font-size: 13px;
-  }
-  
+
   .post-content {
-    padding: 0 12px 10px;
+    padding: 0 1rem 0.875rem;
   }
-  
-  .content-text {
-    font-size: 14px;
-  }
-  
+
   .post-actions {
-    padding: 6px 12px 12px;
+    padding: 0.625rem 1rem;
   }
-  
-  .action-buttons {
-    gap: 16px;
+
+  .post-tags {
+    padding: 0 1rem 0.875rem;
   }
-  
-  .action-btn {
-    font-size: 14px;
-    gap: 6px;
-    padding: 6px 8px;
+
+  .post-avatar {
+    width: 36px;
+    height: 36px;
   }
-  
-  .additional-details {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 8px;
+
+  .post-author-name {
+    font-size: 0.9rem;
   }
-  
-  .post-media {
-    margin: 0 -12px 10px -12px;
+
+  .post-meta {
+    font-size: 0.75rem;
   }
+
+  .post-text {
+    font-size: 0.9rem;
+  }
+
+  .action-button {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .action-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .media-nav {
+    width: 32px;
+    height: 32px;
+  }
+
+  .media-nav--prev {
+    left: 0.5rem;
+  }
+
+  .media-nav--next {
+    right: 0.5rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .post-card,
+  .action-button,
+  .media-nav,
+  .media-indicator,
+  .post-media-image {
+    transition: none;
+  }
+}
+
+/* Focus states */
+.action-button:focus-visible,
+.media-nav:focus-visible,
+.media-indicator:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Loading state for images */
+.post-media-image[src=""] {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-media-image[src=""]:before {
+  content: "Loading...";
+  color: #64748b;
+  font-size: 0.875rem;
 }
