@@ -132,6 +132,11 @@
 /* Media Container */
 .post-media-carousel {
   width: 100%;
+  background: #ffffff !important;
+}
+
+.post-media-carousel .media-carousel-container {
+  background: #ffffff !important;
 }
 
 /* Actions */
