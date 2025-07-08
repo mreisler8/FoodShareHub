@@ -116,7 +116,7 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
           position: relative;
           width: 100%;
           aspect-ratio: 4/3;
-          background: #f8fafc;
+          background: #f1f5f9;
           border-radius: 12px;
           overflow: hidden;
         }
@@ -139,7 +139,7 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f1f5f9;
+          background: #f8fafc;
           color: #64748b;
           font-size: 0.875rem;
         }
