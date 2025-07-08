@@ -14,7 +14,7 @@ export function HeroSection() {
   };
 
   return (
-    <section className="hero-section responsive-container">
+    <section className="hero-section responsive-container py-4 px-6 text-center border-b border-soft-sand-30">
       <div className="hero-content content-spacing">
         <div className="hero-text">
           <h1 className="hero-title">Circles</h1>
