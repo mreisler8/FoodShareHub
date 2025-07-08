@@ -92,7 +92,7 @@ export const posts = pgTable("posts", {
   restaurantId: integer("restaurant_id").notNull(),
   content: text("content").notNull(),
   rating: integer("rating").notNull(),
-  visibility: text("visibility").notNull(),
+  visibility: json("visibility").notNull(), // { public: bool, followers: bool, circleIds: number[] }
   dishesTried: text("dishes_tried").array(),
   images: text("images").array().default([]),
   videos: text("videos").array().default([]),
@@ -205,6 +205,36 @@ export const insertCircleMemberSchema = createInsertSchema(circleMembers).pick({
   invitedBy: true,
 });
 
+// Circle Invites model
+export const circleInvites = pgTable("circle_invites", {
+  id: serial("id").primaryKey(),
+  circleId: integer("circle_id").references(() => circles.id).notNull(),
+  emailOrUsername: text("email_or_username").notNull(),
+  inviterId: integer("inviter_id").references(() => users.id).notNull(),
+  status: text("status").notNull().default("pending"), // pending, accepted, declined
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCircleInviteSchema = createInsertSchema(circleInvites).pick({
+  circleId: true,
+  emailOrUsername: true,
+  inviterId: true,
+  status: true,
+});
+
+// User Followers model (for following system)
+export const userFollowers = pgTable("user_followers", {
+  id: serial("id").primaryKey(),
+  followerId: integer("follower_id").references(() => users.id).notNull(),
+  followingId: integer("following_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserFollowerSchema = createInsertSchema(userFollowers).pick({
+  followerId: true,
+  followingId: true,
+});
+
 // Like model
 export const likes = pgTable("likes", {
   id: serial("id").primaryKey(),
@@ -262,7 +292,7 @@ export const restaurantLists = pgTable("restaurant_lists", {
   locationLat: text("location_lat"), // For geographic search
   locationLng: text("location_lng"), // For geographic search
   // Enhanced sharing
-  visibility: text("visibility").default("public").notNull(), // public, circle, private
+  visibility: json("visibility").notNull(), // { public: bool, followers: bool, circleIds: number[] }
   allowSharing: boolean("allow_sharing").default(true), // Whether the list can be shared by others
   shareableCircles: integer("shareable_circles").array(), // IDs of circles this list can be shared with
   isFeatured: boolean("is_featured").default(false), // For curated lists
@@ -356,6 +386,12 @@ export type InsertCircle = z.infer<typeof insertCircleSchema>;
 export type CircleMember = typeof circleMembers.$inferSelect;
 export type InsertCircleMember = z.infer<typeof insertCircleMemberSchema>;
 
+export type CircleInvite = typeof circleInvites.$inferSelect;
+export type InsertCircleInvite = z.infer<typeof insertCircleInviteSchema>;
+
+export type UserFollower = typeof userFollowers.$inferSelect;
+export type InsertUserFollower = z.infer<typeof insertUserFollowerSchema>;
+
 // For backward compatibility with existing code
 export type Hub = Circle;
 export type InsertHub = InsertCircle;
@@ -407,21 +443,7 @@ export const insertSharedListSchema = createInsertSchema(sharedLists).pick({
 export type SharedList = typeof sharedLists.$inferSelect;
 export type InsertSharedList = z.infer<typeof insertSharedListSchema>;
 
-// User Followers model
-export const userFollowers = pgTable("user_followers", {
-  id: serial("id").primaryKey(),
-  followerId: integer("follower_id").references(() => users.id).notNull(),
-  followingId: integer("following_id").references(() => users.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
 
-export const insertUserFollowerSchema = createInsertSchema(userFollowers).pick({
-  followerId: true,
-  followingId: true,
-});
-
-export type UserFollower = typeof userFollowers.$inferSelect;
-export type InsertUserFollower = z.infer<typeof insertUserFollowerSchema>;
 
 // Content Reports model for User Story 5: User-Generated Content Moderation
 export const contentReports = pgTable("content_reports", {

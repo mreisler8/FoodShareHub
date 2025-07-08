@@ -1,0 +1,174 @@
+1. Invites & Circle Membership
+User Stories
+Invite & Accept
+
+As a user, I want to invite friends by email or username to join my “inner circle” so we can share private lists and posts.
+AC:
+
+On any Circle page, I click Invite People → an invite modal opens.
+
+I enter an email or username, click Send Invite, and the invite is saved (status “pending”).
+
+The invitee sees a notification (bell badge) or a pending‐invites page and can Accept or Decline.
+
+On acceptance, they become a CircleMember (role “member”) and gain access to that circle’s private content.
+
+Manage Invites
+
+As a Circle Owner/Admin, I want to view & revoke pending invites or remove members.
+AC:
+
+On the Circle settings page, there’s an Invites tab listing pending emails/usernames with a “Revoke” button.
+
+There’s also a Members tab where I can “Remove Member” or “Promote to Admin.”
+
+Data & API
+New Table: circleInvites
+
+sql
+Copy
+Edit
+id (serial PK), circleId (FK), emailOrUsername (text), inviterId (int), status (text: pending/accepted/declined), createdAt
+Endpoints:
+
+POST /api/circles/:circleId/invites → create invite
+
+GET /api/circles/:circleId/invites → list invites (owner/admin only)
+
+POST /api/circles/invites/:inviteId/respond → accept or decline
+
+Circle Membership: on accept, insert into circleMembers; on decline or revoke, delete invite.
+
+UI Components
+InviteModal (client/src/components/circles/InviteModal.tsx):
+
+Input for email/username + Send
+
+On success, show confirmation “Invite sent!”
+
+PendingInvitesList (client/src/components/circles/PendingInvites.tsx):
+
+Lists invites with Accept/Decline buttons for the invitee.
+
+CircleSettings (client/src/pages/circles/[id]/Settings.tsx):
+
+Tabs for Invites and Members with management actions.
+
+2. Follow / Unfollow Users
+User Stories
+Follow
+
+As a user, I want to follow other users so their public posts show up in my personal feed.
+AC:
+
+On any user’s profile, there’s a Follow/Unfollow button.
+
+Clicking Follow creates a userFollowers record; Unfollow removes it.
+
+My Feed tab merges posts where either:
+
+I follow that user and the post’s visibility.feed===true, or
+
+The post was shared to a circle I’m in.
+
+Follower/Following Counts
+
+As a user, I want to see how many people I’m following and how many follow me.
+AC:
+
+On my profile: show X Followers • Y Following.
+
+Clicking those numbers lists respective users.
+
+Data & API
+Table: Already have userFollowers (followerId, followingId).
+
+Endpoints:
+
+POST /api/users/:userId/follow
+
+DELETE /api/users/:userId/follow
+
+GET /api/users/:userId/followers
+
+GET /api/users/:userId/following
+
+UI Components
+FollowButton (client/src/components/FollowButton.tsx):
+
+Props: userId, initialFollowing
+
+Renders “Follow” or “Unfollow” and toggles on click.
+
+ProfileStats (client/src/components/ProfileStats.tsx):
+
+Displays follower/following counts with links to lists.
+
+3. Unified Share Controls
+User Stories
+Flexible Visibility
+
+As a creator, I want one set of toggles when I post/list: Public | Circles | Feed | Lists so I never have to duplicate content.
+AC:
+
+In both PostModal and ListModal, replace separate toggles with a single “Visibility” control:
+
+Public (everyone)
+
+Followers (people who follow me)
+
+Circles (multi‐select from my circles)
+
+On submit, the API payload includes visibility: { public, followers, circleIds: [...] }.
+
+Data & API
+Schema: update posts.visibility and restaurantLists.visibility to JSON types:
+
+ts
+Copy
+Edit
+visibility: json("visibility").notNull() // e.g. { public: bool, followers: bool, circleIds: number[] }
+Endpoints: reuse POST /api/posts & POST /api/lists but parse the new structure.
+
+UI Components
+VisibilitySelector (client/src/components/VisibilitySelector.tsx):
+
+Radio buttons or a dropdown for “Public”, “Followers”, and a multi‐select for Circles.
+
+Shows a summary: “Shared with: Public” or “Circles: Friends, Family”.
+
+Putting It All Together
+Next Steps Prompt for Replit Agent:
+
+markdown
+Copy
+Edit
+We’re Phase 3: building the social core—invites into Circles, follow/unfollow, and unified visibility controls. Please implement:
+
+1. **Circle Invites**  
+   - Create `circleInvites` table in `shared/schema.ts`.  
+   - Add invite endpoints in `server/routes/circles.ts`.  
+   - Build `InviteModal`, `PendingInvites`, and extend `CircleSettings` UI.
+
+2. **Follow System**  
+   - Build `FollowButton` and `ProfileStats` components.  
+   - Add follow/unfollow endpoints in `server/routes/users.ts`.  
+   - Update the Feed query (`GET /api/posts?scope=feed`) to include posts by followed users when `visibility.followers===true`.
+
+3. **Visibility Selector**  
+   - Create `VisibilitySelector` component and replace old toggles in `PostModal` and `CreateListModal`.  
+   - Update front-end form state and back-end schema to use JSON `visibility`.  
+   - Ensure API routes accept and store the new visibility structure.
+
+Commit each feature with messages:  
+- `feat(social): add circle invite/accept flow`  
+- `feat(social): add follow/unfollow and profile stats`  
+- `feat(social): unified visibility selector for posts & lists`
+
+Focus on UX flows for our personas:  
+- **Tracker Taylor** should see invites & follows in ≤2 clicks.  
+- **Explorer Alex** should effortlessly discover public & follower posts.  
+- **Seeker Sam** should filter feed by circles.  
+- **Influencer Riley** should have one clean UI for sharing to any audience.
+
+Please execute these in order and let me know when each piece is ready for review.

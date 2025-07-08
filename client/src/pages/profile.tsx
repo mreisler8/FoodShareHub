@@ -13,7 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UserWithStats } from "@/lib/types";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ReferralButton } from "@/components/invitation/ReferralButton";
-import { FollowButton } from "@/components/user/FollowButton";
+import { FollowButton } from "@/components/FollowButton";
+import { ProfileStats } from "@/components/ProfileStats";
 import { FollowsPanel } from "@/components/user/FollowsPanel";
 
 export default function Profile() {
@@ -103,10 +104,9 @@ export default function Profile() {
                     <div className="md:ml-auto">
                       <FollowButton 
                         userId={profileUser.id}
-                        userName={profileUser.name}
+                        initialFollowing={false}
                         variant="default"
                         size="sm"
-                        showTrustIndicator={true}
                         className="bg-primary text-white hover:bg-primary/90"
                       />
                     </div>
@@ -122,17 +122,9 @@ export default function Profile() {
                     </div>
                   )}
                   
-                  {profileUser.followersCount !== undefined && (
-                    <div className="flex items-center">
-                      <span className="font-semibold mr-1">{profileUser.followersCount}</span> followers
-                    </div>
-                  )}
-                  
-                  {profileUser.followingCount !== undefined && (
-                    <div className="flex items-center">
-                      <span className="font-semibold mr-1">{profileUser.followingCount}</span> following
-                    </div>
-                  )}
+                  <ProfileStats 
+                    userId={profileUser.id}
+                  />
                   
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-1" /> New York City

@@ -14,6 +14,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { CreateListModal } from '@/components/lists/CreateListModal';
 import { RestaurantList } from '@shared/schema';
 import MediaUploader from '@/components/MediaUploader';
+import { VisibilitySelector } from '@/components/VisibilitySelector';
 
 interface PostModalProps {
   open: boolean;
@@ -60,9 +61,9 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   
   // Visibility state
   const [visibilitySettings, setVisibilitySettings] = useState({
-    feed: true,
-    circleIds: [] as number[],
-    listIds: [] as number[]
+    public: true,
+    followers: false,
+    circleIds: [] as number[]
   });
 
   // Debounced search
@@ -206,9 +207,9 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     setImageTags([]);
     setShowSearchResults(false);
     setVisibilitySettings({
-      feed: true,
-      circleIds: [],
-      listIds: []
+      public: true,
+      followers: false,
+      circleIds: []
     });
   };
 
@@ -276,7 +277,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       images,
       videos,
       imageTags,
-      visibility: 'public', // Simplified for now
+      visibility: visibilitySettings
     });
   };
 
@@ -456,6 +457,13 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
               onTagsChange={setImageTags}
             />
           </div>
+
+          {/* Visibility Settings */}
+          <VisibilitySelector
+            value={visibilitySettings}
+            onChange={setVisibilitySettings}
+            className="space-y-2"
+          />
 
           {/* List Tagging */}
           <div className="space-y-2">

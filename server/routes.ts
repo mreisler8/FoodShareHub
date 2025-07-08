@@ -29,6 +29,8 @@ import searchRouter from "./routes/search.ts";
 import searchAnalyticsRouter from "./routes/search-analytics.js";
 import followRoutes from './routes/follow';
 import listItemCommentsRouter from './routes/list-item-comments.js';
+import * as circleRoutes from './routes/circles';
+import * as userRoutes from './routes/users';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
 
@@ -1233,6 +1235,20 @@ res.status(500).json({ error: err.message });
       res.status(500).json({ error: err.message });
     }
   });
+
+  // Circle Invite Routes
+  app.post("/api/circles/:circleId/invites", authenticate, circleRoutes.createCircleInvite);
+  app.get("/api/circles/:circleId/invites", authenticate, circleRoutes.getCircleInvites);
+  app.post("/api/circles/invites/:inviteId/respond", authenticate, circleRoutes.respondToCircleInvite);
+  app.get("/api/circles/invites/pending", authenticate, circleRoutes.getUserPendingInvites);
+  app.delete("/api/circles/invites/:inviteId", authenticate, circleRoutes.revokeCircleInvite);
+
+  // User Follow Routes
+  app.post("/api/users/:userId/follow", authenticate, userRoutes.followUser);
+  app.delete("/api/users/:userId/follow", authenticate, userRoutes.unfollowUser);
+  app.get("/api/users/:userId/followers", userRoutes.getUserFollowers);
+  app.get("/api/users/:userId/following", userRoutes.getUserFollowing);
+  app.get("/api/users/:userId/stats", userRoutes.getUserStats);
 
   // Like routes
   app.post("/api/likes", async (req, res) => {
