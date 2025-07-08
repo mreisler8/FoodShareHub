@@ -1,5 +1,7 @@
 {pkgs}: {
   deps = [
+    pkgs.python3
+    pkgs.nodejs
     pkgs.postgresql
     pkgs.glib
     pkgs.gtk3
