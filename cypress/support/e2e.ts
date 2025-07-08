@@ -15,16 +15,15 @@ declare global {
 
 // Custom command to login
 Cypress.Commands.add('login', () => {
-  cy.request({
-    method: 'POST',
-    url: '/api/login',
-    body: {
-      username: 'testuser@example.com',
-      password: 'testpassword'
-    }
-  }).then((response) => {
-    expect(response.status).to.eq(200)
-  })
+  // Visit the auth page and perform login through the UI
+  cy.visit('/auth')
+  cy.get('input[type="email"]').type('mitch.reisler@gmail.com')
+  cy.get('input[type="password"]').type('testpassword')
+  cy.get('button[type="submit"]').click()
+  
+  // Wait for redirect to home page
+  cy.url().should('include', '/')
+  cy.get('[data-testid="user-profile"]', { timeout: 10000 }).should('exist')
 })
 
 // Custom command to create a list
@@ -35,7 +34,8 @@ Cypress.Commands.add('createList', (name: string) => {
     body: {
       name,
       description: 'Test list description',
-      visibility: 'private'
+      visibility: 'private',
+      isPublic: false
     }
   })
 })
