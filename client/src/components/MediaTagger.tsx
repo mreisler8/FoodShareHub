@@ -70,7 +70,7 @@ export function MediaTagger({ mediaFiles, availableTags, onTagChange, onAddTag }
           <Tag className="h-4 w-4 text-gray-600" />
           <span className="text-sm font-medium text-gray-700">Available Tags</span>
         </div>
-        
+
         <div className="flex flex-wrap gap-2 mb-3">
           {availableTags.map((tag) => (
             <div
@@ -123,7 +123,7 @@ export function MediaTagger({ mediaFiles, availableTags, onTagChange, onAddTag }
       {/* Media Files with Drop Zones */}
       <div className="space-y-3">
         <div className="text-sm font-medium text-gray-700">Drag tags onto media to apply them</div>
-        
+
         {mediaFiles.map((file, index) => (
           <div
             key={index}
@@ -151,7 +151,7 @@ export function MediaTagger({ mediaFiles, availableTags, onTagChange, onAddTag }
               <div className="text-sm text-gray-600 mb-2">
                 Media {index + 1} {file.type === 'video' ? '(Video)' : '(Image)'}
               </div>
-              
+
               <div className="flex flex-wrap gap-1">
                 {(file.tags || []).map((tag) => (
                   <div
@@ -167,9 +167,9 @@ export function MediaTagger({ mediaFiles, availableTags, onTagChange, onAddTag }
                     </button>
                   </div>
                 ))}
-                
+
                 {(!file.tags || file.tags.length === 0) && (
-                  <div className="text-gray-400 text-xs italic">
+                  <div className="text-slate-400 text-xs italic">
                     Drop tags here or drag from the pool above
                   </div>
                 )}
