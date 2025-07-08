@@ -295,6 +295,7 @@ export const restaurantListItems = pgTable("restaurant_list_items", {
   listId: integer("list_id").notNull(),
   restaurantId: integer("restaurant_id").notNull(),
   rating: integer("rating"), // 1-5 star rating
+  priceAssessment: text("price_assessment"), // Great value, Fair, Overpriced
   liked: text("liked"), // What I liked
   disliked: text("disliked"), // What I didn't like
   notes: text("notes"),
@@ -308,12 +309,28 @@ export const insertRestaurantListItemSchema = createInsertSchema(restaurantListI
   listId: true,
   restaurantId: true,
   rating: true,
+  priceAssessment: true,
   liked: true,
   disliked: true,
   notes: true,
   mustTryDishes: true,
   addedById: true,
   position: true,
+});
+
+// List Item Comments model (comments on specific list items)
+export const listItemComments = pgTable("list_item_comments", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull().references(() => restaurantListItems.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertListItemCommentSchema = createInsertSchema(listItemComments).pick({
+  itemId: true,
+  userId: true,
+  content: true,
 });
 
 // Type exports
@@ -359,6 +376,9 @@ export type InsertRestaurantList = z.infer<typeof insertRestaurantListSchema>;
 
 export type RestaurantListItem = typeof restaurantListItems.$inferSelect;
 export type InsertRestaurantListItem = z.infer<typeof insertRestaurantListItemSchema>;
+
+export type ListItemComment = typeof listItemComments.$inferSelect;
+export type InsertListItemComment = z.infer<typeof insertListItemCommentSchema>;
 
 // Shared Lists model (for tracking when lists are shared with circles)
 export const sharedLists = pgTable("shared_lists", {

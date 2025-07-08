@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
@@ -19,6 +19,7 @@ import { EditListModal } from "@/components/lists/EditListModal";
 import { RestaurantSearch } from "@/components/lists/RestaurantSearch";
 import { ListItemCard } from "@/components/lists/ListItemCard";
 import { ListItemForm } from "@/components/ListItemForm";
+import { FilterSortControls } from "@/components/lists/FilterSortControls";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -37,6 +38,8 @@ export default function ListDetails() {
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [listItems, setListItems] = useState<OptimisticListItem[]>([]);
+  const [sortBy, setSortBy] = useState('position');
+  const [filters, setFilters] = useState<{ cuisine?: string; city?: string }>({});
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -117,6 +120,58 @@ export default function ListDetails() {
   console.log("ListDetails - ID:", id, "List ID:", listId);
   console.log("ListDetails - Query state:", { list, isLoading, error });
   console.log("ListDetails - Query key:", [`/api/lists/${id}`]);
+
+  // Compute filtered and sorted items
+  const filteredAndSortedItems = useMemo(() => {
+    let filtered = [...listItems];
+    
+    // Apply filters
+    if (filters.cuisine) {
+      filtered = filtered.filter(item => 
+        item.restaurant?.category?.toLowerCase().includes(filters.cuisine!.toLowerCase())
+      );
+    }
+    
+    if (filters.city) {
+      filtered = filtered.filter(item => 
+        item.restaurant?.location?.toLowerCase().includes(filters.city!.toLowerCase())
+      );
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      if (sortBy === 'rating') {
+        return (b.rating || 0) - (a.rating || 0);
+      } else if (sortBy === 'rating_asc') {
+        return (a.rating || 0) - (b.rating || 0);
+      } else {
+        // Default: position (maintain original order)
+        return 0;
+      }
+    });
+    
+    return filtered;
+  }, [listItems, filters, sortBy]);
+
+  // Compute list statistics
+  const listStats = useMemo(() => {
+    const totalItems = listItems.length;
+    const avgRating = listItems.reduce((sum, item) => sum + (item.rating || 0), 0) / totalItems;
+    const cuisines = [...new Set(listItems.map(item => item.restaurant?.category).filter(Boolean))];
+    const cities = [...new Set(listItems.map(item => {
+      // Extract city from location string
+      const location = item.restaurant?.location || '';
+      const cityMatch = location.match(/^([^,]+)/);
+      return cityMatch ? cityMatch[1].trim() : location.trim();
+    }).filter(Boolean))];
+    
+    return {
+      totalItems,
+      avgRating: isNaN(avgRating) ? 0 : avgRating,
+      cuisines,
+      cities
+    };
+  }, [listItems]);
 
   // Sync server data with local state when it loads
   useEffect(() => {
@@ -525,10 +580,24 @@ export default function ListDetails() {
               </div>
             )}
             
+            {/* Filter & Sort Controls */}
+            {listItems && listItems.length > 0 && (
+              <div className="mb-6">
+                <FilterSortControls
+                  stats={listStats}
+                  onSortChange={setSortBy}
+                  onFilterChange={setFilters}
+                  currentSort={sortBy}
+                  currentFilters={filters}
+                />
+              </div>
+            )}
+            
             {/* Restaurant List Items */}
             {listItems && listItems.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {listItems.map((item: OptimisticListItem) => {
+              filteredAndSortedItems.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredAndSortedItems.map((item: OptimisticListItem) => {
                   // Show edit form if this item is being edited
                   if (editingId === item.id) {
                     return (
@@ -558,8 +627,16 @@ export default function ListDetails() {
                       isOptimistic={item.isOptimistic}
                     />
                   );
-                })}
-              </div>
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-10 bg-white rounded-xl shadow-sm">
+                  <p className="text-neutral-500">No restaurants match your filters.</p>
+                  <p className="text-neutral-500 mt-2">
+                    Try adjusting your filters or add more restaurants to your list.
+                  </p>
+                </div>
+              )
             ) : (
               <div className="text-center py-10 bg-white rounded-xl shadow-sm">
                 <p className="text-neutral-500">This list doesn't have any restaurants yet.</p>

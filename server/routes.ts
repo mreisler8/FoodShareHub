@@ -28,6 +28,7 @@ import listsRouter from "./routes/lists.js";
 import searchRouter from "./routes/search.js";
 import searchAnalyticsRouter from "./routes/search-analytics.js";
 import followRoutes from './routes/follow';
+import listItemCommentsRouter from './routes/list-item-comments.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
 
@@ -2050,6 +2051,7 @@ res.status(500).json({ error: err.message });
   // Register lists routes
   app.use("/api/recommendations", recommendationsRouter);
   app.use('/api/lists', listsRouter);
+  app.use('/api/list-items', listItemCommentsRouter);
 
   // Search
   app.use('/api/search', searchRouter);

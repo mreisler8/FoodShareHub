@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc, asc } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
 import { restaurantLists, restaurantListItems, restaurants, circleMembers } from '../../shared/schema';
@@ -30,6 +30,7 @@ const updateListSchema = z.object({
 const addItemSchema = z.object({
   restaurantId: z.number(),
   rating: z.number().min(1).max(5).optional(),
+  priceAssessment: z.enum(['Great value', 'Fair', 'Overpriced']).optional(),
   liked: z.string().optional(),
   disliked: z.string().optional(),
   notes: z.string().optional(),
@@ -38,6 +39,7 @@ const addItemSchema = z.object({
 
 const updateItemSchema = z.object({
   rating: z.number().min(1).max(5).optional(),
+  priceAssessment: z.enum(['Great value', 'Fair', 'Overpriced']).optional(),
   liked: z.string().optional(),
   disliked: z.string().optional(),
   notes: z.string().optional(),
@@ -164,11 +166,14 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-// GET /api/lists/:id - Get specific list with items
+// GET /api/lists/:id - Get specific list with items (with filtering and sorting)
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const listId = parseInt(req.params.id);
     const userId = req.user!.id;
+    
+    // Parse query parameters for filtering and sorting
+    const { sort, 'filter[cuisine]': cuisineFilter, 'filter[city]': cityFilter } = req.query;
     
     // Get list metadata
     const [list] = await db
@@ -204,13 +209,25 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    // Build query conditions for filtering
+    let queryConditions = [eq(restaurantListItems.listId, listId)];
+    
+    if (cuisineFilter) {
+      queryConditions.push(eq(restaurants.cuisine, cuisineFilter as string));
+    }
+    
+    if (cityFilter) {
+      queryConditions.push(eq(restaurants.city, cityFilter as string));
+    }
+
     // Get list items with restaurant details
-    const items = await db
+    let itemsQuery = db
       .select({
         id: restaurantListItems.id,
         listId: restaurantListItems.listId,
         restaurantId: restaurantListItems.restaurantId,
         rating: restaurantListItems.rating,
+        priceAssessment: restaurantListItems.priceAssessment,
         liked: restaurantListItems.liked,
         disliked: restaurantListItems.disliked,
         notes: restaurantListItems.notes,
@@ -226,15 +243,36 @@ router.get('/:id', authenticate, async (req, res) => {
           priceRange: restaurants.priceRange,
           address: restaurants.address,
           cuisine: restaurants.cuisine,
+          city: restaurants.city,
         }
       })
       .from(restaurantListItems)
       .leftJoin(restaurants, eq(restaurantListItems.restaurantId, restaurants.id))
-      .where(eq(restaurantListItems.listId, listId));
+      .where(and(...queryConditions));
+
+    // Apply sorting
+    if (sort === 'rating') {
+      itemsQuery = itemsQuery.orderBy(desc(restaurantListItems.rating));
+    } else if (sort === 'rating_asc') {
+      itemsQuery = itemsQuery.orderBy(asc(restaurantListItems.rating));
+    } else {
+      itemsQuery = itemsQuery.orderBy(asc(restaurantListItems.position));
+    }
+
+    const items = await itemsQuery;
+
+    // Calculate aggregated stats
+    const stats = {
+      totalItems: items.length,
+      avgRating: items.length > 0 ? items.reduce((sum, item) => sum + (item.rating || 0), 0) / items.filter(item => item.rating).length : 0,
+      cuisines: [...new Set(items.map(item => item.restaurant.cuisine).filter(Boolean))],
+      cities: [...new Set(items.map(item => item.restaurant.city).filter(Boolean))],
+    };
 
     res.json({
       ...list,
-      items
+      items,
+      stats
     });
   } catch (error) {
     console.error('Error fetching list:', error);
@@ -406,6 +444,114 @@ router.delete('/items/:itemId', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error removing item from list:', error);
     res.status(500).json({ error: 'Failed to remove item from list' });
+  }
+});
+
+// GET /api/lists/:id/items - Get list items with filtering and sorting
+router.get('/:id/items', authenticate, async (req, res) => {
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+    
+    // Parse query parameters
+    const { sort, 'filter[cuisine]': cuisineFilter, 'filter[city]': cityFilter } = req.query;
+    
+    // Verify access to the list
+    const [list] = await db
+      .select()
+      .from(restaurantLists)
+      .where(eq(restaurantLists.id, listId));
+
+    if (!list) {
+      return res.status(404).json({ error: 'List not found' });
+    }
+
+    const isOwner = list.createdById === userId;
+    const isPublic = list.makePublic === true;
+    
+    let hasCircleAccess = false;
+    if (list.shareWithCircle && list.circleId) {
+      const [circleMember] = await db
+        .select()
+        .from(circleMembers)
+        .where(and(
+          eq(circleMembers.circleId, list.circleId),
+          eq(circleMembers.userId, userId)
+        ));
+      hasCircleAccess = !!circleMember;
+    }
+
+    if (!isOwner && !isPublic && !hasCircleAccess) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Build query conditions for filtering
+    let queryConditions = [eq(restaurantListItems.listId, listId)];
+    
+    if (cuisineFilter) {
+      queryConditions.push(eq(restaurants.cuisine, cuisineFilter as string));
+    }
+    
+    if (cityFilter) {
+      queryConditions.push(eq(restaurants.city, cityFilter as string));
+    }
+
+    // Get list items with restaurant details
+    let itemsQuery = db
+      .select({
+        id: restaurantListItems.id,
+        listId: restaurantListItems.listId,
+        restaurantId: restaurantListItems.restaurantId,
+        rating: restaurantListItems.rating,
+        priceAssessment: restaurantListItems.priceAssessment,
+        liked: restaurantListItems.liked,
+        disliked: restaurantListItems.disliked,
+        notes: restaurantListItems.notes,
+        mustTryDishes: restaurantListItems.mustTryDishes,
+        addedById: restaurantListItems.addedById,
+        position: restaurantListItems.position,
+        addedAt: restaurantListItems.addedAt,
+        restaurant: {
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          category: restaurants.category,
+          priceRange: restaurants.priceRange,
+          address: restaurants.address,
+          cuisine: restaurants.cuisine,
+          city: restaurants.city,
+        }
+      })
+      .from(restaurantListItems)
+      .leftJoin(restaurants, eq(restaurantListItems.restaurantId, restaurants.id))
+      .where(and(...queryConditions));
+
+    // Apply sorting
+    if (sort === 'rating') {
+      itemsQuery = itemsQuery.orderBy(desc(restaurantListItems.rating));
+    } else if (sort === 'rating_asc') {
+      itemsQuery = itemsQuery.orderBy(asc(restaurantListItems.rating));
+    } else {
+      itemsQuery = itemsQuery.orderBy(asc(restaurantListItems.position));
+    }
+
+    const items = await itemsQuery;
+
+    // Calculate aggregated stats
+    const stats = {
+      totalItems: items.length,
+      avgRating: items.length > 0 ? items.reduce((sum, item) => sum + (item.rating || 0), 0) / items.filter(item => item.rating).length : 0,
+      cuisines: [...new Set(items.map(item => item.restaurant.cuisine).filter(Boolean))],
+      cities: [...new Set(items.map(item => item.restaurant.city).filter(Boolean))],
+    };
+
+    res.json({
+      items,
+      stats
+    });
+  } catch (error) {
+    console.error('Error fetching list items:', error);
+    res.status(500).json({ error: 'Failed to fetch list items' });
   }
 });
 

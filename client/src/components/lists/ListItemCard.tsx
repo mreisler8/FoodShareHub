@@ -5,10 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Rating } from "@/components/ui/rating";
 import { Badge } from "@/components/ui/badge";
 import { 
-  MapPin, Edit, Trash2, Clock, ThumbsUp, ThumbsDown, MessageSquare
+  MapPin, Edit, Trash2, Clock, ThumbsUp, ThumbsDown, MessageSquare, Star, DollarSign
 } from "lucide-react";
 import { RestaurantListItemWithDetails } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
+import { ItemComments } from "./ItemComments";
 
 interface ListItemCardProps {
   data: RestaurantListItemWithDetails;
@@ -81,15 +82,30 @@ export function ListItemCard({ data: item, onEdit, onDelete, isOptimistic = fals
         </CardHeader>
         
         <CardContent className="pt-0">
-          {/* Rating */}
-          {item.rating && (
-            <div className="flex items-center mb-3">
-              <Rating value={item.rating} readonly className="text-sm" />
-              <span className="ml-2 text-sm text-neutral-600">
-                {item.rating}/5
-              </span>
-            </div>
-          )}
+          {/* Rating and Price Assessment */}
+          <div className="flex items-center flex-wrap gap-4 mb-3">
+            {item.rating && (
+              <div className="flex items-center">
+                <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                <span className="text-sm text-neutral-600">
+                  {item.rating}/5
+                </span>
+              </div>
+            )}
+            
+            {item.priceAssessment && (
+              <div className="flex items-center">
+                <DollarSign className="h-4 w-4 text-green-600 mr-1" />
+                <span className={`text-sm px-2 py-1 rounded-full text-xs font-medium ${
+                  item.priceAssessment === 'Great value' ? 'bg-green-100 text-green-800' :
+                  item.priceAssessment === 'Fair' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {item.priceAssessment}
+                </span>
+              </div>
+            )}
+          </div>
           
           {/* What I liked / disliked */}
           {(item.liked || item.disliked) && (
@@ -130,6 +146,12 @@ export function ListItemCard({ data: item, onEdit, onDelete, isOptimistic = fals
               </span>
             )}
           </div>
+          
+          {/* Item Comments */}
+          <ItemComments 
+            itemId={item.id}
+            restaurantName={item.restaurant?.name || "this restaurant"}
+          />
         </CardContent>
       </div>
     </Card>

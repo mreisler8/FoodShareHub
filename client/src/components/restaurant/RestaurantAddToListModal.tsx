@@ -28,6 +28,8 @@ export function RestaurantAddToListModal({
   const { toast } = useToast();
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [showAddRestaurantForm, setShowAddRestaurantForm] = useState(false);
+  const [rating, setRating] = useState<number>(0);
+  const [priceAssessment, setPriceAssessment] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [mustTryDishes, setMustTryDishes] = useState("");
 
@@ -53,6 +55,8 @@ export function RestaurantAddToListModal({
       
       // Reset state and close modal
       setSelectedRestaurant(null);
+      setRating(0);
+      setPriceAssessment("");
       setNotes("");
       setMustTryDishes("");
       onClose();
@@ -105,6 +109,8 @@ export function RestaurantAddToListModal({
     const data: InsertRestaurantListItem = {
       listId,
       restaurantId: selectedRestaurant.id,
+      rating: rating > 0 ? rating : undefined,
+      priceAssessment: priceAssessment || undefined,
       notes: notes.trim() || undefined,
       mustTryDishes: dishesList.length > 0 ? dishesList : undefined,
       addedById: userId,
@@ -164,6 +170,42 @@ export function RestaurantAddToListModal({
             
             {selectedRestaurant && (
               <>
+                <div className="space-y-2">
+                  <Label htmlFor="rating">Rating</Label>
+                  <div className="flex items-center space-x-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        className={`w-8 h-8 text-2xl ${
+                          star <= rating ? 'text-yellow-400' : 'text-gray-300'
+                        } hover:text-yellow-400 transition-colors`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                    <span className="text-sm text-gray-500 ml-2">
+                      {rating > 0 ? `${rating}/5` : 'No rating'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="priceAssessment">Price Assessment</Label>
+                  <select
+                    id="priceAssessment"
+                    value={priceAssessment}
+                    onChange={(e) => setPriceAssessment(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select price assessment</option>
+                    <option value="Great value">Great value</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Overpriced">Overpriced</option>
+                  </select>
+                </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="notes">Your Notes (Optional)</Label>
                   <Textarea
