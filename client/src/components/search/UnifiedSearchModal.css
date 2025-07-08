@@ -27,7 +27,7 @@
   font-size: 1rem;
   height: 3rem;
   border: 1px solid hsl(var(--soft-sand-30));
-  background-color: hsl(var(--persian-green-5));
+  background-color: hsl(var(--muted));
   color: #111;
   border-radius: 6px;
 }

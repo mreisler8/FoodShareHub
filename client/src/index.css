@@ -50,8 +50,8 @@
     --soft-sand-50: 44 73% 66% / 0.5;
 
     /* Persian Green for subtle backgrounds */
-    --persian-green: 175 57% 39%; /* #2A9D8F */
-    --persian-green-5: 175 57% 39% / 0.05;
+    --persian-green: 216 87% 65%; /* #3B82F6 - Blue */
+    --persian-green-5: 216 87% 65% / 0.05;
 
     /* Status Colors */
     --destructive: 0 84% 60%;
@@ -294,7 +294,7 @@
   .input {
     @apply flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
     border-color: hsl(var(--soft-sand-30));
-    background-color: hsl(var(--persian-green-5));
+    background-color: hsl(var(--muted));
     color: #111;
   }
 

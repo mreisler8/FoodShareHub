@@ -1,7 +1,7 @@
 .hero-section {
   background: linear-gradient(135deg, 
     hsl(var(--background)) 0%,
-    hsl(var(--persian-green-5)) 100%
+    hsl(var(--muted)) 100%
   );
   border-bottom: 1px solid hsl(var(--soft-sand-30));
   width: 100%;
