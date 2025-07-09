@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import uploadsRouter from "./routes/uploads";
+import { performanceMiddleware } from "./middleware/performance.js";
 
 const app = express();
 
@@ -13,11 +14,11 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:5000');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
-  
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
-  
+
   next();
 });
 
@@ -57,6 +58,9 @@ app.use((req, res, next) => {
 (async () => {
   try {
     console.log('Starting Circles server...');
+
+    // Performance monitoring
+    app.use(performanceMiddleware);
 
     const server = await registerRoutes(app);
     app.use('/api/uploads', uploadsRouter);

@@ -18,42 +18,78 @@ const createRecommendationSchema = z.object({
 router.get('/:circleId', authenticate, async (req, res) => {
   try {
     const circleId = parseInt(req.params.circleId);
+    const userId = req.user!.id;
     
     // Validate the circle ID is a valid number
-    if (isNaN(circleId) || circleId <= 0) {
+    if (isNaN(circleId) || circleId <= 0 || circleId > 2147483647) {
       return res.status(400).json({ 
-        error: 'Invalid circle ID - must be a positive number' 
+        error: 'Invalid circle ID - must be a positive integer',
+        code: 'INVALID_CIRCLE_ID'
       });
     }
 
-    // Check if user is member of this circle (security check)
-    const [membership] = await db
-      .select()
-      .from(circleMembers)
-      .where(and(
-        eq(circleMembers.circleId, circleId),
-        eq(circleMembers.userId, req.user!.id)
-      ))
-      .limit(1);
+    // Single optimized query to check membership and get recommendations
+    const result = await db.execute(sql`
+      WITH membership_check AS (
+        SELECT 1 as is_member
+        FROM circle_members cm
+        WHERE cm.circle_id = ${circleId} AND cm.user_id = ${userId}
+        LIMIT 1
+      ),
+      enriched_recommendations AS (
+        SELECT 
+          r.id, r.circle_id as "circleId", r.restaurant_id as "restaurantId",
+          r.user_id as "userId", r.created_at as "createdAt",
+          res.name as "restaurantName", res.cuisine, res.price_range as "priceRange",
+          res.location, res.image_url as "imageUrl", res.address,
+          u.name as "userName", u.username, u.profile_picture as "profilePicture"
+        FROM recommendations r
+        INNER JOIN restaurants res ON r.restaurant_id = res.id
+        INNER JOIN users u ON r.user_id = u.id
+        WHERE r.circle_id = ${circleId}
+        ORDER BY r.created_at DESC
+      )
+      SELECT 
+        (SELECT is_member FROM membership_check) as "hasMembership",
+        json_agg(
+          json_build_object(
+            'id', er.id,
+            'circleId', er."circleId",
+            'restaurantId', er."restaurantId", 
+            'userId', er."userId",
+            'createdAt', er."createdAt",
+            'restaurant', json_build_object(
+              'name', er."restaurantName",
+              'cuisine', er.cuisine,
+              'priceRange', er."priceRange",
+              'location', er.location,
+              'imageUrl', er."imageUrl",
+              'address', er.address
+            ),
+            'user', json_build_object(
+              'name', er."userName",
+              'username', er.username,
+              'profilePicture', er."profilePicture"
+            )
+          )
+        ) as recommendations
+      FROM enriched_recommendations er
+    `);
 
-    if (!membership) {
+    const data = result.rows?.[0];
+    if (!data?.hasMembership) {
       return res.status(403).json({ 
-        error: 'You must be a member of this circle to view recommendations' 
+        error: 'You must be a member of this circle to view recommendations',
+        code: 'ACCESS_DENIED'
       });
     }
 
-    // Get recommendations with better query structure
-    const recs = await db
-      .select()
-      .from(recommendations)
-      .where(eq(recommendations.circleId, circleId))
-      .orderBy(recommendations.createdAt); // Show newest first
-
-    res.json(recs);
+    res.json(data.recommendations || []);
   } catch (error) {
     console.error('Error fetching recommendations:', error);
     res.status(500).json({ 
-      error: 'Failed to fetch recommendations. Please try again.' 
+      error: 'Failed to fetch recommendations. Please try again.',
+      code: 'FETCH_ERROR'
     });
   }
 });

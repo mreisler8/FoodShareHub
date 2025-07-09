@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { eq, and, desc, asc } from 'drizzle-orm';
+import { eq, and, desc, asc, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
 import { restaurantLists, restaurantListItems, restaurants, circleMembers } from '../../shared/schema';
@@ -80,7 +80,7 @@ router.get('/', authenticate, async (req, res) => {
     if (filter === 'mine') {
       // More efficient approach: use database joins instead of multiple queries
       // This gets all lists the user can access in one optimized query
-      
+
       try {
         // Get user's own lists
         const ownLists = await db
@@ -127,7 +127,7 @@ router.get('/', authenticate, async (req, res) => {
 
         // Combine all accessible lists and remove any duplicates
         const allAccessibleLists = [...ownLists, ...publicLists, ...circleSharedLists];
-        
+
         // Remove duplicates based on list ID (just in case)
         const uniqueLists = allAccessibleLists.filter((list, index, array) => 
           array.findIndex(l => l.id === list.id) === index
@@ -210,10 +210,10 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     const listId = parseInt(req.params.id);
     const userId = req.user!.id;
-    
+
     // Parse query parameters for filtering and sorting
     const { sort, 'filter[cuisine]': cuisineFilter, 'filter[city]': cityFilter } = req.query;
-    
+
     // Get list metadata
     const [list] = await db
       .select()
@@ -230,7 +230,7 @@ router.get('/:id', authenticate, async (req, res) => {
     // 3. List is shared with circle and user is member of that circle
     const isOwner = list.createdById === userId;
     const isPublic = list.makePublic === true;
-    
+
     let hasCircleAccess = false;
     if (list.shareWithCircle && list.circleId) {
       // Check if user is member of the associated circle
@@ -250,55 +250,43 @@ router.get('/:id', authenticate, async (req, res) => {
 
     // Build query conditions for filtering
     let queryConditions = [eq(restaurantListItems.listId, listId)];
-    
+
     if (cuisineFilter) {
       queryConditions.push(eq(restaurants.cuisine, cuisineFilter as string));
     }
-    
+
     if (cityFilter) {
       queryConditions.push(eq(restaurants.city, cityFilter as string));
     }
 
-    // Get list items with restaurant details
-    let itemsQuery = db
-      .select({
-        id: restaurantListItems.id,
-        listId: restaurantListItems.listId,
-        restaurantId: restaurantListItems.restaurantId,
-        rating: restaurantListItems.rating,
-        priceAssessment: restaurantListItems.priceAssessment,
-        liked: restaurantListItems.liked,
-        disliked: restaurantListItems.disliked,
-        notes: restaurantListItems.notes,
-        mustTryDishes: restaurantListItems.mustTryDishes,
-        addedById: restaurantListItems.addedById,
-        position: restaurantListItems.position,
-        addedAt: restaurantListItems.addedAt,
-        restaurant: {
-          id: restaurants.id,
-          name: restaurants.name,
-          location: restaurants.location,
-          category: restaurants.category,
-          priceRange: restaurants.priceRange,
-          address: restaurants.address,
-          cuisine: restaurants.cuisine,
-          city: restaurants.city,
-        }
-      })
-      .from(restaurantListItems)
-      .leftJoin(restaurants, eq(restaurantListItems.restaurantId, restaurants.id))
-      .where(and(...queryConditions));
+    // Optimize with a single efficient query including all needed data
+    const sortColumn = sort === 'rating' ? 'rli.rating DESC NULLS LAST' :
+                      sort === 'rating_asc' ? 'rli.rating ASC NULLS LAST' :
+                      'rli.position ASC';
 
-    // Apply sorting
-    if (sort === 'rating') {
-      itemsQuery = itemsQuery.orderBy(desc(restaurantListItems.rating));
-    } else if (sort === 'rating_asc') {
-      itemsQuery = itemsQuery.orderBy(asc(restaurantListItems.rating));
-    } else {
-      itemsQuery = itemsQuery.orderBy(asc(restaurantListItems.position));
-    }
+    const cuisineCondition = cuisineFilter ? sql`AND r.cuisine = ${cuisineFilter}` : sql``;
+    const cityCondition = cityFilter ? sql`AND r.city = ${cityFilter}` : sql``;
 
-    const items = await itemsQuery;
+    const itemsResult = await db.execute(sql`
+      SELECT 
+        rli.id, rli.list_id as "listId", rli.restaurant_id as "restaurantId",
+        rli.rating, rli.price_assessment as "priceAssessment", rli.liked, 
+        rli.disliked, rli.notes, rli.must_try_dishes as "mustTryDishes",
+        rli.added_by_id as "addedById", rli.position, rli.added_at as "addedAt",
+        r.id as "restaurant.id", r.name as "restaurant.name", 
+        r.location as "restaurant.location", r.category as "restaurant.category",
+        r.price_range as "restaurant.priceRange", r.address as "restaurant.address",
+        r.cuisine as "restaurant.cuisine", r.city as "restaurant.city",
+        r.image_url as "restaurant.imageUrl", r.phone as "restaurant.phone"
+      FROM restaurant_list_items rli
+      LEFT JOIN restaurants r ON rli.restaurant_id = r.id
+      WHERE rli.list_id = ${listId}
+      ${cuisineCondition}
+      ${cityCondition}
+      ORDER BY ${sql.raw(sortColumn)}
+    `);
+
+    const items = itemsResult.rows || [];
 
     // Calculate aggregated stats
     const stats = {
@@ -344,7 +332,7 @@ router.put('/:id', authenticate, async (req, res) => {
     if (data.shareWithCircle !== undefined || data.makePublic !== undefined) {
       const shareWithCircle = data.shareWithCircle !== undefined ? data.shareWithCircle : existingList.shareWithCircle;
       const makePublic = data.makePublic !== undefined ? data.makePublic : existingList.makePublic;
-      
+
       updateData.visibility = makePublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
       updateData.isPublic = makePublic;
     }
@@ -491,10 +479,10 @@ router.get('/:id/items', authenticate, async (req, res) => {
   try {
     const listId = parseInt(req.params.id);
     const userId = req.user!.id;
-    
+
     // Parse query parameters
     const { sort, 'filter[cuisine]': cuisineFilter, 'filter[city]': cityFilter } = req.query;
-    
+
     // Verify access to the list
     const [list] = await db
       .select()
@@ -507,7 +495,7 @@ router.get('/:id/items', authenticate, async (req, res) => {
 
     const isOwner = list.createdById === userId;
     const isPublic = list.makePublic === true;
-    
+
     let hasCircleAccess = false;
     if (list.shareWithCircle && list.circleId) {
       const [circleMember] = await db
@@ -526,55 +514,43 @@ router.get('/:id/items', authenticate, async (req, res) => {
 
     // Build query conditions for filtering
     let queryConditions = [eq(restaurantListItems.listId, listId)];
-    
+
     if (cuisineFilter) {
       queryConditions.push(eq(restaurants.cuisine, cuisineFilter as string));
     }
-    
+
     if (cityFilter) {
       queryConditions.push(eq(restaurants.city, cityFilter as string));
     }
 
-    // Get list items with restaurant details
-    let itemsQuery = db
-      .select({
-        id: restaurantListItems.id,
-        listId: restaurantListItems.listId,
-        restaurantId: restaurantListItems.restaurantId,
-        rating: restaurantListItems.rating,
-        priceAssessment: restaurantListItems.priceAssessment,
-        liked: restaurantListItems.liked,
-        disliked: restaurantListItems.disliked,
-        notes: restaurantListItems.notes,
-        mustTryDishes: restaurantListItems.mustTryDishes,
-        addedById: restaurantListItems.addedById,
-        position: restaurantListItems.position,
-        addedAt: restaurantListItems.addedAt,
-        restaurant: {
-          id: restaurants.id,
-          name: restaurants.name,
-          location: restaurants.location,
-          category: restaurants.category,
-          priceRange: restaurants.priceRange,
-          address: restaurants.address,
-          cuisine: restaurants.cuisine,
-          city: restaurants.city,
-        }
-      })
-      .from(restaurantListItems)
-      .leftJoin(restaurants, eq(restaurantListItems.restaurantId, restaurants.id))
-      .where(and(...queryConditions));
+    // Optimize with a single efficient query including all needed data
+    const sortColumn = sort === 'rating' ? 'rli.rating DESC NULLS LAST' :
+                      sort === 'rating_asc' ? 'rli.rating ASC NULLS LAST' :
+                      'rli.position ASC';
 
-    // Apply sorting
-    if (sort === 'rating') {
-      itemsQuery = itemsQuery.orderBy(desc(restaurantListItems.rating));
-    } else if (sort === 'rating_asc') {
-      itemsQuery = itemsQuery.orderBy(asc(restaurantListItems.rating));
-    } else {
-      itemsQuery = itemsQuery.orderBy(asc(restaurantListItems.position));
-    }
+    const cuisineCondition = cuisineFilter ? sql`AND r.cuisine = ${cuisineFilter}` : sql``;
+    const cityCondition = cityFilter ? sql`AND r.city = ${cityFilter}` : sql``;
 
-    const items = await itemsQuery;
+    const itemsResult = await db.execute(sql`
+      SELECT 
+        rli.id, rli.list_id as "listId", rli.restaurant_id as "restaurantId",
+        rli.rating, rli.price_assessment as "priceAssessment", rli.liked, 
+        rli.disliked, rli.notes, rli.must_try_dishes as "mustTryDishes",
+        rli.added_by_id as "addedById", rli.position, rli.added_at as "addedAt",
+        r.id as "restaurant.id", r.name as "restaurant.name", 
+        r.location as "restaurant.location", r.category as "restaurant.category",
+        r.price_range as "restaurant.priceRange", r.address as "restaurant.address",
+        r.cuisine as "restaurant.cuisine", r.city as "restaurant.city",
+        r.image_url as "restaurant.imageUrl", r.phone as "restaurant.phone"
+      FROM restaurant_list_items rli
+      LEFT JOIN restaurants r ON rli.restaurant_id = r.id
+      WHERE rli.list_id = ${listId}
+      ${cuisineCondition}
+      ${cityCondition}
+      ORDER BY ${sql.raw(sortColumn)}
+    `);
+
+    const items = itemsResult.rows || [];
 
     // Calculate aggregated stats
     const stats = {
