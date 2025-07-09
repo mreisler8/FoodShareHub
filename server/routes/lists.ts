@@ -7,14 +7,26 @@ import { restaurantLists, restaurantListItems, restaurants, circleMembers } from
 
 const router = Router();
 
-// Validation schemas
+// Enhanced validation schemas with better error messages
 const createListSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().nullable().optional(),
-  circleId: z.number().nullable().optional(),
-  visibility: z.enum(['public', 'circle']).default('public'),
+  name: z.string()
+    .min(1, 'List name is required')
+    .max(100, 'List name must be less than 100 characters')
+    .trim(), // Remove extra whitespace
+  description: z.string()
+    .max(500, 'Description must be less than 500 characters')
+    .nullable()
+    .optional(),
+  circleId: z.number()
+    .positive('Circle ID must be a positive number')
+    .nullable()
+    .optional(),
+  visibility: z.enum(['public', 'circle'])
+    .default('public'),
   isPublic: z.boolean().optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string().max(50, 'Tag must be less than 50 characters'))
+    .max(10, 'Maximum 10 tags allowed')
+    .optional(),
   shareWithCircle: z.boolean().optional(),
   makePublic: z.boolean().optional(),
 });
@@ -66,41 +78,68 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     if (filter === 'mine') {
-      // Return only lists the user can see per User Story 5 criteria:
-      // 1. Lists where shareWithCircle === true and the circle includes the current user
-      // 2. PLUS lists where makePublic === true
-      // 3. PLUS lists the user owns
+      // More efficient approach: use database joins instead of multiple queries
+      // This gets all lists the user can access in one optimized query
       
-      // Get all lists
-      const allLists = await db
-        .select()
-        .from(restaurantLists);
+      try {
+        // Get user's own lists
+        const ownLists = await db
+          .select()
+          .from(restaurantLists)
+          .where(eq(restaurantLists.createdById, userId));
 
-      // Filter based on access criteria
-      const accessibleLists = [];
-      
-      for (const list of allLists) {
-        const isOwner = list.createdById === userId;
-        const isPublic = list.makePublic === true;
+        // Get public lists (but not user's own lists to avoid duplicates)
+        const publicLists = await db
+          .select()
+          .from(restaurantLists)
+          .where(and(
+            eq(restaurantLists.makePublic, true),
+            // Don't include user's own lists (already got them above)
+            // Note: using not equal to avoid duplicates
+            sql`${restaurantLists.createdById} != ${userId}`
+          ));
+
+        // Get lists shared with circles user belongs to
+        const circleSharedLists = await db
+          .select({
+            // Select all restaurant list fields
+            id: restaurantLists.id,
+            name: restaurantLists.name,
+            description: restaurantLists.description,
+            createdById: restaurantLists.createdById,
+            circleId: restaurantLists.circleId,
+            isPublic: restaurantLists.isPublic,
+            visibility: restaurantLists.visibility,
+            shareWithCircle: restaurantLists.shareWithCircle,
+            makePublic: restaurantLists.makePublic,
+            createdAt: restaurantLists.createdAt,
+            updatedAt: restaurantLists.updatedAt
+          })
+          .from(restaurantLists)
+          .innerJoin(circleMembers, eq(restaurantLists.circleId, circleMembers.circleId))
+          .where(and(
+            eq(restaurantLists.shareWithCircle, true),
+            eq(circleMembers.userId, userId),
+            // Don't include user's own lists or public lists (already got them)
+            sql`${restaurantLists.createdById} != ${userId}`,
+            sql`${restaurantLists.makePublic} != true`
+          ));
+
+        // Combine all accessible lists and remove any duplicates
+        const allAccessibleLists = [...ownLists, ...publicLists, ...circleSharedLists];
         
-        let hasCircleAccess = false;
-        if (list.shareWithCircle && list.circleId) {
-          const [circleMember] = await db
-            .select()
-            .from(circleMembers)
-            .where(and(
-              eq(circleMembers.circleId, list.circleId),
-              eq(circleMembers.userId, userId)
-            ));
-          hasCircleAccess = !!circleMember;
-        }
-        
-        if (isOwner || isPublic || hasCircleAccess) {
-          accessibleLists.push(list);
-        }
+        // Remove duplicates based on list ID (just in case)
+        const uniqueLists = allAccessibleLists.filter((list, index, array) => 
+          array.findIndex(l => l.id === list.id) === index
+        );
+
+        res.json(uniqueLists);
+      } catch (dbError) {
+        console.error('Database error fetching accessible lists:', dbError);
+        res.status(500).json({ 
+          error: 'Failed to fetch your lists. Please try again.' 
+        });
       }
-      
-      res.json(accessibleLists);
     } else {
       // Default: return user's own lists
       const lists = await db

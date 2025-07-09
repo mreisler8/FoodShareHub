@@ -43,23 +43,25 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
   const [availableTags, setAvailableTags] = useState<string[]>(DEFAULT_TAGS);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleUpload = useCallback(async (acceptedFiles: File[]) => {
+  const uploadFiles = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
-
-    // Cancel any existing upload
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
 
     setUploading(true);
     setError(null);
 
     try {
-      // Process files in chunks to avoid memory issues
-      const CHUNK_SIZE = 3;
+      // Validate file sizes before uploading (prevent huge uploads)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
+      const oversizedFiles = acceptedFiles.filter(file => file.size > MAX_FILE_SIZE);
+
+      if (oversizedFiles.length > 0) {
+        setError(`Some files are too large. Maximum size is 10MB per file.`);
+        setUploading(false);
+        return;
+      }
+
+      // Process files in smaller chunks to avoid memory issues
+      const CHUNK_SIZE = 2; // Reduced from 3 for better performance
       const chunks = [];
       for (let i = 0; i < acceptedFiles.length; i += CHUNK_SIZE) {
         chunks.push(acceptedFiles.slice(i, i + CHUNK_SIZE));
@@ -67,39 +69,79 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
 
       const allUploadedFiles = [];
 
-      for (const chunk of chunks) {
+      // Process each chunk with better error handling
+      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+        const chunk = chunks[chunkIndex];
         const formData = new FormData();
-        
+
+        // Separate images and videos for better processing
+        let hasValidFiles = false;
         for (const file of chunk) {
           if (file.type.startsWith('image/')) {
             formData.append('images', file);
+            hasValidFiles = true;
           } else if (file.type.startsWith('video/')) {
             formData.append('videos', file);
+            hasValidFiles = true;
           }
         }
 
-        const response = await axios.post('/api/uploads', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          signal: abortControllerRef.current.signal,
-          timeout: 30000, // 30 second timeout
-        });
+        // Skip empty chunks
+        if (!hasValidFiles) continue;
 
-        allUploadedFiles.push(...(response.data.files || []));
+        try {
+          const response = await axios.post('/api/uploads', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            signal: abortControllerRef.current?.signal,
+            timeout: 45000, // Increased timeout for larger files
+            onUploadProgress: (progressEvent) => {
+              // Show upload progress to user
+              if (progressEvent.total) {
+                const percentCompleted = Math.round(
+                  ((chunkIndex + progressEvent.loaded / progressEvent.total) / chunks.length) * 100
+                );
+                console.log(`Upload progress: ${percentCompleted}%`);
+              }
+            }
+          });
+
+          // Validate response structure
+          if (response.data && Array.isArray(response.data.files)) {
+            allUploadedFiles.push(...response.data.files);
+          } else {
+            console.warn('Unexpected response format from upload API');
+          }
+        } catch (chunkError: any) {
+          // Handle individual chunk errors without failing the entire upload
+          console.error(`Error uploading chunk ${chunkIndex}:`, chunkError);
+          if (chunkError.name !== 'AbortError') {
+            setError(`Failed to upload some files. ${allUploadedFiles.length} files uploaded successfully.`);
+          }
+        }
       }
 
-      const newPreviews = [...previews, ...allUploadedFiles.map(file => ({
-        ...file,
-        filter: selectedFilter,
-        tags: []
-      }))];
-      setPreviews(newPreviews);
-      onChange(newPreviews);
+      // Only update if we have successfully uploaded files
+      if (allUploadedFiles.length > 0) {
+        const newPreviews = [...previews, ...allUploadedFiles.map(file => ({
+          ...file,
+          filter: selectedFilter,
+          tags: []
+        }))];
+        setPreviews(newPreviews);
+        onChange(newPreviews);
+
+        // Clear any previous errors if upload was successful
+        setError(null);
+      }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('Upload error:', error);
-        setError(error.response?.data?.error || 'Upload failed. Please try again.');
+        const errorMessage = error.response?.data?.error || 
+                           error.message || 
+                           'Upload failed. Please check your internet connection and try again.';
+        setError(errorMessage);
       }
     } finally {
       setUploading(false);
@@ -107,7 +149,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
   }, [previews, selectedFilter, onChange]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: handleUpload,
+    onDrop: uploadFiles,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif'],
       'video/*': ['.mp4', '.mov', '.avi', '.wmv']
@@ -118,7 +160,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
     validator: (file) => {
       const imageCount = previews.filter(p => p.type === 'image').length;
       const videoCount = previews.filter(p => p.type === 'video').length;
-      
+
       if (file.type.startsWith('image/') && imageCount >= 10) {
         return { code: 'too-many-images', message: 'Maximum 10 images allowed' };
       }
@@ -184,6 +226,24 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
     setCropIndex(null);
   };
 
+  useEffect(() => {
+    abortControllerRef.current = new AbortController();
+
+    return () => {
+      // Cleanup function - runs when component unmounts
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Clean up any preview URLs to prevent memory leaks
+      previews.forEach(preview => {
+        if (preview.url && preview.url.startsWith('blob:')) {
+          URL.revokeObjectURL(preview.url);
+        }
+      });
+    };
+  }, [previews]);
+
   return (
     <div className="space-y-4">
       {/* Upload Area */}
@@ -196,7 +256,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
         } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
       >
         <input {...getInputProps()} />
-        
+
         {uploading ? (
           <div className="flex flex-col items-center space-y-2">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -229,7 +289,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
               <span>Filter: {IMAGE_FILTERS.find(f => f.id === selectedFilter)?.name}</span>
               <ChevronDown className="h-4 w-4" />
             </button>
-            
+
             {showFilterDropdown && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 min-w-full">
                 {IMAGE_FILTERS.map((filter) => (
@@ -294,7 +354,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
                   </div>
                 )}
               </div>
-              
+
               {/* Remove button */}
               <button
                 onClick={() => removeFile(index)}
@@ -356,7 +416,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
                 <X className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="relative w-full h-64 bg-gray-100 mb-4">
               <Cropper
                 image={previews[cropIndex].url}
@@ -367,7 +427,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
                 onZoomChange={setZoom}
               />
             </div>
-            
+
             <div className="flex items-center space-x-4 mb-4">
               <label className="text-sm font-medium">Zoom:</label>
               <input
@@ -380,7 +440,7 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
                 className="flex-1"
               />
             </div>
-            
+
             <div className="flex justify-end space-x-2">
               <button
                 onClick={closeCropper}
