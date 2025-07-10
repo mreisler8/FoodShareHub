@@ -118,10 +118,12 @@ The application uses a comprehensive PostgreSQL schema including:
   - **Dual Search Strategy**: Text Search API for general searches, Nearby Search API for location-based searches with proper parameter handling
   - **Search Modal Enhancement**: Added location status indicators, permission handling, and visual feedback for location-enabled searches
   - **Unified Search Endpoint**: Fixed routing issues and added location-based search to `/api/search/unified` endpoint
+  - **Location-Based Trending**: Updated trending endpoint to show local restaurants based on user's location instead of generic NYC results
   - **Toronto Results Verified**: Successfully tested with "Badiali in Toronto" returning correct "181 Dovercourt Rd, Toronto" location
+  - **Trending Results Fixed**: Trending now shows authentic Toronto restaurants like "Earls Kitchen + Bar" and "LOUIX LOUIS" when location is enabled
   - **Error Handling**: Comprehensive error handling for location permission denied, API failures, and graceful fallbacks
   - **Performance**: Location caching reduces API calls, 10km default search radius, and optimized query parameters
-  - **Status**: Location-based search fully operational with proper Toronto/location-specific results replacing generic worldwide results
+  - **Status**: Location-based search and trending fully operational with proper Toronto/location-specific results replacing generic worldwide results
 - July 10, 2025: **Enhanced Restaurant Landing Page with Google Places & Community Insights - COMPLETE**: Successfully implemented comprehensive restaurant detail enhancement with personalized community data:
   - **Enhanced Google Places Integration**: Fetches detailed restaurant information including ratings, review count, business hours, phone, website, and business status
   - **Community Insights System**: Displays average ratings and reviews from users you follow, plus top dishes mentioned by your network

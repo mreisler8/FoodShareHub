@@ -484,17 +484,77 @@ router.get("/unified", authenticate, async (req, res) => {
 // Get trending content for search modal
 router.get("/trending", authenticate, async (req, res) => {
   try {
-    // Get trending restaurants (by post count)
-    const trendingRestaurants = await db
-      .select({
-        id: restaurants.id,
-        name: restaurants.name,
-        location: restaurants.location,
-        category: restaurants.category,
-        type: sql<string>`'restaurant'`.as('type')
-      })
-      .from(restaurants)
-      .limit(3);
+    // Parse location from request if provided
+    const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+    const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
+    const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
+    
+    const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
+    
+    console.log('Trending request with location:', locationData);
+    
+    let trendingRestaurants = [];
+    
+    // If location is provided, get trending restaurants near the user
+    if (locationData) {
+      try {
+        console.log(`Getting trending restaurants near ${lat}, ${lng}`);
+        // Use Google Places to find popular restaurants in the area (use generic restaurant search)
+        const popularRestaurants = await searchGooglePlaces("restaurant", locationData);
+        console.log(`Google Places returned ${popularRestaurants.length} popular restaurants`);
+        
+        // Transform to our format
+        trendingRestaurants = popularRestaurants.slice(0, 8).map(r => ({
+          id: `google_${r.googlePlaceId}`,
+          name: r.name,
+          location: r.location,
+          category: r.category,
+          type: 'restaurant' as const,
+          thumbnailUrl: r.imageUrl,
+          avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
+          priceRange: r.priceRange,
+          cuisine: r.cuisine,
+          address: r.address,
+          source: 'google' as const,
+          googlePlaceId: r.googlePlaceId
+        }));
+      } catch (googleError) {
+        console.error("Error getting location-based trending restaurants:", googleError);
+        // Fall back to database restaurants
+        const dbRestaurants = await db
+          .select({
+            id: restaurants.id,
+            name: restaurants.name,
+            location: restaurants.location,
+            category: restaurants.category,
+            type: sql<string>`'restaurant'`.as('type')
+          })
+          .from(restaurants)
+          .limit(3);
+        
+        trendingRestaurants = dbRestaurants.map(r => ({
+          ...r,
+          type: 'restaurant' as const
+        }));
+      }
+    } else {
+      // No location provided, use database restaurants
+      const dbRestaurants = await db
+        .select({
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          category: restaurants.category,
+          type: sql<string>`'restaurant'`.as('type')
+        })
+        .from(restaurants)
+        .limit(3);
+      
+      trendingRestaurants = dbRestaurants.map(r => ({
+        ...r,
+        type: 'restaurant' as const
+      }));
+    }
     
     // Get trending lists (by view count)
     const trendingLists = await db

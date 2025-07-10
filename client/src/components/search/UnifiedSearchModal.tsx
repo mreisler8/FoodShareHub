@@ -111,7 +111,21 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   // Fetch trending content when no search query
   const { data: trending } = useQuery({
-    queryKey: ['/api/search/trending'],
+    queryKey: ['/api/search/trending', { location: userLocation }],
+    queryFn: async () => {
+      let trendingUrl = '/api/search/trending';
+      
+      // Add location parameters if available
+      if (userLocation) {
+        trendingUrl += `?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
+      }
+      
+      const response = await fetch(trendingUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch trending content');
+      }
+      return response.json();
+    },
     enabled: open && !debouncedQuery,
     staleTime: 300000, // 5 minutes
   });
