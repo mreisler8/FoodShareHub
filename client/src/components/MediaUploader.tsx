@@ -242,7 +242,7 @@ export function MediaUploader({ onChange, onTagsChange }: MediaUploaderProps) {
         }
       });
     };
-  }, [previews]);
+  }, []); // Remove previews dependency to avoid recreation on every preview change
 
   return (
     <div className="space-y-4">
