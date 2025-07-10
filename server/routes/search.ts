@@ -4,7 +4,7 @@ import { authenticate } from "../auth";
 import { db } from "../db";
 import { restaurants, restaurantLists, posts, users } from "../../shared/schema";
 import { eq, and, or, like, desc, sql, ilike } from "drizzle-orm";
-import { searchGooglePlaces } from "../services/google-places";
+import { searchGooglePlaces, getPlaceDetails } from "../services/google-places";
 
 const router = Router();
 
@@ -58,19 +58,46 @@ router.get("/", authenticate, async (req, res) => {
           )
           .limit(10);
         
-        // Transform to unified format with proper rating calculation
-        const formattedRestaurants = restaurantResults.map(r => ({
-          id: r.id.toString(),
-          name: r.name,
-          thumbnailUrl: r.imageUrl,
-          avgRating: 4.2, // Default rating as number - should be calculated from actual ratings
-          location: r.location,
-          category: r.category,
-          priceRange: r.priceRange,
-          cuisine: r.cuisine,
-          address: r.address,
-          source: 'database' as const,
-          type: 'restaurant' as const
+        console.log('Database search results:', restaurantResults.length, 'restaurants found');
+        
+        // Transform to unified format with proper rating calculation and location fetching
+        const formattedRestaurants = await Promise.all(restaurantResults.map(async (r) => {
+          let location = r.location;
+          
+          console.log('Processing restaurant:', r.name, 'with location:', location, 'googlePlaceId:', r.googlePlaceId);
+          
+          // If location is unknown but we have a Google Place ID, fetch the location
+          if ((!location || location === 'Unknown location') && r.googlePlaceId) {
+            try {
+              console.log('Fetching location for restaurant:', r.name, 'with place ID:', r.googlePlaceId);
+              const placeDetails = await getPlaceDetails(r.googlePlaceId);
+              if (placeDetails && placeDetails.address) {
+                location = placeDetails.address;
+                console.log('Updated location for restaurant:', r.name, 'to:', location);
+              } else {
+                console.log('No address found in place details for restaurant:', r.name);
+              }
+            } catch (error) {
+              console.error('Error fetching location for restaurant:', r.name, error);
+              // Keep the existing location if Google Places fails
+            }
+          } else {
+            console.log('Skipping location fetch for restaurant:', r.name, 'location:', location, 'googlePlaceId:', r.googlePlaceId);
+          }
+          
+          return {
+            id: r.id.toString(),
+            name: r.name,
+            thumbnailUrl: r.imageUrl,
+            avgRating: 4.2, // Default rating as number - should be calculated from actual ratings
+            location: location,
+            category: r.category,
+            priceRange: r.priceRange,
+            cuisine: r.cuisine,
+            address: r.address,
+            source: 'database' as const,
+            type: 'restaurant' as const
+          };
         }));
         
         results.push(...formattedRestaurants);

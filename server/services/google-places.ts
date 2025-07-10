@@ -130,12 +130,23 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
     const restaurants: Restaurant[] = response.data.results.map(place => {
       let location = place.formatted_address || place.vicinity || '';
 
-      // Extract city or area
+      // Extract meaningful location info - prioritize city/area over full address
       if (location) {
         const parts = location.split(',');
-        if (parts.length > 1) {
-          // Take the last 2 parts if available
-          location = parts.slice(-2).join(',').trim();
+        if (parts.length >= 2) {
+          // For addresses like "123 Main St, Toronto, ON M5V 1A1, Canada"
+          // Take the city and province/state: "Toronto, ON"
+          const cityPart = parts[parts.length - 3]?.trim();
+          const statePart = parts[parts.length - 2]?.trim();
+          
+          if (cityPart && statePart) {
+            // Remove postal code from state part if present
+            const stateWithoutPostal = statePart.replace(/\s+[A-Z0-9]{3,}\s*$/, '');
+            location = `${cityPart}, ${stateWithoutPostal}`;
+          } else {
+            // Fallback to last two parts
+            location = parts.slice(-2).join(',').trim();
+          }
         }
       }
 

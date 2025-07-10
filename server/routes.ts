@@ -31,8 +31,10 @@ import followRoutes from './routes/follow';
 import listItemCommentsRouter from './routes/list-item-comments.js';
 import * as circleRoutes from './routes/circles';
 import * as userRoutes from './routes/users';
+// import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
+import { getPlaceDetails } from './services/google-places';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -332,17 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/restaurants/:id", async (req, res) => {
-    try {
-      const restaurant = await storage.getRestaurant(parseInt(req.params.id));
-      if (!restaurant) {
-        return res.status(404).json({ error: "Restaurant not found" });
-      }
-      res.json(restaurant);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+  // Restaurant detail endpoint moved to restaurant router
 
   // Google Places details endpoint
   app.get("/api/google/places/:placeId", async (req, res) => {
@@ -949,6 +941,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: err.message });
     }
   });
+
+  // Restaurant detail endpoint removed - now handled by restaurant router
+
+  // Mount routers
+  app.use("/api/search", searchRouter);
+  
+  // Mount restaurant router
+  const restaurantRouter = await import("./routes/restaurants");
+  app.use("/api/restaurants", restaurantRouter.default);
+  
+  // app.use("/api/lists", listsRouter);
+  // app.use("/api/recommendations", recommendationsRouter);
+  // app.use("/api/list-item-comments", listItemCommentsRouter);
+  // app.use("/api/follow", followRoutes);
+  // app.use("/api/search-analytics", searchAnalyticsRouter);
+  // app.use("/api/circles", circleRoutes.router);
+  // app.use("/api/users", userRoutes.router);
 
   // Health check route
   app.get("/api/health", (_req, res) => {

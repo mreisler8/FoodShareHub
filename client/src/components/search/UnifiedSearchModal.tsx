@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import './UnifiedSearchModal.css';
 
 interface SearchResult {
@@ -36,6 +37,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('restaurants');
   const [recentSearches] = useState(['Pizza', 'Sushi', 'Best coffee', 'Date night', 'Brunch spots']);
+  const [, setLocation] = useLocation();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(searchQuery, 300);
@@ -89,13 +91,16 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     // Navigate based on result type
     switch (result.type) {
       case 'restaurant':
-        window.location.href = `/restaurant/${result.id}`;
+        setLocation(`/restaurants/${result.id}`);
+        onOpenChange(false);
         break;
       case 'list':
-        window.location.href = `/list/${result.id}`;
+        setLocation(`/lists/${result.id}`);
+        onOpenChange(false);
         break;
       case 'post':
-        window.location.href = `/post/${result.id}`;
+        setLocation(`/posts/${result.id}`);
+        onOpenChange(false);
         break;
       case 'user':
         window.location.href = `/profile/${result.id}`;
