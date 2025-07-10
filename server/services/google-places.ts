@@ -35,10 +35,30 @@ interface PlaceDetailsResponse {
     formatted_phone_number?: string;
     opening_hours?: {
       weekday_text?: string[];
+      periods?: Array<{
+        open: { day: number; time: string };
+        close: { day: number; time: string };
+      }>;
+      open_now?: boolean;
     };
     photos?: Array<{
       photo_reference: string;
+      width: number;
+      height: number;
     }>;
+    reviews?: Array<{
+      rating: number;
+      text: string;
+      author_name: string;
+      time: number;
+    }>;
+    user_ratings_total?: number;
+    price_level?: number;
+    business_status?: string;
+    permanently_closed?: boolean;
+    editorial_summary?: {
+      overview?: string;
+    };
   };
   status: string;
   error_message?: string;
@@ -218,7 +238,7 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
       {
         params: {
           place_id: placeId,
-          fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,types,price_level,geometry,rating',
+          fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,types,price_level,geometry,rating,user_ratings_total,photos,reviews,business_status,permanently_closed,editorial_summary',
           key: GOOGLE_MAPS_API_KEY,
         },
         timeout: 5000,
@@ -243,6 +263,24 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
       latitude: place.geometry?.location.lat?.toString(),
       longitude: place.geometry?.location.lng?.toString(),
       googlePlaceId: place.place_id,
+      rating: place.rating || 0,
+      // Enhanced Google Places data
+      reviewCount: place.user_ratings_total || 0,
+      isOpen: place.opening_hours?.open_now || null,
+      businessStatus: place.business_status || null,
+      isPermanentlyClosed: place.permanently_closed || false,
+      description: place.editorial_summary?.overview || null,
+      photos: place.photos?.map(photo => ({
+        reference: photo.photo_reference,
+        width: photo.width,
+        height: photo.height,
+      })) || [],
+      googleReviews: place.reviews?.map(review => ({
+        rating: review.rating,
+        text: review.text,
+        authorName: review.author_name,
+        time: review.time,
+      })) || [],
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
