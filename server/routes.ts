@@ -956,7 +956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.use("/api/list-item-comments", listItemCommentsRouter);
   // app.use("/api/follow", followRoutes);
   // app.use("/api/search-analytics", searchAnalyticsRouter);
-  // app.use("/api/circles", circleRoutes.router);
+  app.use("/api/circles", circleRoutes.router);
   // app.use("/api/users", userRoutes.router);
 
   // Health check route

@@ -1,9 +1,12 @@
-import { Request, Response } from 'express';
+import { Request, Response, Router } from 'express';
 import { eq, and, or } from 'drizzle-orm';
 import { db } from '../db';
-import { circles, circleMembers, circleInvites, users } from '../../shared/schema';
-import { insertCircleInviteSchema } from '../../shared/schema';
+import { circles, circleMembers, circleInvites, users, circleSharedLists, restaurantLists } from '../../shared/schema';
+import { insertCircleInviteSchema, insertCircleSharedListSchema } from '../../shared/schema';
 import { z } from 'zod';
+import { authenticate } from '../auth';
+
+const router = Router();
 
 // Create circle invite
 export async function createCircleInvite(req: Request, res: Response) {
@@ -307,3 +310,207 @@ export async function revokeCircleInvite(req: Request, res: Response) {
     res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+// Share a restaurant list with a circle
+export async function shareListWithCircle(req: Request, res: Response) {
+  try {
+    const { circleId } = req.params;
+    const { listId, canEdit = false, canReshare = false } = req.body;
+    const userId = req.user!.id;
+
+    // Validate input
+    const validateData = insertCircleSharedListSchema.parse({
+      circleId: parseInt(circleId),
+      listId: parseInt(listId),
+      sharedById: userId,
+      canEdit,
+      canReshare
+    });
+
+    // Check if user is a member of the circle
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: 'Only circle members can share lists' });
+    }
+
+    // Check if user owns the list or has permission to share it
+    const list = await db
+      .select()
+      .from(restaurantLists)
+      .where(eq(restaurantLists.id, parseInt(listId)))
+      .limit(1);
+
+    if (list.length === 0) {
+      return res.status(404).json({ error: 'List not found' });
+    }
+
+    if (list[0].createdById !== userId) {
+      return res.status(403).json({ error: 'Only the list owner can share this list' });
+    }
+
+    // Check if list is already shared with this circle
+    const existingShare = await db
+      .select()
+      .from(circleSharedLists)
+      .where(
+        and(
+          eq(circleSharedLists.circleId, parseInt(circleId)),
+          eq(circleSharedLists.listId, parseInt(listId))
+        )
+      )
+      .limit(1);
+
+    if (existingShare.length > 0) {
+      return res.status(409).json({ error: 'List is already shared with this circle' });
+    }
+
+    // Create the shared list entry
+    const [sharedList] = await db
+      .insert(circleSharedLists)
+      .values(validateData)
+      .returning();
+
+    res.status(201).json(sharedList);
+  } catch (error) {
+    console.error('Error sharing list with circle:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Remove a shared list from a circle
+export async function removeSharedListFromCircle(req: Request, res: Response) {
+  try {
+    const { circleId, listId } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user is circle owner/admin or the one who shared the list
+    const sharedList = await db
+      .select()
+      .from(circleSharedLists)
+      .where(
+        and(
+          eq(circleSharedLists.circleId, parseInt(circleId)),
+          eq(circleSharedLists.listId, parseInt(listId))
+        )
+      )
+      .limit(1);
+
+    if (sharedList.length === 0) {
+      return res.status(404).json({ error: 'Shared list not found' });
+    }
+
+    // Check if user has permission to remove (owner, admin, or sharer)
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    const isOwnerOrAdmin = membership.length > 0 && 
+      (membership[0].role === 'owner' || membership[0].role === 'admin');
+    const isSharer = sharedList[0].sharedById === userId;
+
+    if (!isOwnerOrAdmin && !isSharer) {
+      return res.status(403).json({ error: 'Only circle owners, admins, or the person who shared the list can remove it' });
+    }
+
+    // Remove the shared list
+    await db
+      .delete(circleSharedLists)
+      .where(
+        and(
+          eq(circleSharedLists.circleId, parseInt(circleId)),
+          eq(circleSharedLists.listId, parseInt(listId))
+        )
+      );
+
+    res.json({ message: 'List removed from circle successfully' });
+  } catch (error) {
+    console.error('Error removing shared list from circle:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Get shared lists for a circle
+export async function getCircleSharedLists(req: Request, res: Response) {
+  try {
+    const { circleId } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user is a member of the circle
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: 'Only circle members can view shared lists' });
+    }
+
+    // Get all shared lists for this circle
+    const sharedLists = await db
+      .select({
+        id: circleSharedLists.id,
+        listId: circleSharedLists.listId,
+        sharedAt: circleSharedLists.sharedAt,
+        canEdit: circleSharedLists.canEdit,
+        canReshare: circleSharedLists.canReshare,
+        list: {
+          id: restaurantLists.id,
+          name: restaurantLists.name,
+          description: restaurantLists.description,
+          createdById: restaurantLists.createdById,
+          viewCount: restaurantLists.viewCount,
+          createdAt: restaurantLists.createdAt
+        },
+        sharedBy: {
+          id: users.id,
+          name: users.name,
+          username: users.username
+        }
+      })
+      .from(circleSharedLists)
+      .leftJoin(restaurantLists, eq(circleSharedLists.listId, restaurantLists.id))
+      .leftJoin(users, eq(circleSharedLists.sharedById, users.id))
+      .where(eq(circleSharedLists.circleId, parseInt(circleId)))
+      .orderBy(circleSharedLists.sharedAt);
+
+    res.json(sharedLists);
+  } catch (error) {
+    console.error('Error fetching circle shared lists:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Route handlers
+router.post('/invite', authenticate, createCircleInvite);
+router.get('/invites', authenticate, getCircleInvites);
+router.post('/invites/:inviteId/respond', authenticate, respondToCircleInvite);
+router.get('/pending-invites', authenticate, getUserPendingInvites);
+router.delete('/invites/:inviteId', authenticate, revokeCircleInvite);
+router.post('/:circleId/share-list', authenticate, shareListWithCircle);
+router.delete('/:circleId/shared-lists/:sharedListId', authenticate, removeSharedListFromCircle);
+router.get('/:circleId/shared-lists', authenticate, getCircleSharedLists);
+
+export { router };

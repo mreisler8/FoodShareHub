@@ -367,6 +367,26 @@ export const insertListItemCommentSchema = createInsertSchema(listItemComments).
   content: true,
 });
 
+// Circle Shared Lists model (for sharing lists with circles)
+export const circleSharedLists = pgTable("circle_shared_lists", {
+  id: serial("id").primaryKey(),
+  circleId: integer("circle_id").references(() => circles.id).notNull(),
+  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
+  sharedById: integer("shared_by_id").references(() => users.id).notNull(),
+  sharedAt: timestamp("shared_at").defaultNow().notNull(),
+  // Optional: permissions for the shared list
+  canEdit: boolean("can_edit").default(false),
+  canReshare: boolean("can_reshare").default(false),
+});
+
+export const insertCircleSharedListSchema = createInsertSchema(circleSharedLists).pick({
+  circleId: true,
+  listId: true,
+  sharedById: true,
+  canEdit: true,
+  canReshare: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -419,6 +439,9 @@ export type InsertRestaurantListItem = z.infer<typeof insertRestaurantListItemSc
 
 export type ListItemComment = typeof listItemComments.$inferSelect;
 export type InsertListItemComment = z.infer<typeof insertListItemCommentSchema>;
+
+export type CircleSharedList = typeof circleSharedLists.$inferSelect;
+export type InsertCircleSharedList = z.infer<typeof insertCircleSharedListSchema>;
 
 // Shared Lists model (for tracking when lists are shared with circles)
 export const sharedLists = pgTable("shared_lists", {
