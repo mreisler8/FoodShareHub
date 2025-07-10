@@ -33,7 +33,6 @@ export default function CirclesPage() {
 
   const { data: circles = [], isLoading } = useQuery<Circle[]>({
     queryKey: ['/api/circles'],
-    queryFn: () => apiRequest('/api/circles'),
   });
 
   const handleInvite = (circle: Circle) => {

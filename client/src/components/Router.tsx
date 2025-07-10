@@ -14,6 +14,7 @@ import Discover from "../pages/discover";
 import DiscoverByLocation from "../pages/discover-by-location";
 import ListDetails from "../pages/list-details";
 import CreateList from "../pages/create-list";
+import CreateCircle from "../pages/create-circle";
 import PostDetails from "../pages/post-details";
 import JoinPage from "../pages/join";
 import JoinCirclePage from "../pages/join/[inviteCode]";
@@ -35,6 +36,7 @@ function Router() {
       <ProtectedRoute path="/top-picks" component={TopPicksPage} />
       <ProtectedRoute path="/create-post" component={CreatePost} />
       <ProtectedRoute path="/circles" component={Circles} />
+      <ProtectedRoute path="/create-circle" component={CreateCircle} />
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />
       <ProtectedRoute path="/profile/:id?" component={Profile} />
       <ProtectedRoute path="/discover" component={Discover} />
