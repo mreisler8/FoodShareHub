@@ -30,7 +30,7 @@ import searchAnalyticsRouter from "./routes/search-analytics.js";
 import followRoutes from './routes/follow';
 import listItemCommentsRouter from './routes/list-item-comments.js';
 import * as circleRoutes from './routes/circles';
-import * as userRoutes from './routes/users';
+import usersRouter from './routes/users';
 // import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
@@ -1088,6 +1088,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add user to circle endpoint
+  app.post("/api/circles/:circleId/members", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      await circleRoutes.addUserToCircle(req, res);
+    } catch (error) {
+      console.error('Error adding user to circle:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Mount routers
   app.use("/api/search", searchRouter);
   
@@ -1098,10 +1112,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.use("/api/lists", listsRouter);
   // app.use("/api/recommendations", recommendationsRouter);
   // app.use("/api/list-item-comments", listItemCommentsRouter);
-  // app.use("/api/follow", followRoutes);
+  app.use("/api/follow", followRoutes);
   // app.use("/api/search-analytics", searchAnalyticsRouter);
   // app.use("/api/circles", circleRoutes.router); // Commented out to use inline endpoints
-  // app.use("/api/users", userRoutes.router);
+  app.use("/api/users", usersRouter);
 
   // Health check route
   app.get("/api/health", (_req, res) => {

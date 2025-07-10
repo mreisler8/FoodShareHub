@@ -21,6 +21,7 @@ import JoinCirclePage from "../pages/join/[inviteCode]";
 import AuthPage from "../pages/auth-page";
 import Lists from "./Lists";
 import RestaurantDetailPage from "../pages/RestaurantDetailPage";
+import UserDiscovery from "../pages/user-discovery";
 
 function Router() {
   // Add native app class to body for CSS targeting if running in native app
@@ -48,6 +49,7 @@ function Router() {
       <ProtectedRoute path="/join" component={JoinPage} />
       <ProtectedRoute path="/join/:inviteCode" component={JoinCirclePage} />
       <ProtectedRoute path="/restaurants/:id" component={RestaurantDetailPage} />
+      <ProtectedRoute path="/user-discovery" component={UserDiscovery} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

@@ -225,7 +225,7 @@ router.get("/", authenticate, async (req, res) => {
       }
     }
     
-    // Search users
+    // Search users with enhanced metadata
     if (type === "all" || type === "users") {
       try {
         const userResults = await db
@@ -235,26 +235,67 @@ router.get("/", authenticate, async (req, res) => {
             name: users.name,
             bio: users.bio,
             profilePicture: users.profilePicture,
+            diningInterests: users.diningInterests,
+            preferredCuisines: users.preferredCuisines,
+            preferredLocation: users.preferredLocation,
           })
           .from(users)
           .where(
-            or(
-              ilike(users.name, searchPattern),
-              ilike(users.username, searchPattern),
-              ilike(users.bio, searchPattern)
+            and(
+              or(
+                ilike(users.name, searchPattern),
+                ilike(users.username, searchPattern),
+                ilike(users.bio, searchPattern)
+              ),
+              // Exclude current user from search results
+              ne(users.id, req.user?.id || -1)
             )
           )
           .limit(5);
         
-        const formattedUsers = userResults.map(u => ({
-          id: u.id.toString(),
-          name: u.name,
-          subtitle: `@${u.username}`,
-          avatar: u.profilePicture,
-          type: 'user' as const
+        // Get enhanced metadata for each user
+        const enhancedUsers = await Promise.all(userResults.map(async (user) => {
+          // Check if current user is following this user
+          const followStatus = await db
+            .select()
+            .from(userFollowers)
+            .where(
+              and(
+                eq(userFollowers.followerId, req.user?.id || -1),
+                eq(userFollowers.followingId, user.id)
+              )
+            )
+            .limit(1);
+
+          // Get mutual connections count
+          const mutualConnections = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(userFollowers)
+            .where(
+              and(
+                eq(userFollowers.followerId, user.id),
+                sql`${userFollowers.followingId} IN (
+                  SELECT following_id FROM user_followers 
+                  WHERE follower_id = ${req.user?.id || -1}
+                )`
+              )
+            );
+
+          return {
+            id: user.id.toString(),
+            name: user.name,
+            subtitle: `@${user.username}${user.bio ? ` • ${user.bio.substring(0, 30)}...` : ''}`,
+            avatar: user.profilePicture,
+            diningInterests: user.diningInterests || [],
+            preferredCuisines: user.preferredCuisines || [],
+            preferredLocation: user.preferredLocation,
+            isFollowing: followStatus.length > 0,
+            mutualConnections: mutualConnections[0]?.count || 0,
+            type: 'user' as const
+          };
         }));
         
-        results.push(...formattedUsers);
+        results.push(...enhancedUsers);
       } catch (dbError) {
         console.error("Database user search error:", dbError);
       }

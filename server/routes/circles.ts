@@ -391,6 +391,72 @@ export async function revokeCircleInvite(req: Request, res: Response) {
   }
 }
 
+// Add user to circle endpoint
+export async function addUserToCircle(req: Request, res: Response) {
+  try {
+    const { circleId } = req.params;
+    const { userId } = req.body;
+    const currentUserId = req.user!.id;
+
+    // Validate input
+    if (!userId || typeof userId !== 'number') {
+      return res.status(400).json({ error: 'Valid userId is required' });
+    }
+
+    // Check if current user is circle owner/admin
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.userId, currentUserId),
+          or(
+            eq(circleMembers.role, 'owner'),
+            eq(circleMembers.role, 'admin')
+          )
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: 'Only circle owners and admins can add users' });
+    }
+
+    // Check if user is already a member
+    const existingMembership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (existingMembership.length > 0) {
+      return res.status(409).json({ error: 'User is already a member of this circle' });
+    }
+
+    // Add user to circle
+    const newMember = await db
+      .insert(circleMembers)
+      .values({
+        circleId: parseInt(circleId),
+        userId: userId,
+        role: 'member',
+        invitedBy: currentUserId
+      })
+      .returning();
+
+    res.status(201).json(newMember[0]);
+  } catch (error) {
+    console.error('Error adding user to circle:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 // Share a restaurant list with a circle
 export async function shareListWithCircle(req: Request, res: Response) {
   try {

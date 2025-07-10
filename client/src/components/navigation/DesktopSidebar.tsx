@@ -83,6 +83,14 @@ export function DesktopSidebar() {
             </Link>
           </li>
           <li>
+            <Link href="/user-discovery" aria-label="Find and connect with users">
+              <div className={getNavItemClasses("/user-discovery")} role="menuitem" tabIndex={0}>
+                <Users className="w-6 mr-2" aria-hidden="true" />
+                <span>Find People</span>
+              </div>
+            </Link>
+          </li>
+          <li>
             <Link href="/create-post" aria-label="Create a new post">
               <div className={getNavItemClasses("/create-post")} role="menuitem" tabIndex={0}>
                 <PlusCircle className="w-6 mr-2" aria-hidden="true" />
