@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { Restaurant } from '@shared/schema';
 
@@ -59,7 +58,7 @@ const convertPriceLevel = (level?: number): string => {
 
 const getCuisineType = (types?: string[]): string => {
   if (!types || types.length === 0) return 'Restaurant';
-  
+
   // Map Google place types to readable cuisine types
   const cuisineMap: Record<string, string> = {
     'bakery': 'Bakery',
@@ -84,14 +83,14 @@ const getCuisineType = (types?: string[]): string => {
     'coffee_shop': 'Coffee',
     'pizza_restaurant': 'Pizza',
   };
-  
+
   // Find the first matching cuisine type
   for (const type of types) {
     if (cuisineMap[type]) {
       return cuisineMap[type];
     }
   }
-  
+
   // Default to "Restaurant" if no specific cuisine type is found
   return 'Restaurant';
 };
@@ -130,7 +129,7 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
 
     const restaurants: Restaurant[] = response.data.results.map(place => {
       let location = place.formatted_address || place.vicinity || '';
-      
+
       // Extract city or area
       if (location) {
         const parts = location.split(',');
@@ -139,7 +138,7 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
           location = parts.slice(-2).join(',').trim();
         }
       }
-      
+
       return {
         id: -1, // Temporary ID for Google places results
         name: place.name || 'Unknown Restaurant',
@@ -167,6 +166,7 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
         verified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
+        rating: typeof place.rating === 'number' ? place.rating : 4.0,
       };
     });
 
@@ -220,7 +220,7 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
     }
 
     const place = response.data.result;
-    
+
     return {
       name: place.name || 'Unknown Restaurant',
       address: place.formatted_address || '',

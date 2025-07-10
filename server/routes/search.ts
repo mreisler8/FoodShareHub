@@ -63,7 +63,7 @@ router.get("/", authenticate, async (req, res) => {
           id: r.id.toString(),
           name: r.name,
           thumbnailUrl: r.imageUrl,
-          avgRating: 4.2, // Default rating
+          avgRating: 4.2, // Default rating as number
           location: r.location,
           category: r.category,
           priceRange: r.priceRange,
@@ -92,7 +92,7 @@ router.get("/", authenticate, async (req, res) => {
               id: `google_${r.googlePlaceId}`,
               name: r.name,
               thumbnailUrl: r.imageUrl,
-              avgRating: 4.2, // Default for Google Places
+              avgRating: 4.2, // Default for Google Places as number
               location: r.location,
               category: r.category,
               priceRange: r.priceRange,

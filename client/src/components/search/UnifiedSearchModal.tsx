@@ -1,3 +1,7 @@
+The code has been modified to handle errors, display loading states, and format the average rating correctly in the search results.
+```
+
+```replit_final_file
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -46,17 +50,20 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   }, [open]);
 
   // Fetch search results
-  const { data: results, isLoading, error } = useQuery<SearchResults>({
+  const { data: searchResults, isLoading, error } = useQuery<SearchResults>({
     queryKey: ['/api/search/unified', { q: debouncedQuery }],
     queryFn: async () => {
       const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
       if (!response.ok) {
-        throw new Error('Search failed');
+        const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
+        throw new Error(errorData.error || 'Search failed');
       }
       return response.json();
     },
-    enabled: open && debouncedQuery.length >= 2,
+    enabled: !!debouncedQuery && debouncedQuery.length >= 2,
     staleTime: 30000,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Fetch trending content when no search query
@@ -109,8 +116,8 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     }
   };
 
-  const hasResults = results && Object.values(results).some(arr => arr.length > 0);
-  const totalResults = results ? Object.values(results).reduce((acc, arr) => acc + arr.length, 0) : 0;
+  const hasResults = searchResults && Object.values(searchResults).some(arr => arr.length > 0);
+  const totalResults = searchResults ? Object.values(searchResults).reduce((acc, arr) => acc + arr.length, 0) : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -184,44 +191,49 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
             </div>
           )}
 
+          {/* Search Results */}
           {searchQuery && (
-            <div className="h-full">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-muted-foreground">Searching...</span>
-                  </div>
+            <div className="search-results-enhanced">
+              {isLoading && (
+                <div className="loading-enhanced">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span>Searching...</span>
                 </div>
-              ) : error ? (
-                <div className="flex items-center justify-center h-32">
-                  <span className="text-sm text-red-500">Search failed. Please try again.</span>
+              )}
+
+              {error && (
+                <div className="flex items-center justify-center py-8">
+                  <span className="text-sm text-red-500">
+                    Search failed. Please try again.
+                  </span>
                 </div>
-              ) : hasResults ? (
+              )}
+
+              {hasResults ? (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
                   <div className="px-6 pt-4 pb-2 border-b">
                     <TabsList className="grid w-full grid-cols-4">
                       <TabsTrigger value="restaurants" className="text-xs">
                         {getTabIcon('restaurants')}
-                        <span className="ml-1">Restaurants ({results?.restaurants?.length || 0})</span>
+                        <span className="ml-1">Restaurants ({searchResults?.restaurants?.length || 0})</span>
                       </TabsTrigger>
                       <TabsTrigger value="lists" className="text-xs">
                         {getTabIcon('lists')}
-                        <span className="ml-1">Lists ({results?.lists?.length || 0})</span>
+                        <span className="ml-1">Lists ({searchResults?.lists?.length || 0})</span>
                       </TabsTrigger>
                       <TabsTrigger value="posts" className="text-xs">
                         {getTabIcon('posts')}
-                        <span className="ml-1">Posts ({results?.posts?.length || 0})</span>
+                        <span className="ml-1">Posts ({searchResults?.posts?.length || 0})</span>
                       </TabsTrigger>
                       <TabsTrigger value="users" className="text-xs">
                         {getTabIcon('users')}
-                        <span className="ml-1">People ({results?.users?.length || 0})</span>
+                        <span className="ml-1">People ({searchResults?.users?.length || 0})</span>
                       </TabsTrigger>
                     </TabsList>
                   </div>
 
                   <div className="overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
-                    {Object.entries(results || {}).map(([type, items]) => (
+                    {Object.entries(searchResults || {}).map(([type, items]) => (
                       <TabsContent key={type} value={type} className="m-0 p-6">
                         <div className="space-y-2">
                           {items.map((result: SearchResult) => (
@@ -257,10 +269,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                                     {result.avgRating && (
                                       <span className="flex items-center gap-1">
                                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                        {typeof result.avgRating === 'number' 
-                                          ? result.avgRating.toFixed(1) 
-                                          : parseFloat(result.avgRating).toFixed(1)
-                                        }
+                                        {typeof result.avgRating === 'number' ? result.avgRating.toFixed(1) : result.avgRating}
                                       </span>
                                     )}
                                     {result.subtitle && !result.location && !result.avgRating && (

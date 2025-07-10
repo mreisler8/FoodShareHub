@@ -191,6 +191,11 @@ export function RestaurantSearch({
                                     </span>
                                   )}
                                 </div>
+                                {restaurant.avgRating && (
+                                  <div className="text-xs text-muted-foreground">
+                                    ⭐ {typeof restaurant.avgRating === 'number' ? restaurant.avgRating.toFixed(1) : restaurant.avgRating}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
