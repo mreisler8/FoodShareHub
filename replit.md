@@ -112,6 +112,14 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 10, 2025: **Search Navigation and Location Data Integration - COMPLETE**: Successfully implemented proper search-to-detail navigation flow with Google Places location enrichment:
+  - **Restaurant Router Implementation**: Created dedicated restaurant router with proper Google Places integration for location fetching
+  - **Router Mounting Fixed**: Resolved router conflicts and mounting issues to ensure restaurant endpoints use the enhanced router
+  - **Location Data Enrichment**: Restaurant detail pages now fetch proper addresses from Google Places API when database location is "Unknown location"
+  - **Navigation Flow Verified**: User confirmed successful navigation from search results to restaurant detail pages with proper location display
+  - **Pizzeria Badiali Test Case**: Successfully tested with "Badiali in Toronto" - now displays "181 Dovercourt Rd, Toronto, ON M6J 3C6, Canada"
+  - **Google Places Integration**: Proper async location fetching with error handling and fallback logic
+  - **Status**: Core search-to-detail navigation flow now working perfectly with proper location data
 - July 10, 2025: **Critical Search and Share Experience Fixes - COMPLETE**: Successfully resolved major functionality issues to restore core application features:
   - **Search API Restoration**: Fixed missing search router mounting at `/api/search` endpoint - search functionality now fully operational
   - **Import Error Resolution**: Corrected `useEffect` import error in MediaUploader component preventing post creation
