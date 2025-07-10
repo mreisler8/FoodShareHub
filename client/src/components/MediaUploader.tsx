@@ -30,7 +30,7 @@ const DEFAULT_TAGS = [
   'comfort-food', 'instagram-worthy', 'must-try', 'seasonal', 'authentic', 'fusion'
 ];
 
-export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderProps) {
+export function MediaUploader({ onChange, onTagsChange }: MediaUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [previews, setPreviews] = useState<MediaFile[]>([]);
   const [cropIndex, setCropIndex] = useState<number | null>(null);
@@ -461,3 +461,6 @@ export default function MediaUploader({ onChange, onTagsChange }: MediaUploaderP
     </div>
   );
 }
+
+// Export as both named and default for compatibility
+export default MediaUploader;

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ interface PostFormData {
 }
 
 export default function CreatePostPage() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -78,7 +78,7 @@ export default function CreatePostPage() {
         title: "Post created successfully!",
         description: "Your dining experience has been shared.",
       });
-      navigate('/feed');
+      setLocation('/feed');
     },
     onError: (error: Error) => {
       toast({
@@ -155,7 +155,7 @@ export default function CreatePostPage() {
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={() => navigate(-1)}
+          onClick={() => setLocation('/')}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -379,7 +379,7 @@ export default function CreatePostPage() {
             type="button"
             variant="outline"
             className="flex-1"
-            onClick={() => navigate(-1)}
+            onClick={() => setLocation('/')}
           >
             Cancel
           </Button>
