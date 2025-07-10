@@ -66,7 +66,7 @@ export function OptimizedSearchModal({ open, onOpenChange }: OptimizedSearchModa
   const [activeTab, setActiveTab] = useState('restaurants');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [, navigate] = useLocation();
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const searchAbortController = useRef<AbortController | null>(null);
 
@@ -99,7 +99,7 @@ export function OptimizedSearchModal({ open, onOpenChange }: OptimizedSearchModa
     if (debouncedSearchRef.current) {
       debouncedSearchRef.current.cancel();
     }
-    
+
     debouncedSearchRef.current = debounce((query: string) => {
       setDebouncedQuery(query);
     }, 300);
@@ -128,18 +128,18 @@ export function OptimizedSearchModal({ open, onOpenChange }: OptimizedSearchModa
       if (searchAbortController.current) {
         searchAbortController.current.abort();
       }
-      
+
       searchAbortController.current = new AbortController();
-      
+
       const params = new URLSearchParams({ q: debouncedQuery });
       const response = await fetch(`/api/search/unified?${params}`, {
         signal: searchAbortController.current.signal,
       });
-      
+
       if (!response.ok) {
         throw new Error('Search failed');
       }
-      
+
       return response.json();
     },
     enabled: open && debouncedQuery.length >= 2,
@@ -164,7 +164,7 @@ export function OptimizedSearchModal({ open, onOpenChange }: OptimizedSearchModa
   // Navigation handlers
   const handleResultClick = useCallback((result: SearchResult) => {
     saveRecentSearch(searchQuery);
-    
+
     // Navigate based on result type
     switch (result.type) {
       case 'restaurant':
@@ -268,7 +268,7 @@ export function OptimizedSearchModal({ open, onOpenChange }: OptimizedSearchModa
               </Button>
             )}
           </div>
-          
+
           {/* Search Stats */}
           {hasResults && (
             <div className="search-stats">

@@ -22,8 +22,22 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' })); // Increased limit for media uploads
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Add caching headers for static content
+app.use((req, res, next) => {
+  // Cache static assets
+  if (req.url.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg)$/)) {
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+  }
+  // Cache API responses for GET requests (except user-specific data)
+  else if (req.method === 'GET' && req.url.startsWith('/api/') && 
+           !req.url.includes('/me') && !req.url.includes('/feed')) {
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

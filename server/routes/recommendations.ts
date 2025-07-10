@@ -55,14 +55,14 @@ router.get('/:circleId', authenticate, async (req, res) => {
         restaurantId: recommendations.restaurantId,
         userId: recommendations.userId,
         createdAt: recommendations.createdAt,
-        // Restaurant details
+        // Restaurant details (only essential fields)
         restaurantName: restaurants.name,
         cuisine: restaurants.cuisine,
         priceRange: restaurants.priceRange,
         location: restaurants.location,
         imageUrl: restaurants.imageUrl,
         address: restaurants.address,
-        // User details
+        // User details (only essential fields)
         userName: users.name,
         username: users.username,
         profilePicture: users.profilePicture,
@@ -71,7 +71,8 @@ router.get('/:circleId', authenticate, async (req, res) => {
       .innerJoin(restaurants, eq(recommendations.restaurantId, restaurants.id))
       .innerJoin(users, eq(recommendations.userId, users.id))
       .where(eq(recommendations.circleId, circleId))
-      .orderBy(sql`${recommendations.createdAt} DESC`);
+      .orderBy(sql`${recommendations.createdAt} DESC`)
+      .limit(50); // Add reasonable limit to prevent large result sets
 
     // Transform the flat results into the expected nested structure
     const formattedRecommendations = recommendationsWithDetails.map(rec => ({

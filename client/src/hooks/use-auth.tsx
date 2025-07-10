@@ -111,6 +111,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const { data: user, isLoading, error } = useQuery({
+    queryKey: ["/api/me"],
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/me", {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            return null;
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return response.json();
+      } catch (err) {
+        console.error("Auth query failed:", err);
+        throw err;
+      }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes - increased cache time
+    gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
+    retry: (failureCount, error: any) => {
+      if (error?.message?.includes('401') || error?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
