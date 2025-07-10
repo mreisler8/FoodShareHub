@@ -108,7 +108,11 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] p-0">
+      <DialogContent className="max-w-2xl max-h-[80vh] p-0" aria-describedby="search-description">
+        <div className="sr-only">
+          <h2 id="search-title">Search</h2>
+          <p id="search-description">Search for restaurants, lists, posts, and people</p>
+        </div>
         {/* Search Header */}
         <div className="p-6 pb-4 border-b">
           <div className="relative">

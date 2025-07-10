@@ -238,7 +238,11 @@ export function OptimizedSearchModal({ open, onOpenChange }: OptimizedSearchModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="optimized-search-modal">
+      <DialogContent className="optimized-search-modal" aria-describedby="search-description">
+        <div className="sr-only">
+          <h2 id="search-title">Search</h2>
+          <p id="search-description">Search for restaurants, lists, posts, and people</p>
+        </div>
         {/* Search Header */}
         <div className="search-header-optimized">
           <div className="search-input-container-optimized">
