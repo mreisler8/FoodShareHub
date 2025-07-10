@@ -60,9 +60,19 @@ export function RestaurantSearch({
   
   // Fetch restaurant search results with consistent API
   const { data: restaurants, isLoading, error } = useQuery<RestaurantSearchResult[]>({
-    queryKey: [`/api/search?type=restaurants&q=${debouncedQuery}`],
+    queryKey: ['/api/search', { type: 'restaurants', q: debouncedQuery }],
+    queryFn: async () => {
+      const response = await fetch(`/api/search?type=restaurants&q=${encodeURIComponent(debouncedQuery)}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
+        throw new Error(errorData.error || 'Search failed');
+      }
+      return response.json();
+    },
     enabled: isOpen && debouncedQuery.length >= 2,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
+    retry: 2,
+    retryDelay: 1000,
   });
   
   // Handle restaurant selection
@@ -249,7 +259,10 @@ export function RestaurantSearch({
                                 <div className="flex items-center gap-1 mt-1">
                                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                                   <span className="text-xs text-muted-foreground">
-                                    {restaurant.avgRating.toFixed(1)}
+                                    {typeof restaurant.avgRating === 'number' 
+                                      ? restaurant.avgRating.toFixed(1) 
+                                      : parseFloat(restaurant.avgRating).toFixed(1)
+                                    }
                                   </span>
                                 </div>
                               )}

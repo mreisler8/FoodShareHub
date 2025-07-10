@@ -42,8 +42,10 @@ router.get("/", authenticate, async (req, res) => {
           imageUrl: restaurants.imageUrl,
           cuisine: restaurants.cuisine,
           address: restaurants.address,
-          avgRating: sql<number>`4.2`.as('avgRating'), // Default rating for now
+          avgRating: sql<number>`COALESCE(AVG(CAST(posts.rating AS FLOAT)), 4.2)`.as('avgRating'),
         })
+        .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
+        .groupBy(restaurants.id)
         .from(restaurants)
         .where(
           or(
@@ -71,6 +73,34 @@ router.get("/", authenticate, async (req, res) => {
       }));
       
       results.push(...formattedRestaurants);
+      
+      // If local results are limited, search Google Places API for restaurants
+      if (formattedRestaurants.length < 5 && (type === "all" || type === "restaurants")) {
+        try {
+          const { searchGooglePlaces } = await import("../services/google-places");
+          const googleResults = await searchGooglePlaces(searchTerm);
+          
+          // Transform Google results to match our format
+          const formattedGoogleResults = googleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
+            id: `google_${r.googlePlaceId}`,
+            name: r.name,
+            thumbnailUrl: r.imageUrl,
+            avgRating: 4.2, // Default for Google Places
+            location: r.location,
+            category: r.category,
+            priceRange: r.priceRange,
+            cuisine: r.cuisine,
+            address: r.address,
+            source: 'google' as const,
+            type: 'restaurant' as const
+          }));
+          
+          results.push(...formattedGoogleResults);
+        } catch (googleError) {
+          console.error("Google Places search error:", googleError);
+          // Continue without Google results
+        }
+      }
     }
     
     // Search lists

@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { Restaurant } from '@shared/schema';
 
@@ -26,6 +27,7 @@ interface GooglePlaceResult {
 interface PlacesSearchResponse {
   results: GooglePlaceResult[];
   status: string;
+  error_message?: string;
 }
 
 interface PlaceDetailsResponse {
@@ -40,6 +42,7 @@ interface PlaceDetailsResponse {
     }>;
   };
   status: string;
+  error_message?: string;
 }
 
 const convertPriceLevel = (level?: number): string => {
@@ -99,20 +102,29 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
     return [];
   }
 
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+
   try {
     const response = await axios.get<PlacesSearchResponse>(
       'https://maps.googleapis.com/maps/api/place/textsearch/json',
       {
         params: {
-          query: `${query} restaurant`,
+          query: `${query.trim()} restaurant`,
           type: 'restaurant',
           key: GOOGLE_MAPS_API_KEY,
         },
+        timeout: 5000, // 5 second timeout
       }
     );
 
     if (response.data.status !== 'OK') {
-      console.error('Google Places API error:', response.data.status);
+      console.error('Google Places API error:', response.data.status, response.data.error_message);
+      return [];
+    }
+
+    if (!response.data.results || response.data.results.length === 0) {
       return [];
     }
 
@@ -130,7 +142,7 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
       
       return {
         id: -1, // Temporary ID for Google places results
-        name: place.name,
+        name: place.name || 'Unknown Restaurant',
         location,
         category: getCuisineType(place.types),
         priceRange: convertPriceLevel(place.price_level),
@@ -161,7 +173,19 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
     console.log(`Google Places search for "${query}" returned ${restaurants.length} results`);
     return restaurants;
   } catch (error) {
-    console.error('Error searching Google Places:', error);
+    if (axios.isAxiosError(error)) {
+      if (error.code === 'ENOTFOUND') {
+        console.error('Network error: Unable to reach Google Places API');
+      } else if (error.response?.status === 429) {
+        console.error('Google Places API rate limit exceeded');
+      } else if (error.response?.status === 403) {
+        console.error('Google Places API access denied - check API key and billing');
+      } else {
+        console.error('Google Places API error:', error.response?.status, error.message);
+      }
+    } else {
+      console.error('Unexpected error searching Google Places:', error);
+    }
     return [];
   }
 };
@@ -172,27 +196,33 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
     return null;
   }
 
+  if (!placeId) {
+    console.error('Place ID is required');
+    return null;
+  }
+
   try {
     const response = await axios.get<PlaceDetailsResponse>(
       'https://maps.googleapis.com/maps/api/place/details/json',
       {
         params: {
           place_id: placeId,
-          fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,types,price_level,geometry',
+          fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,types,price_level,geometry,rating',
           key: GOOGLE_MAPS_API_KEY,
         },
+        timeout: 5000,
       }
     );
 
     if (response.data.status !== 'OK' || !response.data.result) {
-      console.error('Google Place Details API error:', response.data.status);
+      console.error('Google Place Details API error:', response.data.status, response.data.error_message);
       return null;
     }
 
     const place = response.data.result;
     
     return {
-      name: place.name,
+      name: place.name || 'Unknown Restaurant',
       address: place.formatted_address || '',
       phone: place.formatted_phone_number || null,
       website: place.website || null,
@@ -204,7 +234,11 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
       googlePlaceId: place.place_id,
     };
   } catch (error) {
-    console.error('Error getting Google Place details:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Error fetching Google Place details:', error.response?.status, error.message);
+    } else {
+      console.error('Unexpected error fetching Google Place details:', error);
+    }
     return null;
   }
 };

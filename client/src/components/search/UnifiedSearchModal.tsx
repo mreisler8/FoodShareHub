@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('restaurants');
   const [recentSearches] = useState(['Pizza', 'Sushi', 'Best coffee', 'Date night', 'Brunch spots']);
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -258,7 +257,10 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                                     {result.avgRating && (
                                       <span className="flex items-center gap-1">
                                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                        {result.avgRating.toFixed(1)}
+                                        {typeof result.avgRating === 'number' 
+                                          ? result.avgRating.toFixed(1) 
+                                          : parseFloat(result.avgRating).toFixed(1)
+                                        }
                                       </span>
                                     )}
                                     {result.subtitle && !result.location && !result.avgRating && (
