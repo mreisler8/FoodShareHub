@@ -1,7 +1,4 @@
-The code has been modified to handle errors, display loading states, and format the average rating correctly in the search results.
-```
 
-```replit_final_file
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
