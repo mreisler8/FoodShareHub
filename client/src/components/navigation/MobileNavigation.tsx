@@ -51,36 +51,36 @@ export function MobileNavigation() {
         {isAuthenticated ? (
           <>
             <Link href="/circles" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center transition-colors ${location.startsWith('/circles') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
-                <Users className="h-4 w-4" />
-                <span className="text-xs mt-0.5">Circles</span>
+              <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${location.startsWith('/circles') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+                <Users className="h-5 w-5" />
+                <span className="text-xs mt-1 font-medium">Circles</span>
               </div>
             </Link>
             
             <Link href="/profile" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center transition-colors ${location.startsWith('/profile') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
-                <User className="h-4 w-4" />
-                <span className="text-xs mt-0.5">Profile</span>
+              <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${location.startsWith('/profile') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+                <User className="h-5 w-5" />
+                <span className="text-xs mt-1 font-medium">Profile</span>
               </div>
             </Link>
           </>
         ) : (
           <>
             <Link href="/auth" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center transition-colors ${isActive('/auth') ? 'text-primary' : 'text-muted-foreground'} hover:text-primary touch-manipulation`}>
-                <LogIn className="h-4 w-4" />
-                <span className="text-xs mt-0.5">Login</span>
+              <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/auth') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+                <LogIn className="h-5 w-5" />
+                <span className="text-xs mt-1 font-medium">Login</span>
               </div>
             </Link>
             
             <button 
-              className="flex-1 h-full outline-none border-0 bg-transparent transition-colors hover:text-red-400 touch-manipulation"
+              className="flex-1 h-full outline-none border-0 bg-transparent transition-all duration-200 mobile-button rounded-lg hover:text-red-400 hover:bg-red-50 touch-manipulation"
               onClick={handleLogout}
               aria-label="Logout"
             >
               <div className="h-full flex flex-col items-center justify-center text-red-500">
-                <LogOut className="h-4 w-4" />
-                <span className="text-xs mt-0.5">Logout</span>
+                <LogOut className="h-5 w-5" />
+                <span className="text-xs mt-1 font-medium">Logout</span>
               </div>
             </button>
           </>

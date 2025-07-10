@@ -1,0 +1,64 @@
+To effectively review the user flow in your app and provide guidance for fixing bugs and glitches, we'll follow a systematic approach. Here’s a breakdown of common issues and the structured feedback you can provide your agent to address these concerns:
+
+User Flow Review
+Overall Navigation:
+
+Ensure that the main navigation bar is responsive and all menu items link to the correct pages.
+Verify that clicking the back button navigates to the previous view as expected.
+Button Functionality:
+
+Confirm that all buttons, such as "Create Post," "Add to Circle," and "Submit Review," trigger the intended actions without delays. If any buttons are not functioning, specify which ones and under what conditions.
+Check for hover and active states to enhance user feedback.
+Padding and Layout:
+
+Inspect areas with excessive padding or margin. Elements should align uniformly, providing a clean and consistent UI.
+If necessary, specify where the extra padding is located and suggest adjustments to maintain uniformity.
+Search Functionality:
+
+Test the search feature for restaurants and circles. If it fails to return results or hangs indefinitely, document the specific input queries that lead to this behavior.
+Confirm that the search results load promptly and are visually distinct, including relevant details like restaurant names and ratings.
+Form Submission:
+
+Ensure forms (e.g., for recommendations or reviews) validate input correctly and provide relevant error messages.
+Check that successful submission leads to appropriate confirmation messages or state changes.
+Load Times and Performance:
+
+Monitor the app for delays during loading screens or transitions between pages. Long wait times can frustrate users.
+If certain components take too long to load, highlight them for optimization.
+Guidance for Agent
+Bug Reporting Structure:
+
+Navigation:
+
+Verify that the navigation links are working correctly and that every page loads as intended without errors.
+Button Issues:
+
+List all non-functional buttons:
+Example: "Create Post" button does not respond when clicked.
+Add any necessary error messaging that needs to be implemented upon failure of button actions.
+Padding Adjustments:
+
+Identify specific elements with excess padding. Adjust CSS styles associated with those components to ensure balanced spacing throughout.
+Example CSS Adjustments:
+
+.some-class {
+  padding: 10px; /* Adjust based on layout needs */
+  margin: 5px; /* Consistent spacing for uniformity */
+}
+Search Functionality:
+
+Investigate and resolve any issues causing the search feature to malfunction. Ensure it can handle a variety of queries and return results efficiently.
+Input Handling:
+
+Improve the validation of input fields to provide real-time feedback, e.g.:
+const isValid = (input) => input.trim() !== "";
+if(!isValid(userInput)) {
+  return { error: "Input cannot be empty" };
+}
+API Response Handling:
+
+Ensure that all API responses are managed properly with adequate loading indicators and error handling.
+Test Cases for Follow-Up:
+
+Create test cases to simulate user interaction across all mentioned features to ensure bugs are addressed effectively.
+Implement performance tracking to monitor loading times and optimize accordingly.

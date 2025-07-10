@@ -91,7 +91,7 @@ export function DesktopSidebar() {
             </Link>
           </li>
           <li>
-            <Link href="/circles/1" aria-label="View your circles">
+            <Link href="/circles" aria-label="View your circles">
               <div className={getNavItemClasses("/circles")} role="menuitem" tabIndex={0}>
                 <Users className="w-6 mr-2" aria-hidden="true" />
                 <span>Circles</span>

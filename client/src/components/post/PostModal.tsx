@@ -489,6 +489,13 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
             />
           </div>
 
+          {/* Form Validation Message */}
+          {!isFormValid && (
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+              Please complete all required fields: restaurant selection, rating, and what you liked.
+            </div>
+          )}
+
           {/* Submit Buttons */}
           <div className="flex gap-3 pt-4">
             <Button
@@ -496,6 +503,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="flex-1"
+              disabled={savePostMutation.isPending}
             >
               Cancel
             </Button>

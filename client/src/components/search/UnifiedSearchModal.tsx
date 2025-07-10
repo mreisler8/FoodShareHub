@@ -71,7 +71,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   };
 
   // Fetch search results
-  const { data: searchResults, isLoading, error } = useQuery<SearchResults>({
+  const { data: searchResults, isLoading, error, refetch } = useQuery<SearchResults>({
     queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation }],
     queryFn: async () => {
       let searchUrl = `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`;
@@ -81,7 +81,14 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         searchUrl += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
       }
       
-      const response = await fetch(searchUrl);
+      const response = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
         throw new Error(errorData.error || 'Search failed');
@@ -105,8 +112,8 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     },
     enabled: !!debouncedQuery && debouncedQuery.length >= 2,
     staleTime: 30000,
-    retry: 2,
-    retryDelay: 1000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Fetch trending content when no search query
@@ -289,17 +296,41 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
           {searchQuery && (
             <div className="search-results-enhanced">
               {isLoading && (
-                <div className="loading-enhanced">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span>Searching...</span>
+                <div className="flex flex-col items-center justify-center py-8 px-6">
+                  <div className="text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                    <span className="text-sm text-muted-foreground">
+                      Searching {userLocation ? 'nearby' : 'everywhere'}...
+                    </span>
+                  </div>
                 </div>
               )}
 
               {error && (
-                <div className="flex items-center justify-center py-8">
-                  <span className="text-sm text-red-500">
-                    Search failed. Please try again.
-                  </span>
+                <div className="flex flex-col items-center justify-center py-8 px-6">
+                  <div className="text-center">
+                    <span className="text-sm text-red-500 mb-3 block">
+                      Search failed. Please try again.
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetch()}
+                        className="text-xs"
+                      >
+                        Retry Search
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSearchQuery('')}
+                        className="text-xs"
+                      >
+                        Clear Search
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 

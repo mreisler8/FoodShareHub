@@ -91,12 +91,33 @@ export function PostCard({ post, isCompact = false }: PostCardProps) {
             <span>Like</span>
           </Button>
 
-          <Button variant="ghost" size="sm" className="action-button">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="action-button"
+            onClick={() => console.log('Comment functionality would open comment modal')}
+          >
             <MessageCircle className="action-icon" />
             <span>Comment</span>
           </Button>
 
-          <Button variant="ghost" size="sm" className="action-button">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="action-button"
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: `Check out this post about ${post.restaurant?.name}`,
+                  text: post.content,
+                  url: window.location.href
+                }).catch(err => console.log('Error sharing:', err));
+              } else {
+                // Fallback: copy to clipboard
+                navigator.clipboard.writeText(window.location.href);
+              }
+            }}
+          >
             <Share2 className="action-icon" />
             <span>Share</span>
           </Button>
