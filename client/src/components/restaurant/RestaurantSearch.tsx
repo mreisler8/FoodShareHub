@@ -1,30 +1,27 @@
-
-import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Restaurant } from "@shared/schema";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Search, PlusCircle, MapPin, Store, Phone, Star } from "lucide-react";
-import { debounce } from "@/lib/utils";
+import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useQuery } from '@tanstack/react-query';
+import { Search, MapPin, Plus, Loader2 } from 'lucide-react';
+import { debounce } from 'lodash';
 
 interface RestaurantSearchResult {
   id: string;
   name: string;
-  thumbnailUrl: string | null;
-  avgRating: number;
   location?: string;
   category?: string;
   priceRange?: string;
   cuisine?: string;
   address?: string;
-  source: 'database' | 'google';
+  thumbnailUrl?: string;
+  avgRating?: number;
+  source?: 'database' | 'google';
+  googlePlaceId?: string;
 }
 
 interface RestaurantSearchProps {
-  onSelectRestaurant: (restaurant: Restaurant) => void;
+  onSelectRestaurant: (restaurant: RestaurantSearchResult) => void;
   onCreateNewRestaurant?: () => void;
   buttonLabel?: string;
   placeholder?: string;
@@ -40,24 +37,24 @@ export function RestaurantSearch({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   // Set up debounced search
   useEffect(() => {
     const handler = debounce(() => {
       setDebouncedQuery(searchQuery);
     }, 300);
-    
+
     handler();
     return () => handler.cancel();
   }, [searchQuery]);
-  
+
   // Focus input when modal opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
-  
+
   // Fetch restaurant search results with consistent API
   const { data: restaurants, isLoading, error } = useQuery<RestaurantSearchResult[]>({
     queryKey: ['/api/search', { type: 'restaurants', q: debouncedQuery }],
@@ -74,230 +71,165 @@ export function RestaurantSearch({
     retry: 2,
     retryDelay: 1000,
   });
-  
+
   // Handle restaurant selection
   const handleSelectRestaurant = (restaurant: RestaurantSearchResult) => {
-    // Convert search result to Restaurant format
-    const restaurantData: Restaurant = {
-      id: parseInt(restaurant.id),
-      name: restaurant.name,
-      location: restaurant.location || '',
-      category: restaurant.category || 'Restaurant',
-      priceRange: restaurant.priceRange || '$',
-      imageUrl: restaurant.thumbnailUrl || null,
-      cuisine: restaurant.cuisine || null,
-      address: restaurant.address || null,
-      // Add other required fields with defaults
-      openTableId: null,
-      resyId: null,
-      googlePlaceId: null,
-      neighborhood: null,
-      city: null,
-      state: null,
-      country: 'US',
-      postalCode: null,
-      latitude: null,
-      longitude: null,
-      phone: null,
-      website: null,
-      hours: null,
-      description: null,
-      verified: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    onSelectRestaurant(restaurantData);
+    console.log('Selected restaurant:', restaurant);
+    onSelectRestaurant(restaurant);
     setIsOpen(false);
     setSearchQuery("");
   };
-  
-  // Handle create new restaurant button click
+
+  // Handle creating new restaurant
   const handleCreateNew = () => {
     if (onCreateNewRestaurant) {
       onCreateNewRestaurant();
+      setIsOpen(false);
+      setSearchQuery("");
     }
-    setIsOpen(false);
-    setSearchQuery("");
   };
-  
+
   return (
     <>
       <Button 
         variant="outline" 
         onClick={() => setIsOpen(true)}
-        className="w-full justify-start text-left font-normal h-10 px-3"
+        className="w-full justify-start text-left font-normal"
       >
-        <Search className="h-4 w-4 mr-2 text-muted-foreground" />
-        <span className="text-muted-foreground">{placeholder}</span>
+        <Search className="mr-2 h-4 w-4" />
+        {buttonLabel}
       </Button>
-      
+
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Find a Restaurant</DialogTitle>
-            <DialogDescription>
-              Search for existing restaurants or add a new one if it's not listed.
-            </DialogDescription>
+            <DialogTitle>Search Restaurants</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
-            {/* Improved search input with proper spacing */}
+            {/* Search Input */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
               <Input
                 ref={inputRef}
                 type="text"
-                placeholder="Search by name, location, or cuisine..."
-                className="pl-10 h-11"
+                placeholder={placeholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
               />
             </div>
-            
-            {/* Results container with fixed height and scroll */}
-            <div className="min-h-[300px] max-h-[400px] overflow-y-auto">
-              {/* Error state */}
+
+            {/* Search Results */}
+            <div className="max-h-96 overflow-y-auto">
+              {isLoading && debouncedQuery.length >= 2 && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
+                </div>
+              )}
+
               {error && (
-                <div className="text-center py-8">
-                  <p className="text-red-500">Search failed. Please try again.</p>
+                <div className="flex items-center justify-center py-8">
+                  <span className="text-sm text-red-500">
+                    Search failed. Please try again.
+                  </span>
                 </div>
               )}
-              
-              {/* Loading state */}
-              {isLoading && (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={i} className="p-4">
-                      <div className="flex items-center space-x-4">
-                        <Skeleton className="h-12 w-12 rounded" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-3 w-1/2" />
-                        </div>
-                        <Skeleton className="h-8 w-16" />
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-              
-              {/* No results state */}
-              {!isLoading && !error && debouncedQuery.length >= 2 && (!restaurants || restaurants.length === 0) && (
-                <div className="text-center py-12 space-y-4">
-                  <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                    <Search className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-medium">No restaurants found</p>
-                    <p className="text-muted-foreground">No restaurants match "{debouncedQuery}"</p>
-                  </div>
-                  {onCreateNewRestaurant && (
-                    <Button onClick={handleCreateNew} className="mt-4">
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add New Restaurant
-                    </Button>
-                  )}
-                </div>
-              )}
-              
-              {/* Start typing prompt */}
-              {!isLoading && !error && debouncedQuery.length < 2 && (
-                <div className="text-center py-12">
-                  <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                    <Search className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-muted-foreground">
-                    Type at least 2 characters to start searching...
-                  </p>
-                </div>
-              )}
-              
-              {/* Results */}
-              {!isLoading && !error && restaurants && restaurants.length > 0 && (
-                <div className="space-y-2">
-                  {restaurants.map((restaurant) => (
-                    <Card 
-                      key={restaurant.id} 
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => handleSelectRestaurant(restaurant)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            {/* Restaurant image or placeholder */}
-                            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+
+              {!isLoading && !error && debouncedQuery.length >= 2 && (
+                <>
+                  {restaurants && restaurants.length > 0 ? (
+                    <div className="space-y-2">
+                      {restaurants.map((restaurant) => (
+                        <Button
+                          key={restaurant.id}
+                          variant="ghost"
+                          className="w-full h-auto p-3 justify-start"
+                          onClick={() => handleSelectRestaurant(restaurant)}
+                        >
+                          <div className="flex items-start gap-3 w-full text-left">
+                            <div className="flex-shrink-0">
                               {restaurant.thumbnailUrl ? (
                                 <img 
                                   src={restaurant.thumbnailUrl} 
                                   alt={restaurant.name}
-                                  className="w-full h-full object-cover"
+                                  className="w-10 h-10 object-cover rounded"
                                 />
                               ) : (
-                                <Store className="h-5 w-5 text-muted-foreground" />
-                              )}
-                            </div>
-                            
-                            {/* Restaurant details */}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium text-sm truncate">{restaurant.name}</h3>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                {restaurant.location && (
-                                  <span className="flex items-center">
-                                    <MapPin className="h-3 w-3 mr-1" />
-                                    {restaurant.location}
-                                  </span>
-                                )}
-                                {restaurant.category && (
-                                  <span>{restaurant.category}</span>
-                                )}
-                                {restaurant.priceRange && (
-                                  <span>{restaurant.priceRange}</span>
-                                )}
-                              </div>
-                              {restaurant.avgRating && (
-                                <div className="flex items-center gap-1 mt-1">
-                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                  <span className="text-xs text-muted-foreground">
-                                    {typeof restaurant.avgRating === 'number' 
-                                      ? restaurant.avgRating.toFixed(1) 
-                                      : parseFloat(restaurant.avgRating).toFixed(1)
-                                    }
-                                  </span>
+                                <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                                  <MapPin className="h-4 w-4 text-muted-foreground" />
                                 </div>
                               )}
                             </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">
+                                {restaurant.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                {restaurant.location && (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span className="truncate">{restaurant.location}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2">
+                                  {restaurant.category && (
+                                    <span className="bg-muted px-1 py-0.5 rounded text-xs">
+                                      {restaurant.category}
+                                    </span>
+                                  )}
+                                  {restaurant.priceRange && (
+                                    <span className="text-xs">
+                                      {restaurant.priceRange}
+                                    </span>
+                                  )}
+                                  {restaurant.source === 'google' && (
+                                    <span className="text-xs text-blue-600">
+                                      Google Places
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          
-                          {/* Select button */}
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectRestaurant(restaurant);
-                            }}
-                          >
-                            {buttonLabel}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Search className="h-8 w-8 text-muted-foreground mb-2" />
+                      <span className="text-sm font-medium">No restaurants found</span>
+                      <span className="text-xs text-muted-foreground">
+                        No results for "{debouncedQuery}"
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {debouncedQuery.length >= 2 && (
+                <div className="border-t pt-3 mt-3">
+                  {onCreateNewRestaurant && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleCreateNew}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add "{debouncedQuery}" as new restaurant
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
-            
-            {/* Footer actions */}
-            {onCreateNewRestaurant && restaurants && restaurants.length > 0 && (
-              <div className="flex justify-between items-center pt-4 border-t">
-                <p className="text-xs text-muted-foreground">
-                  Can't find what you're looking for?
-                </p>
-                <Button variant="outline" onClick={handleCreateNew}>
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add New Restaurant
-                </Button>
+
+            {debouncedQuery.length > 0 && debouncedQuery.length < 2 && (
+              <div className="text-center py-4">
+                <span className="text-sm text-muted-foreground">
+                  Type at least 2 characters to search
+                </span>
               </div>
             )}
           </div>
