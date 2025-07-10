@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2 } from 'lucide-react';
+import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2, Navigation } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import { locationService, type LocationData } from '@/services/locationService';
 import './UnifiedSearchModal.css';
 
 interface SearchResult {
@@ -38,6 +39,8 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   const [activeTab, setActiveTab] = useState('restaurants');
   const [recentSearches] = useState(['Pizza', 'Sushi', 'Best coffee', 'Date night', 'Brunch spots']);
   const [, setLocation] = useLocation();
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
 
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(searchQuery, 300);
@@ -48,11 +51,37 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     }
   }, [open]);
 
+  // Request location on modal open
+  useEffect(() => {
+    if (open && locationPermission === 'prompt') {
+      requestLocation();
+    }
+  }, [open]);
+
+  const requestLocation = async () => {
+    try {
+      const location = await locationService.getCurrentLocation();
+      setUserLocation(location);
+      setLocationPermission('granted');
+      console.log('Location obtained:', location);
+    } catch (error) {
+      console.error('Location access denied:', error);
+      setLocationPermission('denied');
+    }
+  };
+
   // Fetch search results
   const { data: searchResults, isLoading, error } = useQuery<SearchResults>({
-    queryKey: ['/api/search/unified', { q: debouncedQuery }],
+    queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation }],
     queryFn: async () => {
-      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
+      let searchUrl = `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`;
+      
+      // Add location parameters if available
+      if (userLocation) {
+        searchUrl += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
+      }
+      
+      const response = await fetch(searchUrl);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
         throw new Error(errorData.error || 'Search failed');
@@ -155,6 +184,40 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-11"
             />
+          </div>
+          
+          {/* Location Status */}
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              {locationPermission === 'granted' && userLocation && (
+                <div className="flex items-center gap-1 text-xs text-green-600">
+                  <Navigation className="h-3 w-3" />
+                  <span>
+                    Searching near {userLocation.city || `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}`}
+                  </span>
+                </div>
+              )}
+              {locationPermission === 'denied' && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span>Location disabled</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={requestLocation}
+                    className="h-6 text-xs ml-2"
+                  >
+                    Enable Location
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            {debouncedQuery && (
+              <div className="text-xs text-muted-foreground">
+                {userLocation ? 'Searching nearby' : 'Searching everywhere'}
+              </div>
+            )}
           </div>
         </div>
 

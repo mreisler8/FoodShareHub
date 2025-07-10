@@ -105,8 +105,15 @@ router.get("/", authenticate, async (req, res) => {
         // If local results are limited, search Google Places API for restaurants
         if (formattedRestaurants.length < 5) {
           try {
-            console.log(`Searching Google Places for: "${searchTerm}"`);
-            const googleResults = await searchGooglePlaces(searchTerm);
+            // Parse location from request if provided
+            const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+            const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
+            const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
+            
+            const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
+            
+            console.log(`Searching Google Places for: "${searchTerm}"${locationData ? ` near ${lat}, ${lng}` : ''}`);
+            const googleResults = await searchGooglePlaces(searchTerm, locationData);
             console.log(`Google Places returned ${googleResults.length} results`);
             
             // Filter out Google results that already exist in the database

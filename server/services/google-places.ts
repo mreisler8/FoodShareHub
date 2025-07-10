@@ -115,7 +115,7 @@ const getCuisineType = (types?: string[]): string => {
   return 'Restaurant';
 };
 
-export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> => {
+export const searchGooglePlaces = async (query: string, location?: { lat: number; lng: number; radius?: number }): Promise<Restaurant[]> => {
   if (!GOOGLE_MAPS_API_KEY) {
     console.error('Google Maps API key is not set');
     return [];
@@ -126,14 +126,23 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
   }
 
   try {
+    const searchParams: any = {
+      query: `${query.trim()} restaurant`,
+      type: 'restaurant',
+      key: GOOGLE_MAPS_API_KEY,
+    };
+
+    // Add location bias if provided
+    if (location) {
+      searchParams.location = `${location.lat},${location.lng}`;
+      searchParams.radius = location.radius || 10000; // 10km default radius
+      console.log(`Searching near location: ${location.lat}, ${location.lng} with radius ${searchParams.radius}m`);
+    }
+
     const response = await axios.get<PlacesSearchResponse>(
       'https://maps.googleapis.com/maps/api/place/textsearch/json',
       {
-        params: {
-          query: `${query.trim()} restaurant`,
-          type: 'restaurant',
-          key: GOOGLE_MAPS_API_KEY,
-        },
+        params: searchParams,
         timeout: 5000, // 5 second timeout
       }
     );
