@@ -186,6 +186,10 @@ export const insertCircleSchema = createInsertSchema(circles).pick({
   primaryCuisine: true,
   priceRange: true,
   location: true,
+  memberCount: true,
+  featured: true,
+  trending: true,
+  inviteCode: true,
 });
 
 // CircleMember model

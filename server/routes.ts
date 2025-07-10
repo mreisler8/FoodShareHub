@@ -944,6 +944,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Restaurant detail endpoint removed - now handled by restaurant router
 
+  // Circle endpoints (inline for compatibility)
+  app.get("/api/circles", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const allCircles = await storage.getAllCircles();
+      res.json(allCircles);
+    } catch (error) {
+      console.error('Error fetching circles:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/me/circles", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const userId = req.user!.id;
+      const userCircles = await storage.getCirclesByUser(userId);
+      res.json(userCircles);
+    } catch (error) {
+      console.error('Error fetching user circles:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post("/api/circles", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const userId = req.user!.id;
+      const { name, description, primaryCuisine, priceRange, location, allowPublicJoin } = req.body;
+
+      // Create circle
+      const newCircle = await storage.createCircle({
+        name,
+        description,
+        creatorId: userId,
+        primaryCuisine: primaryCuisine || null,
+        priceRange: priceRange || null,
+        location: location || null,
+        allowPublicJoin: allowPublicJoin || false
+      });
+
+      // Add creator as owner
+      await storage.createCircleMember({
+        circleId: newCircle.id,
+        userId: userId,
+        role: 'owner',
+        joinedAt: new Date()
+      });
+
+      res.status(201).json(newCircle);
+    } catch (error) {
+      console.error('Error creating circle:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Circle-List Integration endpoints
+  app.post("/api/circles/:circleId/lists", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const circleId = parseInt(req.params.circleId);
+      const { listId, canEdit, canReshare } = req.body;
+      const userId = req.user!.id;
+
+      // Check if user is member of circle
+      const isMember = await storage.isUserMemberOfCircle(userId, circleId);
+      if (!isMember) {
+        return res.status(403).json({ error: 'Only circle members can share lists' });
+      }
+
+      // Share list with circle
+      const sharedList = await storage.shareListWithCircle(listId, circleId, userId, {
+        canEdit: canEdit || false,
+        canReshare: canReshare || false
+      });
+
+      res.status(201).json(sharedList);
+    } catch (error) {
+      console.error('Error sharing list with circle:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/circles/:circleId/lists", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const circleId = parseInt(req.params.circleId);
+      const userId = req.user!.id;
+
+      // Check if user is member of circle
+      const isMember = await storage.isUserMemberOfCircle(userId, circleId);
+      if (!isMember) {
+        return res.status(403).json({ error: 'Only circle members can view shared lists' });
+      }
+
+      // Get lists shared with circle
+      const sharedLists = await storage.getListsSharedWithCircle(circleId);
+      res.json(sharedLists);
+    } catch (error) {
+      console.error('Error fetching circle shared lists:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.delete("/api/circles/:circleId/lists/:listId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const circleId = parseInt(req.params.circleId);
+      const listId = parseInt(req.params.listId);
+      const userId = req.user!.id;
+
+      // Check if user is member of circle
+      const isMember = await storage.isUserMemberOfCircle(userId, circleId);
+      if (!isMember) {
+        return res.status(403).json({ error: 'Only circle members can unshare lists' });
+      }
+
+      // Unshare list from circle
+      await storage.unshareListFromCircle(listId, circleId);
+      res.status(200).json({ message: 'List unshared successfully' });
+    } catch (error) {
+      console.error('Error unsharing list from circle:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Mount routers
   app.use("/api/search", searchRouter);
   
@@ -956,7 +1100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.use("/api/list-item-comments", listItemCommentsRouter);
   // app.use("/api/follow", followRoutes);
   // app.use("/api/search-analytics", searchAnalyticsRouter);
-  app.use("/api/circles", circleRoutes.router);
+  // app.use("/api/circles", circleRoutes.router); // Commented out to use inline endpoints
   // app.use("/api/users", userRoutes.router);
 
   // Health check route

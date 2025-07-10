@@ -8,6 +8,86 @@ import { authenticate } from '../auth';
 
 const router = Router();
 
+// Get all circles (basic endpoint)
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const allCircles = await db.select().from(circles);
+    res.json(allCircles);
+  } catch (error) {
+    console.error('Error fetching circles:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get user's circles
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const userCircles = await db
+      .select({
+        id: circles.id,
+        name: circles.name,
+        description: circles.description,
+        primaryCuisine: circles.primaryCuisine,
+        priceRange: circles.priceRange,
+        location: circles.location,
+        memberCount: circles.memberCount,
+        featured: circles.featured,
+        trending: circles.trending,
+        role: circleMembers.role,
+        joinedAt: circleMembers.joinedAt
+      })
+      .from(circleMembers)
+      .leftJoin(circles, eq(circleMembers.circleId, circles.id))
+      .where(eq(circleMembers.userId, userId));
+    
+    res.json(userCircles);
+  } catch (error) {
+    console.error('Error fetching user circles:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create new circle
+router.post('/', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { name, description, primaryCuisine, priceRange, location, allowPublicJoin } = req.body;
+
+    // Create circle
+    const [circle] = await db
+      .insert(circles)
+      .values({
+        name,
+        description,
+        primaryCuisine: primaryCuisine || null,
+        priceRange: priceRange || null,
+        location: location || null,
+        allowPublicJoin: allowPublicJoin || false,
+        memberCount: 1,
+        featured: false,
+        trending: false,
+        inviteCode: Math.random().toString(36).substring(2, 10).toUpperCase()
+      })
+      .returning();
+
+    // Add creator as owner
+    await db
+      .insert(circleMembers)
+      .values({
+        circleId: circle.id,
+        userId: userId,
+        role: 'owner',
+        joinedAt: new Date()
+      });
+
+    res.status(201).json(circle);
+  } catch (error) {
+    console.error('Error creating circle:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Create circle invite
 export async function createCircleInvite(req: Request, res: Response) {
   try {
