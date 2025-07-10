@@ -112,6 +112,17 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 10, 2025: **Enhanced Restaurant Landing Page with Google Places & Community Insights - COMPLETE**: Successfully implemented comprehensive restaurant detail enhancement with personalized community data:
+  - **Enhanced Google Places Integration**: Fetches detailed restaurant information including ratings, review count, business hours, phone, website, and business status
+  - **Community Insights System**: Displays average ratings and reviews from users you follow, plus top dishes mentioned by your network
+  - **Dual Rating Display**: Shows both Google Places ratings and community ratings side by side for comprehensive perspective
+  - **Top Dishes Recommendations**: Highlights the most mentioned dishes from your network's posts about the restaurant
+  - **Network Reviews Section**: Shows recent reviews from people you follow with their ratings and dish recommendations
+  - **Enhanced UI Components**: Added loading states, fallback content for users with no network, and organized information in intuitive sections
+  - **Robust Error Handling**: Proper handling of Google Places API failures with graceful fallbacks to ensure consistent user experience
+  - **Persona-Focused Features**: Includes business status, dietary options, atmosphere insights, and popular times consideration
+  - **User Experience**: Clean interface with no visual artifacts when data is missing, comprehensive loading states, and personalized content
+  - **Status**: Restaurant landing page now provides rich, personalized experience combining official Google data with trusted community insights
 - July 10, 2025: **Search Navigation and Location Data Integration - COMPLETE**: Successfully implemented proper search-to-detail navigation flow with Google Places location enrichment:
   - **Restaurant Router Implementation**: Created dedicated restaurant router with proper Google Places integration for location fetching
   - **Router Mounting Fixed**: Resolved router conflicts and mounting issues to ensure restaurant endpoints use the enhanced router
