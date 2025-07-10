@@ -102,6 +102,8 @@ router.get("/", authenticate, async (req, res) => {
         
         results.push(...formattedRestaurants);
         
+        console.log(`Database returned ${formattedRestaurants.length} restaurants for query "${searchTerm}"`);
+        
         // If local results are limited, search Google Places API for restaurants
         if (formattedRestaurants.length < 5) {
           try {
@@ -112,7 +114,11 @@ router.get("/", authenticate, async (req, res) => {
             
             const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
             
+            console.log('Request query params:', req.query);
+            console.log('Parsed location values:', { lat, lng, radius });
+            console.log('Location data object:', locationData);
             console.log(`Searching Google Places for: "${searchTerm}"${locationData ? ` near ${lat}, ${lng}` : ''}`);
+            
             const googleResults = await searchGooglePlaces(searchTerm, locationData);
             console.log(`Google Places returned ${googleResults.length} results`);
             
@@ -338,6 +344,8 @@ router.get("/unified", authenticate, async (req, res) => {
       )
       .limit(10);
     
+    console.log(`Unified search: Database returned ${restaurantResults.length} restaurants for query "${searchTerm}"`);
+    
     let formattedRestaurants = restaurantResults.map(r => ({
       id: r.id.toString(),
       name: r.name,
@@ -351,6 +359,51 @@ router.get("/unified", authenticate, async (req, res) => {
       source: 'database' as const,
       type: 'restaurant' as const
     }));
+    
+    // If local results are limited, search Google Places API for restaurants
+    if (formattedRestaurants.length < 5) {
+      try {
+        // Parse location from request if provided
+        const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+        const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
+        const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
+        
+        const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
+        
+        console.log('Unified search: Request query params:', req.query);
+        console.log('Unified search: Parsed location values:', { lat, lng, radius });
+        console.log('Unified search: Location data object:', locationData);
+        console.log(`Unified search: Searching Google Places for: "${searchTerm}"${locationData ? ` near ${lat}, ${lng}` : ''}`);
+        
+        const googleResults = await searchGooglePlaces(searchTerm, locationData);
+        console.log(`Unified search: Google Places returned ${googleResults.length} results`);
+        
+        // Filter out Google results that already exist in the database
+        const filteredGoogleResults = googleResults.filter(
+          (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)
+        );
+        
+        // Transform Google results to match our format
+        const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
+          id: `google_${r.googlePlaceId}`,
+          name: r.name,
+          thumbnailUrl: r.imageUrl,
+          avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
+          location: r.location,
+          category: r.category,
+          priceRange: r.priceRange,
+          cuisine: r.cuisine,
+          address: r.address,
+          source: 'google' as const,
+          type: 'restaurant' as const,
+          googlePlaceId: r.googlePlaceId
+        }));
+        
+        formattedRestaurants = [...formattedRestaurants, ...formattedGoogleResults];
+      } catch (googleError) {
+        console.error("Unified search: Google Places search error:", googleError);
+      }
+    }
     
     // Add Google Places results if needed
     if (formattedRestaurants.length < 5) {

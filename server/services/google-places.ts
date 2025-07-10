@@ -126,26 +126,53 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
   }
 
   try {
-    const searchParams: any = {
-      query: `${query.trim()} restaurant`,
-      type: 'restaurant',
-      key: GOOGLE_MAPS_API_KEY,
-    };
-
-    // Add location bias if provided
+    let response: any;
+    
     if (location) {
-      searchParams.location = `${location.lat},${location.lng}`;
-      searchParams.radius = location.radius || 10000; // 10km default radius
-      console.log(`Searching near location: ${location.lat}, ${location.lng} with radius ${searchParams.radius}m`);
-    }
+      // Use Nearby Search API for location-based searches
+      console.log(`Using Nearby Search API for location: ${location.lat}, ${location.lng} with radius ${location.radius || 10000}m`);
+      
+      const nearbyParams = {
+        location: `${location.lat},${location.lng}`,
+        radius: location.radius || 10000, // 10km default radius
+        type: 'restaurant',
+        keyword: query.trim(),
+        key: GOOGLE_MAPS_API_KEY,
+      };
 
-    const response = await axios.get<PlacesSearchResponse>(
-      'https://maps.googleapis.com/maps/api/place/textsearch/json',
-      {
-        params: searchParams,
-        timeout: 5000, // 5 second timeout
+      console.log('Nearby Search API request params:', nearbyParams);
+
+      response = await axios.get<PlacesSearchResponse>(
+        'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
+        {
+          params: nearbyParams,
+          timeout: 5000, // 5 second timeout
+        }
+      );
+      
+      console.log('Nearby Search API response status:', response.data.status);
+      console.log('Nearby Search API response result count:', response.data.results?.length || 0);
+      if (response.data.status !== 'OK') {
+        console.log('Nearby Search API error:', response.data.error_message);
       }
-    );
+    } else {
+      // Use Text Search API for general searches
+      console.log(`Using Text Search API for query: ${query}`);
+      
+      const textParams = {
+        query: `${query.trim()} restaurant`,
+        type: 'restaurant',
+        key: GOOGLE_MAPS_API_KEY,
+      };
+
+      response = await axios.get<PlacesSearchResponse>(
+        'https://maps.googleapis.com/maps/api/place/textsearch/json',
+        {
+          params: textParams,
+          timeout: 5000, // 5 second timeout
+        }
+      );
+    }
 
     if (response.data.status !== 'OK') {
       console.error('Google Places API error:', response.data.status, response.data.error_message);

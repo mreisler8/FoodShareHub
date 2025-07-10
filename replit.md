@@ -112,6 +112,16 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 10, 2025: **Location-Based Search Implementation - COMPLETE**: Successfully implemented comprehensive location services for Google-quality search functionality:
+  - **Location Service**: Created comprehensive location service with browser geolocation API, reverse geocoding, and 5-minute location caching
+  - **Nearby Search API Integration**: Implemented Google Places Nearby Search API for location-based restaurant discovery within specified radius
+  - **Dual Search Strategy**: Text Search API for general searches, Nearby Search API for location-based searches with proper parameter handling
+  - **Search Modal Enhancement**: Added location status indicators, permission handling, and visual feedback for location-enabled searches
+  - **Unified Search Endpoint**: Fixed routing issues and added location-based search to `/api/search/unified` endpoint
+  - **Toronto Results Verified**: Successfully tested with "Badiali in Toronto" returning correct "181 Dovercourt Rd, Toronto" location
+  - **Error Handling**: Comprehensive error handling for location permission denied, API failures, and graceful fallbacks
+  - **Performance**: Location caching reduces API calls, 10km default search radius, and optimized query parameters
+  - **Status**: Location-based search fully operational with proper Toronto/location-specific results replacing generic worldwide results
 - July 10, 2025: **Enhanced Restaurant Landing Page with Google Places & Community Insights - COMPLETE**: Successfully implemented comprehensive restaurant detail enhancement with personalized community data:
   - **Enhanced Google Places Integration**: Fetches detailed restaurant information including ratings, review count, business hours, phone, website, and business status
   - **Community Insights System**: Displays average ratings and reviews from users you follow, plus top dishes mentioned by your network
