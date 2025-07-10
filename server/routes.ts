@@ -433,6 +433,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mount the search router
+  app.use('/api/search', searchRouter);
+
   // Restaurant search is now handled by dedicated search router at /api/search
 
   // Post routes

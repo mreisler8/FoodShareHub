@@ -48,7 +48,14 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   // Fetch search results
   const { data: results, isLoading, error } = useQuery<SearchResults>({
-    queryKey: ['/api/search/unified', debouncedQuery],
+    queryKey: ['/api/search/unified', { q: debouncedQuery }],
+    queryFn: async () => {
+      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+      return response.json();
+    },
     enabled: open && debouncedQuery.length >= 2,
     staleTime: 30000,
   });

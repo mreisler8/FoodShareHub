@@ -199,7 +199,15 @@ router.get("/", authenticate, async (req, res) => {
 // Unified search endpoint (alias for backward compatibility)
 router.get("/unified", authenticate, async (req, res) => {
   req.query.type = "all";
-  return router.handle(req, res);
+  // Redirect to the main search endpoint
+  const searchQuery = req.query.q;
+  if (!searchQuery) {
+    return res.status(400).json({ 
+      error: "Search query is required",
+      code: "MISSING_QUERY"
+    });
+  }
+  return res.redirect(`/api/search?q=${encodeURIComponent(searchQuery as string)}&type=all`);
 });
 
 // Get trending content for search modal
