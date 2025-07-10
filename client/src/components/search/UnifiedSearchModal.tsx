@@ -5,16 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed } from 'lucide-react';
+import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import './UnifiedSearchModal.css';
 
 interface SearchResult {
   id: string;
   name: string;
-  subtitle: string;
+  subtitle?: string;
   type: 'restaurant' | 'list' | 'post' | 'user';
   avatar?: string;
   location?: string;
+  thumbnailUrl?: string;
+  avgRating?: number;
 }
 
 interface SearchResults {
@@ -31,23 +34,9 @@ interface UnifiedSearchModalProps {
 
 export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState<SearchResults>({
-    restaurants: [],
-    lists: [],
-    posts: [],
-    users: []
-  });
-  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('restaurants');
   const [recentSearches] = useState(['Pizza', 'Sushi', 'Best coffee', 'Date night', 'Brunch spots']);
-  const [trending] = useState([
-    { name: 'Veselka', type: 'Ukrainian', location: 'East Village' },
-    { name: 'Best Pizza Places', type: 'list', creator: 'Alex Chen' },
-    { name: 'Hidden Gems Toronto', type: 'list', creator: 'Sarah Kim' },
-    { name: 'Late Night Eats', type: 'list', creator: 'Mike Rodriguez' },
-    { name: 'Ramen Adventures', type: 'list', creator: 'Jenny Liu' }
-  ]);
-
+  
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -57,28 +46,19 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     }
   }, [open]);
 
-  useEffect(() => {
-    if (debouncedQuery.length >= 2) {
-      performSearch(debouncedQuery);
-    } else {
-      setResults({ restaurants: [], lists: [], posts: [], users: [] });
-    }
-  }, [debouncedQuery]);
+  // Fetch search results
+  const { data: results, isLoading, error } = useQuery<SearchResults>({
+    queryKey: ['/api/search/unified', debouncedQuery],
+    enabled: open && debouncedQuery.length >= 2,
+    staleTime: 30000,
+  });
 
-  const performSearch = async (query: string) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(query)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setResults(data);
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Fetch trending content when no search query
+  const { data: trending } = useQuery({
+    queryKey: ['/api/search/trending'],
+    enabled: open && !debouncedQuery,
+    staleTime: 300000, // 5 minutes
+  });
 
   const handleResultClick = (result: SearchResult) => {
     // Navigate based on result type
@@ -123,129 +103,176 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     }
   };
 
-  const hasResults = Object.values(results).some(arr => arr.length > 0);
+  const hasResults = results && Object.values(results).some(arr => arr.length > 0);
+  const totalResults = results ? Object.values(results).reduce((acc, arr) => acc + arr.length, 0) : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="unified-search-modal max-w-2xl">
-        <div className="search-header">
-          <div className="search-input-container">
-            <Search className="search-icon" size={20} />
+      <DialogContent className="max-w-2xl max-h-[80vh] p-0">
+        {/* Search Header */}
+        <div className="p-6 pb-4 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
             <Input
               ref={inputRef}
               type="text"
               placeholder="Search restaurants, lists, posts, people…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
+              className="pl-10 h-11"
             />
           </div>
         </div>
 
-        {!searchQuery && (
-          <div className="search-suggestions">
-            <div className="suggestion-section">
-              <div className="suggestion-header">
-                <Clock className="h-4 w-4" />
-                <span>Recent Searches</span>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {!searchQuery && (
+            <div className="p-6 space-y-6">
+              {/* Recent Searches */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Recent Searches</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((term, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRecentSearchClick(term)}
+                      className="h-8 text-xs"
+                    >
+                      {term}
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <div className="suggestion-list">
-                {recentSearches.map((term, index) => (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    className="suggestion-item"
-                    onClick={() => handleRecentSearchClick(term)}
-                  >
-                    {term}
-                  </Button>
-                ))}
-              </div>
-            </div>
 
-            <div className="suggestion-section">
-              <div className="suggestion-header">
-                <TrendingUp className="h-4 w-4" />
-                <span>Trending</span>
-              </div>
-              <div className="trending-list">
-                {trending.map((item, index) => (
-                  <div key={index} className="trending-item">
-                    <div className="trending-content">
-                      <span className="trending-name">{item.name}</span>
-                      <span className="trending-subtitle">
-                        {item.type === 'list' ? `by ${item.creator}` : item.type}
-                      </span>
-                    </div>
+              {/* Trending */}
+              {trending?.trending && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Trending</span>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-2">
+                    {trending.trending.slice(0, 5).map((item: any, index: number) => (
+                      <div key={index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer">
+                        {getResultIcon(item.type)}
+                        <div className="flex-1">
+                          <span className="text-sm font-medium">{item.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {item.type === 'list' ? `${item.viewCount || 0} views` : item.location}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {searchQuery && (
-          <div className="search-results">
-            {isLoading ? (
-              <div className="loading-state">
-                <div className="loading-spinner" />
-                <span>Searching...</span>
-              </div>
-            ) : hasResults ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="search-tabs">
-                <TabsList className="tabs-list">
-                  <TabsTrigger value="restaurants" className="tab-trigger">
-                    {getTabIcon('restaurants')}
-                    Restaurants ({results.restaurants.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="lists" className="tab-trigger">
-                    {getTabIcon('lists')}
-                    Lists ({results.lists.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="posts" className="tab-trigger">
-                    {getTabIcon('posts')}
-                    Posts ({results.posts.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="users" className="tab-trigger">
-                    {getTabIcon('users')}
-                    People ({results.users.length})
-                  </TabsTrigger>
-                </TabsList>
+          {searchQuery && (
+            <div className="h-full">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-muted-foreground">Searching...</span>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center h-32">
+                  <span className="text-sm text-red-500">Search failed. Please try again.</span>
+                </div>
+              ) : hasResults ? (
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+                  <div className="px-6 pt-4 pb-2 border-b">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="restaurants" className="text-xs">
+                        {getTabIcon('restaurants')}
+                        <span className="ml-1">Restaurants ({results?.restaurants?.length || 0})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="lists" className="text-xs">
+                        {getTabIcon('lists')}
+                        <span className="ml-1">Lists ({results?.lists?.length || 0})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="posts" className="text-xs">
+                        {getTabIcon('posts')}
+                        <span className="ml-1">Posts ({results?.posts?.length || 0})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="users" className="text-xs">
+                        {getTabIcon('users')}
+                        <span className="ml-1">People ({results?.users?.length || 0})</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
 
-                {Object.entries(results).map(([type, items]) => (
-                  <TabsContent key={type} value={type} className="tab-content">
-                    <div className="results-list">
-                      {items.map((result) => (
-                        <Button
-                          key={result.id}
-                          variant="ghost"
-                          className="result-item"
-                          onClick={() => handleResultClick(result)}
-                        >
-                          <div className="result-icon">
-                            {getResultIcon(result.type)}
-                          </div>
-                          <div className="result-content">
-                            <span className="result-name">{result.name}</span>
-                            <span className="result-subtitle">{result.subtitle}</span>
-                          </div>
-                        </Button>
-                      ))}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            ) : (
-              <div className="no-results">
-                <Search className="h-8 w-8 text-muted-foreground" />
-                <span>No results found for "{searchQuery}"</span>
-                <p className="text-sm text-muted-foreground">
-                  Try searching for restaurants, lists, posts, or people
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+                  <div className="overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
+                    {Object.entries(results || {}).map(([type, items]) => (
+                      <TabsContent key={type} value={type} className="m-0 p-6">
+                        <div className="space-y-2">
+                          {items.map((result: SearchResult) => (
+                            <Button
+                              key={result.id}
+                              variant="ghost"
+                              className="w-full h-auto p-3 justify-start"
+                              onClick={() => handleResultClick(result)}
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                <div className="flex-shrink-0">
+                                  {result.thumbnailUrl ? (
+                                    <img 
+                                      src={result.thumbnailUrl} 
+                                      alt={result.name}
+                                      className="w-10 h-10 object-cover rounded"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                                      {getResultIcon(result.type)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 text-left">
+                                  <div className="font-medium text-sm">{result.name}</div>
+                                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                    {result.location && (
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        {result.location}
+                                      </span>
+                                    )}
+                                    {result.avgRating && (
+                                      <span className="flex items-center gap-1">
+                                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                        {result.avgRating.toFixed(1)}
+                                      </span>
+                                    )}
+                                    {result.subtitle && !result.location && !result.avgRating && (
+                                      <span>{result.subtitle}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </Button>
+                          ))}
+                        </div>
+                      </TabsContent>
+                    ))}
+                  </div>
+                </Tabs>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-40 text-center px-6">
+                  <Search className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-sm font-medium">No results found</span>
+                  <span className="text-xs text-muted-foreground">No results for "{searchQuery}"</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

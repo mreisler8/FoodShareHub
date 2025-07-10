@@ -1,13 +1,27 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Restaurant } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, PlusCircle, MapPin, Store, Phone, Clock } from "lucide-react";
+import { Search, PlusCircle, MapPin, Store, Phone, Star } from "lucide-react";
 import { debounce } from "@/lib/utils";
+
+interface RestaurantSearchResult {
+  id: string;
+  name: string;
+  thumbnailUrl: string | null;
+  avgRating: number;
+  location?: string;
+  category?: string;
+  priceRange?: string;
+  cuisine?: string;
+  address?: string;
+  source: 'database' | 'google';
+}
 
 interface RestaurantSearchProps {
   onSelectRestaurant: (restaurant: Restaurant) => void;
@@ -25,6 +39,7 @@ export function RestaurantSearch({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   
   // Set up debounced search
   useEffect(() => {
@@ -36,15 +51,53 @@ export function RestaurantSearch({
     return () => handler.cancel();
   }, [searchQuery]);
   
-  // Fetch restaurant search results
-  const { data: restaurants, isLoading } = useQuery<Restaurant[]>({
-    queryKey: [`/api/restaurants${debouncedQuery ? `?query=${debouncedQuery}` : ""}`],
-    enabled: isOpen && debouncedQuery.length > 2,
+  // Focus input when modal opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+  
+  // Fetch restaurant search results with consistent API
+  const { data: restaurants, isLoading, error } = useQuery<RestaurantSearchResult[]>({
+    queryKey: [`/api/search?type=restaurants&q=${debouncedQuery}`],
+    enabled: isOpen && debouncedQuery.length >= 2,
+    staleTime: 30000, // Cache for 30 seconds
   });
   
   // Handle restaurant selection
-  const handleSelectRestaurant = (restaurant: Restaurant) => {
-    onSelectRestaurant(restaurant);
+  const handleSelectRestaurant = (restaurant: RestaurantSearchResult) => {
+    // Convert search result to Restaurant format
+    const restaurantData: Restaurant = {
+      id: parseInt(restaurant.id),
+      name: restaurant.name,
+      location: restaurant.location || '',
+      category: restaurant.category || 'Restaurant',
+      priceRange: restaurant.priceRange || '$',
+      imageUrl: restaurant.thumbnailUrl || null,
+      cuisine: restaurant.cuisine || null,
+      address: restaurant.address || null,
+      // Add other required fields with defaults
+      openTableId: null,
+      resyId: null,
+      googlePlaceId: null,
+      neighborhood: null,
+      city: null,
+      state: null,
+      country: 'US',
+      postalCode: null,
+      latitude: null,
+      longitude: null,
+      phone: null,
+      website: null,
+      hours: null,
+      description: null,
+      verified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    onSelectRestaurant(restaurantData);
     setIsOpen(false);
     setSearchQuery("");
   };
@@ -63,14 +116,14 @@ export function RestaurantSearch({
       <Button 
         variant="outline" 
         onClick={() => setIsOpen(true)}
-        className="w-full justify-start text-left font-normal"
+        className="w-full justify-start text-left font-normal h-10 px-3"
       >
-        <Search className="mr-2 h-4 w-4" />
-        {placeholder}
+        <Search className="h-4 w-4 mr-2 text-muted-foreground" />
+        <span className="text-muted-foreground">{placeholder}</span>
       </Button>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Find a Restaurant</DialogTitle>
             <DialogDescription>
@@ -78,43 +131,60 @@ export function RestaurantSearch({
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 my-4">
+          <div className="space-y-4">
+            {/* Improved search input with proper spacing */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-neutral-500" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
               <Input
+                ref={inputRef}
                 type="text"
                 placeholder="Search by name, location, or cuisine..."
-                className="pl-11"
+                className="pl-10 h-11"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
               />
             </div>
             
-            <div className="overflow-y-auto max-h-[300px]">
+            {/* Results container with fixed height and scroll */}
+            <div className="min-h-[300px] max-h-[400px] overflow-y-auto">
+              {/* Error state */}
+              {error && (
+                <div className="text-center py-8">
+                  <p className="text-red-500">Search failed. Please try again.</p>
+                </div>
+              )}
+              
               {/* Loading state */}
               {isLoading && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <Card key={i} className="border p-2">
-                      <CardContent className="p-2">
-                        <div className="flex flex-col space-y-2">
+                    <Card key={i} className="p-4">
+                      <div className="flex items-center space-x-4">
+                        <Skeleton className="h-12 w-12 rounded" />
+                        <div className="flex-1 space-y-2">
                           <Skeleton className="h-4 w-3/4" />
                           <Skeleton className="h-3 w-1/2" />
                         </div>
-                      </CardContent>
+                        <Skeleton className="h-8 w-16" />
+                      </div>
                     </Card>
                   ))}
                 </div>
               )}
               
               {/* No results state */}
-              {!isLoading && debouncedQuery.length > 2 && (!restaurants || restaurants.length === 0) && (
-                <div className="text-center py-4 space-y-4">
-                  <p className="text-neutral-500">No restaurants found matching "{debouncedQuery}"</p>
+              {!isLoading && !error && debouncedQuery.length >= 2 && (!restaurants || restaurants.length === 0) && (
+                <div className="text-center py-12 space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                    <Search className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-medium">No restaurants found</p>
+                    <p className="text-muted-foreground">No restaurants match "{debouncedQuery}"</p>
+                  </div>
                   {onCreateNewRestaurant && (
-                    <Button onClick={handleCreateNew} className="mt-2">
-                      <PlusCircle className="mr-2 h-4 w-4" />
+                    <Button onClick={handleCreateNew} className="mt-4">
+                      <PlusCircle className="h-4 w-4 mr-2" />
                       Add New Restaurant
                     </Button>
                   )}
@@ -122,83 +192,102 @@ export function RestaurantSearch({
               )}
               
               {/* Start typing prompt */}
-              {!isLoading && debouncedQuery.length < 3 && (
-                <div className="text-center py-4">
-                  <p className="text-neutral-500">
-                    Type at least 3 characters to start searching...
+              {!isLoading && !error && debouncedQuery.length < 2 && (
+                <div className="text-center py-12">
+                  <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                    <Search className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">
+                    Type at least 2 characters to start searching...
                   </p>
                 </div>
               )}
               
               {/* Results */}
-              {!isLoading && restaurants && restaurants.length > 0 && (
+              {!isLoading && !error && restaurants && restaurants.length > 0 && (
                 <div className="space-y-2">
                   {restaurants.map((restaurant) => (
                     <Card 
                       key={restaurant.id} 
-                      className="border p-3 cursor-pointer hover:bg-neutral-50 transition-colors"
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
                       onClick={() => handleSelectRestaurant(restaurant)}
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{restaurant.name}</h3>
-                          <div className="flex items-center text-sm text-neutral-500 mt-1">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            <span>{restaurant.location}</span>
-                          </div>
-                          <div className="flex gap-x-3 mt-2 text-xs text-neutral-600">
-                            <span className="flex items-center">
-                              <Store className="h-3 w-3 mr-1" />
-                              {restaurant.category}
-                            </span>
-                            <span>{restaurant.priceRange}</span>
-                            {restaurant.phone && (
-                              <span className="flex items-center">
-                                <Phone className="h-3 w-3 mr-1" />
-                                {restaurant.phone}
-                              </span>
-                            )}
-                          </div>
-                          {restaurant.openTableId && (
-                            <div className="mt-1 text-xs text-primary">
-                              Available on OpenTable
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {/* Restaurant image or placeholder */}
+                            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                              {restaurant.thumbnailUrl ? (
+                                <img 
+                                  src={restaurant.thumbnailUrl} 
+                                  alt={restaurant.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Store className="h-5 w-5 text-muted-foreground" />
+                              )}
                             </div>
-                          )}
+                            
+                            {/* Restaurant details */}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm truncate">{restaurant.name}</h3>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                {restaurant.location && (
+                                  <span className="flex items-center">
+                                    <MapPin className="h-3 w-3 mr-1" />
+                                    {restaurant.location}
+                                  </span>
+                                )}
+                                {restaurant.category && (
+                                  <span>{restaurant.category}</span>
+                                )}
+                                {restaurant.priceRange && (
+                                  <span>{restaurant.priceRange}</span>
+                                )}
+                              </div>
+                              {restaurant.avgRating && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {restaurant.avgRating.toFixed(1)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Select button */}
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectRestaurant(restaurant);
+                            }}
+                          >
+                            {buttonLabel}
+                          </Button>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="mt-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectRestaurant(restaurant);
-                          }}
-                        >
-                          {buttonLabel}
-                        </Button>
-                      </div>
+                      </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
             </div>
-          </div>
-          
-          <DialogFooter className="flex justify-between items-center">
-            <div className="text-xs text-neutral-500">
-              {!onCreateNewRestaurant ? (
-                <span>All restaurants are verified for consistency.</span>
-              ) : (
-                <span>Please search thoroughly before adding a new restaurant.</span>
-              )}
-            </div>
+            
+            {/* Footer actions */}
             {onCreateNewRestaurant && restaurants && restaurants.length > 0 && (
-              <Button variant="outline" onClick={handleCreateNew}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add New Restaurant
-              </Button>
+              <div className="flex justify-between items-center pt-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Can't find what you're looking for?
+                </p>
+                <Button variant="outline" onClick={handleCreateNew}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add New Restaurant
+                </Button>
+              </div>
             )}
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>
