@@ -7,26 +7,40 @@ import { restaurantLists, restaurantListItems, restaurants, circleMembers } from
 
 const router = Router();
 
-// Enhanced validation schemas with better error messages
+// Enhanced validation schemas with better error messages and security
 const createListSchema = z.object({
   name: z.string()
     .min(1, 'List name is required')
     .max(100, 'List name must be less than 100 characters')
-    .trim(), // Remove extra whitespace
+    .trim()
+    .refine(name => !/[<>\"'&]/g.test(name), {
+      message: 'List name contains invalid characters'
+    }), // Basic XSS protection
   description: z.string()
     .max(500, 'Description must be less than 500 characters')
     .nullable()
-    .optional(),
+    .optional()
+    .transform(val => val ? val.trim() : val), // Clean whitespace
   circleId: z.number()
+    .int('Circle ID must be an integer')
     .positive('Circle ID must be a positive number')
+    .max(2147483647, 'Circle ID too large') // Prevent integer overflow
     .nullable()
     .optional(),
-  visibility: z.enum(['public', 'circle'])
+  visibility: z.enum(['public', 'circle', 'private'])
     .default('public'),
   isPublic: z.boolean().optional(),
-  tags: z.array(z.string().max(50, 'Tag must be less than 50 characters'))
+  tags: z.array(
+    z.string()
+      .max(50, 'Tag must be less than 50 characters')
+      .trim()
+      .refine(tag => !/[<>\"'&]/g.test(tag), {
+        message: 'Tag contains invalid characters'
+      })
+  )
     .max(10, 'Maximum 10 tags allowed')
-    .optional(),
+    .optional()
+    .default([]),
   shareWithCircle: z.boolean().optional(),
   makePublic: z.boolean().optional(),
 });
@@ -82,62 +96,57 @@ router.get('/', authenticate, async (req, res) => {
       // This gets all lists the user can access in one optimized query
 
       try {
-        // Get user's own lists
-        const ownLists = await db
-          .select()
-          .from(restaurantLists)
-          .where(eq(restaurantLists.createdById, userId));
+        // Single optimized query to get all accessible lists using UNION
+        // This is much more efficient than multiple separate queries
+        const accessibleLists = await db.execute(sql`
+          -- User's own lists
+          SELECT DISTINCT 
+            rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
+            rl.circle_id as "circleId", rl.is_public as "isPublic",
+            rl.visibility, rl.share_with_circle as "shareWithCircle",
+            rl.make_public as "makePublic", rl.created_at as "createdAt",
+            rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
+          FROM restaurant_lists rl
+          WHERE rl.created_by_id = ${userId}
+          
+          UNION
+          
+          -- Public lists (not owned by user)
+          SELECT DISTINCT 
+            rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
+            rl.circle_id as "circleId", rl.is_public as "isPublic",
+            rl.visibility, rl.share_with_circle as "shareWithCircle",
+            rl.make_public as "makePublic", rl.created_at as "createdAt",
+            rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
+          FROM restaurant_lists rl
+          WHERE rl.make_public = true 
+          AND rl.created_by_id != ${userId}
+          
+          UNION
+          
+          -- Circle-shared lists (user is member, not owner, not public)
+          SELECT DISTINCT 
+            rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
+            rl.circle_id as "circleId", rl.is_public as "isPublic",
+            rl.visibility, rl.share_with_circle as "shareWithCircle",
+            rl.make_public as "makePublic", rl.created_at as "createdAt",
+            rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
+          FROM restaurant_lists rl
+          INNER JOIN circle_members cm ON rl.circle_id = cm.circle_id
+          WHERE rl.share_with_circle = true
+          AND cm.user_id = ${userId}
+          AND rl.created_by_id != ${userId}
+          AND rl.make_public = false
+          
+          ORDER BY "createdAt" DESC
+        `);
 
-        // Get public lists (but not user's own lists to avoid duplicates)
-        const publicLists = await db
-          .select()
-          .from(restaurantLists)
-          .where(and(
-            eq(restaurantLists.makePublic, true),
-            // Don't include user's own lists (already got them above)
-            // Note: using not equal to avoid duplicates
-            sql`${restaurantLists.createdById} != ${userId}`
-          ));
-
-        // Get lists shared with circles user belongs to
-        const circleSharedLists = await db
-          .select({
-            // Select all restaurant list fields
-            id: restaurantLists.id,
-            name: restaurantLists.name,
-            description: restaurantLists.description,
-            createdById: restaurantLists.createdById,
-            circleId: restaurantLists.circleId,
-            isPublic: restaurantLists.isPublic,
-            visibility: restaurantLists.visibility,
-            shareWithCircle: restaurantLists.shareWithCircle,
-            makePublic: restaurantLists.makePublic,
-            createdAt: restaurantLists.createdAt,
-            updatedAt: restaurantLists.updatedAt
-          })
-          .from(restaurantLists)
-          .innerJoin(circleMembers, eq(restaurantLists.circleId, circleMembers.circleId))
-          .where(and(
-            eq(restaurantLists.shareWithCircle, true),
-            eq(circleMembers.userId, userId),
-            // Don't include user's own lists or public lists (already got them)
-            sql`${restaurantLists.createdById} != ${userId}`,
-            sql`${restaurantLists.makePublic} != true`
-          ));
-
-        // Combine all accessible lists and remove any duplicates
-        const allAccessibleLists = [...ownLists, ...publicLists, ...circleSharedLists];
-
-        // Remove duplicates based on list ID (just in case)
-        const uniqueLists = allAccessibleLists.filter((list, index, array) => 
-          array.findIndex(l => l.id === list.id) === index
-        );
-
-        res.json(uniqueLists);
+        res.json(accessibleLists.rows || []);
       } catch (dbError) {
         console.error('Database error fetching accessible lists:', dbError);
         res.status(500).json({ 
-          error: 'Failed to fetch your lists. Please try again.' 
+          error: 'Failed to fetch your lists. Please try again.',
+          code: 'DATABASE_ERROR'
         });
       }
     } else {

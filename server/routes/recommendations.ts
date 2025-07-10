@@ -1,9 +1,9 @@
 
 import { Router } from 'express';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from '../db.js';
 import { authenticate } from '../auth.js';
-import { recommendations, circleMembers } from '../../shared/schema';
+import { recommendations, circleMembers, restaurants, users } from '../../shared/schema';
 import { z } from 'zod';
 
 const router = Router();
@@ -28,63 +28,74 @@ router.get('/:circleId', authenticate, async (req, res) => {
       });
     }
 
-    // Single optimized query to check membership and get recommendations
-    const result = await db.execute(sql`
-      WITH membership_check AS (
-        SELECT 1 as is_member
-        FROM circle_members cm
-        WHERE cm.circle_id = ${circleId} AND cm.user_id = ${userId}
-        LIMIT 1
-      ),
-      enriched_recommendations AS (
-        SELECT 
-          r.id, r.circle_id as "circleId", r.restaurant_id as "restaurantId",
-          r.user_id as "userId", r.created_at as "createdAt",
-          res.name as "restaurantName", res.cuisine, res.price_range as "priceRange",
-          res.location, res.image_url as "imageUrl", res.address,
-          u.name as "userName", u.username, u.profile_picture as "profilePicture"
-        FROM recommendations r
-        INNER JOIN restaurants res ON r.restaurant_id = res.id
-        INNER JOIN users u ON r.user_id = u.id
-        WHERE r.circle_id = ${circleId}
-        ORDER BY r.created_at DESC
-      )
-      SELECT 
-        (SELECT is_member FROM membership_check) as "hasMembership",
-        json_agg(
-          json_build_object(
-            'id', er.id,
-            'circleId', er."circleId",
-            'restaurantId', er."restaurantId", 
-            'userId', er."userId",
-            'createdAt', er."createdAt",
-            'restaurant', json_build_object(
-              'name', er."restaurantName",
-              'cuisine', er.cuisine,
-              'priceRange', er."priceRange",
-              'location', er.location,
-              'imageUrl', er."imageUrl",
-              'address', er.address
-            ),
-            'user', json_build_object(
-              'name', er."userName",
-              'username', er.username,
-              'profilePicture', er."profilePicture"
-            )
-          )
-        ) as recommendations
-      FROM enriched_recommendations er
-    `);
+    // First, check if user is a member of the circle (more efficient single query)
+    const membershipCheck = await db
+      .select({ isMember: sql<boolean>`true` })
+      .from(circleMembers)
+      .where(and(
+        eq(circleMembers.circleId, circleId),
+        eq(circleMembers.userId, userId)
+      ))
+      .limit(1);
 
-    const data = result.rows?.[0];
-    if (!data?.hasMembership) {
+    // If user is not a member, deny access immediately
+    if (membershipCheck.length === 0) {
       return res.status(403).json({ 
         error: 'You must be a member of this circle to view recommendations',
         code: 'ACCESS_DENIED'
       });
     }
 
-    res.json(data.recommendations || []);
+    // Get recommendations with restaurant and user data in one optimized query
+    const recommendationsWithDetails = await db
+      .select({
+        // Recommendation fields
+        id: recommendations.id,
+        circleId: recommendations.circleId,
+        restaurantId: recommendations.restaurantId,
+        userId: recommendations.userId,
+        createdAt: recommendations.createdAt,
+        // Restaurant details
+        restaurantName: restaurants.name,
+        cuisine: restaurants.cuisine,
+        priceRange: restaurants.priceRange,
+        location: restaurants.location,
+        imageUrl: restaurants.imageUrl,
+        address: restaurants.address,
+        // User details
+        userName: users.name,
+        username: users.username,
+        profilePicture: users.profilePicture,
+      })
+      .from(recommendations)
+      .innerJoin(restaurants, eq(recommendations.restaurantId, restaurants.id))
+      .innerJoin(users, eq(recommendations.userId, users.id))
+      .where(eq(recommendations.circleId, circleId))
+      .orderBy(sql`${recommendations.createdAt} DESC`);
+
+    // Transform the flat results into the expected nested structure
+    const formattedRecommendations = recommendationsWithDetails.map(rec => ({
+      id: rec.id,
+      circleId: rec.circleId,
+      restaurantId: rec.restaurantId,
+      userId: rec.userId,
+      createdAt: rec.createdAt,
+      restaurant: {
+        name: rec.restaurantName,
+        cuisine: rec.cuisine,
+        priceRange: rec.priceRange,
+        location: rec.location,
+        imageUrl: rec.imageUrl,
+        address: rec.address,
+      },
+      user: {
+        name: rec.userName,
+        username: rec.username,
+        profilePicture: rec.profilePicture,
+      },
+    }));
+
+    res.json(formattedRecommendations);
   } catch (error) {
     console.error('Error fetching recommendations:', error);
     res.status(500).json({ 
@@ -102,36 +113,47 @@ router.post('/', authenticate, async (req, res) => {
     const { circleId, restaurantId } = validatedData;
     const userId = req.user!.id;
 
-    // Check if user is member of this circle
-    const [membership] = await db
-      .select()
-      .from(circleMembers)
-      .where(and(
-        eq(circleMembers.circleId, circleId),
-        eq(circleMembers.userId, userId)
-      ))
-      .limit(1);
+    // Single query to check membership and existing recommendation
+    const [membershipAndExisting] = await db
+      .select({
+        isMember: sql<boolean>`EXISTS(
+          SELECT 1 FROM ${circleMembers} cm 
+          WHERE cm.circle_id = ${circleId} AND cm.user_id = ${userId}
+        )`,
+        hasExistingRec: sql<boolean>`EXISTS(
+          SELECT 1 FROM ${recommendations} r 
+          WHERE r.circle_id = ${circleId} 
+          AND r.restaurant_id = ${restaurantId} 
+          AND r.user_id = ${userId}
+        )`,
+        restaurantExists: sql<boolean>`EXISTS(
+          SELECT 1 FROM ${restaurants} res 
+          WHERE res.id = ${restaurantId}
+        )`
+      })
+      .from(sql`(SELECT 1) as dummy`);
 
-    if (!membership) {
+    // Check if user is member of this circle
+    if (!membershipAndExisting.isMember) {
       return res.status(403).json({ 
-        error: 'You must be a member of this circle to add recommendations' 
+        error: 'You must be a member of this circle to add recommendations',
+        code: 'ACCESS_DENIED'
+      });
+    }
+
+    // Check if restaurant exists
+    if (!membershipAndExisting.restaurantExists) {
+      return res.status(404).json({ 
+        error: 'Restaurant not found',
+        code: 'RESTAURANT_NOT_FOUND'
       });
     }
 
     // Check if recommendation already exists (prevent duplicates)
-    const [existingRec] = await db
-      .select()
-      .from(recommendations)
-      .where(and(
-        eq(recommendations.circleId, circleId),
-        eq(recommendations.restaurantId, restaurantId),
-        eq(recommendations.userId, userId)
-      ))
-      .limit(1);
-
-    if (existingRec) {
+    if (membershipAndExisting.hasExistingRec) {
       return res.status(409).json({ 
-        error: 'You have already recommended this restaurant to this circle' 
+        error: 'You have already recommended this restaurant to this circle',
+        code: 'DUPLICATE_RECOMMENDATION'
       });
     }
 
@@ -147,13 +169,18 @@ router.post('/', authenticate, async (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
         error: 'Invalid input data',
-        details: error.errors.map(e => e.message)
+        code: 'VALIDATION_ERROR',
+        details: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
       });
     }
 
     console.error('Error creating recommendation:', error);
     res.status(500).json({ 
-      error: 'Failed to create recommendation. Please try again.' 
+      error: 'Failed to create recommendation. Please try again.',
+      code: 'SERVER_ERROR'
     });
   }
 });
