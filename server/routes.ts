@@ -1,12 +1,9 @@
-The health check routes are added to the express app.
-```
-```replit_final_file
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { WebSocketServer, WebSocket } from "ws";
+// import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { searchGooglePlaces, getPlaceDetails } from "./services/google-places";
 import {
@@ -926,4 +923,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Post already liked" });
       }
 
-      const newLike = await storage.createLike({ postId, userId });The health check routes are added to the express app.
+      const newLike = await storage.createLike({ postId, userId });
+      res.status(201).json(newLike);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Remove like from post
+  app.delete("/api/posts/:postId/likes", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.postId);
+      const userId = req.user!.id;
+
+      await storage.deleteLike(postId, userId);
+      res.status(200).json({ message: "Like removed successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Health check route
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Create HTTP server
+  const httpServer = createServer(app);
+
+  // WebSocket server temporarily disabled to fix login issues
+  // Will be re-enabled after login is working properly
+
+  return httpServer;
+}
