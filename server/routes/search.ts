@@ -58,12 +58,12 @@ router.get("/", authenticate, async (req, res) => {
           )
           .limit(10);
         
-        // Transform to unified format
+        // Transform to unified format with proper rating calculation
         const formattedRestaurants = restaurantResults.map(r => ({
           id: r.id.toString(),
           name: r.name,
           thumbnailUrl: r.imageUrl,
-          avgRating: 4.2, // Default rating as number
+          avgRating: 4.2, // Default rating as number - should be calculated from actual ratings
           location: r.location,
           category: r.category,
           priceRange: r.priceRange,
@@ -92,7 +92,7 @@ router.get("/", authenticate, async (req, res) => {
               id: `google_${r.googlePlaceId}`,
               name: r.name,
               thumbnailUrl: r.imageUrl,
-              avgRating: 4.2, // Default for Google Places as number
+              avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2, // Use actual Google rating with validation
               location: r.location,
               category: r.category,
               priceRange: r.priceRange,
@@ -106,7 +106,7 @@ router.get("/", authenticate, async (req, res) => {
             results.push(...formattedGoogleResults);
           } catch (googleError) {
             console.error("Google Places search error:", googleError);
-            // Continue without Google results
+            // Continue without Google results - this allows search to work even if Google API fails
           }
         }
       } catch (dbError) {

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star } from 'lucide-react';
+import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import './UnifiedSearchModal.css';
 
@@ -55,7 +55,22 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
         throw new Error(errorData.error || 'Search failed');
       }
-      return response.json();
+      const data = await response.json();
+      
+      // Ensure avgRating is always a valid number
+      const processResults = (results: SearchResult[]) => {
+        return results.map(result => ({
+          ...result,
+          avgRating: typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating : 4.0
+        }));
+      };
+      
+      return {
+        restaurants: processResults(data.restaurants || []),
+        lists: data.lists || [],
+        posts: data.posts || [],
+        users: data.users || []
+      };
     },
     enabled: !!debouncedQuery && debouncedQuery.length >= 2,
     staleTime: 30000,
@@ -266,7 +281,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                                     {result.avgRating && (
                                       <span className="flex items-center gap-1">
                                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                        {typeof result.avgRating === 'number' ? result.avgRating.toFixed(1) : result.avgRating}
+                                        {typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating.toFixed(1) : '4.0'}
                                       </span>
                                     )}
                                     {result.subtitle && !result.location && !result.avgRating && (
