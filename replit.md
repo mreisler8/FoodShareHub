@@ -112,6 +112,17 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 10, 2025: **Critical Circle Creation Runtime Error Fix - COMPLETE**: Successfully resolved the persistent "failed to fetch api circles" error that was preventing circle creation:
+  - **API Parameter Issue Fixed**: Corrected `apiRequest` function call in circles.tsx that was passing parameters in wrong order
+  - **Query Function Fix**: Updated circles query to use default query behavior instead of incorrect `apiRequest` call
+  - **Missing Create Circle Page**: Created comprehensive create-circle.tsx page with full form validation and error handling
+  - **Router Integration**: Added `/create-circle` route to Router component for proper navigation flow
+  - **Form Validation**: Implemented robust form validation with real-time feedback and disabled submit until valid
+  - **API Integration**: Circle creation now properly calls POST `/api/circles` endpoint with correct data structure
+  - **Error Handling**: Added comprehensive error handling with user-friendly toast notifications
+  - **User Experience**: Form includes all circle fields (name, description, cuisine, price range, location, public join)
+  - **Navigation Flow**: Proper navigation from circles page to create-circle page and back to circles on success
+  - **Status**: Circle creation functionality now fully operational with no runtime errors
 - July 10, 2025: **Circle-List Integration Implementation - COMPLETE**: Successfully implemented complete Circle-List integration for Tracker Taylor's collaborative restaurant discovery workflow:
   - **Database Schema Resolution**: Fixed critical `creatorId` field null constraint issue in circles table creation
   - **Circle Creation Workflow**: Implemented complete circle creation with proper user authentication and member management
