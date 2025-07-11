@@ -110,7 +110,7 @@
 
 .circle-wizard-content {
   padding: 0;
-  min-height: 300px;
+  /* Remove min-height to let content determine height */
 }
 
 .circle-wizard-step-content {
@@ -123,6 +123,11 @@
   padding: 16px 20px;
   border-top: 1px solid #e5e7eb;
   background: #f9fafb;
+}
+
+/* Override default component heights */
+.circle-wizard-modal textarea {
+  min-height: 60px !important;
 }
 
 /* Dark mode support */

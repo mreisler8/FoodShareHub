@@ -211,7 +211,7 @@ export default function CircleWizardModal({ open, onOpenChange }: CircleWizardMo
           {/* Step 1: Circle Setup */}
           {currentStep === 1 && (
             <div className="circle-wizard-step-content">
-              <div className="space-y-4 p-6">
+              <div className="space-y-3 p-4">
                 <div>
                   <Label htmlFor="circle-name">Circle Name</Label>
                   <Input
@@ -297,7 +297,7 @@ export default function CircleWizardModal({ open, onOpenChange }: CircleWizardMo
           {/* Step 2: Invite Members */}
           {currentStep === 2 && (
             <div className="circle-wizard-step-content">
-              <div className="space-y-4 p-6">
+              <div className="space-y-3 p-4">
                 <div>
                   <Label>Search & Invite Friends</Label>
                   <div className="relative">
@@ -349,7 +349,7 @@ export default function CircleWizardModal({ open, onOpenChange }: CircleWizardMo
           {/* Step 3: Share Lists */}
           {currentStep === 3 && (
             <div className="circle-wizard-step-content">
-              <div className="space-y-4 p-6">
+              <div className="space-y-3 p-4">
                 <div>
                   <Label>Recommended Lists</Label>
                   <div className="grid gap-3 mt-2">
