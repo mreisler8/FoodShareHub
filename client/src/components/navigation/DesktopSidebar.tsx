@@ -122,6 +122,16 @@ export function DesktopSidebar() {
               </div>
             </Link>
           </li>
+          {isAuthenticated && (
+            <li>
+              <Link href="/settings" aria-label="Account settings">
+                <div className={getNavItemClasses("/settings")} role="menuitem" tabIndex={0}>
+                  <Settings className="w-6 mr-2" aria-hidden="true" />
+                  <span>Settings</span>
+                </div>
+              </Link>
+            </li>
+          )}
           <li>
             <Link href="/saved">
               <div className={getNavItemClasses("/saved")}>
