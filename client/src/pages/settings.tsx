@@ -93,32 +93,32 @@ export default function Settings() {
 
   // Initialize form data
   const [formData, setFormData] = useState<SettingsFormData>({
-    name: userSettings?.name || "",
-    username: userSettings?.username || "",
-    email: userSettings?.email || "",
-    bio: userSettings?.bio || "",
-    preferredLocation: userSettings?.preferredLocation || "",
-    preferredCuisines: userSettings?.preferredCuisines || [],
-    profilePicture: userSettings?.profilePicture || "",
-    coverImage: userSettings?.coverImage || "",
-    phoneNumber: userSettings?.phoneNumber || "",
-    dateOfBirth: userSettings?.dateOfBirth || "",
-    favoriteFood: userSettings?.favoriteFood || "",
-    favoriteRestaurant: userSettings?.favoriteRestaurant || "",
-    isPrivate: userSettings?.isPrivate || false,
-    showEmail: userSettings?.showEmail || false,
-    showPhone: userSettings?.showPhone || false,
-    showLocation: userSettings?.showLocation || true,
-    allowDirectMessages: userSettings?.allowDirectMessages || true,
-    emailNotifications: userSettings?.emailNotifications || true,
-    pushNotifications: userSettings?.pushNotifications || true,
-    marketingEmails: userSettings?.marketingEmails || false,
+    name: "",
+    username: "",
+    email: "",
+    bio: "",
+    preferredLocation: "",
+    preferredCuisines: [],
+    profilePicture: "",
+    coverImage: "",
+    phoneNumber: "",
+    dateOfBirth: "",
+    favoriteFood: "",
+    favoriteRestaurant: "",
+    isPrivate: false,
+    showEmail: false,
+    showPhone: false,
+    showLocation: true,
+    allowDirectMessages: true,
+    emailNotifications: true,
+    pushNotifications: true,
+    marketingEmails: false,
     reviewNotifications: userSettings?.reviewNotifications || true,
     followNotifications: userSettings?.followNotifications || true,
-    circleInviteNotifications: userSettings?.circleInviteNotifications || true,
+    circleInviteNotifications: true,
   });
 
-  // Update form data when user settings load
+  // Update form data when user settings are loaded
   useEffect(() => {
     if (userSettings) {
       setFormData({
