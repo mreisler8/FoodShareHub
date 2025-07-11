@@ -41,7 +41,7 @@ function Router() {
       <ProtectedRoute path="/top-picks" component={TopPicksPage} />
       <ProtectedRoute path="/create-post" component={CreatePost} />
       <ProtectedRoute path="/circles" component={Circles} />
-      <ProtectedRoute path="/create-circle" component={CreateCircleAdvanced} />
+      <ProtectedRoute path="/create-circle" component={CreateCircle} />
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />
       <ProtectedRoute path="/circles/:id/members" component={CircleMembers} />
       <ProtectedRoute path="/profile/:id?" component={Profile} />
