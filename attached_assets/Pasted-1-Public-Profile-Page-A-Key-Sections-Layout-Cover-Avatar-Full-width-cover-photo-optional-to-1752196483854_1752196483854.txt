@@ -1,0 +1,125 @@
+1. Public Profile Page
+A. Key Sections & Layout
+Cover & Avatar
+
+Full-width cover photo (optional) to let people personalize their space.
+
+Circular avatar overlapping the cover.
+
+Avatar click opens a simple crop-and-upload modal.
+
+Name & Handle
+
+Prominent display name + @handle on one line.
+
+Sub-text for location or title (e.g. “Toronto Food Explorer”).
+
+Bio & Links
+
+A short bio (100–150 chars max) with inline links (restaurants, circles, personal site).
+
+Option to pin up to 3 “pinned lists” or highlights below the bio.
+
+Stats Bar
+
+Clickable counters: Reviews, Lists, Circles, Followers, Following.
+
+Hover or tap shows a mini-tooltip with contextual info (“You follow 12/45 of their circles”).
+
+Primary Actions
+
+For your own profile: Edit Profile (solid primary), Settings (icon).
+
+For others: Follow/Unfollow, Message, Invite to Circle (dropdown with circles).
+
+Content Tabs
+
+“Reviews”, “Lists”, “Circles”, “Saved” tabs.
+
+Each tab loads via client-side routing for instant transitions.
+
+A secondary filter bar inside each tab (e.g. sort by date, rating, popularity).
+
+Feed & Highlights
+
+In “Reviews,” infinite scroll of that user’s posts.
+
+In “Lists,” a masonry/grid of list cards with cover images.
+
+In “Circles,” show circles they’ve created or joined (small avatars of members).
+
+Responsive & Accessible
+
+On mobile, collapse stats into a horizontal swipeable strip.
+
+All images lazy-loaded; buttons sized for thumb taps.
+
+Ensure proper focus outlines, aria-labels, and color contrast.
+
+2. Profile Settings Page
+A. Information Architecture
+Break settings into vertical tabs or a left-nav:
+
+Account
+
+Email, Username, Password (with current-password confirmation).
+
+Social logins (Google, Apple OAuth) connect/disconnect.
+
+Profile
+
+Avatar, Cover Image, Bio, Location, Website, Tags (favorite cuisines).
+
+Privacy & Sharing
+
+Profile visibility: Public / Circle-only / Private.
+
+Default post visibility toggle (Feed vs. Circle vs. List).
+
+Block list management.
+
+Notifications
+
+Email & push preferences by category: New follower, Circle invite, Post replies, Mentions.
+
+“Pause all notifications” quick switch.
+
+Connections & Invites
+
+Manage sent/received circle invites.
+
+Following / Followers lists with remove/unfollow controls.
+
+Data & Security
+
+Two-factor auth setup (SMS, Authenticator app).
+
+Download my data (GDPR‐style export).
+
+Delete account (with “why are you leaving?” survey).
+
+B. Modern UX Patterns
+Inline Edits & Autosave
+
+Clicking a field turns it into an inline form. “Saved” toast appears on blur.
+
+Progressive Disclosure
+
+Don’t overwhelm: show advanced options only when a user clicks “Show more.”
+
+Validation & Help
+
+Real-time validation (e.g. username uniqueness) and contextual tooltips.
+
+Security Prompts
+
+For sensitive changes (email/password), require re-entry of current password or OTP.
+
+Mobile-First Navigation
+
+A sticky back button and hamburger menu on narrow screens.
+
+Accessibility
+
+Keyboard-only nav, screen-reader announcements on save errors or successes.
+
