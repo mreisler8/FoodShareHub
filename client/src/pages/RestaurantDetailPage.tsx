@@ -264,7 +264,7 @@ export default function RestaurantDetailPage() {
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
               <Users className="h-6 w-6 text-blue-500" />
-              Your Network
+              Community
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Top Dishes */}
@@ -273,7 +273,7 @@ export default function RestaurantDetailPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5" />
-                      Top Dishes from Your Network
+                      Top Dishes from Community
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -297,7 +297,7 @@ export default function RestaurantDetailPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <MessageSquare className="h-5 w-5" />
-                      Recent Reviews from Your Network
+                      Recent Reviews from Community
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
