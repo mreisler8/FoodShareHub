@@ -1,84 +1,120 @@
 
-.wizard-dialog {
+/* FIXED: Zero-padding override for the circle wizard dialog */
+.circle-wizard-dialog {
   padding: 0 !important;
   margin: 0 !important;
 }
 
-.wizard-dialog > div {
+.circle-wizard-dialog > div {
   padding: 0 !important;
   margin: 0 !important;
 }
 
-.wizard-dialog .dialog-content {
-  padding: 0 !important;
+.circle-wizard-dialog .dialog-content {
+  padding: 1.5rem !important;
   margin: 0 !important;
 }
 
-/* Force remove all potential padding sources */
-.wizard-dialog [role="dialog"] {
-  padding: 0 !important;
+/* FIXED: Specific override for shadcn dialog content padding */
+.circle-wizard-dialog [data-radix-dialog-content] {
+  padding: 1.5rem !important;
 }
 
-.wizard-dialog .dialog-header {
+/* FIXED: Header spacing */
+.circle-wizard-header {
   padding-top: 0 !important;
   margin-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 1rem !important;
 }
 
-/* Ensure step indicator has proper spacing */
-.wizard-dialog .step-indicator {
-  margin-bottom: 1rem;
+/* FIXED: Step indicator spacing */
+.circle-wizard-dialog .step-indicator {
+  margin: 1rem 0 !important;
+  padding: 0 !important;
 }
 
-/* Mobile responsive adjustments */
+/* FIXED: Search dropdown styling */
+.circle-wizard-dialog .search-dropdown {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  z-index: 50;
+}
+
+.circle-wizard-dialog .search-dropdown:hover {
+  background: hsl(var(--muted));
+}
+
+/* FIXED: Mobile responsive adjustments */
 @media (max-width: 640px) {
-  .wizard-dialog {
+  .circle-wizard-dialog {
     max-width: 95vw !important;
     max-height: 95vh !important;
+    margin: 0 !important;
   }
   
-  .wizard-dialog .step-indicator {
+  .circle-wizard-dialog .dialog-content {
+    padding: 1rem !important;
+  }
+  
+  .circle-wizard-dialog .step-indicator {
     flex-direction: column;
     gap: 0.5rem;
   }
   
-  .wizard-dialog .step-indicator > div {
+  .circle-wizard-dialog .step-indicator > div {
     flex-direction: row;
     width: 100%;
   }
 }
 
-/* Search dropdown styling */
-.wizard-dialog .search-dropdown {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--background));
+/* FIXED: Form element spacing */
+.circle-wizard-dialog .space-y-6 > * + * {
+  margin-top: 1.5rem !important;
 }
 
-.wizard-dialog .search-dropdown:hover {
-  background: hsl(var(--muted));
+.circle-wizard-dialog .space-y-3 > * + * {
+  margin-top: 0.75rem !important;
 }
 
-/* Selected invitees styling */
-.wizard-dialog .invitee-badge {
+.circle-wizard-dialog .space-y-2 > * + * {
+  margin-top: 0.5rem !important;
+}
+
+/* FIXED: Selected invitees styling */
+.circle-wizard-dialog .invitee-badge {
   background: hsl(var(--secondary));
   color: hsl(var(--secondary-foreground));
 }
 
-.wizard-dialog .invitee-badge:hover .remove-button {
+.circle-wizard-dialog .invitee-badge:hover .remove-button {
   color: hsl(var(--destructive));
 }
 
-/* List card styling */
-.wizard-dialog .list-card {
+/* FIXED: List card styling */
+.circle-wizard-dialog .list-card {
   transition: all 0.2s ease-in-out;
 }
 
-.wizard-dialog .list-card:hover {
+.circle-wizard-dialog .list-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.wizard-dialog .list-card.selected {
+.circle-wizard-dialog .list-card.selected {
   border-color: hsl(var(--primary));
   background: hsl(var(--primary) / 0.05);
+}
+
+/* FIXED: Dropdown z-index and positioning */
+.circle-wizard-dialog .relative .absolute {
+  z-index: 50;
+}
+
+/* FIXED: Ensure proper spacing between sections */
+.circle-wizard-dialog .border-t {
+  border-top: 1px solid hsl(var(--border));
+  margin-top: 1.5rem !important;
+  padding-top: 1.5rem !important;
 }
