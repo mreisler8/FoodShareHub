@@ -361,91 +361,59 @@ export default function CreateCirclePage() {
                 </div>
 
                 {/* Invite Members Section */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label className="flex items-center gap-2">
                     <UserPlus className="h-4 w-4" />
-                    Invite Members (optional)
+                    Invite Members
                   </Label>
                   
-                  {!showMemberSearch ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => setShowMemberSearch(true)}
-                    >
-                      <Search className="h-4 w-4 mr-2" />
-                      Search and add members...
-                    </Button>
-                  ) : (
-                    <Card className="p-4 border-primary/20 bg-primary/5">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium">Search for members</p>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setShowMemberSearch(false);
-                              setMemberSearchQuery("");
-                              setMemberSearchResults([]);
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        
-                        <div className="relative">
-                          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                          <Input
-                            placeholder="Search by name or username..."
-                            value={memberSearchQuery}
-                            onChange={(e) => setMemberSearchQuery(e.target.value)}
-                            className="pl-10"
-                            autoFocus
-                          />
-                        </div>
-                        
-                        {memberSearchQuery.length >= 2 && (
-                          <div className="space-y-2 max-h-40 overflow-y-auto">
-                            {searchLoading ? (
-                              <p className="text-center py-2 text-sm text-gray-500">Searching...</p>
-                            ) : memberSearchResults.length > 0 ? (
-                              memberSearchResults.map((user) => (
-                                <div
-                                  key={user.id}
-                                  className="flex items-center justify-between p-2 bg-white rounded-lg border hover:border-primary/50"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
-                                      {user.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-medium">{user.name}</p>
-                                      <p className="text-xs text-gray-600">@{user.username}</p>
-                                    </div>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleAddMember(user)}
-                                  >
-                                    Add
-                                  </Button>
+                  {/* Always show search inline */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search people by name or username..."
+                      value={memberSearchQuery}
+                      onChange={(e) => setMemberSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  
+                  {/* Search results dropdown */}
+                  {memberSearchQuery.length >= 2 && (
+                    <Card className="p-2 border shadow-lg">
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {searchLoading ? (
+                          <p className="text-center py-4 text-sm text-gray-500">Searching...</p>
+                        ) : memberSearchResults.length > 0 ? (
+                          memberSearchResults.map((user) => (
+                            <div
+                              key={user.id}
+                              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer"
+                              onClick={() => handleAddMember(user)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                                  {user.name.charAt(0).toUpperCase()}
                                 </div>
-                              ))
-                            ) : (
-                              <p className="text-center py-2 text-sm text-gray-500">No users found</p>
-                            )}
-                          </div>
+                                <div>
+                                  <p className="text-sm font-medium">{user.name}</p>
+                                  <p className="text-xs text-gray-600">@{user.username}</p>
+                                </div>
+                              </div>
+                              <Plus className="h-4 w-4 text-gray-400" />
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-center py-4 text-sm text-gray-500">No users found</p>
                         )}
                       </div>
                     </Card>
                   )}
                   
+                  {/* Selected members */}
                   {selectedMembers.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Selected members:</p>
+                    <div className="space-y-2 pt-2">
+                      <p className="text-sm font-medium text-gray-700">Added members:</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedMembers.map((member) => (
                           <Badge key={member.id} variant="secondary" className="gap-1">
@@ -462,6 +430,8 @@ export default function CreateCirclePage() {
                       </div>
                     </div>
                   )}
+                  
+                  <p className="text-xs text-gray-500">Search and add members to invite them to your circle</p>
                 </div>
 
                 {/* Add Lists Section */}
