@@ -89,7 +89,19 @@ export default function Profile() {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5" />
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 relative">
+            {/* Fun Food Elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-4 left-8 text-4xl opacity-20 rotate-12">🍕</div>
+              <div className="absolute top-12 right-16 text-3xl opacity-15 -rotate-6">🍔</div>
+              <div className="absolute bottom-8 left-16 text-3xl opacity-20 rotate-45">🍜</div>
+              <div className="absolute bottom-4 right-8 text-4xl opacity-15 -rotate-12">🍝</div>
+              <div className="absolute top-20 left-1/3 text-2xl opacity-10 rotate-6">🌮</div>
+              <div className="absolute bottom-16 right-1/3 text-2xl opacity-15 -rotate-12">🍱</div>
+              <div className="absolute top-6 right-1/4 text-3xl opacity-10 rotate-12">🍰</div>
+              <div className="absolute bottom-12 left-1/4 text-2xl opacity-20 -rotate-6">🍣</div>
+            </div>
+          </div>
         )}
         {isOwnProfile && (
           <Button 

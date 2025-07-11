@@ -644,11 +644,24 @@ export default function Settings() {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Profile
           </Link>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <SettingsIcon className="h-8 w-8" />
-            Settings
-          </h1>
-          <p className="text-gray-600 mt-1">Manage your account preferences and privacy settings</p>
+          <div className="relative bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-6 mb-4 overflow-hidden">
+            {/* Fun Food Elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-2 left-4 text-2xl opacity-15 rotate-12">🍕</div>
+              <div className="absolute top-3 right-8 text-xl opacity-10 -rotate-6">🍔</div>
+              <div className="absolute bottom-2 left-8 text-xl opacity-15 rotate-45">🍜</div>
+              <div className="absolute bottom-1 right-4 text-2xl opacity-10 -rotate-12">🍝</div>
+              <div className="absolute top-4 left-1/3 text-lg opacity-8 rotate-6">🌮</div>
+              <div className="absolute bottom-3 right-1/3 text-lg opacity-12 -rotate-12">🍱</div>
+            </div>
+            <div className="relative z-10">
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <SettingsIcon className="h-8 w-8" />
+                Settings
+              </h1>
+              <p className="text-gray-600 mt-1">Manage your account preferences and privacy settings</p>
+            </div>
+          </div>
         </div>
 
         {/* Settings Content */}
