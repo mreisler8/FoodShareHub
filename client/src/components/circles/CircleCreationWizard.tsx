@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/input";
@@ -68,9 +68,30 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
   const [tagInput, setTagInput] = useState("");
   const [showBulkEmails, setShowBulkEmails] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Search users when query changes
+  useEffect(() => {
+    if (searchQuery.trim().length > 0) {
+      const timeoutId = setTimeout(async () => {
+        try {
+          const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(searchQuery)}`);
+          if (response.users) {
+            setSearchResults(response.users);
+          }
+        } catch (error) {
+          console.error('Search error:', error);
+          setSearchResults([]);
+        }
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
 
   const createCircleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertCircleSchema>) => {
@@ -136,6 +157,16 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
       setCircleData(prev => ({ ...prev, inviteEmails: [...prev.inviteEmails, email] }));
     }
     setSearchQuery("");
+    setSearchResults([]);
+  };
+
+  const handleUserAdd = (user: any) => {
+    const email = user.email || user.username;
+    if (email && !circleData.inviteEmails.includes(email)) {
+      setCircleData(prev => ({ ...prev, inviteEmails: [...prev.inviteEmails, email] }));
+    }
+    setSearchQuery("");
+    setSearchResults([]);
   };
 
   const handleEmailRemove = (emailToRemove: string) => {
@@ -210,7 +241,7 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
   };
 
   const isStep1Valid = circleData.name.length >= 3;
-  const isStep2Valid = circleData.inviteEmails.length >= 1;
+  const isStep2Valid = true; // Allow proceeding without members
 
   const filteredTagSuggestions = tagSuggestions.filter(tag => 
     tag.toLowerCase().includes(tagInput.toLowerCase()) && 
@@ -233,7 +264,8 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0">
+        <div className="p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Create New Circle</DialogTitle>
           
@@ -382,6 +414,41 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
                     }}
                     className="pl-10"
                   />
+                  
+                  {/* Search Results Dropdown */}
+                  {searchQuery && (searchResults.length > 0 || searchQuery.includes('@')) && (
+                    <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md mt-1 max-h-48 overflow-y-auto z-10 shadow-lg">
+                      {searchResults.map((user) => (
+                        <div
+                          key={user.id}
+                          className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center gap-3"
+                          onClick={() => handleUserAdd(user)}
+                        >
+                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                            <Users className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium">{user.name}</div>
+                            <div className="text-sm text-muted-foreground">{user.email || user.username}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {searchQuery.includes('@') && (
+                        <div
+                          className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center gap-3 border-t"
+                          onClick={() => handleEmailAdd(searchQuery.trim())}
+                        >
+                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <Mail className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium">+ Invite {searchQuery}</div>
+                            <div className="text-sm text-muted-foreground">Send invitation to this email</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Bulk Email Option */}
@@ -418,11 +485,11 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
               </div>
 
               {/* Selected Invitees */}
-              {circleData.inviteEmails.length > 0 && (
-                <div>
-                  <Label className="text-base font-medium">
-                    Selected Invitees ({circleData.inviteEmails.length})
-                  </Label>
+              <div>
+                <Label className="text-base font-medium">
+                  Selected Invitees ({circleData.inviteEmails.length})
+                </Label>
+                {circleData.inviteEmails.length > 0 ? (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {circleData.inviteEmails.map(email => (
                       <Badge key={email} variant="secondary" className="flex items-center gap-1">
@@ -435,8 +502,12 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
                       </Badge>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    No members selected yet. You can invite members later after creating the circle.
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -448,7 +519,7 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
                   Add your favorite {currentTheme !== 'general' ? currentTheme : 'food'} spots to get the party started
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Share popular lists or create your own custom list
+                  Share popular lists or create your own custom list (optional)
                 </p>
               </div>
 
@@ -532,6 +603,7 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
               )}
             </div>
           </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>

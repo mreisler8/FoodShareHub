@@ -164,7 +164,7 @@ router.get("/", authenticate, async (req, res) => {
         const listResults = await db.execute(sql`
           SELECT DISTINCT 
             rl.id, rl.name, rl.description, rl.tags, rl.created_by_id as "createdById",
-            rl.is_public as "isPublic", rl.view_count as "viewCount"
+            rl.is_public as "isPublic", rl.view_count as "viewCount", rl.created_at
           FROM restaurant_lists rl
           LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
           WHERE (
@@ -492,7 +492,6 @@ router.get("/unified", authenticate, async (req, res) => {
         -- List is shared with circle and user is member
         (rl.share_with_circle = true AND cm.user_id = ${req.user!.id})
       )
-      ORDER BY rl.created_at DESC
       LIMIT 5
     `);
     
@@ -502,12 +501,45 @@ router.get("/unified", authenticate, async (req, res) => {
       subtitle: l.description || '',
       type: 'list' as const
     }));
+
+    // Search users
+    const userResults = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        bio: users.bio,
+        profilePicture: users.profilePicture,
+      })
+      .from(users)
+      .where(
+        and(
+          or(
+            ilike(users.name, searchPattern),
+            ilike(users.username, searchPattern),
+            ilike(users.bio, searchPattern)
+          ),
+          // Exclude current user from search results
+          ne(users.id, req.user?.id || -1)
+        )
+      )
+      .limit(5);
+
+    const formattedUsers = userResults.map(user => ({
+      id: user.id.toString(),
+      name: user.name,
+      email: user.username,
+      username: user.username,
+      subtitle: `@${user.username}${user.bio ? ` • ${user.bio.substring(0, 30)}...` : ''}`,
+      avatar: user.profilePicture,
+      type: 'user' as const
+    }));
     
     const result = {
       restaurants: formattedRestaurants,
       lists: formattedLists,
       posts: [],
-      users: []
+      users: formattedUsers
     };
     
     res.json(result);
