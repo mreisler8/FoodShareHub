@@ -18,7 +18,7 @@
   border-radius: 12px;
   width: 100%;
   max-width: 600px;
-  max-height: 90vh;
+  max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   /* Zero padding - complete control */
@@ -125,9 +125,26 @@
   background: #f9fafb;
 }
 
-/* Override default component heights */
+/* Override default component heights and spacing */
 .circle-wizard-modal textarea {
   min-height: 60px !important;
+}
+
+.circle-wizard-modal input {
+  height: 36px !important;
+}
+
+.circle-wizard-modal label {
+  margin-bottom: 4px !important;
+}
+
+/* Reduce spacing between form groups */
+.circle-wizard-step-content > div > div {
+  margin-bottom: 12px !important;
+}
+
+.circle-wizard-step-content > div > div:last-child {
+  margin-bottom: 0 !important;
 }
 
 /* Dark mode support */

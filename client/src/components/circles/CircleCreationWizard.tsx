@@ -84,7 +84,7 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // FIXED: Simplified and more robust search functionality
+  // Search functionality - properly integrated with unified search API
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
       const timeoutId = setTimeout(async () => {
@@ -92,57 +92,28 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
         try {
           console.log('Searching for users with query:', searchQuery);
           
-          // Try direct user search first
+          // Use unified search with users type filter
+          const response = await apiRequest(`/api/search?q=${encodeURIComponent(searchQuery)}&type=users`);
+          console.log('Search API response:', response);
+          
           let users: SearchUser[] = [];
           
-          try {
-            const userResponse = await apiRequest(`/api/search/users?q=${encodeURIComponent(searchQuery)}`);
-            if (userResponse && Array.isArray(userResponse)) {
-              users = userResponse.map((user: any) => ({
-                id: user.id,
-                name: user.name || user.username,
-                username: user.username,
-                email: user.email || user.username,
-                bio: user.bio
-              }));
-            }
-          } catch (userSearchError) {
-            console.log('Direct user search failed, trying unified search:', userSearchError);
-            
-            // Fallback to unified search
-            const unifiedResponse = await apiRequest(`/api/search/unified?q=${encodeURIComponent(searchQuery)}`);
-            console.log('Unified search response:', unifiedResponse);
-            
-            // Handle different response structures
-            if (unifiedResponse?.data?.users && Array.isArray(unifiedResponse.data.users)) {
-              users = unifiedResponse.data.users.map((user: any) => ({
-                id: user.id,
-                name: user.name || user.username,
-                username: user.username,
-                email: user.email || user.username,
-                bio: user.bio
-              }));
-            } else if (unifiedResponse?.users && Array.isArray(unifiedResponse.users)) {
-              users = unifiedResponse.users.map((user: any) => ({
-                id: user.id,
-                name: user.name || user.username,
-                username: user.username,
-                email: user.email || user.username,
-                bio: user.bio
-              }));
-            }
+          // Handle array response (when type=users is specified)
+          if (Array.isArray(response)) {
+            users = response.map((user: any) => ({
+              id: user.id,
+              name: user.name || user.subtitle?.replace('@', '').split(' • ')[0] || 'Unknown',
+              username: user.subtitle?.replace('@', '').split(' • ')[0] || user.name || 'unknown',
+              email: user.subtitle?.replace('@', '').split(' • ')[0] || user.name || 'unknown@example.com',
+              bio: user.subtitle?.split(' • ')[1] || user.bio || ''
+            }));
           }
           
           setSearchResults(users);
-          console.log('Processed users:', users);
+          console.log('Processed search results:', users);
         } catch (error) {
           console.error('Search error:', error);
           setSearchResults([]);
-          toast({
-            title: "Search Error",
-            description: "Failed to search users. Please try again.",
-            variant: "destructive",
-          });
         } finally {
           setIsSearching(false);
         }
@@ -152,7 +123,7 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
       setSearchResults([]);
       setIsSearching(false);
     }
-  }, [searchQuery, toast]);
+  }, [searchQuery]);
 
   const createCircleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertCircleSchema>) => {
@@ -486,7 +457,11 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
                   <Input
                     placeholder="Find friends by name or email..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      console.log('Search input changed:', value);
+                      setSearchQuery(value);
+                    }}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && searchQuery.trim()) {
                         handleEmailAdd(searchQuery.trim());
