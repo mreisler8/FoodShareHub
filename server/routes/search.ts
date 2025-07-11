@@ -2,9 +2,10 @@
 import { Router } from "express";
 import { authenticate } from "../auth";
 import { db } from "../db";
-import { restaurants, restaurantLists, posts, users } from "../../shared/schema";
-import { eq, and, or, like, desc, sql, ilike } from "drizzle-orm";
+import { restaurants, restaurantLists, posts, users, userFollowers, circleMembers } from "../../shared/schema";
+import { eq, and, or, like, desc, sql, ilike, ne } from "drizzle-orm";
 import { searchGooglePlaces, getPlaceDetails } from "../services/google-places";
+import { PermissionService } from "../services/permissions";
 
 const router = Router();
 
@@ -154,35 +155,34 @@ router.get("/", authenticate, async (req, res) => {
       }
     }
     
-    // Search lists
+    // Search lists with enhanced privacy filtering
     if (type === "all" || type === "lists") {
       try {
-        const listResults = await db
-          .select({
-            id: restaurantLists.id,
-            name: restaurantLists.name,
-            description: restaurantLists.description,
-            tags: restaurantLists.tags,
-            createdById: restaurantLists.createdById,
-            isPublic: restaurantLists.isPublic,
-            viewCount: restaurantLists.viewCount,
-          })
-          .from(restaurantLists)
-          .where(
-            and(
-              or(
-                ilike(restaurantLists.name, searchPattern),
-                ilike(restaurantLists.description, searchPattern)
-              ),
-              or(
-                eq(restaurantLists.isPublic, true),
-                eq(restaurantLists.createdById, req.user!.id)
-              )
-            )
-          )
-          .limit(5);
+        const userId = req.user!.id;
         
-        const formattedLists = listResults.map(l => ({
+        // Use SQL for complete privacy filtering including circle-shared lists
+        const listResults = await db.execute(sql`
+          SELECT DISTINCT 
+            rl.id, rl.name, rl.description, rl.tags, rl.created_by_id as "createdById",
+            rl.is_public as "isPublic", rl.view_count as "viewCount"
+          FROM restaurant_lists rl
+          LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
+          WHERE (
+            -- List name or description matches search
+            (rl.name ILIKE ${searchPattern} OR rl.description ILIKE ${searchPattern})
+          ) AND (
+            -- User owns the list
+            rl.created_by_id = ${userId} OR
+            -- List is public
+            rl.make_public = true OR
+            -- List is shared with circle and user is member
+            (rl.share_with_circle = true AND cm.user_id = ${userId})
+          )
+          ORDER BY rl.created_at DESC
+          LIMIT 5
+        `);
+        
+        const formattedLists = listResults.rows.map((l: any) => ({
           id: l.id.toString(),
           name: l.name,
           subtitle: l.description || `${l.tags?.length || 0} tags`,
@@ -475,29 +475,28 @@ router.get("/unified", authenticate, async (req, res) => {
       }
     }
     
-    // Search other content types
-    const listResults = await db
-      .select({
-        id: restaurantLists.id,
-        name: restaurantLists.name,
-        description: restaurantLists.description,
-      })
-      .from(restaurantLists)
-      .where(
-        and(
-          or(
-            ilike(restaurantLists.name, searchPattern),
-            ilike(restaurantLists.description, searchPattern)
-          ),
-          or(
-            eq(restaurantLists.isPublic, true),
-            eq(restaurantLists.createdById, req.user!.id)
-          )
-        )
+    // Search other content types with enhanced privacy filtering
+    const listResults = await db.execute(sql`
+      SELECT DISTINCT 
+        rl.id, rl.name, rl.description
+      FROM restaurant_lists rl
+      LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
+      WHERE (
+        -- List name or description matches search
+        (rl.name ILIKE ${searchPattern} OR rl.description ILIKE ${searchPattern})
+      ) AND (
+        -- User owns the list
+        rl.created_by_id = ${req.user!.id} OR
+        -- List is public
+        rl.make_public = true OR
+        -- List is shared with circle and user is member
+        (rl.share_with_circle = true AND cm.user_id = ${req.user!.id})
       )
-      .limit(5);
+      ORDER BY rl.created_at DESC
+      LIMIT 5
+    `);
     
-    const formattedLists = listResults.map(l => ({
+    const formattedLists = listResults.rows.map((l: any) => ({
       id: l.id.toString(),
       name: l.name,
       subtitle: l.description || '',

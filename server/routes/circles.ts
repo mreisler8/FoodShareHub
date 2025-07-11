@@ -8,13 +8,49 @@ import { authenticate } from '../auth';
 
 const router = Router();
 
-// Get all circles (basic endpoint)
+// Get accessible circles (security-filtered endpoint)
 router.get('/', authenticate, async (req, res) => {
   try {
-    const allCircles = await db.select().from(circles);
-    res.json(allCircles);
+    const userId = req.user!.id;
+    
+    // Only return circles user has access to - either they're members or circle allows public joining
+    const accessibleCircles = await db
+      .select({
+        id: circles.id,
+        name: circles.name,
+        description: circles.description,
+        isPrivate: circles.isPrivate,
+        createdAt: circles.createdAt,
+        creatorId: circles.creatorId,
+        inviteCode: circles.inviteCode,
+        allowPublicJoin: circles.allowPublicJoin,
+        tags: circles.tags,
+        primaryCuisine: circles.primaryCuisine,
+        priceRange: circles.priceRange,
+        location: circles.location,
+        memberCount: circles.memberCount,
+        featured: circles.featured,
+        trending: circles.trending,
+        role: circleMembers.role,
+        joinedAt: circleMembers.joinedAt
+      })
+      .from(circles)
+      .leftJoin(circleMembers, and(
+        eq(circleMembers.circleId, circles.id),
+        eq(circleMembers.userId, userId)
+      ))
+      .where(
+        or(
+          // User is a member of the circle
+          eq(circleMembers.userId, userId),
+          // Circle allows public joining
+          eq(circles.allowPublicJoin, true)
+        )
+      );
+    
+    res.json(accessibleCircles);
   } catch (error) {
-    console.error('Error fetching circles:', error);
+    console.error('Error fetching accessible circles:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
