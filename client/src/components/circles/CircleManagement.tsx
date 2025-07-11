@@ -46,6 +46,8 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  console.log('CircleManagement rendering for circleId:', circleId);
 
   // Fetch circle details
   const { data: circle, isLoading: circleLoading } = useQuery({

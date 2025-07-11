@@ -4,7 +4,7 @@ import { useParams, Link } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Button } from "@/components/Button";
-import { ArrowLeft, User, Users } from "lucide-react";
+import { ArrowLeft, User, Users, Settings } from "lucide-react";
 import { CircleWithStats } from "@/lib/types";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -109,6 +109,7 @@ export default function CircleDetails() {
         {/* Circle Management Section */}
         {circle && (
           <div className="mb-10">
+            {console.log('Rendering CircleManagement for circle:', circle)}
             <CircleManagement circleId={parseInt(id!)} />
           </div>
         )}

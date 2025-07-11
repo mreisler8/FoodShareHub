@@ -9,6 +9,7 @@ import FeedPage from "../pages/feed";
 import TopPicksPage from "../pages/top-picks";
 import CircleDetails from "../pages/circle-details";
 import Circles from "../pages/circles";
+import CircleMembers from "../pages/circle-members";
 import Profile from "../pages/profile";
 import Discover from "../pages/discover";
 import DiscoverByLocation from "../pages/discover-by-location";
@@ -39,6 +40,7 @@ function Router() {
       <ProtectedRoute path="/circles" component={Circles} />
       <ProtectedRoute path="/create-circle" component={CreateCircle} />
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />
+      <ProtectedRoute path="/circles/:id/members" component={CircleMembers} />
       <ProtectedRoute path="/profile/:id?" component={Profile} />
       <ProtectedRoute path="/discover" component={Discover} />
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
