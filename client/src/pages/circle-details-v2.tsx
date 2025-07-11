@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
 import { ShareListModal } from "@/components/circles/ShareListModal";
+import { UserSearchModal } from "@/components/search/UserSearchModal";
 import { 
   ArrowLeft, 
   Users, 
@@ -22,7 +23,8 @@ import {
   Calendar,
   MapPin,
   DollarSign,
-  ChefHat
+  ChefHat,
+  UserPlus
 } from "lucide-react";
 
 interface CircleDetail {
@@ -66,6 +68,7 @@ export default function CircleDetailsV2Page() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showShareListModal, setShowShareListModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
   const { data: circle, isLoading } = useQuery<CircleDetail>({
     queryKey: [`/api/circles/${circleId}`],
@@ -83,6 +86,28 @@ export default function CircleDetailsV2Page() {
       toast({
         title: "Copied!",
         description: "Invite link copied to clipboard",
+      });
+    }
+  };
+
+  const handleAddMember = async (user: any) => {
+    try {
+      await apiRequest(`/api/circles/${circleId}/invites`, {
+        method: "POST",
+        body: JSON.stringify({ userId: user.id }),
+      });
+      
+      await queryClient.invalidateQueries({ queryKey: [`/api/circles/${circleId}`] });
+      
+      toast({
+        title: "Success!",
+        description: `Invitation sent to ${user.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send invitation",
+        variant: "destructive",
       });
     }
   };
@@ -257,11 +282,19 @@ export default function CircleDetailsV2Page() {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold">Members</h2>
-                    <Link href={`/circles/${circleId}/members`}>
-                      <Button variant="ghost" size="sm">
-                        View All
-                      </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                      {isOwner && (
+                        <Button size="sm" onClick={() => setShowAddMemberModal(true)}>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add Members
+                        </Button>
+                      )}
+                      <Link href={`/circles/${circleId}/members`}>
+                        <Button variant="ghost" size="sm">
+                          View All
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                   <Card className="p-4">
                     <div className="flex -space-x-2">
@@ -301,6 +334,19 @@ export default function CircleDetailsV2Page() {
           circleId={circleId}
           circleName={circle.name}
           onClose={() => setShowShareListModal(false)}
+        />
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && circle && (
+        <UserSearchModal
+          isOpen={showAddMemberModal}
+          onClose={() => setShowAddMemberModal(false)}
+          onAddUser={handleAddMember}
+          title="Add Members to Circle"
+          subtitle={`Search for users to invite to ${circle.name}`}
+          actionLabel="Send Invite"
+          excludeUserIds={circle.members?.map(m => m.id) || []}
         />
       )}
     </div>

@@ -112,6 +112,15 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 11, 2025: **Best-in-Class User Search Modal Implementation**: Added comprehensive user search functionality for circles and profiles:
+  - **UserSearchModal Component**: Created reusable search modal with real-time search, debouncing (300ms), and clean UI
+  - **Circle Member Invitations**: Integrated search into circle details page with "Add Members" button for circle owners
+  - **Profile Following**: Added "Find Friends" button to profile stats bar for discovering users to follow
+  - **Smart Features**: Excludes already selected/member users, shows follow/member status, handles async operations
+  - **API Integration**: Uses unified search endpoint with user extraction from results
+  - **User Experience**: Instant search results, loading states, empty states, and selected user preview
+  - **Accessibility**: Keyboard navigation (Escape to close), focus management, and proper ARIA labels
+  - **Status**: Complete implementation allowing easy search for users like "Jason Bloom" across circles and profiles
 - July 11, 2025: **Complete Circles Architecture Rebuild - CREATIVE SOLUTION**: Responded to user's demand for fundamental change with comprehensive rebuild:
   - **User Frustration Resolution**: After user expressed complete frustration with incremental fixes ("This is absolutely broken", "We're not gaining any value"), pivoted to complete architectural rebuild
   - **Business Requirements Extraction**: Created CIRCLES_REQUIREMENTS.md documenting core flows from user stories

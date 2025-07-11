@@ -40,6 +40,7 @@ import { ReferralButton } from "@/components/invitation/ReferralButton";
 import { FollowButton } from "@/components/FollowButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { FollowsPanel } from "@/components/user/FollowsPanel";
+import { UserSearchModal } from "@/components/search/UserSearchModal";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,6 +51,7 @@ export default function Profile() {
   const [editingFavorites, setEditingFavorites] = useState(false);
   const [favoriteFood, setFavoriteFood] = useState("");
   const [favoriteRestaurant, setFavoriteRestaurant] = useState("");
+  const [showFindFriendsModal, setShowFindFriendsModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -130,6 +132,28 @@ export default function Profile() {
     setEditingFavorites(false);
     setFavoriteFood("");
     setFavoriteRestaurant("");
+  };
+
+  const handleFollowUser = async (user: any) => {
+    try {
+      await apiRequest("/api/follow", {
+        method: "POST",
+        body: JSON.stringify({ targetUserId: user.id }),
+      });
+      
+      await queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+      
+      toast({
+        title: "Success!",
+        description: `You are now following ${user.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to follow user",
+        variant: "destructive",
+      });
+    }
   };
 
   const ProfileCover = () => (
@@ -388,12 +412,22 @@ export default function Profile() {
   const StatsBar = () => (
     <div className="border-y bg-gray-50">
       <div className="px-6 md:px-8 py-4">
-        <div className="flex items-center justify-between md:justify-start md:gap-8">
+        <div className="flex items-center justify-between">
           <ProfileStats 
             userId={profileUser?.id || 0} 
             layout="horizontal"
             showLabels={true}
           />
+          {isOwnProfile && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setShowFindFriendsModal(true)}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Find Friends
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -698,6 +732,20 @@ export default function Profile() {
         {/* Floating Action Button */}
         {isOwnProfile && <CreatePostButton />}
       </div>
+
+      {/* Find Friends Modal */}
+      {showFindFriendsModal && (
+        <UserSearchModal
+          isOpen={showFindFriendsModal}
+          onClose={() => setShowFindFriendsModal(false)}
+          onAddUser={handleFollowUser}
+          title="Find Friends"
+          subtitle="Discover people to follow"
+          actionLabel="Follow"
+          showFollowStatus={true}
+          excludeUserIds={[currentUser?.id || 0]}
+        />
+      )}
     </div>
   );
 }
