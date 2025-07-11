@@ -222,6 +222,12 @@ export default function Profile() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Profile
               </ReferralButton>
+              <Button asChild variant="outline">
+                <Link href="/settings">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </Link>
+              </Button>
               <Button asChild>
                 <Link href="/settings">
                   <Settings className="h-4 w-4 mr-2" />
