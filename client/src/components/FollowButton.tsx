@@ -27,9 +27,11 @@ export function FollowButton({
   const followMutation = useMutation({
     mutationFn: async (action: 'follow' | 'unfollow') => {
       if (action === 'follow') {
-        return apiRequest(`/api/users/${userId}/follow`, { method: 'POST' });
+        const response = await apiRequest('POST', `/api/follow/requests`, { targetUserId: userId });
+        return response.json();
       } else {
-        return apiRequest(`/api/users/${userId}/follow`, { method: 'DELETE' });
+        const response = await apiRequest('DELETE', `/api/follow/${userId}`);
+        return response.json();
       }
     },
     onSuccess: (_, action) => {

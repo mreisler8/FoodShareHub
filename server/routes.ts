@@ -28,8 +28,10 @@ import listsRouter from "./routes/lists.js";
 import searchRouter from "./routes/search.ts";
 import searchAnalyticsRouter from "./routes/search-analytics.js";
 import followRoutes from './routes/follow';
+import followRequestsRouter from './routes/follow-requests';
 import listItemCommentsRouter from './routes/list-item-comments.js';
 import * as circleRoutes from './routes/circles';
+import circleRequestsRouter from './routes/circle-requests';
 import usersRouter from './routes/users';
 // import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
@@ -1113,8 +1115,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.use("/api/recommendations", recommendationsRouter);
   // app.use("/api/list-item-comments", listItemCommentsRouter);
   app.use("/api/follow", followRoutes);
+  app.use("/api/follow", followRequestsRouter);
   // app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
+  app.use("/api/circles", circleRequestsRouter);
   app.use("/api/users", usersRouter);
 
   // Health check route

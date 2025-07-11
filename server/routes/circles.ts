@@ -745,8 +745,8 @@ router.get('/:circleId', authenticate, async (req, res) => {
 });
 
 // Route handlers
-router.post('/invite', authenticate, createCircleInvite);
-router.get('/invites', authenticate, getCircleInvites);
+router.post('/:circleId/invites', authenticate, createCircleInvite);
+router.get('/:circleId/invites', authenticate, getCircleInvites);
 router.post('/invites/:inviteId/respond', authenticate, respondToCircleInvite);
 router.get('/pending-invites', authenticate, getUserPendingInvites);
 router.delete('/invites/:inviteId', authenticate, revokeCircleInvite);

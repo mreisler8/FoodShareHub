@@ -14,6 +14,8 @@ import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import "./HomePage.css";
+import { FollowRequestCard } from "@/components/follow/FollowRequestCard";
+import { PendingInvites } from "@/components/circles/PendingInvites";
 
 // TopPicks component for homepage
 function TopPicks() {
@@ -155,6 +157,16 @@ export default function Home() {
               />
             </div>
           </section>
+
+          {/* Pending Invites and Follow Requests */}
+          {user && (
+            <section className="home-section">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FollowRequestCard />
+                <PendingInvites />
+              </div>
+            </section>
+          )}
 
           {/* Quick Actions */}
           <section className="home-section quick-actions-section">

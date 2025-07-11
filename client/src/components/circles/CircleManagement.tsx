@@ -53,10 +53,17 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
     queryFn: () => apiRequest(`/api/circles/${circleId}`),
   });
 
-  // Fetch circle members
+  // Fetch circle members (only active members)
   const { data: members = [], isLoading: membersLoading } = useQuery({
     queryKey: [`/api/circles/${circleId}/members`],
     queryFn: () => apiRequest(`/api/circles/${circleId}/members`),
+  });
+  
+  // Fetch pending member requests for this circle
+  const { data: pendingRequests = [] } = useQuery({
+    queryKey: [`/api/circles/${circleId}/requests`],
+    queryFn: () => apiRequest(`/api/circles/${circleId}/requests`),
+    enabled: canManageMembers,
   });
 
   // Share circle link
@@ -115,6 +122,7 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
   };
 
   const canManageMembers = circle?.role === 'owner' || circle?.role === 'admin';
+  const pendingCount = pendingRequests.filter((req: any) => req.status === 'pending').length;
 
   if (circleLoading) {
     return (
@@ -171,10 +179,17 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
 
       {/* Members List */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Members ({members.length})
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Members ({members.length})
+          </h3>
+          {pendingCount > 0 && canManageMembers && (
+            <Badge variant="destructive" className="rounded-full">
+              {pendingCount} pending
+            </Badge>
+          )}
+        </div>
         
         {membersLoading ? (
           <div className="flex items-center justify-center p-8">
@@ -251,6 +266,7 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
           isOpen={showInviteModal}
           onClose={() => setShowInviteModal(false)}
           circleId={circleId}
+          circleName={circle.name}
         />
       )}
     </div>

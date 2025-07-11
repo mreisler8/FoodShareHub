@@ -198,15 +198,20 @@ export const circleMembers = pgTable("circle_members", {
   circleId: integer("circle_id").references(() => circles.id).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
   role: text("role").default("member"), // Can be: "owner", "admin", "member"
+  status: text("status").default("active"), // Can be: "pending", "active", "blocked"
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
   invitedBy: integer("invited_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: integer("approved_by").references(() => users.id),
 });
 
 export const insertCircleMemberSchema = createInsertSchema(circleMembers).pick({
   circleId: true,
   userId: true,
   role: true,
+  status: true,
   invitedBy: true,
+  approvedBy: true,
 });
 
 // Circle Invites model
@@ -231,7 +236,9 @@ export const userFollowers = pgTable("user_followers", {
   id: serial("id").primaryKey(),
   followerId: integer("follower_id").references(() => users.id).notNull(),
   followingId: integer("following_id").references(() => users.id).notNull(),
+  status: text("status").default("following"), // Can be: "pending", "following", "blocked"
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  approvedAt: timestamp("approved_at"),
 });
 
 export const insertUserFollowerSchema = createInsertSchema(userFollowers).pick({
