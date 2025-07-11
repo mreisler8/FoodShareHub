@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
@@ -13,10 +13,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  ArrowLeft, 
+  Users, 
+  Search, 
+  X, 
+  Plus,
+  ListPlus,
+  Tag,
+  UserPlus,
+  ChefHat,
+  MapPin,
+  DollarSign
+} from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/use-auth";
 
 const formSchema = z.object({
   name: z.string().min(1, "Circle name is required"),
@@ -25,15 +39,47 @@ const formSchema = z.object({
   priceRange: z.string().optional(),
   location: z.string().optional(),
   allowPublicJoin: z.boolean().default(false),
+  tags: z.array(z.string()).optional(),
+  memberIds: z.array(z.number()).optional(),
+  listIds: z.array(z.number()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface SearchUser {
+  id: number;
+  name: string;
+  username: string;
+  profilePicture?: string;
+}
+
+interface List {
+  id: number;
+  name: string;
+  description?: string;
+  restaurantCount?: number;
+}
+
 export default function CreateCirclePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // State for member search
+  const [showMemberSearch, setShowMemberSearch] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
+  const [memberSearchResults, setMemberSearchResults] = useState<SearchUser[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<SearchUser[]>([]);
+  
+  // State for lists
+  const [selectedLists, setSelectedLists] = useState<List[]>([]);
+  
+  // State for tags
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -44,15 +90,91 @@ export default function CreateCirclePage() {
       priceRange: "",
       location: "",
       allowPublicJoin: false,
+      tags: [],
+      memberIds: [],
+      listIds: [],
     },
   });
+
+  // Fetch user's lists
+  const { data: userLists = [] } = useQuery<List[]>({
+    queryKey: ["/api/lists"],
+  });
+
+  // Debounced member search
+  useEffect(() => {
+    if (memberSearchQuery.length < 2) {
+      setMemberSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(memberSearchQuery)}`);
+        const users = response.users || [];
+        // Filter out already selected members
+        const selectedIds = selectedMembers.map(m => m.id);
+        const filteredUsers = users.filter((user: SearchUser) => !selectedIds.includes(user.id));
+        setMemberSearchResults(filteredUsers);
+      } catch (error) {
+        console.error("Search error:", error);
+        setMemberSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [memberSearchQuery, selectedMembers]);
+
+  const handleAddMember = (user: SearchUser) => {
+    setSelectedMembers([...selectedMembers, user]);
+    setMemberSearchQuery("");
+    setMemberSearchResults([]);
+  };
+
+  const handleRemoveMember = (userId: number) => {
+    setSelectedMembers(selectedMembers.filter(m => m.id !== userId));
+  };
+
+  const handleAddList = (list: List) => {
+    if (!selectedLists.find(l => l.id === list.id)) {
+      setSelectedLists([...selectedLists, list]);
+    }
+  };
+
+  const handleRemoveList = (listId: number) => {
+    setSelectedLists(selectedLists.filter(l => l.id !== listId));
+  };
+
+  const handleAddTag = () => {
+    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+      setTags([...tags, tagInput.trim()]);
+      setTagInput("");
+    }
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setTags(tags.filter(t => t !== tag));
+  };
 
   const createCircle = useMutation({
     mutationFn: async (values: FormValues) => {
       setIsLoading(true);
       try {
-        const response = await apiRequest("POST", "/api/circles", values);
-        return await response.json();
+        // Include selected members, lists, and tags in the submission
+        const payload = {
+          ...values,
+          tags,
+          memberIds: selectedMembers.map(m => m.id),
+          listIds: selectedLists.map(l => l.id),
+        };
+        const response = await apiRequest("/api/circles", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        return response;
       } finally {
         setIsLoading(false);
       }
@@ -66,7 +188,7 @@ export default function CreateCirclePage() {
         description: "Your circle has been created successfully.",
       });
       
-      navigate("/circles");
+      navigate(`/circles/${data.id}`);
     },
     onError: (error: any) => {
       console.error("Create circle error:", error);
@@ -193,6 +315,197 @@ export default function CreateCirclePage() {
                     placeholder="e.g., New York City, San Francisco Bay Area"
                     className="w-full"
                   />
+                </div>
+
+                {/* Tags Section */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Tags
+                  </Label>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add a tag (e.g., italian, pizza, casual-dining)"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="outline" onClick={handleAddTag}>
+                        Add
+                      </Button>
+                    </div>
+                    {tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                          <Badge key={tag} variant="secondary" className="gap-1">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tag)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">Tags help others discover your circle</p>
+                </div>
+
+                {/* Invite Members Section */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Invite Members (optional)
+                  </Label>
+                  
+                  {!showMemberSearch ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => setShowMemberSearch(true)}
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Search and add members...
+                    </Button>
+                  ) : (
+                    <Card className="p-4 border-primary/20 bg-primary/5">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">Search for members</p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setShowMemberSearch(false);
+                              setMemberSearchQuery("");
+                              setMemberSearchResults([]);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="relative">
+                          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Search by name or username..."
+                            value={memberSearchQuery}
+                            onChange={(e) => setMemberSearchQuery(e.target.value)}
+                            className="pl-10"
+                            autoFocus
+                          />
+                        </div>
+                        
+                        {memberSearchQuery.length >= 2 && (
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {searchLoading ? (
+                              <p className="text-center py-2 text-sm text-gray-500">Searching...</p>
+                            ) : memberSearchResults.length > 0 ? (
+                              memberSearchResults.map((user) => (
+                                <div
+                                  key={user.id}
+                                  className="flex items-center justify-between p-2 bg-white rounded-lg border hover:border-primary/50"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
+                                      {user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium">{user.name}</p>
+                                      <p className="text-xs text-gray-600">@{user.username}</p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleAddMember(user)}
+                                  >
+                                    Add
+                                  </Button>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-center py-2 text-sm text-gray-500">No users found</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {selectedMembers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Selected members:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedMembers.map((member) => (
+                          <Badge key={member.id} variant="secondary" className="gap-1">
+                            {member.name}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMember(member.id)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Add Lists Section */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <ListPlus className="h-4 w-4" />
+                    Share Lists (optional)
+                  </Label>
+                  <p className="text-xs text-gray-500">Select lists to share with this circle</p>
+                  
+                  {userLists.length > 0 ? (
+                    <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                      {userLists.map((list) => (
+                        <div
+                          key={list.id}
+                          className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              checked={selectedLists.some(l => l.id === list.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  handleAddList(list);
+                                } else {
+                                  handleRemoveList(list.id);
+                                }
+                              }}
+                            />
+                            <div>
+                              <p className="font-medium">{list.name}</p>
+                              {list.description && (
+                                <p className="text-sm text-gray-600">{list.description}</p>
+                              )}
+                              {list.restaurantCount !== undefined && (
+                                <p className="text-xs text-gray-500">{list.restaurantCount} restaurants</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No lists available. Create lists first to share them.</p>
+                  )}
                 </div>
 
                 {/* Allow Public Join */}
