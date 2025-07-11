@@ -183,6 +183,32 @@ export default function Profile() {
             </p>
           )}
 
+          {/* Favorites */}
+          {(profileUser?.favoriteFood || profileUser?.favoriteRestaurant) && (
+            <div className="mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profileUser?.favoriteFood && (
+                  <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
+                    <Heart className="h-5 w-5 text-red-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Favorite Food</p>
+                      <p className="text-gray-900 font-semibold">{profileUser.favoriteFood}</p>
+                    </div>
+                  </div>
+                )}
+                {profileUser?.favoriteRestaurant && (
+                  <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-100">
+                    <MapPin className="h-5 w-5 text-orange-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Favorite Restaurant</p>
+                      <p className="text-gray-900 font-semibold">{profileUser.favoriteRestaurant}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Cuisine Expertise */}
           {profileUser?.preferredCuisines && profileUser.preferredCuisines.length > 0 && (
             <div className="mb-4">

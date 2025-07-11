@@ -54,6 +54,8 @@ interface SettingsFormData {
   coverImage: string;
   phoneNumber: string;
   dateOfBirth: string;
+  favoriteFood: string;
+  favoriteRestaurant: string;
   isPrivate: boolean;
   showEmail: boolean;
   showPhone: boolean;
@@ -101,6 +103,8 @@ export default function Settings() {
     coverImage: userSettings?.coverImage || "",
     phoneNumber: userSettings?.phoneNumber || "",
     dateOfBirth: userSettings?.dateOfBirth || "",
+    favoriteFood: userSettings?.favoriteFood || "",
+    favoriteRestaurant: userSettings?.favoriteRestaurant || "",
     isPrivate: userSettings?.isPrivate || false,
     showEmail: userSettings?.showEmail || false,
     showPhone: userSettings?.showPhone || false,
@@ -128,6 +132,8 @@ export default function Settings() {
         coverImage: userSettings.coverImage || "",
         phoneNumber: userSettings.phoneNumber || "",
         dateOfBirth: userSettings.dateOfBirth || "",
+        favoriteFood: userSettings.favoriteFood || "",
+        favoriteRestaurant: userSettings.favoriteRestaurant || "",
         isPrivate: userSettings.isPrivate || false,
         showEmail: userSettings.showEmail || false,
         showPhone: userSettings.showPhone || false,
@@ -368,6 +374,40 @@ export default function Settings() {
                       placeholder="Tell us about yourself and your food preferences..."
                       rows={4}
                     />
+                  </div>
+
+                  {/* Favorite Food & Restaurant */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="favoriteFood" className="flex items-center gap-2">
+                        <Heart className="h-4 w-4 text-red-500" />
+                        Favorite Food
+                      </Label>
+                      <Input
+                        id="favoriteFood"
+                        value={formData.favoriteFood}
+                        onChange={(e) => handleInputChange("favoriteFood", e.target.value)}
+                        placeholder="e.g., Margherita Pizza, Spicy Ramen..."
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        The dish that defines your taste
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="favoriteRestaurant" className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-orange-500" />
+                        Favorite Restaurant
+                      </Label>
+                      <Input
+                        id="favoriteRestaurant"
+                        value={formData.favoriteRestaurant}
+                        onChange={(e) => handleInputChange("favoriteRestaurant", e.target.value)}
+                        placeholder="e.g., Joe's Pizza, Momofuku..."
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Your go-to place that never disappoints
+                      </p>
+                    </div>
                   </div>
 
                   {/* Location */}

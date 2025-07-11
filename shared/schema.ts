@@ -15,6 +15,9 @@ export const users = pgTable("users", {
   preferredPriceRange: text("preferred_price_range"),
   preferredLocation: text("preferred_location"),
   diningInterests: text("dining_interests").array(), // e.g., ["fine-dining", "casual", "street-food"]
+  // Profile uniqueness fields
+  favoriteFood: text("favorite_food"), // e.g., "Margherita Pizza", "Spicy Ramen"
+  favoriteRestaurant: text("favorite_restaurant"), // e.g., "Joe's Pizza", "Momofuku Noodle Bar"
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -23,6 +26,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   bio: true,
   profilePicture: true,
+  favoriteFood: true,
+  favoriteRestaurant: true,
 });
 
 // Restaurant model
