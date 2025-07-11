@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
@@ -80,12 +80,19 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
       const timeoutId = setTimeout(async () => {
         try {
           const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(searchQuery)}`);
-          if (response.users) {
-            setSearchResults(response.users);
+          if (response?.data?.users) {
+            setSearchResults(response.data.users);
+          } else {
+            setSearchResults([]);
           }
         } catch (error) {
           console.error('Search error:', error);
           setSearchResults([]);
+          toast({
+            title: "Search Error",
+            description: "Failed to search users. Please try again.",
+            variant: "destructive",
+          });
         }
       }, 300);
       return () => clearTimeout(timeoutId);
@@ -225,7 +232,7 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
         featured: false,
         trending: false,
         inviteCode: null,
-        creatorId: null
+        creatorId: undefined // Let server handle user ID
       });
 
       if (circleData.inviteEmails.length > 0) {
@@ -249,19 +256,19 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
     !circleData.tags.includes(tag)
   );
 
-  const getThemeFromName = (name: string) => {
+  const getThemeFromName = useCallback((name: string) => {
     const lowerName = name.toLowerCase();
     if (lowerName.includes('pizza')) return 'pizza';
     if (lowerName.includes('sushi')) return 'sushi';
     if (lowerName.includes('brunch')) return 'brunch';
     if (lowerName.includes('date') || lowerName.includes('romantic')) return 'romantic';
     return 'general';
-  };
+  }, []);
 
-  const currentTheme = getThemeFromName(circleData.name);
-  const relevantLists = popularLists.filter(list => 
+  const currentTheme = useMemo(() => getThemeFromName(circleData.name), [circleData.name, getThemeFromName]);
+  const relevantLists = useMemo(() => popularLists.filter(list => 
     list.theme === currentTheme || currentTheme === 'general'
-  );
+  ), [currentTheme]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

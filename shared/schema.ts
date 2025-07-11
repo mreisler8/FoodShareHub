@@ -147,7 +147,7 @@ export const circles = pgTable("circles", {
   description: text("description"),
   isPrivate: boolean("is_private").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  creatorId: integer("creator_id").references(() => users.id).notNull(),
+  creatorId: integer("creator_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   // Shareable join link features
   inviteCode: text("invite_code").unique(),
   allowPublicJoin: boolean("allow_public_join").default(false),

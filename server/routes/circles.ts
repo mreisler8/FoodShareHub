@@ -12,6 +12,8 @@ const router = Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
     
     // Only return circles user has access to - either they're members or circle allows public joining
     const accessibleCircles = await db
@@ -46,9 +48,20 @@ router.get('/', authenticate, async (req, res) => {
           // Circle allows public joining
           eq(circles.allowPublicJoin, true)
         )
-      );
+      )
+      .limit(limit)
+      .offset(offset)
+      .orderBy(circles.createdAt);
     
-    res.json(accessibleCircles);
+    res.json({
+      circles: accessibleCircles,
+      pagination: {
+        limit,
+        offset,
+        total: accessibleCircles.length,
+        hasMore: accessibleCircles.length === limit
+      }
+    });
   } catch (error) {
     console.error('Error fetching accessible circles:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -90,12 +103,18 @@ router.post('/', authenticate, async (req, res) => {
     const userId = req.user!.id;
     const { name, description, primaryCuisine, priceRange, location, allowPublicJoin } = req.body;
 
+    // Validate input
+    if (!name || name.trim().length < 3) {
+      return res.status(400).json({ error: 'Circle name must be at least 3 characters' });
+    }
+
     // Create circle
     const [circle] = await db
       .insert(circles)
       .values({
-        name,
-        description,
+        name: name.trim(),
+        description: description?.trim() || null,
+        creatorId: userId, // Fix: Add missing creatorId
         primaryCuisine: primaryCuisine || null,
         priceRange: priceRange || null,
         location: location || null,
