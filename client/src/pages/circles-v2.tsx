@@ -172,7 +172,7 @@ export default function CirclesV2Page() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               {/* Create Circle Card */}
               <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-primary"
-                    onClick={() => setShowCreateForm(!showCreateForm)}>
+                    onClick={() => setLocation('/create-circle')}>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                     <Plus className="h-6 w-6 text-primary" />
