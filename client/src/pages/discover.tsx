@@ -10,11 +10,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Rating } from "@/components/ui/rating";
 import { CreatePostButton } from "@/components/create-post/CreatePostButton";
-import { Search, Filter, MapPin, Utensils, Users } from "lucide-react";
+import { Search, Filter, MapPin, Utensils, Users, TrendingUp } from "lucide-react";
 import { Link } from "wouter";
 import { Restaurant, Circle } from "@shared/schema";
 import { CircleWithStats } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RecentRecommendations } from "@/components/recommendations/RecentRecommendations";
 
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,8 +68,8 @@ export default function Discover() {
               />
             </div>
             <div className="flex gap-2">
-              <select className="px-3 py-2 rounded-md border border-input bg-background text-sm" 
-                      onChange={(e) => setRegion(e.target.value)}>
+              <select className="px-3 py-2 rounded-md border border-input bg-background text-sm"
+                      onChange={(e) => {/* setRegion(e.target.value) */}}>
                 <option value="">All Canada</option>
                 <option value="BC">British Columbia</option>
                 <option value="ON">Ontario</option>
@@ -123,6 +124,17 @@ export default function Discover() {
               }`}
             >
               People
+            </TabsTrigger>
+            <TabsTrigger 
+              value="recommendations"
+              className={`rounded-none border-b-2 pb-2 pt-0 px-4 font-medium ${
+                activeTab === "recommendations" 
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-200"
+              }`}
+            >
+              <TrendingUp className="h-4 w-4 mr-1" />
+              Recommendations
             </TabsTrigger>
           </TabsList>
           
@@ -277,6 +289,11 @@ export default function Discover() {
                 <p className="text-neutral-500">No users found</p>
               </div>
             )}
+          </TabsContent>
+          
+          {/* Recommendations Tab */}
+          <TabsContent value="recommendations" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
+            <RecentRecommendations />
           </TabsContent>
         </Tabs>
         

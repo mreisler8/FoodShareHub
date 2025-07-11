@@ -76,10 +76,10 @@ export function DesktopSidebar() {
             </Link>
           </li>
           <li>
-            <Link href="/recommendations" aria-label="View recent recommendations">
-              <div className={getNavItemClasses("/recommendations")} role="menuitem" tabIndex={0}>
-                <TrendingUp className="w-6 mr-2" aria-hidden="true" />
-                <span>Recommendations</span>
+            <Link href="/discover" aria-label="Discover new restaurants">
+              <div className={getNavItemClasses("/discover")} role="menuitem" tabIndex={0}>
+                <Search className="w-6 mr-2" aria-hidden="true" />
+                <span>Discover</span>
               </div>
             </Link>
           </li>
