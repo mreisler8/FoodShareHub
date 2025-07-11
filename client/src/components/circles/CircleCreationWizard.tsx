@@ -84,7 +84,7 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // FIXED: Proper search functionality with better error handling
+  // FIXED: Simplified and more robust search functionality
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
       const timeoutId = setTimeout(async () => {
@@ -92,35 +92,49 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
         try {
           console.log('Searching for users with query:', searchQuery);
           
-          const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(searchQuery)}`);
-          console.log('Full search response:', response);
+          // Try direct user search first
+          let users: SearchUser[] = [];
           
-          // FIXED: Properly extract users from the unified search response
-          if (response?.data?.users && Array.isArray(response.data.users)) {
-            const users = response.data.users.map((user: any) => ({
-              id: user.id,
-              name: user.name || user.username,
-              username: user.username,
-              email: user.email || user.username,
-              bio: user.bio
-            }));
-            setSearchResults(users);
-            console.log('Processed users:', users);
-          } else if (response?.users && Array.isArray(response.users)) {
-            // Alternative response structure
-            const users = response.users.map((user: any) => ({
-              id: user.id,
-              name: user.name || user.username,
-              username: user.username,
-              email: user.email || user.username,
-              bio: user.bio
-            }));
-            setSearchResults(users);
-            console.log('Processed users (alt structure):', users);
-          } else {
-            console.log('No users found in response structure:', response);
-            setSearchResults([]);
+          try {
+            const userResponse = await apiRequest(`/api/search/users?q=${encodeURIComponent(searchQuery)}`);
+            if (userResponse && Array.isArray(userResponse)) {
+              users = userResponse.map((user: any) => ({
+                id: user.id,
+                name: user.name || user.username,
+                username: user.username,
+                email: user.email || user.username,
+                bio: user.bio
+              }));
+            }
+          } catch (userSearchError) {
+            console.log('Direct user search failed, trying unified search:', userSearchError);
+            
+            // Fallback to unified search
+            const unifiedResponse = await apiRequest(`/api/search/unified?q=${encodeURIComponent(searchQuery)}`);
+            console.log('Unified search response:', unifiedResponse);
+            
+            // Handle different response structures
+            if (unifiedResponse?.data?.users && Array.isArray(unifiedResponse.data.users)) {
+              users = unifiedResponse.data.users.map((user: any) => ({
+                id: user.id,
+                name: user.name || user.username,
+                username: user.username,
+                email: user.email || user.username,
+                bio: user.bio
+              }));
+            } else if (unifiedResponse?.users && Array.isArray(unifiedResponse.users)) {
+              users = unifiedResponse.users.map((user: any) => ({
+                id: user.id,
+                name: user.name || user.username,
+                username: user.username,
+                email: user.email || user.username,
+                bio: user.bio
+              }));
+            }
           }
+          
+          setSearchResults(users);
+          console.log('Processed users:', users);
         } catch (error) {
           console.error('Search error:', error);
           setSearchResults([]);
@@ -331,7 +345,7 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="circle-wizard-dialog max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="circle-wizard-content">
         <DialogHeader className="circle-wizard-header">
           <DialogTitle className="text-2xl font-bold">Create New Circle</DialogTitle>
           
@@ -481,9 +495,9 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
                     className="pl-10"
                   />
                   
-                  {/* FIXED: Search Results Dropdown */}
+                  {/* Search Results Dropdown */}
                   {searchQuery && (isSearching || searchResults.length > 0 || searchQuery.includes('@')) && (
-                    <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md mt-1 max-h-48 overflow-y-auto z-10 shadow-lg">
+                    <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md mt-1 max-h-48 overflow-y-auto z-20 shadow-lg">
                       {isSearching && (
                         <div className="px-4 py-3 text-muted-foreground text-sm">
                           Searching...
