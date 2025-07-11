@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { insertCircleSchema } from "@shared/schema";
 import { z } from "zod";
+import "./CircleCreationWizard.css";
 
 interface CircleCreationWizardProps {
   open: boolean;
@@ -264,13 +265,13 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0">
-        <div className="p-6">
-        <DialogHeader>
+      <DialogContent className="wizard-dialog sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0 m-0">
+        <div className="p-4 pt-2">
+        <DialogHeader className="pb-2">
           <DialogTitle className="text-2xl font-bold">Create New Circle</DialogTitle>
           
           {/* Step Indicator */}
-          <div className="flex items-center justify-between mt-4 mb-6">
+          <div className="flex items-center justify-between mt-2 mb-4">
             {wizardSteps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${

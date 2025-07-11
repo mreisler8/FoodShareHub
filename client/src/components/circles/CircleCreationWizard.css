@@ -1,0 +1,32 @@
+/* Circle Creation Wizard - Remove Top Padding */
+.wizard-dialog .dialog-content {
+  margin: 0;
+  padding: 0;
+  position: relative;
+  top: 0;
+}
+
+.wizard-dialog .dialog-header {
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.wizard-dialog .dialog-title {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* Ensure no default browser spacing */
+.wizard-dialog {
+  box-sizing: border-box;
+}
+
+.wizard-dialog * {
+  box-sizing: border-box;
+}
+
+/* Override any shadcn default spacing */
+.wizard-dialog [data-radix-dialog-content] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
