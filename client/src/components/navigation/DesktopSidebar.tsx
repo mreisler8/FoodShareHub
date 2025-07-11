@@ -122,16 +122,14 @@ export function DesktopSidebar() {
               </div>
             </Link>
           </li>
-          {isAuthenticated && (
-            <li>
-              <Link href="/settings" aria-label="Account settings">
-                <div className={getNavItemClasses("/settings")} role="menuitem" tabIndex={0}>
-                  <Settings className="w-6 mr-2" aria-hidden="true" />
-                  <span>Settings</span>
-                </div>
-              </Link>
-            </li>
-          )}
+          <li>
+            <Link href="/settings" aria-label="Account settings">
+              <div className={getNavItemClasses("/settings")} role="menuitem" tabIndex={0}>
+                <Settings className="w-6 mr-2" aria-hidden="true" />
+                <span>Settings</span>
+              </div>
+            </Link>
+          </li>
           <li>
             <Link href="/saved">
               <div className={getNavItemClasses("/saved")}>
@@ -144,36 +142,25 @@ export function DesktopSidebar() {
       </nav>
       
       <div className="mt-auto pt-5 border-t border-neutral-200">
-        {isAuthenticated ? (
-          <>
-            <Link href="/profile">
-              <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={currentUser?.profilePicture || ''} alt={currentUser?.name || 'User'} />
-                  <AvatarFallback>{currentUser?.name?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
-                <div className="ml-3">
-                  <p className="font-medium text-neutral-900">{currentUser?.name || 'User'}</p>
-                  <p className="text-sm text-neutral-500">@{currentUser?.username || 'user'}</p>
-                </div>
-              </div>
-            </Link>
-            <div 
-              className="flex items-center p-3 mt-2 rounded-lg hover:bg-red-50 text-red-600 cursor-pointer" 
-              onClick={handleLogout}
-            >
-              <LogOut className="w-6 mr-2" />
-              <span>Logout</span>
+        <Link href="/profile">
+          <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={currentUser?.profilePicture || ''} alt={currentUser?.name || 'User'} />
+              <AvatarFallback>{currentUser?.name?.charAt(0) || 'U'}</AvatarFallback>
+            </Avatar>
+            <div className="ml-3">
+              <p className="font-medium text-neutral-900">{currentUser?.name || 'User'}</p>
+              <p className="text-sm text-neutral-500">@{currentUser?.username || 'user'}</p>
             </div>
-          </>
-        ) : (
-          <Link href="/auth">
-            <div className={getNavItemClasses("/auth")}>
-              <LogIn className="w-6 mr-2" />
-              <span>Login / Register</span>
-            </div>
-          </Link>
-        )}
+          </div>
+        </Link>
+        <div 
+          className="flex items-center p-3 mt-2 rounded-lg hover:bg-red-50 text-red-600 cursor-pointer" 
+          onClick={handleLogout}
+        >
+          <LogOut className="w-6 mr-2" />
+          <span>Logout</span>
+        </div>
       </div>
     </div>
   );
