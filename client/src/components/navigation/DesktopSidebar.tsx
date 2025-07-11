@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 export function DesktopSidebar() {
   const [location] = useLocation();

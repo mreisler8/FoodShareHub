@@ -197,6 +197,23 @@ export function setupAuth(app: Express) {
     console.log("User authenticated:", userWithoutPassword);
     res.json(userWithoutPassword);
   });
+
+  // Also add /api/me endpoint for consistency
+  app.get("/api/me", (req, res) => {
+    console.log("Auth check - Method:", req.method, "Path:", req.path);
+    console.log("Session ID:", req.sessionID);
+    console.log("Is authenticated:", req.isAuthenticated());
+    console.log("Session user:", req.user?.id);
+    console.log("Headers:", req.headers);
+
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    // Return user without password
+    const { password, ...userWithoutPassword } = req.user as Express.User;
+    res.json(userWithoutPassword);
+  });
 }
 
 // Authentication middleware

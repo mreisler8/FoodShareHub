@@ -73,6 +73,17 @@ app.use((req, res, next) => {
   try {
     console.log('Starting Circles server...');
 
+    // Add request logging for debugging
+    app.use((req, res, next) => {
+      if (req.method === 'POST') {
+        console.log('POST Request:', req.path);
+        console.log('Content-Type:', req.headers['content-type']);
+        console.log('Session exists:', !!req.session);
+        console.log('SessionID:', req.sessionID);
+      }
+      next();
+    });
+
     // Performance monitoring
     app.use(performanceMiddleware);
 
@@ -127,13 +138,4 @@ app.use((req, res, next) => {
 
 
 
-// Add request logging for debugging
-app.use((req, res, next) => {
-  if (req.method === 'POST') {
-    console.log('POST Request:', req.path);
-    console.log('Content-Type:', req.headers['content-type']);
-    console.log('Session exists:', !!req.session);
-    console.log('SessionID:', req.sessionID);
-  }
-  next();
-});
+// This was moved to the wrong location - removing from here
