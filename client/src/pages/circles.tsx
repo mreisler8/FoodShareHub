@@ -10,7 +10,7 @@ import { Users, UserPlus, Plus, Settings, MapPin, DollarSign } from "lucide-reac
 import { apiRequest } from "@/lib/queryClient";
 import { PendingInvites } from "@/components/circles/PendingInvites";
 import { InviteModal } from "@/components/circles/InviteModal";
-import CircleWizardModal from "@/components/circles/CircleWizardModal";
+import { SimpleCircleWizard } from "@/components/circles/SimpleCircleWizard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "wouter";
 
@@ -195,10 +195,11 @@ export default function CirclesPage() {
       )}
 
       {/* Circle Creation Wizard */}
-      <CircleWizardModal
-        open={wizardOpen}
-        onOpenChange={setWizardOpen}
-      />
+      {wizardOpen && (
+        <SimpleCircleWizard
+          onClose={() => setWizardOpen(false)}
+        />
+      )}
     </div>
   );
 }
