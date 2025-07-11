@@ -50,8 +50,10 @@ export default function CirclesV2Page() {
   // Form states
   const [circleName, setCircleName] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [joinCode, setJoinCode] = useState("");
+  const [inviteEmails, setInviteEmails] = useState("");
 
   const { data: circles = [], isLoading } = useQuery<Circle[]>({
     queryKey: ['/api/circles'],
@@ -69,17 +71,25 @@ export default function CirclesV2Page() {
 
     setIsCreating(true);
     try {
-      await apiRequest("/api/circles", {
+      const response = await apiRequest("/api/circles", {
         method: "POST",
         body: JSON.stringify({
           name: circleName,
           description: description || undefined,
+          tags: tags || undefined,
           isPrivate: !isPublic,
           allowPublicJoin: isPublic,
         }),
       });
 
       await queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
+      
+      // Send invites if emails were provided
+      if (inviteEmails.trim() && response?.id) {
+        const emails = inviteEmails.split('\n').filter(email => email.trim());
+        // Note: Invite functionality would be implemented here
+        // For now, just show success message
+      }
       
       toast({
         title: "Circle created!",
@@ -89,6 +99,8 @@ export default function CirclesV2Page() {
       // Reset form
       setCircleName("");
       setDescription("");
+      setTags("");
+      setInviteEmails("");
       setIsPublic(false);
       setShowCreateForm(false);
     } catch (error) {
@@ -199,7 +211,7 @@ export default function CirclesV2Page() {
                 <h3 className="text-lg font-semibold mb-4">Create New Circle</h3>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Circle Name</Label>
+                    <Label htmlFor="name">Circle Name *</Label>
                     <Input
                       id="name"
                       placeholder="e.g., Pizza Lovers NYC"
@@ -218,6 +230,33 @@ export default function CirclesV2Page() {
                       className="mt-1"
                       rows={3}
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="tags">Tags (optional)</Label>
+                    <Input
+                      id="tags"
+                      placeholder="e.g., italian, pizza, casual-dining (comma-separated)"
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Add tags to help others discover your circle
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="invites">Invite Members (optional)</Label>
+                    <Textarea
+                      id="invites"
+                      placeholder="Enter email addresses, one per line"
+                      value={inviteEmails}
+                      onChange={(e) => setInviteEmails(e.target.value)}
+                      className="mt-1"
+                      rows={3}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      You can also invite members later
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -244,6 +283,11 @@ export default function CirclesV2Page() {
                     >
                       Cancel
                     </Button>
+                    <Link href="/create-circle-advanced">
+                      <Button variant="ghost" className="ml-auto">
+                        Advanced Options →
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </Card>
