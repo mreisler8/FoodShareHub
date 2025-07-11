@@ -297,22 +297,38 @@ export default function CircleDetailsV2Page() {
                     </div>
                   </div>
                   <Card className="p-4">
-                    <div className="flex -space-x-2">
-                      {circle.members?.slice(0, 8).map((member) => (
-                        <div
-                          key={member.id}
-                          className="w-10 h-10 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-sm font-medium"
-                          title={member.name}
+                    {isOwner && (!circle.members || circle.members.length <= 1) ? (
+                      // Show inline search for new circles with no members (except owner)
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600">Start building your circle by inviting members:</p>
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start"
+                          onClick={() => setShowAddMemberModal(true)}
                         >
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                      ))}
-                      {(circle.memberCount || 0) > 8 && (
-                        <div className="w-10 h-10 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-sm font-medium text-gray-600">
-                          +{circle.memberCount - 8}
-                        </div>
-                      )}
-                    </div>
+                          <Search className="h-4 w-4 mr-2" />
+                          Search and add members...
+                        </Button>
+                      </div>
+                    ) : (
+                      // Show member avatars for circles with members
+                      <div className="flex -space-x-2">
+                        {circle.members?.slice(0, 8).map((member) => (
+                          <div
+                            key={member.id}
+                            className="w-10 h-10 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-sm font-medium"
+                            title={member.name}
+                          >
+                            {member.name.charAt(0).toUpperCase()}
+                          </div>
+                        ))}
+                        {(circle.memberCount || 0) > 8 && (
+                          <div className="w-10 h-10 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-sm font-medium text-gray-600">
+                            +{circle.memberCount - 8}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </Card>
                 </div>
               </div>

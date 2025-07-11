@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { 
   Users, 
   Plus, 
@@ -46,6 +46,7 @@ export default function CirclesV2Page() {
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Form states
   const [circleName, setCircleName] = useState("");
@@ -96,13 +97,8 @@ export default function CirclesV2Page() {
         description: "Your new circle is ready",
       });
       
-      // Reset form
-      setCircleName("");
-      setDescription("");
-      setTags("");
-      setInviteEmails("");
-      setIsPublic(false);
-      setShowCreateForm(false);
+      // Redirect to the new circle details page
+      setLocation(`/circles/${response.id}`);
     } catch (error) {
       toast({
         title: "Error",
