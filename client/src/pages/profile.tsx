@@ -436,12 +436,18 @@ export default function Profile() {
       <DesktopSidebar />
       
       <div className="flex-1 max-w-5xl mx-auto">
-        {/* Back Button */}
-        <div className="p-4">
+        {/* Back Button and Settings */}
+        <div className="p-4 flex items-center justify-between">
           <Link href="/" className="inline-flex items-center text-gray-600 hover:text-gray-900">
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Feed
           </Link>
+          
+          {isOwnProfile && (
+            <Link href="/settings" className="inline-flex items-center text-gray-600 hover:text-gray-900">
+              <Settings className="h-5 w-5" />
+            </Link>
+          )}
         </div>
 
         {/* Profile Cover & Header */}

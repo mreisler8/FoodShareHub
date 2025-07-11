@@ -1,0 +1,89 @@
+PROMPT FOR REPLIT AGENT: Critical Navigation & Functionality Fixes
+
+Context: You're working on "Circles" - a food-focused social recommendation app. Multiple critical issues are preventing core user flows from working properly. The audit shows authentication errors (401), missing navigation paths, and broken button/data flows.
+
+CRITICAL ISSUES TO FIX IMMEDIATELY:
+
+1. Authentication Flow Breakdown (HIGHEST PRIORITY)
+
+API requests are returning 401 errors, indicating authentication middleware issues
+Fix authentication token handling in all API requests
+Ensure proper session management and token refresh
+Verify authentication middleware is properly applied to protected routes
+2. Missing Settings Navigation (CRITICAL)
+
+Settings page exists but isn't accessible from main navigation
+Add Settings link to MobileNavigation component (mobile users can't access settings)
+Add Settings gear icon to Profile page header for easy access
+Ensure DesktopSidebar includes Settings navigation
+3. Profile Page Navigation Issues
+
+Profile is only accessible when authenticated but needs better discovery
+Fix Profile link visibility and accessibility
+Ensure Profile → Settings navigation flow works seamlessly
+Add user avatar click navigation to Profile page
+4. Search Functionality Problems
+
+Unified search modal may have data flow issues
+Verify search API endpoints are properly mounted and responding
+Fix any broken search → restaurant detail navigation
+Ensure search suggestions and results work end-to-end
+5. Component Compilation Errors
+
+Fix ProfileStats component duplicate function declaration error (line 116)
+Resolve any TypeScript compilation errors preventing app from running
+Ensure all imports and exports are correctly configured
+IMPLEMENTATION REQUIREMENTS:
+
+Navigation Fixes:
+
+// Add to MobileNavigation.tsx - Settings should be accessible
+// Add to Profile page header - Settings gear icon
+// Ensure Router.tsx handles /settings route properly
+// Add breadcrumb navigation: Profile ← → Settings
+Authentication Fixes:
+
+Verify /api/me endpoint works without 401 errors
+Fix authentication token persistence and validation
+Ensure all protected routes have proper auth middleware
+Fix session handling for persistent login
+Button & Data Flow Validation:
+
+Test all navigation buttons lead to correct pages
+Verify all form submissions work and persist data
+Ensure search functionality works end-to-end
+Test Profile → Settings → Profile navigation flow
+UX Priorities:
+
+Mobile-first navigation accessibility
+Clear visual feedback for all user actions
+Proper error handling and user-friendly messages
+Consistent navigation patterns across desktop and mobile
+Loading states for all async operations
+Success Criteria:
+
+Users can access Settings from home screen via Profile → Settings
+All API endpoints return proper responses (no 401 errors)
+Search functionality works from input to restaurant detail
+Profile page loads without compilation errors
+All navigation buttons lead to intended destinations
+Mobile navigation includes all essential links
+Authentication persists across sessions
+Form submissions work and provide feedback
+Testing Requirements:
+
+Verify each navigation path manually
+Test authentication flow completely
+Ensure all buttons have working click handlers
+Validate mobile responsive behavior
+Test error states and recovery flows
+Priority Order:
+
+Fix authentication 401 errors immediately
+Add missing Settings navigation paths
+Resolve ProfileStats compilation error
+Verify search end-to-end functionality
+Test all navigation flows work correctly
+Polish mobile responsiveness and UX
+Focus on creating discoverable, intuitive navigation paths that make Settings and Profile easily accessible from anywhere in the app, while ensuring all core functionality works reliably with proper error handling and user feedback.
+
