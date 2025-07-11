@@ -1,0 +1,76 @@
+# 🚀 Restaurant Profile Page Redesign
+
+**User Story**  
+As a restaurant-discovery user,  
+I want a modern, on-brand profile page that shows both Google’s score and our community’s score side-by-side, surface top review snippets, and give me clear CTAs to share, save, or map this venue—  
+So that I instantly trust the data and can take action (post, list, follow) without confusion.
+
+---
+
+## 📐 Design & Components
+
+1. **Hero Image**  
+   - Full-width header with the restaurant’s main photo (fallback to placeholder).  
+   - Title overlay at bottom left.
+
+2. **Dual Score Circles**  
+   - `<ScoreCircle value={googleScore} label="Google" color="#3B82F6" />`  
+   - `<ScoreCircle value={communityScore} label="Community" color="#3B82F6" />`  
+   - Animated arc + numeric center.  
+
+3. **Top Mentions**  
+   - Under circles, render up to 3 `<Badge>` pills showing most-common community phrases (e.g. “Perfect crust!”).  
+   - “See all reviews” link expands to full community feed.
+
+4. **Tabbed Nav**  
+   - **Details**, **Menu**, **Reviews** tabs.  
+   - “Reviews” tab sub-tabs or filter dropdown: **All**, **Following**, **Circle**.
+
+5. **Details Section**  
+   - Two-column grid:  
+     - **Left**: Address, phone, “Visit Website” link.  
+     - **Right**: Hours, price range (`$$`), category.  
+
+6. **Primary Action Bar**  
+   - Sticky at bottom on mobile, or fixed below hero on desktop.  
+   - Buttons:  
+     1. **Share Experience** (solid `bg-primary text-white`)  
+     2. **Add to List** (outline `border-primary text-primary`)  
+     3. **View on Maps** (outline neutral)  
+
+---
+
+## 🔨 Tasks & File Targets
+
+1. **New UI Components**  
+   - `client/src/components/ScoreCircle.tsx`  
+   - `client/src/components/Badge.tsx`  
+   - `client/src/components/TabNav.tsx`  
+   - `client/src/components/ActionBar.tsx`  
+
+2. **RestaurantPage Layout**  
+   - Edit `client/src/pages/RestaurantPage.tsx`:  
+     - Replace existing JSX with Hero + Scores + TabNav + Details + ActionBar.  
+     - Import and use the new components.  
+     - Apply Tailwind classes using your brand color `#3B82F6` (config under `tailwind.config.js` → `theme.extend.colors.primary`).
+
+3. **Data Fetching**  
+   - In `server/routes/restaurants.ts`, enhance the GET `/api/restaurants/:id` handler to return:  
+     - `googleScore` (from `getPlaceDetails`).  
+     - `communityScore` (average of `posts.rating` for this `restaurantId`).  
+     - Top 3 review snippets (first 100 chars of latest 3 community posts).  
+   - On the client, fetch `/api/restaurants/:id?includeReviews=true` in `RestaurantPage.tsx`.
+
+4. **Styling & Responsiveness**  
+   - Ensure mobile stacks: Hero image → score circles (full width) → badges → tabs → details → ActionBar stickied.  
+   - On desktop, two-column scores + badges side-by-side.
+
+5. **Commit Messages**  
+   - `feat(ui): add ScoreCircle, Badge, TabNav, ActionBar components`  
+   - `feat(restaurant): redesign RestaurantPage with dual scores & hero image`  
+   - `feat(api): return googleScore, communityScore, topReviewSnippets in GET /restaurants/:id`  
+   - `style(tailwind): update primary color to #3B82F6 in config`
+
+---
+
+❗ **Please implement in the above order**, verify the mobile and desktop layouts, and ping me when each piece is ready for review.  

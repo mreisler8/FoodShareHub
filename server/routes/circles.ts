@@ -88,6 +88,55 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
+// Update circle details (PUT /api/circles/:id)
+router.put('/:id', authenticate, async (req, res) => {
+  try {
+    const circleId = parseInt(req.params.id);
+    const userId = req.user!.id;
+    const { name, description, primaryCuisine, priceRange, location, isPrivate, allowPublicJoin } = req.body;
+
+    // Check if user is owner or admin
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, circleId),
+          eq(circleMembers.userId, userId),
+          or(
+            eq(circleMembers.role, 'owner'),
+            eq(circleMembers.role, 'admin')
+          )
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: 'Only circle owners and admins can update circle details' });
+    }
+
+    // Update circle
+    const [updatedCircle] = await db
+      .update(circles)
+      .set({
+        name,
+        description,
+        primaryCuisine: primaryCuisine || null,
+        priceRange: priceRange || null,
+        location: location || null,
+        isPrivate: isPrivate || false,
+        allowPublicJoin: allowPublicJoin || false,
+      })
+      .where(eq(circles.id, circleId))
+      .returning();
+
+    res.json(updatedCircle);
+  } catch (error) {
+    console.error('Error updating circle:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Create circle invite
 export async function createCircleInvite(req: Request, res: Response) {
   try {

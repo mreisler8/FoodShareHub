@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { eq, and, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { restaurantLists, restaurantListItems, restaurants, circleMembers } from '../../shared/schema';
+import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists } from '../../shared/schema';
 
 const router = Router();
 
@@ -150,13 +150,44 @@ router.get('/', authenticate, async (req, res) => {
         });
       }
     } else {
-      // Default: return user's own lists
+      // Default: return user's own lists with circle sharing information
       const lists = await db
         .select()
         .from(restaurantLists)
         .where(eq(restaurantLists.createdById, userId));
 
-      res.json(lists);
+      // Get circle shared information for all lists
+      const listIds = lists.map(list => list.id);
+      
+      if (listIds.length > 0) {
+        const sharedInfo = await db
+          .select({
+            listId: circleSharedLists.listId,
+            circleId: circleSharedLists.circleId
+          })
+          .from(circleSharedLists)
+          .where(inArray(circleSharedLists.listId, listIds));
+
+        // Group shared circles by list ID
+        const sharedCirclesByList: Record<number, number[]> = {};
+        sharedInfo.forEach(share => {
+          if (!sharedCirclesByList[share.listId]) {
+            sharedCirclesByList[share.listId] = [];
+          }
+          sharedCirclesByList[share.listId].push(share.circleId);
+        });
+
+        // Add shared circles to each list
+        const listsWithSharing = lists.map(list => ({
+          ...list,
+          sharedWithCircles: sharedCirclesByList[list.id] || [],
+          restaurantCount: 0 // This will be updated later if needed
+        }));
+
+        res.json(listsWithSharing);
+      } else {
+        res.json(lists);
+      }
     }
   } catch (error) {
     console.error('Error fetching lists:', error);

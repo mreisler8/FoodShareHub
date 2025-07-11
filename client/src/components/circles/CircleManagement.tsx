@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserSearchModal } from '@/components/search/UserSearchModal';
 import { InviteModal } from '@/components/circles/InviteModal';
-import { Plus, Users, Settings, Share2, UserPlus } from 'lucide-react';
+import { EditCircleModal } from '@/components/circles/EditCircleModal';
+import { ShareListToCircleModal } from '@/components/circles/ShareListToCircleModal';
+import { Plus, Users, Settings, Share2, UserPlus, Edit, List } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -44,6 +46,8 @@ interface CircleManagementProps {
 export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showShareListModal, setShowShareListModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -148,8 +152,23 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
     <div className="bg-white rounded-lg shadow-sm border p-6 space-y-6">
       {/* Header */}
       <div className="border-b pb-4">
-        <h2 className="text-2xl font-bold text-gray-900">Circle Members</h2>
-        <p className="text-gray-600 mt-1">Manage members and invite new people to your circle</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Circle Members</h2>
+            <p className="text-gray-600 mt-1">Manage members and invite new people to your circle</p>
+          </div>
+          {canManageMembers && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEditModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Edit Circle
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -177,6 +196,14 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
           >
             <Share2 className="w-4 h-4" />
             Share Circle
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowShareListModal(true)}
+            className="flex items-center gap-2"
+          >
+            <List className="w-4 h-4" />
+            Share Lists
           </Button>
         </div>
       )}
@@ -257,10 +284,24 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
         <UserSearchModal
           isOpen={showUserSearch}
           onClose={() => setShowUserSearch(false)}
-          onUserSelect={(userId) => {
-            // Add user to circle logic here
-            console.log('Adding user to circle:', userId);
-            setShowUserSearch(false);
+          onUserSelect={(user) => {
+            // Send invite to user
+            apiRequest(`/api/circles/${circleId}/invites`, {
+              method: 'POST',
+              body: JSON.stringify({ userId: user.id }),
+            }).then(() => {
+              toast({
+                title: 'Invite sent',
+                description: `Invite sent to ${user.name}`,
+              });
+              setShowUserSearch(false);
+            }).catch((error) => {
+              toast({
+                title: 'Error sending invite',
+                description: error.message || 'Failed to send invite',
+                variant: 'destructive',
+              });
+            });
           }}
         />
       )}
@@ -269,6 +310,23 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
         <InviteModal
           isOpen={showInviteModal}
           onClose={() => setShowInviteModal(false)}
+          circleId={circleId}
+          circleName={circle.name}
+        />
+      )}
+
+      {showEditModal && (
+        <EditCircleModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          circle={circle}
+        />
+      )}
+
+      {showShareListModal && (
+        <ShareListToCircleModal
+          isOpen={showShareListModal}
+          onClose={() => setShowShareListModal(false)}
           circleId={circleId}
           circleName={circle.name}
         />

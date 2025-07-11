@@ -86,21 +86,11 @@ export default function CircleDetails() {
           </div>
         ) : null}
         
-        {/* Restaurant Lists */}
+        {/* Restaurant Lists - Combined Section */}
         {circle && (
           <RestaurantListsSection 
             circleId={parseInt(id!)} 
-            title="Curated Restaurant Lists" 
-            showCreateButton={true} 
-            maxLists={4}
-          />
-        )}
-        
-        {/* All Restaurant Lists in Circle */}
-        {circle && (
-          <RestaurantListsSection 
-            circleId={parseInt(id!)} 
-            title="All Shared Lists" 
+            title="Shared Restaurant Lists" 
             showCreateButton={true}
             maxLists={undefined} // Show all lists
           />
