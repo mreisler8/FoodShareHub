@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserSearchModal } from '@/components/search/UserSearchModal';
 import { InviteModal } from '@/components/circles/InviteModal';
 import { Plus, Users, Settings, Share2, UserPlus } from 'lucide-react';
@@ -43,7 +42,6 @@ interface CircleManagementProps {
 }
 
 export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
-  const [activeTab, setActiveTab] = useState('members');
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const { toast } = useToast();
@@ -59,12 +57,6 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
   const { data: members = [], isLoading: membersLoading } = useQuery({
     queryKey: [`/api/circles/${circleId}/members`],
     queryFn: () => apiRequest(`/api/circles/${circleId}/members`),
-  });
-
-  // Fetch user's circles for the search modal
-  const { data: userCircles = [] } = useQuery({
-    queryKey: ['/api/me/circles'],
-    queryFn: () => apiRequest('/api/me/circles'),
   });
 
   // Share circle link
@@ -141,201 +133,126 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">{circle.name}</h2>
-          <p className="text-muted-foreground">{circle.description}</p>
+    <div className="bg-white rounded-lg shadow-sm border p-6 space-y-6">
+      {/* Header */}
+      <div className="border-b pb-4">
+        <h2 className="text-2xl font-bold text-gray-900">Circle Members</h2>
+        <p className="text-gray-600 mt-1">Manage members and invite new people to your circle</p>
+      </div>
+
+      {/* Action Buttons */}
+      {canManageMembers && (
+        <div className="flex gap-3">
+          <Button
+            onClick={() => setShowUserSearch(true)}
+            className="flex items-center gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add Members
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowInviteModal(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Send Invite
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleShareCircle}
+            className="flex items-center gap-2"
+          >
+            <Share2 className="w-4 h-4" />
+            Share Circle
+          </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={circle.isPrivate ? 'secondary' : 'default'}>
-            {circle.isPrivate ? 'Private' : 'Public'}
-          </Badge>
-          <Badge variant="outline">
-            {circle.memberCount} members
-          </Badge>
+      )}
+
+      {/* Members List */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Users className="w-5 h-5" />
+          Members ({members.length})
+        </h3>
+        
+        {membersLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : members.length === 0 ? (
+          <div className="text-center p-8 text-gray-500">
+            <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No members yet. Invite people to join your circle!</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {members.map((member: CircleMember) => (
+              <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={member.user.profilePicture} alt={member.user.name} />
+                    <AvatarFallback className="bg-blue-100 text-blue-700">
+                      {member.user.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h4 className="font-medium text-gray-900">{member.user.name}</h4>
+                    <p className="text-sm text-gray-600">@{member.user.username}</p>
+                    {member.user.bio && (
+                      <p className="text-xs text-gray-500 mt-1">{member.user.bio}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
+                    {member.role}
+                  </Badge>
+                  {canManageMembers && member.role !== 'owner' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveMember(member.userId)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Circle Info */}
+      <div className="border-t pt-4">
+        <div className="flex items-center justify-between text-sm text-gray-600">
+          <span>Invite Code: <code className="bg-gray-100 px-2 py-1 rounded">{circle.inviteCode}</code></span>
+          <span>Created by: {circle.role === 'owner' ? 'You' : 'Another member'}</span>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="invite">Invite</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
+      {/* Modals */}
+      {showUserSearch && (
+        <UserSearchModal
+          isOpen={showUserSearch}
+          onClose={() => setShowUserSearch(false)}
+          onUserSelect={(userId) => {
+            // Add user to circle logic here
+            console.log('Adding user to circle:', userId);
+            setShowUserSearch(false);
+          }}
+        />
+      )}
 
-        <TabsContent value="members" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Circle Members</h3>
-            {canManageMembers && (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowUserSearch(true)}
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add Members
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowInviteModal(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Send Invite
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {membersLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {members.map((member: CircleMember) => (
-                <Card key={member.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={member.user.profilePicture} alt={member.user.name} />
-                          <AvatarFallback>{member.user.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h4 className="font-medium">{member.user.name}</h4>
-                          <p className="text-sm text-muted-foreground">@{member.user.username}</p>
-                          {member.user.bio && (
-                            <p className="text-xs text-muted-foreground mt-1">{member.user.bio}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
-                          {member.role}
-                        </Badge>
-                        {canManageMembers && member.role !== 'owner' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveMember(member.userId)}
-                          >
-                            Remove
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="invite" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Share2 className="w-5 h-5" />
-                Share Circle
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Share this link to invite people to your circle:
-                </p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 p-2 bg-muted rounded text-sm">
-                    {window.location.origin}/join/{circle.inviteCode}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleShareCircle}
-                    disabled={shareCircleMutation.isPending}
-                  >
-                    Copy
-                  </Button>
-                </div>
-              </div>
-
-              {canManageMembers && (
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowInviteModal(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Send Email Invite
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowUserSearch(true)}
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Find & Add Users
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Circle Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Privacy</label>
-                  <p className="text-sm text-muted-foreground">
-                    {circle.isPrivate ? 'Private circle' : 'Public circle'}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Public Join</label>
-                  <p className="text-sm text-muted-foreground">
-                    {circle.allowPublicJoin ? 'Anyone can join' : 'Invite only'}
-                  </p>
-                </div>
-              </div>
-              
-              {canManageMembers && (
-                <div className="pt-4 border-t">
-                  <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Edit Circle Settings
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* User Search Modal */}
-      <UserSearchModal
-        isOpen={showUserSearch}
-        onClose={() => setShowUserSearch(false)}
-        showAddToCircle={true}
-        availableCircles={[{ id: circleId, name: circle.name }]}
-      />
-
-      {/* Invite Modal */}
-      <InviteModal
-        isOpen={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
-        circleId={circleId}
-        circleName={circle.name}
-      />
+      {showInviteModal && (
+        <InviteModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          circleId={circleId}
+        />
+      )}
     </div>
   );
 }
