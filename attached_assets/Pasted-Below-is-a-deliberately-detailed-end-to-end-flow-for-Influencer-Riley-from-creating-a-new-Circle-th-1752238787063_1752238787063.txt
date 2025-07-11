@@ -1,0 +1,158 @@
+Below is a deliberately detailed end-to-end flow for Influencer Riley, from creating a new Circle through sharing her first curated list, with notes on where the UI should “do the heavy lifting” (search, suggestions, templates) versus where Riley customizes.
+
+Riley’s Full Circle Flow
+1. Entry Point & Discovery
+Landing CTA
+
+On Riley’s dashboard she sees a prominent “Create Circle” card in the Quick Actions area (with a plus-icon and “Circle” label).
+
+Microcopy
+
+Below the button: “Build your trusted foodie community in seconds.”
+
+2. Step 1 → Define Your Circle
+Modal / Wizard Stepper
+
+Modal pops up with a 3-step header: Name → Invite → Share.
+
+Name & Theme
+
+Input: Circle Name (placeholder “e.g. Pizza Pals,” “Date-Night Crew”).
+
+Smart Templates: below the field show 3 tappable chips: “Pizza Pals,” “Sushi Squad,” “Weekend Brunchers.”
+
+Tags: free-text tag entry with auto-suggest (“pizza,” “sushi,” “romantic”).
+
+Privacy Toggle
+
+Public / Circle-only radio. Default = Circle-only.
+
+Next Button: disabled until name ≧ 3 chars.
+
+3. Step 2 → Invite Your Members
+Search-as-you-type
+
+Single search box: “Find friends by name or email…”
+
+Auto-suggest dropdown shows (“Mia Chen (you follow)”, “Ethan Li”, “+ Invite new email”).
+
+Chips UI
+
+Each selected invitee becomes a removable chip.
+
+Bulk Paste
+
+Secondary link: “Paste emails separated by commas” → expands textarea.
+
+Send Invites
+
+“Send & Finish” button once ≥ 1 chip present.
+
+On click → show toast “2 invites sent!” and advance to Step 3.
+
+4. Step 3 → Share Your First List
+Inline Prompt
+
+“Add your favorite pizza spots to get the party started.”
+
+Auto-populated Suggestions
+
+Show trending lists in Riley’s network: e.g. “Top 5 Toronto Pizzas” card with “Add to Circle” button.
+
+Or Create New List
+
+Button: “+ Create Custom List”
+
+List Modal: Name (e.g. “Riley’s Pizza Hits”), Description, Visibility (Circle-only).
+
+Search & Add: type “pizza” → search dropdown from Google Places + internal DB.
+
+Add to List: choose up to 10 restaurants; each becomes a list item with thumbnail.
+
+Reorder via drag-and-drop.
+
+Save & Share → POST → redirect to Circle feed.
+
+5. Circle Home & Feed
+Welcome Banner
+
+“Pizza Pals” header with circle avatar (auto-generated from first two initials) and member count.
+
+Tabs:
+
+Feed (default), Members, Lists.
+
+Feed
+
+Shows Riley’s newly shared list card at the top, labeled “Shared by you.”
+
+Others’ posts/lists appear below, sorted by recency or “hot”.
+
+Members
+
+Grid of member avatars + roles (owner/admin/member) with “Remove” only if you’re owner.
+
+Lists
+
+Grid of all lists shared in this circle, with ratings and count badges.
+
+6. Continuous Engagement
+Notifications
+
+Riley immediately sees “Bob accepted your invite!” in the top-nav bell.
+
+Next-Best Actions
+
+Under the feed: “Your Circle has no reviews yet. Invite more friends or add a review.”
+
+Micro-Interactions
+
+Hover on list cards reveals “Edit” and “Add item” icons.
+
+Clicking “Add item” opens inline search + add UI buried under that card.
+
+Customization vs. Assumed/Search Automation
+You Customize	UI Should Automate/Recommend
+• Your Circle Name, Description & Tags	• Name Templates (common themes) as one-click chips
+• Invitee selection (which friends/emails exactly)	• Auto-suggest friends based on past interactions/follow
+• Building a brand-new list (name + description)	• Trending/Popular lists for quick “Add to Circle” cards
+• Curating specific restaurants in a custom list	• Google Places autocomplete + internal DB cross-ref
+• Final privacy settings	• Sensible default toggles (Circle-only)
+
+Best-in-Class UX Notes
+Progressive Disclosure
+
+Only ask for details you can’t infer. Name+tags → Invite → Content.
+
+Templates & Defaults
+
+Keep Riley moving quickly with pre-filled options (templates, default privacy).
+
+Inline Feedback
+
+Disable “Next” until valid; show real-time validation/errors.
+
+Toasts and inline toasts on invite send and list share.
+
+Search-First
+
+Wherever Riley types, show instant suggestions (friends, restaurants, lists).
+
+Ownership Signals
+
+Clear “Shared by you” badge and role labels so Riley knows her power.
+
+Mobile/Responsive
+
+Step wizard becomes full-screen slide cards on mobile, with a sticky bottom CTA.
+
+By blending Riley’s desire for full control (naming, curating) with smart defaults and search-driven suggestions, you’ll empower your influencer persona to build vibrant, trusted circles in under 60 seconds—and keep them coming back for more.
+
+
+
+
+
+
+
+Sources
+

@@ -10,6 +10,7 @@ import { Users, UserPlus, Plus, Settings, MapPin, DollarSign } from "lucide-reac
 import { apiRequest } from "@/lib/queryClient";
 import { PendingInvites } from "@/components/circles/PendingInvites";
 import { InviteModal } from "@/components/circles/InviteModal";
+import { CircleCreationWizard } from "@/components/circles/CircleCreationWizard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "wouter";
 
@@ -29,6 +30,7 @@ interface Circle {
 export default function CirclesPage() {
   const isMobile = useIsMobile();
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedCircle, setSelectedCircle] = useState<Circle | null>(null);
 
   const { data: circles = [], isLoading } = useQuery<Circle[]>({
@@ -131,12 +133,10 @@ export default function CirclesPage() {
               <h1 className="text-2xl font-bold">My Circles</h1>
               <p className="text-gray-600">Connect with food lovers who share your taste</p>
             </div>
-            <Link href="/create-circle">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create Circle
-              </Button>
-            </Link>
+            <Button className="gap-2" onClick={() => setWizardOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Create Circle
+            </Button>
           </div>
 
           <Tabs defaultValue="my-circles" className="w-full">
@@ -160,12 +160,10 @@ export default function CirclesPage() {
                     <p className="text-gray-500 text-center mb-4">
                       Create your first circle to start connecting with other food enthusiasts
                     </p>
-                    <Link href="/create-circle">
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Your First Circle
-                      </Button>
-                    </Link>
+                    <Button onClick={() => setWizardOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Circle
+                    </Button>
                   </CardContent>
                 </Card>
               ) : (
@@ -195,6 +193,12 @@ export default function CirclesPage() {
           circleName={selectedCircle.name}
         />
       )}
+
+      {/* Circle Creation Wizard */}
+      <CircleCreationWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+      />
     </div>
   );
 }
