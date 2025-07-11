@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, User, LogIn, LogOut, List, Settings } from "lucide-react";
+import { Home, Search, PlusCircle, Users, User, LogIn, LogOut, List, Settings, TrendingUp } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { User as UserType } from "@shared/schema";
@@ -34,10 +34,10 @@ export function MobileNavigation() {
           </div>
         </Link>
         
-        <Link href="/discover" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/discover') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
-            <Search className="h-5 w-5" />
-            <span className="text-xs mt-1 font-medium">Discover</span>
+        <Link href="/recommendations" className="flex-1 h-full">
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/recommendations') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+            <TrendingUp className="h-5 w-5" />
+            <span className="text-xs mt-1 font-medium">Recs</span>
           </div>
         </Link>
         

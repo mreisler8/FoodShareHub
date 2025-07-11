@@ -542,29 +542,133 @@ export default function Profile() {
               </TabsContent>
               
               <TabsContent value="lists" className="mt-0">
-                <div className="text-center py-12">
-                  <Bookmark className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No lists yet</h3>
-                  <p className="text-gray-500">
-                    {isOwnProfile 
-                      ? "Create your first restaurant list!" 
-                      : `${profileUser.name} hasn't created any lists yet.`
-                    }
-                  </p>
-                </div>
+                {isListsLoading ? (
+                  <div className="space-y-4">
+                    {Array(3).fill(0).map((_, i) => (
+                      <Card key={i}>
+                        <CardContent className="p-4">
+                          <Skeleton className="h-6 w-48 mb-2" />
+                          <Skeleton className="h-4 w-32 mb-2" />
+                          <Skeleton className="h-4 w-24" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : userLists && userLists.length > 0 ? (
+                  <div className="space-y-4">
+                    {userLists.map((list: any) => (
+                      <Card key={list.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg mb-2">{list.name}</h3>
+                              {list.description && (
+                                <p className="text-gray-600 mb-2">{list.description}</p>
+                              )}
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <span>{list.restaurantCount || 0} restaurants</span>
+                                <span>•</span>
+                                <span>{new Date(list.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                {list.makePublic && (
+                                  <Badge variant="secondary">Public</Badge>
+                                )}
+                                {list.shareWithCircle && (
+                                  <Badge variant="outline">Circle</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={`/lists/${list.id}`}>View</Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="text-center py-12">
+                    <CardContent>
+                      <Bookmark className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No lists yet</h3>
+                      <p className="text-gray-500">
+                        {isOwnProfile 
+                          ? "Create your first restaurant list!" 
+                          : `${profileUser?.name} hasn't created any lists yet.`
+                        }
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
               
               <TabsContent value="circles" className="mt-0">
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No circles yet</h3>
-                  <p className="text-gray-500">
-                    {isOwnProfile 
-                      ? "Join or create your first circle!" 
-                      : `${profileUser.name} isn't part of any public circles.`
-                    }
-                  </p>
-                </div>
+                {isCirclesLoading ? (
+                  <div className="space-y-4">
+                    {Array(3).fill(0).map((_, i) => (
+                      <Card key={i}>
+                        <CardContent className="p-4">
+                          <Skeleton className="h-6 w-48 mb-2" />
+                          <Skeleton className="h-4 w-32 mb-2" />
+                          <Skeleton className="h-4 w-24" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : userCircles && userCircles.length > 0 ? (
+                  <div className="space-y-4">
+                    {userCircles.map((circle: any) => (
+                      <Card key={circle.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg mb-2">{circle.name}</h3>
+                              {circle.description && (
+                                <p className="text-gray-600 mb-2">{circle.description}</p>
+                              )}
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <span>{circle.memberCount || 0} members</span>
+                                <span>•</span>
+                                <span>{new Date(circle.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                {circle.primaryCuisine && (
+                                  <Badge variant="secondary">{circle.primaryCuisine}</Badge>
+                                )}
+                                {circle.priceRange && (
+                                  <Badge variant="outline">{circle.priceRange}</Badge>
+                                )}
+                                {circle.creatorId === userId && (
+                                  <Badge variant="default">
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Owner
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={`/circles/${circle.id}`}>View</Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="text-center py-12">
+                    <CardContent>
+                      <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No circles yet</h3>
+                      <p className="text-gray-500">
+                        {isOwnProfile 
+                          ? "Join or create your first circle!" 
+                          : `${profileUser?.name} isn't part of any public circles.`
+                        }
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               {isOwnProfile && (

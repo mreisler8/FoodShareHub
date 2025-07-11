@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings, TrendingUp } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -76,10 +76,10 @@ export function DesktopSidebar() {
             </Link>
           </li>
           <li>
-            <Link href="/discover" aria-label="Discover new restaurants">
-              <div className={getNavItemClasses("/discover")} role="menuitem" tabIndex={0}>
-                <Search className="w-6 mr-2" aria-hidden="true" />
-                <span>Discover</span>
+            <Link href="/recommendations" aria-label="View recent recommendations">
+              <div className={getNavItemClasses("/recommendations")} role="menuitem" tabIndex={0}>
+                <TrendingUp className="w-6 mr-2" aria-hidden="true" />
+                <span>Recommendations</span>
               </div>
             </Link>
           </li>

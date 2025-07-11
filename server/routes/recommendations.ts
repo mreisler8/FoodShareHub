@@ -1,230 +1,344 @@
-
 import { Router } from 'express';
-import { eq, and, sql } from 'drizzle-orm';
-import { db } from '../db.js';
-import { authenticate } from '../auth.js';
-import { recommendations, circleMembers, restaurants, users } from '../../shared/schema';
-import { z } from 'zod';
+import { authenticate } from '../auth';
+import { db } from '../db';
+import { eq, desc, and, or, sql, inArray } from 'drizzle-orm';
+import { 
+  posts, 
+  users, 
+  restaurants, 
+  userFollowers, 
+  restaurantLists, 
+  restaurantListItems,
+  circleMembers,
+  circles
+} from '../../shared/schema';
 
 const router = Router();
 
-// Input validation schemas - these check that data is in the right format
-const createRecommendationSchema = z.object({
-  circleId: z.number().positive('Circle ID must be a positive number'),
-  restaurantId: z.number().positive('Restaurant ID must be a positive number')
-});
-
-// GET all recommendations for a circle
-router.get('/:circleId', authenticate, async (req, res) => {
+// GET /api/recommendations/recent - Get recent recommendations from followed users
+router.get('/recent', authenticate, async (req, res) => {
   try {
-    const circleId = parseInt(req.params.circleId);
     const userId = req.user!.id;
+    const { theme, location, cuisine, priceRange, limit = 20 } = req.query;
     
-    // Validate the circle ID is a valid number
-    if (isNaN(circleId) || circleId <= 0 || circleId > 2147483647) {
-      return res.status(400).json({ 
-        error: 'Invalid circle ID - must be a positive integer',
-        code: 'INVALID_CIRCLE_ID'
+    // Get users that the current user follows
+    const followedUsers = await db
+      .select({ followingId: userFollowers.followingId })
+      .from(userFollowers)
+      .where(eq(userFollowers.followerId, userId));
+    
+    const followedUserIds = followedUsers.map(f => f.followingId);
+    
+    if (followedUserIds.length === 0) {
+      return res.json({
+        recommendations: [],
+        summary: {
+          totalRecommendations: 0,
+          byTheme: {},
+          byLocation: {},
+          byCuisine: {},
+          byPriceRange: {}
+        }
       });
     }
-
-    // First, check if user is a member of the circle (more efficient single query)
-    const membershipCheck = await db
-      .select({ isMember: sql<boolean>`true` })
-      .from(circleMembers)
-      .where(and(
-        eq(circleMembers.circleId, circleId),
-        eq(circleMembers.userId, userId)
-      ))
-      .limit(1);
-
-    // If user is not a member, deny access immediately
-    if (membershipCheck.length === 0) {
-      return res.status(403).json({ 
-        error: 'You must be a member of this circle to view recommendations',
-        code: 'ACCESS_DENIED'
-      });
+    
+    // Build filter conditions
+    let filterConditions = [
+      inArray(posts.userId, followedUserIds),
+      eq(posts.visibility, 'public') // Only public posts
+    ];
+    
+    if (cuisine) {
+      filterConditions.push(eq(restaurants.cuisine, cuisine as string));
     }
-
-    // Get recommendations with restaurant and user data in one optimized query
-    const recommendationsWithDetails = await db
+    
+    if (location) {
+      filterConditions.push(sql`${restaurants.location} ILIKE ${'%' + location + '%'}`);
+    }
+    
+    if (priceRange) {
+      filterConditions.push(eq(restaurants.priceRange, priceRange as string));
+    }
+    
+    // Get recent recommendations (posts with high ratings)
+    const recommendations = await db
       .select({
-        // Recommendation fields
-        id: recommendations.id,
-        circleId: recommendations.circleId,
-        restaurantId: recommendations.restaurantId,
-        userId: recommendations.userId,
-        createdAt: recommendations.createdAt,
-        // Restaurant details (only essential fields)
-        restaurantName: restaurants.name,
+        id: posts.id,
+        content: posts.content,
+        rating: posts.rating,
+        dishesTried: posts.dishesTried,
+        images: posts.images,
+        createdAt: posts.createdAt,
+        author: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+        },
+        restaurant: {
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          cuisine: restaurants.cuisine,
+          priceRange: restaurants.priceRange,
+          address: restaurants.address,
+          imageUrl: restaurants.imageUrl,
+        }
+      })
+      .from(posts)
+      .innerJoin(users, eq(posts.userId, users.id))
+      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+      .where(and(...filterConditions))
+      .orderBy(desc(posts.createdAt))
+      .limit(parseInt(limit as string));
+    
+    // Get summary statistics
+    const summaryQuery = await db
+      .select({
+        totalCount: sql<number>`count(*)::int`,
         cuisine: restaurants.cuisine,
-        priceRange: restaurants.priceRange,
         location: restaurants.location,
-        imageUrl: restaurants.imageUrl,
-        address: restaurants.address,
-        // User details (only essential fields)
-        userName: users.name,
-        username: users.username,
-        profilePicture: users.profilePicture,
+        priceRange: restaurants.priceRange,
+        avgRating: sql<number>`avg(${posts.rating})::numeric(3,2)`,
       })
-      .from(recommendations)
-      .innerJoin(restaurants, eq(recommendations.restaurantId, restaurants.id))
-      .innerJoin(users, eq(recommendations.userId, users.id))
-      .where(eq(recommendations.circleId, circleId))
-      .orderBy(sql`${recommendations.createdAt} DESC`)
-      .limit(50); // Add reasonable limit to prevent large result sets
-
-    // Transform the flat results into the expected nested structure
-    const formattedRecommendations = recommendationsWithDetails.map(rec => ({
-      id: rec.id,
-      circleId: rec.circleId,
-      restaurantId: rec.restaurantId,
-      userId: rec.userId,
-      createdAt: rec.createdAt,
-      restaurant: {
-        name: rec.restaurantName,
-        cuisine: rec.cuisine,
-        priceRange: rec.priceRange,
-        location: rec.location,
-        imageUrl: rec.imageUrl,
-        address: rec.address,
-      },
-      user: {
-        name: rec.userName,
-        username: rec.username,
-        profilePicture: rec.profilePicture,
-      },
-    }));
-
-    res.json(formattedRecommendations);
-  } catch (error) {
-    console.error('Error fetching recommendations:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch recommendations. Please try again.',
-      code: 'FETCH_ERROR'
-    });
-  }
-});
-
-// POST a new recommendation
-router.post('/', authenticate, async (req, res) => {
-  try {
-    // Validate input data using our schema
-    const validatedData = createRecommendationSchema.parse(req.body);
-    const { circleId, restaurantId } = validatedData;
-    const userId = req.user!.id;
-
-    // Single query to check membership and existing recommendation
-    const [membershipAndExisting] = await db
-      .select({
-        isMember: sql<boolean>`EXISTS(
-          SELECT 1 FROM ${circleMembers} cm 
-          WHERE cm.circle_id = ${circleId} AND cm.user_id = ${userId}
-        )`,
-        hasExistingRec: sql<boolean>`EXISTS(
-          SELECT 1 FROM ${recommendations} r 
-          WHERE r.circle_id = ${circleId} 
-          AND r.restaurant_id = ${restaurantId} 
-          AND r.user_id = ${userId}
-        )`,
-        restaurantExists: sql<boolean>`EXISTS(
-          SELECT 1 FROM ${restaurants} res 
-          WHERE res.id = ${restaurantId}
-        )`
-      })
-      .from(sql`(SELECT 1) as dummy`);
-
-    // Check if user is member of this circle
-    if (!membershipAndExisting.isMember) {
-      return res.status(403).json({ 
-        error: 'You must be a member of this circle to add recommendations',
-        code: 'ACCESS_DENIED'
-      });
-    }
-
-    // Check if restaurant exists
-    if (!membershipAndExisting.restaurantExists) {
-      return res.status(404).json({ 
-        error: 'Restaurant not found',
-        code: 'RESTAURANT_NOT_FOUND'
-      });
-    }
-
-    // Check if recommendation already exists (prevent duplicates)
-    if (membershipAndExisting.hasExistingRec) {
-      return res.status(409).json({ 
-        error: 'You have already recommended this restaurant to this circle',
-        code: 'DUPLICATE_RECOMMENDATION'
-      });
-    }
-
-    // Create the recommendation
-    const [newRecommendation] = await db
-      .insert(recommendations)
-      .values({ circleId, restaurantId, userId })
-      .returning();
-
-    res.status(201).json(newRecommendation);
-  } catch (error) {
-    // Handle validation errors specifically
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Invalid input data',
-        code: 'VALIDATION_ERROR',
-        details: error.errors.map(e => ({
-          field: e.path.join('.'),
-          message: e.message
-        }))
-      });
-    }
-
-    console.error('Error creating recommendation:', error);
-    res.status(500).json({ 
-      error: 'Failed to create recommendation. Please try again.',
-      code: 'SERVER_ERROR'
-    });
-  }
-});
-
-// DELETE your own recommendation
-router.delete('/:id', authenticate, async (req, res) => {
-  try {
-    const recId = parseInt(req.params.id);
-    
-    // Validate the recommendation ID
-    if (isNaN(recId) || recId <= 0) {
-      return res.status(400).json({ 
-        error: 'Invalid recommendation ID' 
-      });
-    }
-
-    // Check if recommendation exists and belongs to user
-    const [existingRec] = await db
-      .select()
-      .from(recommendations)
+      .from(posts)
+      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
       .where(and(
-        eq(recommendations.id, recId),
-        eq(recommendations.userId, req.user!.id)
+        inArray(posts.userId, followedUserIds),
+        eq(posts.visibility, 'public')
       ))
-      .limit(1);
+      .groupBy(restaurants.cuisine, restaurants.location, restaurants.priceRange);
+    
+    // Process summary data
+    const summary = {
+      totalRecommendations: recommendations.length,
+      byTheme: {} as Record<string, number>,
+      byLocation: {} as Record<string, number>,
+      byCuisine: {} as Record<string, number>,
+      byPriceRange: {} as Record<string, number>
+    };
+    
+    summaryQuery.forEach(item => {
+      if (item.cuisine) {
+        summary.byCuisine[item.cuisine] = (summary.byCuisine[item.cuisine] || 0) + 1;
+      }
+      if (item.location) {
+        summary.byLocation[item.location] = (summary.byLocation[item.location] || 0) + 1;
+      }
+      if (item.priceRange) {
+        summary.byPriceRange[item.priceRange] = (summary.byPriceRange[item.priceRange] || 0) + 1;
+      }
+    });
+    
+    res.json({
+      recommendations,
+      summary,
+      filters: {
+        theme,
+        location,
+        cuisine,
+        priceRange
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching recent recommendations:', error);
+    res.status(500).json({ error: 'Failed to fetch recommendations' });
+  }
+});
 
-    if (!existingRec) {
-      return res.status(404).json({ 
-        error: 'Recommendation not found or you do not have permission to delete it' 
+// GET /api/recommendations/trending - Get trending recommendations in user's network
+router.get('/trending', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { days = 7, limit = 10 } = req.query;
+    
+    // Get users that the current user follows
+    const followedUsers = await db
+      .select({ followingId: userFollowers.followingId })
+      .from(userFollowers)
+      .where(eq(userFollowers.followerId, userId));
+    
+    const followedUserIds = followedUsers.map(f => f.followingId);
+    
+    if (followedUserIds.length === 0) {
+      return res.json([]);
+    }
+    
+    // Get trending restaurants based on recent high-rated posts from followed users
+    const trendingRecommendations = await db.execute(sql`
+      SELECT 
+        r.id,
+        r.name,
+        r.location,
+        r.cuisine,
+        r.price_range as "priceRange",
+        r.address,
+        r.image_url as "imageUrl",
+        COUNT(p.id) as "mentionCount",
+        AVG(p.rating) as "avgRating",
+        ARRAY_AGG(DISTINCT p.dishes_tried) as "popularDishes",
+        ARRAY_AGG(DISTINCT u.name) as "recommendedBy"
+      FROM restaurants r
+      INNER JOIN posts p ON r.id = p.restaurant_id
+      INNER JOIN users u ON p.user_id = u.id
+      WHERE p.user_id = ANY(${followedUserIds})
+        AND p.created_at >= NOW() - INTERVAL '${days} days'
+        AND p.visibility = 'public'
+        AND p.rating >= 4
+      GROUP BY r.id, r.name, r.location, r.cuisine, r.price_range, r.address, r.image_url
+      ORDER BY COUNT(p.id) DESC, AVG(p.rating) DESC
+      LIMIT ${parseInt(limit as string)}
+    `);
+    
+    res.json(trendingRecommendations.rows);
+    
+  } catch (error) {
+    console.error('Error fetching trending recommendations:', error);
+    res.status(500).json({ error: 'Failed to fetch trending recommendations' });
+  }
+});
+
+// GET /api/recommendations/by-circle - Get recommendations from circle members
+router.get('/by-circle', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { circleId, limit = 20 } = req.query;
+    
+    // Get user's circles if no specific circle specified
+    let targetCircleIds: number[] = [];
+    
+    if (circleId) {
+      // Verify user is member of the specified circle
+      const membership = await db
+        .select()
+        .from(circleMembers)
+        .where(and(
+          eq(circleMembers.circleId, parseInt(circleId as string)),
+          eq(circleMembers.userId, userId)
+        ))
+        .limit(1);
+      
+      if (membership.length === 0) {
+        return res.status(403).json({ error: 'Not a member of this circle' });
+      }
+      
+      targetCircleIds = [parseInt(circleId as string)];
+    } else {
+      // Get all circles user is member of
+      const userCircles = await db
+        .select({ circleId: circleMembers.circleId })
+        .from(circleMembers)
+        .where(eq(circleMembers.userId, userId));
+      
+      targetCircleIds = userCircles.map(c => c.circleId);
+    }
+    
+    if (targetCircleIds.length === 0) {
+      return res.json([]);
+    }
+    
+    // Get recommendations from circle members
+    const circleRecommendations = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        rating: posts.rating,
+        dishesTried: posts.dishesTried,
+        images: posts.images,
+        createdAt: posts.createdAt,
+        author: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+        },
+        restaurant: {
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          cuisine: restaurants.cuisine,
+          priceRange: restaurants.priceRange,
+          address: restaurants.address,
+          imageUrl: restaurants.imageUrl,
+        },
+        circle: {
+          id: circles.id,
+          name: circles.name,
+        }
+      })
+      .from(posts)
+      .innerJoin(users, eq(posts.userId, users.id))
+      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+      .innerJoin(circleMembers, eq(circleMembers.userId, posts.userId))
+      .innerJoin(circles, eq(circles.id, circleMembers.circleId))
+      .where(and(
+        inArray(circleMembers.circleId, targetCircleIds),
+        or(
+          eq(posts.visibility, 'public'),
+          eq(posts.visibility, 'circles')
+        )
+      ))
+      .orderBy(desc(posts.createdAt))
+      .limit(parseInt(limit as string));
+    
+    res.json(circleRecommendations);
+    
+  } catch (error) {
+    console.error('Error fetching circle recommendations:', error);
+    res.status(500).json({ error: 'Failed to fetch circle recommendations' });
+  }
+});
+
+// GET /api/recommendations/filters - Get available filter options
+router.get('/filters', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    
+    // Get users that the current user follows
+    const followedUsers = await db
+      .select({ followingId: userFollowers.followingId })
+      .from(userFollowers)
+      .where(eq(userFollowers.followerId, userId));
+    
+    const followedUserIds = followedUsers.map(f => f.followingId);
+    
+    if (followedUserIds.length === 0) {
+      return res.json({
+        cuisines: [],
+        locations: [],
+        priceRanges: []
       });
     }
-
-    // Delete the recommendation
-    await db
-      .delete(recommendations)
-      .where(eq(recommendations.id, recId));
-
-    res.status(204).send(); // 204 means "successfully deleted, no content to return"
-  } catch (error) {
-    console.error('Error deleting recommendation:', error);
-    res.status(500).json({ 
-      error: 'Failed to delete recommendation. Please try again.' 
+    
+    // Get distinct filter options from followed users' posts
+    const filterOptions = await db
+      .select({
+        cuisine: restaurants.cuisine,
+        location: restaurants.location,
+        priceRange: restaurants.priceRange,
+      })
+      .from(posts)
+      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+      .where(and(
+        inArray(posts.userId, followedUserIds),
+        eq(posts.visibility, 'public')
+      ))
+      .groupBy(restaurants.cuisine, restaurants.location, restaurants.priceRange);
+    
+    const cuisines = [...new Set(filterOptions.map(f => f.cuisine).filter(Boolean))];
+    const locations = [...new Set(filterOptions.map(f => f.location).filter(Boolean))];
+    const priceRanges = [...new Set(filterOptions.map(f => f.priceRange).filter(Boolean))];
+    
+    res.json({
+      cuisines: cuisines.sort(),
+      locations: locations.sort(),
+      priceRanges: priceRanges.sort()
     });
+    
+  } catch (error) {
+    console.error('Error fetching filter options:', error);
+    res.status(500).json({ error: 'Failed to fetch filter options' });
   }
 });
 

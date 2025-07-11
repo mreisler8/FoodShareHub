@@ -1140,9 +1140,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const restaurantRouter = await import("./routes/restaurants");
   app.use("/api/restaurants", restaurantRouter.default);
   
-  // app.use("/api/lists", listsRouter);
-  // app.use("/api/recommendations", recommendationsRouter);
-  // app.use("/api/list-item-comments", listItemCommentsRouter);
+  app.use("/api/lists", listsRouter);
+  app.use("/api/recommendations", recommendationsRouter);
+  app.use("/api/list-item-comments", listItemCommentsRouter);
   app.use("/api/follow", followRoutes);
   app.use("/api/follow", followRequestsRouter);
   // app.use("/api/search-analytics", searchAnalyticsRouter);
