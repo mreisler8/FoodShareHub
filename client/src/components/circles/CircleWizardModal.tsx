@@ -58,10 +58,16 @@ export default function CircleWizardModal({ open, onOpenChange }: CircleWizardMo
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Search users query
+  // Search users query - using unified search endpoint with type=users
   const { data: searchResults = [] } = useQuery({
-    queryKey: ["/api/search/users", searchTerm],
-    enabled: searchTerm.length > 0,
+    queryKey: ["/api/search", searchTerm, "users"],
+    queryFn: async () => {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(searchTerm)}&type=users`);
+      if (!response.ok) throw new Error("Failed to search users");
+      const data = await response.json();
+      return data.results || [];
+    },
+    enabled: searchTerm.length > 1,
   });
 
   // Create circle mutation

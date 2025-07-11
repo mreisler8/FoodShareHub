@@ -8,7 +8,7 @@ import { ArrowLeft, User, Users, Settings } from "lucide-react";
 import { CircleWithStats } from "@/lib/types";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
+import { CircleListsSection } from "@/components/lists/CircleListsSection";
 import { CircleManagement } from "@/components/circles/CircleManagement";
 
 export default function CircleDetails() {
@@ -88,7 +88,7 @@ export default function CircleDetails() {
         
         {/* Restaurant Lists - Combined Section */}
         {circle && (
-          <RestaurantListsSection 
+          <CircleListsSection 
             circleId={parseInt(id!)} 
             title="Shared Restaurant Lists" 
             showCreateButton={true}
