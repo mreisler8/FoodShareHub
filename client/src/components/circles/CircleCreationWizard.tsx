@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -70,23 +71,33 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
   const [showBulkEmails, setShowBulkEmails] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Search users when query changes
+  // Search users when query changes - FIXED to properly extract users
   useEffect(() => {
-    if (searchQuery.trim().length > 0) {
+    if (searchQuery.trim().length > 1) {
       const timeoutId = setTimeout(async () => {
         try {
+          setSearchError(null);
+          console.log('Searching for users with query:', searchQuery);
+          
           const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(searchQuery)}`);
-          if (response?.data?.users) {
-            setSearchResults(response.data.users);
+          console.log('Search response:', response);
+          
+          // FIXED: Extract users from the grouped response structure
+          if (response && response.users && Array.isArray(response.users)) {
+            setSearchResults(response.users);
+            console.log('Found users:', response.users.length);
           } else {
+            console.log('No users found in response structure');
             setSearchResults([]);
           }
         } catch (error) {
           console.error('Search error:', error);
+          setSearchError('Failed to search users. Please try again.');
           setSearchResults([]);
           toast({
             title: "Search Error",
@@ -98,8 +109,9 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
       return () => clearTimeout(timeoutId);
     } else {
       setSearchResults([]);
+      setSearchError(null);
     }
-  }, [searchQuery]);
+  }, [searchQuery, toast]);
 
   const createCircleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertCircleSchema>) => {
@@ -140,6 +152,8 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
     setSearchQuery("");
     setTagInput("");
     setShowBulkEmails(false);
+    setSearchResults([]);
+    setSearchError(null);
   };
 
   const handleTemplateClick = (template: string) => {
@@ -169,9 +183,16 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
   };
 
   const handleUserAdd = (user: any) => {
-    const email = user.email || user.username;
+    // FIXED: Improved user data extraction
+    const email = user.email || user.username || user.subtitle?.split('@')[1];
+    const displayName = user.name || email;
+    
     if (email && !circleData.inviteEmails.includes(email)) {
       setCircleData(prev => ({ ...prev, inviteEmails: [...prev.inviteEmails, email] }));
+      toast({
+        title: "User Added",
+        description: `${displayName} has been added to your invite list.`,
+      });
     }
     setSearchQuery("");
     setSearchResults([]);
@@ -193,6 +214,13 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
     const newEmails = emails.filter(email => !circleData.inviteEmails.includes(email));
     setCircleData(prev => ({ ...prev, inviteEmails: [...prev.inviteEmails, ...newEmails] }));
     setShowBulkEmails(false);
+    
+    if (newEmails.length > 0) {
+      toast({
+        title: "Emails Added",
+        description: `${newEmails.length} email(s) added to your invite list.`,
+      });
+    }
   };
 
   const handleListToggle = (listId: number) => {
@@ -272,346 +300,361 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="wizard-dialog sm:max-w-[600px] max-h-[90vh] overflow-y-auto !p-0" style={{ padding: '0 !important', margin: '0 !important' }}>
-        <div style={{ padding: '12px 16px 16px 16px' }}>
-        <DialogHeader style={{ paddingBottom: '8px', marginTop: 0, paddingTop: 0 }}>
-          <DialogTitle className="text-2xl font-bold" style={{ marginTop: 0, paddingTop: 0 }}>Create New Circle</DialogTitle>
-          
-          {/* Step Indicator */}
-          <div className="flex items-center justify-between" style={{ marginTop: '8px', marginBottom: '16px' }}>
-            {wizardSteps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                  currentStep >= step.id 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted text-muted-foreground'
-                }`}>
-                  {step.id}
-                </div>
-                <span className={`ml-2 text-sm font-medium ${
-                  currentStep >= step.id ? 'text-primary' : 'text-muted-foreground'
-                }`}>
-                  {step.name}
-                </span>
-                {index < wizardSteps.length - 1 && (
-                  <ChevronRight className="w-4 h-4 mx-4 text-muted-foreground" />
-                )}
-              </div>
-            ))}
-          </div>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Step 1: Circle Setup */}
-          {currentStep === 1 && (
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="circle-name" className="text-base font-medium">
-                  Circle Name
-                </Label>
-                <Input
-                  id="circle-name"
-                  placeholder="e.g. Pizza Pals, Date-Night Crew"
-                  value={circleData.name}
-                  onChange={(e) => setCircleData(prev => ({ ...prev, name: e.target.value }))}
-                  className="mt-2"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  {circleData.name.length}/50 characters
-                </p>
-              </div>
-
-              {/* Smart Templates */}
-              <div>
-                <Label className="text-base font-medium">Quick Templates</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {circleTemplates.map(template => (
-                    <Badge
-                      key={template}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                      onClick={() => handleTemplateClick(template)}
-                    >
-                      {template}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div>
-                <Label className="text-base font-medium">Tags</Label>
-                <div className="flex flex-wrap gap-2 mt-2 mb-2">
-                  {circleData.tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <X 
-                        className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                        onClick={() => handleTagRemove(tag)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-                <div className="relative">
-                  <Input
-                    placeholder="Add tags like 'pizza', 'romantic', 'brunch'..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && tagInput.trim()) {
-                        handleTagAdd(tagInput.trim());
-                      }
-                    }}
-                  />
-                  {tagInput && filteredTagSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md mt-1 max-h-32 overflow-y-auto z-10">
-                      {filteredTagSuggestions.map(tag => (
-                        <div
-                          key={tag}
-                          className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
-                          onClick={() => handleTagAdd(tag)}
-                        >
-                          {tag}
-                        </div>
-                      ))}
-                    </div>
+      <DialogContent className="wizard-dialog sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0 m-0">
+        <div className="p-4">
+          <DialogHeader className="pb-2 mb-0">
+            <DialogTitle className="text-2xl font-bold mb-2">Create New Circle</DialogTitle>
+            
+            {/* Step Indicator */}
+            <div className="flex items-center justify-between mb-4">
+              {wizardSteps.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                    currentStep >= step.id 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {step.id}
+                  </div>
+                  <span className={`ml-2 text-sm font-medium ${
+                    currentStep >= step.id ? 'text-primary' : 'text-muted-foreground'
+                  }`}>
+                    {step.name}
+                  </span>
+                  {index < wizardSteps.length - 1 && (
+                    <ChevronRight className="w-4 h-4 mx-4 text-muted-foreground" />
                   )}
                 </div>
-              </div>
-
-              {/* Privacy Settings */}
-              <div>
-                <Label className="text-base font-medium">Privacy</Label>
-                <RadioGroup
-                  value={circleData.isPrivate ? "private" : "public"}
-                  onValueChange={(value) => setCircleData(prev => ({ ...prev, isPrivate: value === "private" }))}
-                  className="mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="private" id="private" />
-                    <Label htmlFor="private" className="text-sm">
-                      Circle-only (Only members can see content)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="public" id="public" />
-                    <Label htmlFor="public" className="text-sm">
-                      Public (Anyone can discover this circle)
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
+              ))}
             </div>
-          )}
+          </DialogHeader>
 
-          {/* Step 2: Member Invitation */}
-          {currentStep === 2 && (
-            <div className="space-y-6">
-              <div>
-                <Label className="text-base font-medium">Invite Friends</Label>
-                <div className="relative mt-2">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="space-y-6">
+            {/* Step 1: Circle Setup */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="circle-name" className="text-base font-medium">
+                    Circle Name
+                  </Label>
                   <Input
-                    placeholder="Find friends by name or email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && searchQuery.trim()) {
-                        handleEmailAdd(searchQuery.trim());
-                      }
-                    }}
-                    className="pl-10"
+                    id="circle-name"
+                    placeholder="e.g. Pizza Pals, Date-Night Crew"
+                    value={circleData.name}
+                    onChange={(e) => setCircleData(prev => ({ ...prev, name: e.target.value }))}
+                    className="mt-2"
                   />
-                  
-                  {/* Search Results Dropdown */}
-                  {searchQuery && (searchResults.length > 0 || searchQuery.includes('@')) && (
-                    <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md mt-1 max-h-48 overflow-y-auto z-10 shadow-lg">
-                      {searchResults.map((user) => (
-                        <div
-                          key={user.id}
-                          className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center gap-3"
-                          onClick={() => handleUserAdd(user)}
-                        >
-                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                            <Users className="w-4 h-4 text-primary" />
-                          </div>
-                          <div>
-                            <div className="font-medium">{user.name}</div>
-                            <div className="text-sm text-muted-foreground">{user.email || user.username}</div>
-                          </div>
-                        </div>
-                      ))}
-                      {searchQuery.includes('@') && (
-                        <div
-                          className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center gap-3 border-t"
-                          onClick={() => handleEmailAdd(searchQuery.trim())}
-                        >
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <Mail className="w-4 h-4 text-green-600" />
-                          </div>
-                          <div>
-                            <div className="font-medium">+ Invite {searchQuery}</div>
-                            <div className="text-sm text-muted-foreground">Send invitation to this email</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                {/* Bulk Email Option */}
-                <div className="mt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowBulkEmails(!showBulkEmails)}
-                    className="text-primary hover:text-primary/80"
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Paste emails separated by commas
-                  </Button>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {circleData.name.length}/50 characters
+                  </p>
                 </div>
 
-                {showBulkEmails && (
-                  <div className="mt-4 space-y-2">
-                    <Textarea
-                      placeholder="Enter emails separated by commas or new lines..."
-                      value={circleData.bulkEmails}
-                      onChange={(e) => setCircleData(prev => ({ ...prev, bulkEmails: e.target.value }))}
-                      rows={3}
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleBulkEmailsProcess}>
-                        Add Emails
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setShowBulkEmails(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Selected Invitees */}
-              <div>
-                <Label className="text-base font-medium">
-                  Selected Invitees ({circleData.inviteEmails.length})
-                </Label>
-                {circleData.inviteEmails.length > 0 ? (
+                {/* Smart Templates */}
+                <div>
+                  <Label className="text-base font-medium">Quick Templates</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {circleData.inviteEmails.map(email => (
-                      <Badge key={email} variant="secondary" className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {email}
+                    {circleTemplates.map(template => (
+                      <Badge
+                        key={template}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                        onClick={() => handleTemplateClick(template)}
+                      >
+                        {template}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <Label className="text-base font-medium">Tags</Label>
+                  <div className="flex flex-wrap gap-2 mt-2 mb-2">
+                    {circleData.tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                        {tag}
                         <X 
                           className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleEmailRemove(email)}
+                          onClick={() => handleTagRemove(tag)}
                         />
                       </Badge>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    No members selected yet. You can invite members later after creating the circle.
+                  <div className="relative">
+                    <Input
+                      placeholder="Add tags like 'pizza', 'romantic', 'brunch'..."
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && tagInput.trim()) {
+                          handleTagAdd(tagInput.trim());
+                        }
+                      }}
+                    />
+                    {tagInput && filteredTagSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md mt-1 max-h-32 overflow-y-auto z-10">
+                        {filteredTagSuggestions.map(tag => (
+                          <div
+                            key={tag}
+                            className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                            onClick={() => handleTagAdd(tag)}
+                          >
+                            {tag}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Privacy Settings */}
+                <div>
+                  <Label className="text-base font-medium">Privacy</Label>
+                  <RadioGroup
+                    value={circleData.isPrivate ? "private" : "public"}
+                    onValueChange={(value) => setCircleData(prev => ({ ...prev, isPrivate: value === "private" }))}
+                    className="mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="private" id="private" />
+                      <Label htmlFor="private" className="text-sm">
+                        Circle-only (Only members can see content)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="public" id="public" />
+                      <Label htmlFor="public" className="text-sm">
+                        Public (Anyone can discover this circle)
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Member Invitation */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-base font-medium">Invite Friends</Label>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Find friends by name or email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && searchQuery.trim()) {
+                          handleEmailAdd(searchQuery.trim());
+                        }
+                      }}
+                      className="pl-10"
+                    />
+                    
+                    {/* FIXED: Search Results Dropdown with better error handling */}
+                    {searchQuery && (searchResults.length > 0 || searchQuery.includes('@') || searchError) && (
+                      <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md mt-1 max-h-48 overflow-y-auto z-10 shadow-lg">
+                        {searchError && (
+                          <div className="px-4 py-3 text-red-500 text-sm">
+                            {searchError}
+                          </div>
+                        )}
+                        
+                        {searchResults.map((user) => (
+                          <div
+                            key={user.id}
+                            className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center gap-3"
+                            onClick={() => handleUserAdd(user)}
+                          >
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <Users className="w-4 h-4 text-primary" />
+                            </div>
+                            <div>
+                              <div className="font-medium">{user.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {user.email || user.username || user.subtitle}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {searchQuery.includes('@') && !searchResults.some(u => u.email === searchQuery || u.username === searchQuery) && (
+                          <div
+                            className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center gap-3 border-t"
+                            onClick={() => handleEmailAdd(searchQuery.trim())}
+                          >
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <Mail className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium">+ Invite {searchQuery}</div>
+                              <div className="text-sm text-muted-foreground">Send invitation to this email</div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {searchResults.length === 0 && !searchError && searchQuery.length > 1 && !searchQuery.includes('@') && (
+                          <div className="px-4 py-3 text-muted-foreground text-sm">
+                            No users found matching "{searchQuery}"
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Bulk Email Option */}
+                  <div className="mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowBulkEmails(!showBulkEmails)}
+                      className="text-primary hover:text-primary/80"
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Paste emails separated by commas
+                    </Button>
+                  </div>
+
+                  {showBulkEmails && (
+                    <div className="mt-4 space-y-2">
+                      <Textarea
+                        placeholder="Enter emails separated by commas or new lines..."
+                        value={circleData.bulkEmails}
+                        onChange={(e) => setCircleData(prev => ({ ...prev, bulkEmails: e.target.value }))}
+                        rows={3}
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleBulkEmailsProcess}>
+                          Add Emails
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setShowBulkEmails(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected Invitees */}
+                <div>
+                  <Label className="text-base font-medium">
+                    Selected Invitees ({circleData.inviteEmails.length})
+                  </Label>
+                  {circleData.inviteEmails.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {circleData.inviteEmails.map(email => (
+                        <Badge key={email} variant="secondary" className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {email}
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleEmailRemove(email)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      No members selected yet. You can invite members later after creating the circle.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: First List Sharing */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium">
+                    Add your favorite {currentTheme !== 'general' ? currentTheme : 'food'} spots to get the party started
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Share popular lists or create your own custom list (optional)
                   </p>
+                </div>
+
+                {/* Popular Lists */}
+                <div>
+                  <Label className="text-base font-medium">Popular Lists</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                    {relevantLists.map(list => (
+                      <Card 
+                        key={list.id} 
+                        className={`cursor-pointer transition-all hover:shadow-md ${
+                          circleData.selectedLists.includes(list.id) 
+                            ? 'ring-2 ring-primary bg-primary/5' 
+                            : ''
+                        }`}
+                        onClick={() => handleListToggle(list.id)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-medium">{list.name}</h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <MapPin className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">
+                                  {list.count} restaurants
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  ⭐ {list.rating}
+                                </Badge>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant={circleData.selectedLists.includes(list.id) ? "default" : "outline"}
+                            >
+                              {circleData.selectedLists.includes(list.id) ? "Added" : "Add"}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Create Custom List */}
+                <div>
+                  <Button variant="outline" className="w-full" size="lg">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Custom List
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between pt-6 border-t">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={currentStep === 1}
+              >
+                Back
+              </Button>
+              
+              <div className="flex gap-2">
+                {currentStep < 3 ? (
+                  <Button
+                    onClick={handleNext}
+                    disabled={currentStep === 1 ? !isStep1Valid : currentStep === 2 ? !isStep2Valid : false}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleFinish}
+                    disabled={isCreating}
+                    className="min-w-[100px]"
+                  >
+                    {isCreating ? "Creating..." : "Save & Share"}
+                  </Button>
                 )}
               </div>
             </div>
-          )}
-
-          {/* Step 3: First List Sharing */}
-          {currentStep === 3 && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium">
-                  Add your favorite {currentTheme !== 'general' ? currentTheme : 'food'} spots to get the party started
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Share popular lists or create your own custom list (optional)
-                </p>
-              </div>
-
-              {/* Popular Lists */}
-              <div>
-                <Label className="text-base font-medium">Popular Lists</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                  {relevantLists.map(list => (
-                    <Card 
-                      key={list.id} 
-                      className={`cursor-pointer transition-all hover:shadow-md ${
-                        circleData.selectedLists.includes(list.id) 
-                          ? 'ring-2 ring-primary bg-primary/5' 
-                          : ''
-                      }`}
-                      onClick={() => handleListToggle(list.id)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-medium">{list.name}</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <MapPin className="w-3 h-3 text-muted-foreground" />
-                              <span className="text-sm text-muted-foreground">
-                                {list.count} restaurants
-                              </span>
-                              <Badge variant="outline" className="text-xs">
-                                ⭐ {list.rating}
-                              </Badge>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={circleData.selectedLists.includes(list.id) ? "default" : "outline"}
-                          >
-                            {circleData.selectedLists.includes(list.id) ? "Added" : "Add"}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* Create Custom List */}
-              <div>
-                <Button variant="outline" className="w-full" size="lg">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Custom List
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6 border-t">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-            >
-              Back
-            </Button>
-            
-            <div className="flex gap-2">
-              {currentStep < 3 ? (
-                <Button
-                  onClick={handleNext}
-                  disabled={currentStep === 1 ? !isStep1Valid : currentStep === 2 ? !isStep2Valid : false}
-                >
-                  Next
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleFinish}
-                  disabled={isCreating}
-                  className="min-w-[100px]"
-                >
-                  {isCreating ? "Creating..." : "Save & Share"}
-                </Button>
-              )}
-            </div>
           </div>
-        </div>
         </div>
       </DialogContent>
     </Dialog>

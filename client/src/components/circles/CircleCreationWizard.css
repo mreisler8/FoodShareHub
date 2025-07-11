@@ -1,38 +1,84 @@
-/* Circle Creation Wizard - Remove Top Padding */
+
 .wizard-dialog {
   padding: 0 !important;
   margin: 0 !important;
 }
 
-.wizard-dialog [data-radix-dialog-content] {
-  padding: 0 !important;
-  margin: 0 !important;
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-
-/* Override all possible dialog spacing */
-.wizard-dialog .dialog-content,
-.wizard-dialog [data-radix-dialog-content],
 .wizard-dialog > div {
   padding: 0 !important;
   margin: 0 !important;
+}
+
+.wizard-dialog .dialog-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Force remove all potential padding sources */
+.wizard-dialog [role="dialog"] {
+  padding: 0 !important;
+}
+
+.wizard-dialog .dialog-header {
   padding-top: 0 !important;
   margin-top: 0 !important;
 }
 
-/* Remove DialogHeader default spacing */
-.wizard-dialog .dialog-header,
-.wizard-dialog [data-radix-dialog-header] {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-  padding-bottom: 0.5rem !important;
+/* Ensure step indicator has proper spacing */
+.wizard-dialog .step-indicator {
+  margin-bottom: 1rem;
 }
 
-/* Remove DialogTitle default spacing */
-.wizard-dialog .dialog-title,
-.wizard-dialog [data-radix-dialog-title] {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-  margin-bottom: 0 !important;
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .wizard-dialog {
+    max-width: 95vw !important;
+    max-height: 95vh !important;
+  }
+  
+  .wizard-dialog .step-indicator {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .wizard-dialog .step-indicator > div {
+    flex-direction: row;
+    width: 100%;
+  }
+}
+
+/* Search dropdown styling */
+.wizard-dialog .search-dropdown {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+}
+
+.wizard-dialog .search-dropdown:hover {
+  background: hsl(var(--muted));
+}
+
+/* Selected invitees styling */
+.wizard-dialog .invitee-badge {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+.wizard-dialog .invitee-badge:hover .remove-button {
+  color: hsl(var(--destructive));
+}
+
+/* List card styling */
+.wizard-dialog .list-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.wizard-dialog .list-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.wizard-dialog .list-card.selected {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.05);
 }
