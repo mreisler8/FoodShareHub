@@ -203,7 +203,7 @@ export default function RestaurantDetailPage() {
                           {restaurant.communityInsights.followersAverageRating?.toFixed(1)}
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          ({restaurant.communityInsights.followersReviewCount} from your network)
+                          ({restaurant.communityInsights.followersReviewCount} reviews from your network)
                         </span>
                       </div>
                     )}
@@ -264,16 +264,16 @@ export default function RestaurantDetailPage() {
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
               <Users className="h-6 w-6 text-blue-500" />
-              What Your Network Says
+              Your Network
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Top Dishes */}
               {restaurant.communityInsights.topDishes.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5" />
-                      Top Dishes
+                      Top Dishes from Your Network
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
