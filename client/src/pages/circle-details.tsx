@@ -9,6 +9,7 @@ import { CircleWithStats } from "@/lib/types";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
+import { CircleManagement } from "@/components/circles/CircleManagement";
 
 export default function CircleDetails() {
   const { id } = useParams();
@@ -105,15 +106,12 @@ export default function CircleDetails() {
           />
         )}
         
-        {/* Circle Members Section */}
-        <div className="mb-10">
-          <h2 className="text-xl font-heading font-bold text-neutral-900 mb-4">Circle Members</h2>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-neutral-500 text-center">
-              Members management coming soon. Invite your friends to share restaurant recommendations!
-            </p>
+        {/* Circle Management Section */}
+        {circle && (
+          <div className="mb-10">
+            <CircleManagement circleId={parseInt(id!)} />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

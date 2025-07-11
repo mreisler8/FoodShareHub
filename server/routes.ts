@@ -1114,7 +1114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.use("/api/list-item-comments", listItemCommentsRouter);
   app.use("/api/follow", followRoutes);
   // app.use("/api/search-analytics", searchAnalyticsRouter);
-  // app.use("/api/circles", circleRoutes.router); // Commented out to use inline endpoints
+  app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
   app.use("/api/users", usersRouter);
 
   // Health check route

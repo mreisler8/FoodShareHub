@@ -649,12 +649,108 @@ export async function getCircleSharedLists(req: Request, res: Response) {
   }
 }
 
+// Get circle members
+router.get('/:circleId/members', authenticate, async (req, res) => {
+  try {
+    const { circleId } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user is a member of the circle
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: 'Only circle members can view members' });
+    }
+
+    // Get all members for this circle
+    const members = await db
+      .select({
+        id: circleMembers.id,
+        userId: circleMembers.userId,
+        role: circleMembers.role,
+        joinedAt: circleMembers.joinedAt,
+        user: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio
+        }
+      })
+      .from(circleMembers)
+      .leftJoin(users, eq(circleMembers.userId, users.id))
+      .where(eq(circleMembers.circleId, parseInt(circleId)))
+      .orderBy(circleMembers.joinedAt);
+
+    res.json(members);
+  } catch (error) {
+    console.error('Error fetching circle members:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get circle details
+router.get('/:circleId', authenticate, async (req, res) => {
+  try {
+    const { circleId } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user is a member of the circle
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: 'Only circle members can view circle details' });
+    }
+
+    // Get circle details
+    const circle = await db
+      .select()
+      .from(circles)
+      .where(eq(circles.id, parseInt(circleId)))
+      .limit(1);
+
+    if (circle.length === 0) {
+      return res.status(404).json({ error: 'Circle not found' });
+    }
+
+    // Add user's role to the circle data
+    const circleWithRole = {
+      ...circle[0],
+      role: membership[0].role
+    };
+
+    res.json(circleWithRole);
+  } catch (error) {
+    console.error('Error fetching circle details:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Route handlers
 router.post('/invite', authenticate, createCircleInvite);
 router.get('/invites', authenticate, getCircleInvites);
 router.post('/invites/:inviteId/respond', authenticate, respondToCircleInvite);
 router.get('/pending-invites', authenticate, getUserPendingInvites);
 router.delete('/invites/:inviteId', authenticate, revokeCircleInvite);
+router.post('/:circleId/members', authenticate, addUserToCircle);
 router.post('/:circleId/share-list', authenticate, shareListWithCircle);
 router.delete('/:circleId/shared-lists/:sharedListId', authenticate, removeSharedListFromCircle);
 router.get('/:circleId/shared-lists', authenticate, getCircleSharedLists);
