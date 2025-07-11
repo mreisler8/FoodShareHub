@@ -274,7 +274,7 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
       {
         params: {
           place_id: placeId,
-          fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,types,price_level,geometry,rating,user_ratings_total,photos,reviews,business_status,permanently_closed,editorial_summary',
+          fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,types,price_level,geometry,rating,user_ratings_total,photos,reviews,business_status,permanently_closed,editorial_summary,url',
           key: GOOGLE_MAPS_API_KEY,
         },
         timeout: 5000,

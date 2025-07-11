@@ -377,23 +377,89 @@ export default function RestaurantDetailPage() {
           {/* Menu Tab */}
           <TabsContent value="menu" className="space-y-6">
             <Card>
-              <CardContent className="p-6 text-center">
-                <UtensilsCrossed className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-2">Menu</h3>
-                {restaurant.website ? (
-                  <div className="space-y-4">
-                    <p className="text-gray-600">View the full menu on the restaurant's website.</p>
-                    <Button 
-                      onClick={() => window.open(restaurant.website, '_blank')}
-                      className="flex items-center gap-2"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      View Menu Online
-                    </Button>
+              <CardContent className="p-6">
+                <div className="text-center mb-6">
+                  <UtensilsCrossed className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">Menu</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  {restaurant.website && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium mb-2">Restaurant Website</h4>
+                      <p className="text-gray-600 text-sm mb-3">View the full menu and current specials on the restaurant's official website.</p>
+                      <Button 
+                        onClick={() => window.open(restaurant.website, '_blank')}
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Visit {restaurant.name}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-medium mb-2">Order Online</h4>
+                    <p className="text-gray-600 text-sm mb-3">Find menu and delivery options on popular food delivery platforms.</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => window.open(`https://www.ubereats.com/ca/search?q=${encodeURIComponent(restaurant.name + ' ' + restaurant.address)}`, '_blank')}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Uber Eats
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => window.open(`https://www.doordash.com/search/store/${encodeURIComponent(restaurant.name)}`, '_blank')}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        DoorDash
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => window.open(`https://www.grubhub.com/search?searchTerm=${encodeURIComponent(restaurant.name)}`, '_blank')}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Grubhub
+                      </Button>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-gray-600">Menu information not available online.</p>
-                )}
+                  
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-medium mb-2">Search for Menu</h4>
+                    <p className="text-gray-600 text-sm mb-3">Search for user-uploaded menus and reviews on popular platforms.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(restaurant.name + ' menu ' + restaurant.address)}`, '_blank')}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Google Search
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => window.open(`https://www.yelp.com/search?find_desc=${encodeURIComponent(restaurant.name)}&find_loc=${encodeURIComponent(restaurant.address)}`, '_blank')}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Yelp
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {!restaurant.website && (
+                    <div className="text-center py-4">
+                      <p className="text-gray-500 text-sm">
+                        For the most up-to-date menu, we recommend calling the restaurant directly at {restaurant.phone || 'their listed phone number'}.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
