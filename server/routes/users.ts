@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { users, userFollowers, circleMembers, circles } from "@shared/schema";
-import { eq, or, ilike, and, ne, sql, desc } from "drizzle-orm";
+import { users, userFollowers, circleMembers, circles, posts, restaurants, restaurantLists, restaurantListItems, savedRestaurants } from "@shared/schema";
+import { eq, or, ilike, and, ne, sql, desc, inArray } from "drizzle-orm";
 import { authenticate } from "../auth";
 
 const router = Router();
@@ -235,6 +235,170 @@ router.get("/:id/stats", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Error fetching user stats:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/users/:id/posts - Get user's posts
+router.get("/:id/posts", authenticate, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Get user posts with restaurant and engagement data
+    const userPosts = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        rating: posts.rating,
+        visibility: posts.visibility,
+        dishesTried: posts.dishesTried,
+        images: posts.images,
+        createdAt: posts.createdAt,
+        author: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+        },
+        restaurant: {
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          cuisine: restaurants.cuisine,
+        }
+      })
+      .from(posts)
+      .innerJoin(users, eq(posts.userId, users.id))
+      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+      .where(eq(posts.userId, userId))
+      .orderBy(desc(posts.createdAt))
+      .limit(50);
+
+    res.json(userPosts);
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    res.status(500).json({ error: "Failed to fetch user posts" });
+  }
+});
+
+// GET /api/users/:id/lists - Get user's restaurant lists
+router.get("/:id/lists", authenticate, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Get user's lists with restaurant counts
+    const userLists = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        tags: restaurantLists.tags,
+        visibility: restaurantLists.visibility,
+        createdAt: restaurantLists.createdAt,
+        createdById: restaurantLists.createdById,
+        shareWithCircle: restaurantLists.shareWithCircle,
+        makePublic: restaurantLists.makePublic,
+      })
+      .from(restaurantLists)
+      .where(eq(restaurantLists.createdById, userId))
+      .orderBy(desc(restaurantLists.createdAt));
+
+    // Get restaurant counts for each list
+    const listIds = userLists.map(list => list.id);
+    
+    if (listIds.length > 0) {
+      const restaurantCounts = await db
+        .select({
+          listId: restaurantListItems.listId,
+          count: sql<number>`count(*)::int`
+        })
+        .from(restaurantListItems)
+        .where(inArray(restaurantListItems.listId, listIds))
+        .groupBy(restaurantListItems.listId);
+
+      const countByList: Record<number, number> = {};
+      restaurantCounts.forEach(({ listId, count }) => {
+        countByList[listId] = count;
+      });
+
+      // Add restaurant count to each list
+      const listsWithCounts = userLists.map(list => ({
+        ...list,
+        restaurantCount: countByList[list.id] || 0
+      }));
+
+      res.json(listsWithCounts);
+    } else {
+      res.json(userLists);
+    }
+  } catch (error) {
+    console.error("Error fetching user lists:", error);
+    res.status(500).json({ error: "Failed to fetch user lists" });
+  }
+});
+
+// GET /api/users/:id/circles - Get user's circles
+router.get("/:id/circles", authenticate, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Get user's circles through membership
+    const userCircles = await db
+      .select({
+        id: circles.id,
+        name: circles.name,
+        description: circles.description,
+        isPrivate: circles.isPrivate,
+        createdAt: circles.createdAt,
+        creatorId: circles.creatorId,
+        primaryCuisine: circles.primaryCuisine,
+        priceRange: circles.priceRange,
+        location: circles.location,
+        memberCount: circles.memberCount,
+        featured: circles.featured,
+        trending: circles.trending,
+      })
+      .from(circles)
+      .innerJoin(circleMembers, eq(circleMembers.circleId, circles.id))
+      .where(eq(circleMembers.userId, userId))
+      .orderBy(desc(circles.createdAt));
+
+    res.json(userCircles);
+  } catch (error) {
+    console.error("Error fetching user circles:", error);
+    res.status(500).json({ error: "Failed to fetch user circles" });
+  }
+});
+
+// GET /api/users/:id/saved - Get user's saved restaurants
+router.get("/:id/saved", authenticate, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Get user's saved restaurants with restaurant details
+    const savedRestaurants = await db
+      .select({
+        id: savedRestaurants.id,
+        savedAt: savedRestaurants.savedAt,
+        restaurant: {
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          cuisine: restaurants.cuisine,
+          averageRating: restaurants.averageRating,
+          priceRange: restaurants.priceRange,
+          imageUrl: restaurants.imageUrl,
+        }
+      })
+      .from(savedRestaurants)
+      .innerJoin(restaurants, eq(savedRestaurants.restaurantId, restaurants.id))
+      .where(eq(savedRestaurants.userId, userId))
+      .orderBy(desc(savedRestaurants.savedAt))
+      .limit(50);
+
+    res.json(savedRestaurants);
+  } catch (error) {
+    console.error("Error fetching user saved restaurants:", error);
+    res.status(500).json({ error: "Failed to fetch saved restaurants" });
   }
 });
 
