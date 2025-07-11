@@ -191,7 +191,7 @@ export default function RestaurantDetailPage() {
   // Get restaurant image URL
   const heroImageUrl = restaurant.imageUrl || 
     (restaurant.googlePlaces?.photos?.[0] ? 
-      `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${restaurant.googlePlaces.photos[0].reference}&key=${import.meta.env.VITE_GOOGLE_PLACES_API_KEY}` : 
+      `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${restaurant.googlePlaces.photos[0].reference}&key=AIzaSyBxuBRddfzY83RF5FsCk6ON2Mzex8jnKPM` : 
       null);
 
   return (
@@ -328,11 +328,15 @@ export default function RestaurantDetailPage() {
                   <h3 className="font-semibold text-lg mb-4">Information</h3>
                   <div className="space-y-3">
                     {restaurant.hours && (
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-5 w-5 text-gray-500" />
+                      <div className="flex items-start gap-3">
+                        <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
                         <div>
                           <p className="font-medium">Hours</p>
-                          <p className="text-gray-600">{restaurant.hours}</p>
+                          <div className="text-gray-600 space-y-1">
+                            {restaurant.hours.split('\n').map((line, index) => (
+                              <p key={index} className="text-sm">{line}</p>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -352,6 +356,18 @@ export default function RestaurantDetailPage() {
                         <p className="text-gray-600">{restaurant.cuisine}</p>
                       </div>
                     </div>
+                    
+                    {restaurant.googlePlaces?.isOpen !== undefined && (
+                      <div className="flex items-center gap-3">
+                        <div className={`h-3 w-3 rounded-full ${restaurant.googlePlaces.isOpen ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <div>
+                          <p className="font-medium">Status</p>
+                          <p className={`text-sm font-medium ${restaurant.googlePlaces.isOpen ? 'text-green-600' : 'text-red-600'}`}>
+                            {restaurant.googlePlaces.isOpen ? 'Open Now' : 'Closed'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -363,8 +379,21 @@ export default function RestaurantDetailPage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <UtensilsCrossed className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-2">Menu Coming Soon</h3>
-                <p className="text-gray-600">We're working on adding menu information for this restaurant.</p>
+                <h3 className="font-semibold text-lg mb-2">Menu</h3>
+                {restaurant.website ? (
+                  <div className="space-y-4">
+                    <p className="text-gray-600">View the full menu on the restaurant's website.</p>
+                    <Button 
+                      onClick={() => window.open(restaurant.website, '_blank')}
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View Menu Online
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">Menu information not available online.</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -482,7 +511,18 @@ export default function RestaurantDetailPage() {
             <Plus className="h-4 w-4 mr-2" />
             Add to List
           </Button>
-          <Button variant="outline" className="flex-1 md:flex-none" size="lg">
+          <Button 
+            variant="outline" 
+            className="flex-1 md:flex-none" 
+            size="lg"
+            onClick={() => {
+              if (restaurant.googlePlaceId) {
+                window.open(`https://www.google.com/maps/place/?q=place_id:${restaurant.googlePlaceId}`, '_blank');
+              } else if (restaurant.address) {
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`, '_blank');
+              }
+            }}
+          >
             <MapPin className="h-4 w-4 mr-2" />
             View on Maps
           </Button>

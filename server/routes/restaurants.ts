@@ -49,7 +49,24 @@ router.get("/:id", authenticate, async (req, res) => {
           imageUrl: null,
           description: null,
           googlePlaceId: googlePlaceId,
-          source: 'google'
+          source: 'google',
+          googlePlaces: {
+            rating: placeDetails.rating || 0,
+            reviewCount: placeDetails.reviewCount || 0,
+            isOpen: placeDetails.isOpen,
+            businessStatus: placeDetails.businessStatus || 'OPERATIONAL',
+            isPermanentlyClosed: placeDetails.isPermanentlyClosed || false,
+            photos: placeDetails.photos || [],
+            reviews: placeDetails.googleReviews || [],
+            priceLevel: placeDetails.priceRange || '$$'
+          },
+          communityInsights: {
+            followersAverageRating: null,
+            followersReviewCount: 0,
+            topDishes: [],
+            recentPosts: [],
+            hasFollowersReviewed: false
+          }
         };
 
         return res.json(restaurantDetails);
