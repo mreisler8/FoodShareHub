@@ -383,4 +383,36 @@ router.get("/:id/saved", authenticate, async (req, res) => {
   }
 });
 
+// PUT /api/users/settings - Update user settings
+router.put("/settings", authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const updateData = req.body;
+    
+    // Filter out undefined values and only update provided fields
+    const filteredUpdateData: any = {};
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined) {
+        filteredUpdateData[key] = updateData[key];
+      }
+    });
+    
+    // Update user settings
+    const updatedUser = await db
+      .update(users)
+      .set(filteredUpdateData)
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (updatedUser.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    res.json(updatedUser[0]);
+  } catch (error) {
+    console.error("Error updating user settings:", error);
+    res.status(500).json({ error: "Failed to update user settings" });
+  }
+});
+
 export default router;

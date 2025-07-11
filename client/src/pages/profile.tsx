@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CreatePostButton } from "@/components/create-post/CreatePostButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   CalendarDays, 
@@ -27,7 +28,10 @@ import {
   Globe,
   Shield,
   Crown,
-  Award
+  Award,
+  Edit3,
+  Check,
+  X
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserWithStats } from "@/lib/types";
@@ -36,11 +40,18 @@ import { ReferralButton } from "@/components/invitation/ReferralButton";
 import { FollowButton } from "@/components/FollowButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { FollowsPanel } from "@/components/user/FollowsPanel";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
   const { id } = useParams();
   const { currentUser } = useCurrentUser();
   const [activeTab, setActiveTab] = useState("reviews");
+  const [editingFavorites, setEditingFavorites] = useState(false);
+  const [favoriteFood, setFavoriteFood] = useState("");
+  const [favoriteRestaurant, setFavoriteRestaurant] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // If no id specified, show the current user's profile
   const userId = id ? parseInt(id) : currentUser?.id;
@@ -77,6 +88,49 @@ export default function Profile() {
   
   // Check if viewing own profile
   const isOwnProfile = currentUser && (!id || parseInt(id) === currentUser.id);
+
+  // Update favorites mutation
+  const updateFavoritesMutation = useMutation({
+    mutationFn: async (data: { favoriteFood: string; favoriteRestaurant: string }) => {
+      return apiRequest("/api/users/settings", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Favorites updated",
+        description: "Your favorite food and restaurant have been saved.",
+      });
+      setEditingFavorites(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating favorites",
+        description: error.message || "Failed to update favorites. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Initialize editing values when user data loads
+  const handleEditFavorites = () => {
+    setFavoriteFood(profileUser?.favoriteFood || "");
+    setFavoriteRestaurant(profileUser?.favoriteRestaurant || "");
+    setEditingFavorites(true);
+  };
+
+  const handleSaveFavorites = () => {
+    updateFavoritesMutation.mutate({ favoriteFood, favoriteRestaurant });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingFavorites(false);
+    setFavoriteFood("");
+    setFavoriteRestaurant("");
+  };
 
   const ProfileCover = () => (
     <div className="relative">
@@ -184,27 +238,84 @@ export default function Profile() {
           )}
 
           {/* Favorites */}
-          {(profileUser?.favoriteFood || profileUser?.favoriteRestaurant) && (
+          {(profileUser?.favoriteFood || profileUser?.favoriteRestaurant || isOwnProfile) && (
             <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-700">Favorites</h3>
+                {isOwnProfile && !editingFavorites && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditFavorites}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <Edit3 className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+                {editingFavorites && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleSaveFavorites}
+                      disabled={updateFavoritesMutation.isPending}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {profileUser?.favoriteFood && (
-                  <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
-                    <Heart className="h-5 w-5 text-red-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Favorite Food</p>
-                      <p className="text-gray-900 font-semibold">{profileUser.favoriteFood}</p>
-                    </div>
+                {/* Favorite Food */}
+                <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
+                  <Heart className="h-5 w-5 text-red-500" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-700">Favorite Food</p>
+                    {editingFavorites ? (
+                      <Input
+                        value={favoriteFood}
+                        onChange={(e) => setFavoriteFood(e.target.value)}
+                        placeholder="e.g., Margherita Pizza"
+                        className="mt-1 text-sm"
+                      />
+                    ) : (
+                      <p className="text-gray-900 font-semibold">
+                        {profileUser?.favoriteFood || (isOwnProfile ? "Add your favorite food" : "Not specified")}
+                      </p>
+                    )}
                   </div>
-                )}
-                {profileUser?.favoriteRestaurant && (
-                  <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-100">
-                    <MapPin className="h-5 w-5 text-orange-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Favorite Restaurant</p>
-                      <p className="text-gray-900 font-semibold">{profileUser.favoriteRestaurant}</p>
-                    </div>
+                </div>
+
+                {/* Favorite Restaurant */}
+                <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-100">
+                  <MapPin className="h-5 w-5 text-orange-500" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-700">Favorite Restaurant</p>
+                    {editingFavorites ? (
+                      <Input
+                        value={favoriteRestaurant}
+                        onChange={(e) => setFavoriteRestaurant(e.target.value)}
+                        placeholder="e.g., Joe's Pizza"
+                        className="mt-1 text-sm"
+                      />
+                    ) : (
+                      <p className="text-gray-900 font-semibold">
+                        {profileUser?.favoriteRestaurant || (isOwnProfile ? "Add your favorite restaurant" : "Not specified")}
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )}
