@@ -265,13 +265,13 @@ export function CircleCreationWizard({ open, onOpenChange }: CircleCreationWizar
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="wizard-dialog sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0 m-0">
-        <div className="p-4 pt-2">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="text-2xl font-bold">Create New Circle</DialogTitle>
+      <DialogContent className="wizard-dialog sm:max-w-[600px] max-h-[90vh] overflow-y-auto !p-0" style={{ padding: '0 !important', margin: '0 !important' }}>
+        <div style={{ padding: '12px 16px 16px 16px' }}>
+        <DialogHeader style={{ paddingBottom: '8px', marginTop: 0, paddingTop: 0 }}>
+          <DialogTitle className="text-2xl font-bold" style={{ marginTop: 0, paddingTop: 0 }}>Create New Circle</DialogTitle>
           
           {/* Step Indicator */}
-          <div className="flex items-center justify-between mt-2 mb-4">
+          <div className="flex items-center justify-between" style={{ marginTop: '8px', marginBottom: '16px' }}>
             {wizardSteps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${

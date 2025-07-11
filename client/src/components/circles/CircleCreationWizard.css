@@ -1,32 +1,38 @@
 /* Circle Creation Wizard - Remove Top Padding */
-.wizard-dialog .dialog-content {
-  margin: 0;
-  padding: 0;
-  position: relative;
-  top: 0;
-}
-
-.wizard-dialog .dialog-header {
-  padding-top: 0;
-  margin-top: 0;
-}
-
-.wizard-dialog .dialog-title {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-/* Ensure no default browser spacing */
 .wizard-dialog {
-  box-sizing: border-box;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-.wizard-dialog * {
-  box-sizing: border-box;
-}
-
-/* Override any shadcn default spacing */
 .wizard-dialog [data-radix-dialog-content] {
   padding: 0 !important;
   margin: 0 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Override all possible dialog spacing */
+.wizard-dialog .dialog-content,
+.wizard-dialog [data-radix-dialog-content],
+.wizard-dialog > div {
+  padding: 0 !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Remove DialogHeader default spacing */
+.wizard-dialog .dialog-header,
+.wizard-dialog [data-radix-dialog-header] {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  padding-bottom: 0.5rem !important;
+}
+
+/* Remove DialogTitle default spacing */
+.wizard-dialog .dialog-title,
+.wizard-dialog [data-radix-dialog-title] {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  margin-bottom: 0 !important;
 }
