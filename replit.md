@@ -112,6 +112,15 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 11, 2025: **Inline Member Search for Circles**: Added direct inline search functionality within circle details page:
+  - **Embedded Search**: Search for members directly on the circle page without modal interruption
+  - **Real-time Results**: Live search with 300ms debouncing as users type
+  - **Smart Filtering**: Automatically excludes existing circle members from search results
+  - **Instant Add**: One-click "Add" button to send invitations immediately
+  - **Clean UI**: Search box appears inline when "Add Members" is clicked or for new circles
+  - **Auto-focus**: Search input automatically focuses for immediate typing
+  - **Close Option**: X button to hide search when done
+  - **Status**: Complete inline search implementation for seamless member addition
 - July 11, 2025: **Best-in-Class User Search Modal Implementation**: Added comprehensive user search functionality for circles and profiles:
   - **UserSearchModal Component**: Created reusable search modal with real-time search, debouncing (300ms), and clean UI
   - **Circle Member Invitations**: Integrated search into circle details page with "Add Members" button for circle owners

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
@@ -6,6 +6,7 @@ import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -24,7 +25,9 @@ import {
   MapPin,
   DollarSign,
   ChefHat,
-  UserPlus
+  UserPlus,
+  Search,
+  X
 } from "lucide-react";
 
 interface CircleDetail {
@@ -69,6 +72,10 @@ export default function CircleDetailsV2Page() {
   const queryClient = useQueryClient();
   const [showShareListModal, setShowShareListModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showInlineSearch, setShowInlineSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const { data: circle, isLoading } = useQuery<CircleDetail>({
     queryKey: [`/api/circles/${circleId}`],
@@ -113,6 +120,39 @@ export default function CircleDetailsV2Page() {
   };
 
   const isOwner = circle?.creatorId === user?.id;
+
+  // Debounced search effect
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(searchQuery)}`);
+        const users = response.users || [];
+        // Filter out existing members
+        const memberIds = circle?.members?.map(m => m.id) || [];
+        const filteredUsers = users.filter((user: any) => !memberIds.includes(user.id));
+        setSearchResults(filteredUsers);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, circle?.members]);
+
+  const handleAddMemberFromSearch = async (user: any) => {
+    await handleAddMember(user);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
 
   if (!circleId) {
     return <div>Invalid circle ID</div>;
@@ -278,13 +318,13 @@ export default function CircleDetailsV2Page() {
                   )}
                 </div>
 
-                {/* Members Preview */}
+                {/* Members Section with Inline Search */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold">Members</h2>
                     <div className="flex gap-2">
-                      {isOwner && (
-                        <Button size="sm" onClick={() => setShowAddMemberModal(true)}>
+                      {isOwner && !showInlineSearch && (
+                        <Button size="sm" onClick={() => setShowInlineSearch(true)}>
                           <UserPlus className="h-4 w-4 mr-2" />
                           Add Members
                         </Button>
@@ -296,22 +336,95 @@ export default function CircleDetailsV2Page() {
                       </Link>
                     </div>
                   </div>
+                  
+                  {/* Inline Search */}
+                  {isOwner && showInlineSearch && (
+                    <Card className="p-4 mb-4 border-primary/20 bg-primary/5">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">Search for members to add</p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setShowInlineSearch(false);
+                              setSearchQuery("");
+                              setSearchResults([]);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="relative">
+                          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Search by name or username..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10"
+                            autoFocus
+                          />
+                        </div>
+                        
+                        {/* Search Results */}
+                        {searchQuery.length >= 2 && (
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {searchLoading ? (
+                              <div className="text-center py-4">
+                                <p className="text-sm text-gray-500">Searching...</p>
+                              </div>
+                            ) : searchResults.length > 0 ? (
+                              searchResults.map((user) => (
+                                <div
+                                  key={user.id}
+                                  className="flex items-center justify-between p-3 bg-white rounded-lg border hover:border-primary/50 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
+                                      {user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">{user.name}</p>
+                                      <p className="text-sm text-gray-600">@{user.username}</p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleAddMemberFromSearch(user)}
+                                  >
+                                    Add
+                                  </Button>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-center py-4 text-sm text-gray-500">
+                                No users found
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {/* Members Display */}
                   <Card className="p-4">
-                    {isOwner && (!circle.members || circle.members.length <= 1) ? (
-                      // Show inline search for new circles with no members (except owner)
+                    {isOwner && (!circle.members || circle.members.length <= 1) && !showInlineSearch ? (
+                      // Show inline search prompt for new circles
                       <div className="space-y-3">
                         <p className="text-sm text-gray-600">Start building your circle by inviting members:</p>
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
-                          onClick={() => setShowAddMemberModal(true)}
+                          onClick={() => setShowInlineSearch(true)}
                         >
                           <Search className="h-4 w-4 mr-2" />
                           Search and add members...
                         </Button>
                       </div>
                     ) : (
-                      // Show member avatars for circles with members
+                      // Show member avatars
                       <div className="flex -space-x-2">
                         {circle.members?.slice(0, 8).map((member) => (
                           <div
@@ -353,18 +466,7 @@ export default function CircleDetailsV2Page() {
         />
       )}
 
-      {/* Add Member Modal */}
-      {showAddMemberModal && circle && (
-        <UserSearchModal
-          isOpen={showAddMemberModal}
-          onClose={() => setShowAddMemberModal(false)}
-          onAddUser={handleAddMember}
-          title="Add Members to Circle"
-          subtitle={`Search for users to invite to ${circle.name}`}
-          actionLabel="Send Invite"
-          excludeUserIds={circle.members?.map(m => m.id) || []}
-        />
-      )}
+
     </div>
   );
 }
