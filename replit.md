@@ -112,6 +112,27 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 11, 2025: **Modern Restaurant Profile Page Redesign - COMPLETE**: Completely redesigned RestaurantDetailPage with modern UI inspired by user specifications:
+  - **Hero Section**: Full-width restaurant image with dark overlay and restaurant name as white overlay text
+  - **Dual Scoring System**: Circular progress indicators for Google Score (green) and Circles Score (orange) with percentage display
+  - **Top Mentions**: Badge pills showing top dishes from community insights below the scoring circles
+  - **Tabbed Navigation**: Clean three-tab interface (Details, Menu, Reviews) using shadcn/ui components
+  - **Enhanced Details**: Two-column layout with Contact (address, phone, website) and Information (hours, price, cuisine)
+  - **Improved Reviews**: Separate sections for "Circles Reviews" and "Google Reviews" with review counts
+  - **Sticky Action Bar**: Bottom action bar with "Share Experience", "Add to List", and "View on Maps" buttons
+  - **Brand Consistency**: Uses existing color scheme (#10B981 green, #F59E0B orange) and typography system
+  - **Mobile Optimized**: Responsive design with mobile-first approach and sticky bottom actions
+  - **Terminology Update**: Changed "Community" to "Circles" throughout the interface for brand consistency
+  - **Status**: Modern restaurant profile page fully operational with enhanced visual design and user experience
+- July 11, 2025: **ShareListToCircleModal Enhancement - COMPLETE**: Implemented comprehensive list sharing functionality for circles:
+  - **Modal Component**: Created ShareListToCircleModal with multi-select list sharing interface
+  - **CircleManagement Integration**: Added "Share Lists" button to circle management with proper state handling
+  - **API Enhancement**: Updated /api/lists endpoint to include sharedWithCircles array and restaurantCount data
+  - **Smart Filtering**: Automatically filters out lists already shared with the target circle
+  - **Batch Operations**: Allows selecting and sharing multiple lists simultaneously with proper permissions
+  - **User Experience**: Clean interface with checkboxes, list previews, and sharing status indicators
+  - **Error Handling**: Comprehensive error handling with user-friendly toast notifications
+  - **Status**: Circle list sharing functionality fully operational with enhanced user experience
 - July 10, 2025: **Complete Two-Way Social Network Implementation - COMPLETE**: Successfully implemented comprehensive bidirectional follow system and circle member request workflow:
   - **Database Schema Fix**: Added missing 'status' columns to circle_members and user_followers tables to support request workflows
   - **API Router Integration**: Fixed router mounting issues and properly integrated circle-requests and follow-requests routers
