@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,16 @@ export function DesktopSidebar() {
               </div>
             </Link>
           </li>
+          {isAuthenticated && (
+            <li>
+              <Link href="/settings" aria-label="Account settings">
+                <div className={getNavItemClasses("/settings")} role="menuitem" tabIndex={0}>
+                  <Settings className="w-6 mr-2" aria-hidden="true" />
+                  <span>Settings</span>
+                </div>
+              </Link>
+            </li>
+          )}
         </ul>
       </nav>
       

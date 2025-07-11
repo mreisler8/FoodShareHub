@@ -1,705 +1,699 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 import { 
-  ArrowLeft,
-  User,
-  Shield,
-  Bell,
-  Users,
-  Download,
-  Trash2,
-  Camera,
-  Eye,
-  EyeOff,
+  ArrowLeft, 
+  Camera, 
+  User, 
+  Shield, 
+  Bell, 
   Globe,
   Lock,
-  Smartphone,
-  Mail,
-  Key,
-  AlertTriangle,
+  Eye,
+  EyeOff,
+  Trash2,
+  LogOut,
   Check,
   X,
-  Settings as SettingsIcon
+
+  MapPin,
+  ChefHat,
+  Heart,
+  Users,
+  Mail,
+  Phone,
+  Calendar,
+  Info
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAuth } from "@/hooks/use-auth";
+import { User as UserType } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
+interface SettingsFormData {
+  name: string;
+  username: string;
+  email: string;
+  bio: string;
+  preferredLocation: string;
+  preferredCuisines: string[];
+  profilePicture: string;
+  coverImage: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  isPrivate: boolean;
+  showEmail: boolean;
+  showPhone: boolean;
+  showLocation: boolean;
+  allowDirectMessages: boolean;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  marketingEmails: boolean;
+  reviewNotifications: boolean;
+  followNotifications: boolean;
+  circleInviteNotifications: boolean;
+}
+
+const cuisineOptions = [
+  "Italian", "Mexican", "Chinese", "Japanese", "Indian", "Thai", "French", "American",
+  "Mediterranean", "Korean", "Vietnamese", "Brazilian", "Greek", "Spanish", "Turkish",
+  "Lebanese", "Ethiopian", "Peruvian", "German", "British", "Moroccan", "Russian"
+];
+
 export default function Settings() {
+  const [, navigate] = useLocation();
   const { currentUser } = useCurrentUser();
+  const { logoutMutation } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("profile");
-  const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Form states
-  const [profileData, setProfileData] = useState({
-    name: currentUser?.name || "",
-    username: currentUser?.username || "",
-    bio: currentUser?.bio || "",
-    preferredLocation: currentUser?.preferredLocation || "",
-    website: "",
-    preferredCuisines: currentUser?.preferredCuisines || [],
+  // Fetch current user settings
+  const { data: userSettings, isLoading } = useQuery<UserType>({
+    queryKey: ["/api/me"],
+    enabled: !!currentUser,
   });
 
-  const [privacySettings, setPrivacySettings] = useState({
-    profileVisibility: "public", // public, circles, private
-    defaultPostVisibility: "followers",
-    showFollowersCount: true,
-    showFollowingCount: true,
-    allowCircleInvites: true,
-    allowDirectMessages: true,
+  // Initialize form data
+  const [formData, setFormData] = useState<SettingsFormData>({
+    name: userSettings?.name || "",
+    username: userSettings?.username || "",
+    email: userSettings?.email || "",
+    bio: userSettings?.bio || "",
+    preferredLocation: userSettings?.preferredLocation || "",
+    preferredCuisines: userSettings?.preferredCuisines || [],
+    profilePicture: userSettings?.profilePicture || "",
+    coverImage: userSettings?.coverImage || "",
+    phoneNumber: userSettings?.phoneNumber || "",
+    dateOfBirth: userSettings?.dateOfBirth || "",
+    isPrivate: userSettings?.isPrivate || false,
+    showEmail: userSettings?.showEmail || false,
+    showPhone: userSettings?.showPhone || false,
+    showLocation: userSettings?.showLocation || true,
+    allowDirectMessages: userSettings?.allowDirectMessages || true,
+    emailNotifications: userSettings?.emailNotifications || true,
+    pushNotifications: userSettings?.pushNotifications || true,
+    marketingEmails: userSettings?.marketingEmails || false,
+    reviewNotifications: userSettings?.reviewNotifications || true,
+    followNotifications: userSettings?.followNotifications || true,
+    circleInviteNotifications: userSettings?.circleInviteNotifications || true,
   });
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    newFollower: true,
-    circleInvite: true,
-    postReply: true,
-    mentions: true,
-    listShared: true,
-    weeklyDigest: true,
-  });
+  // Update form data when user settings load
+  useEffect(() => {
+    if (userSettings) {
+      setFormData({
+        name: userSettings.name || "",
+        username: userSettings.username || "",
+        email: userSettings.email || "",
+        bio: userSettings.bio || "",
+        preferredLocation: userSettings.preferredLocation || "",
+        preferredCuisines: userSettings.preferredCuisines || [],
+        profilePicture: userSettings.profilePicture || "",
+        coverImage: userSettings.coverImage || "",
+        phoneNumber: userSettings.phoneNumber || "",
+        dateOfBirth: userSettings.dateOfBirth || "",
+        isPrivate: userSettings.isPrivate || false,
+        showEmail: userSettings.showEmail || false,
+        showPhone: userSettings.showPhone || false,
+        showLocation: userSettings.showLocation || true,
+        allowDirectMessages: userSettings.allowDirectMessages || true,
+        emailNotifications: userSettings.emailNotifications || true,
+        pushNotifications: userSettings.pushNotifications || true,
+        marketingEmails: userSettings.marketingEmails || false,
+        reviewNotifications: userSettings.reviewNotifications || true,
+        followNotifications: userSettings.followNotifications || true,
+        circleInviteNotifications: userSettings.circleInviteNotifications || true,
+      });
+    }
+  }, [userSettings]);
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest(`/api/users/profile`, {
-        method: 'PUT',
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: Partial<SettingsFormData>) => {
+      return apiRequest("/api/users/settings", {
+        method: "PUT",
         body: JSON.stringify(data),
       });
     },
     onSuccess: () => {
       toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        title: "Settings updated",
+        description: "Your settings have been saved successfully.",
       });
+      setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
+        title: "Error updating settings",
+        description: error.message || "Failed to update settings. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  // Update privacy settings mutation
-  const updatePrivacyMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest(`/api/users/privacy`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("/api/users/delete", {
+        method: "DELETE",
       });
     },
     onSuccess: () => {
       toast({
-        title: "Privacy settings updated",
-        description: "Your privacy settings have been updated.",
+        title: "Account deleted",
+        description: "Your account has been permanently deleted.",
       });
+      logoutMutation.mutate();
     },
-  });
-
-  // Update notification settings mutation
-  const updateNotificationsMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest(`/api/users/notifications`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
-    },
-    onSuccess: () => {
+    onError: (error: any) => {
       toast({
-        title: "Notification settings updated",
-        description: "Your notification preferences have been updated.",
+        title: "Error deleting account",
+        description: error.message || "Failed to delete account. Please try again.",
+        variant: "destructive",
       });
     },
   });
 
-  const handleProfileSave = () => {
-    updateProfileMutation.mutate(profileData);
+  const handleInputChange = (field: keyof SettingsFormData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    if (!isEditing) setIsEditing(true);
   };
 
-  const handlePrivacySave = () => {
-    updatePrivacyMutation.mutate(privacySettings);
+  const handleSave = () => {
+    updateSettingsMutation.mutate(formData);
   };
 
-  const handleNotificationsSave = () => {
-    updateNotificationsMutation.mutate(notificationSettings);
+  const handleDeleteAccount = () => {
+    deleteAccountMutation.mutate();
   };
 
-  const SettingsNav = () => (
-    <div className="w-full md:w-64 mb-6 md:mb-0">
-      <div className="md:sticky md:top-6">
-        <Tabs orientation="vertical" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex md:flex-col h-auto md:h-auto w-full justify-start bg-gray-50 p-1 rounded-lg">
-            <TabsTrigger 
-              value="profile" 
-              className="w-full justify-start py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <User className="h-4 w-4 mr-3" />
-              <span className="hidden md:inline">Profile</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="privacy" 
-              className="w-full justify-start py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <Shield className="h-4 w-4 mr-3" />
-              <span className="hidden md:inline">Privacy</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="notifications" 
-              className="w-full justify-start py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <Bell className="h-4 w-4 mr-3" />
-              <span className="hidden md:inline">Notifications</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="connections" 
-              className="w-full justify-start py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <Users className="h-4 w-4 mr-3" />
-              <span className="hidden md:inline">Connections</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="security" 
-              className="w-full justify-start py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <Key className="h-4 w-4 mr-3" />
-              <span className="hidden md:inline">Security</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="data" 
-              className="w-full justify-start py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <Download className="h-4 w-4 mr-3" />
-              <span className="hidden md:inline">Data</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+  const toggleCuisine = (cuisine: string) => {
+    const newCuisines = formData.preferredCuisines.includes(cuisine)
+      ? formData.preferredCuisines.filter(c => c !== cuisine)
+      : [...formData.preferredCuisines, cuisine];
+    handleInputChange("preferredCuisines", newCuisines);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <DesktopSidebar />
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 p-4 md:p-6">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-48 mb-6"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="h-96 bg-gray-200 rounded-lg"></div>
+                <div className="h-96 bg-gray-200 rounded-lg"></div>
+              </div>
+            </div>
+          </div>
+          <MobileNavigation />
+        </div>
       </div>
-    </div>
-  );
-
-  const ProfileSettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Profile Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Avatar Section */}
-          <div className="flex items-center gap-4">
-            <Avatar className="w-20 h-20">
-              <AvatarImage src={currentUser?.profilePicture} />
-              <AvatarFallback className="text-xl">
-                {currentUser?.name?.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <Button variant="outline" size="sm">
-                <Camera className="h-4 w-4 mr-2" />
-                Change Photo
-              </Button>
-              <p className="text-sm text-gray-500 mt-1">
-                JPG, PNG or GIF. Max size 2MB.
-              </p>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Display Name</Label>
-              <Input
-                id="name"
-                value={profileData.name}
-                onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Your display name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-gray-500">@</span>
-                <Input
-                  id="username"
-                  value={profileData.username}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, username: e.target.value }))}
-                  className="pl-8"
-                  placeholder="username"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={profileData.bio}
-              onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-              placeholder="Tell people about yourself..."
-              rows={3}
-              maxLength={150}
-            />
-            <p className="text-sm text-gray-500">
-              {profileData.bio.length}/150 characters
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={profileData.preferredLocation}
-                onChange={(e) => setProfileData(prev => ({ ...prev, preferredLocation: e.target.value }))}
-                placeholder="City, Country"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                value={profileData.website}
-                onChange={(e) => setProfileData(prev => ({ ...prev, website: e.target.value }))}
-                placeholder="https://yourwebsite.com"
-              />
-            </div>
-          </div>
-
-          {/* Cuisine Preferences */}
-          <div className="space-y-3">
-            <Label>Favorite Cuisines</Label>
-            <div className="flex flex-wrap gap-2">
-              {["Italian", "Japanese", "Mexican", "Thai", "Indian", "French", "American", "Chinese"].map((cuisine) => (
-                <Badge
-                  key={cuisine}
-                  variant={profileData.preferredCuisines.includes(cuisine) ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => {
-                    const newCuisines = profileData.preferredCuisines.includes(cuisine)
-                      ? profileData.preferredCuisines.filter(c => c !== cuisine)
-                      : [...profileData.preferredCuisines, cuisine];
-                    setProfileData(prev => ({ ...prev, preferredCuisines: newCuisines }));
-                  }}
-                >
-                  {cuisine}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          <Button onClick={handleProfileSave} disabled={updateProfileMutation.isPending}>
-            {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const PrivacySettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Privacy & Visibility
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Profile Visibility */}
-          <div>
-            <Label className="text-base font-medium">Profile Visibility</Label>
-            <p className="text-sm text-gray-500 mb-3">Control who can see your profile</p>
-            <div className="space-y-3">
-              {[
-                { value: "public", icon: Globe, label: "Public", desc: "Anyone can see your profile" },
-                { value: "circles", icon: Users, label: "Circles Only", desc: "Only members of your circles can see your profile" },
-                { value: "private", icon: Lock, label: "Private", desc: "Only you can see your profile" },
-              ].map(({ value, icon: Icon, label, desc }) => (
-                <div 
-                  key={value}
-                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${
-                    privacySettings.profileVisibility === value 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setPrivacySettings(prev => ({ ...prev, profileVisibility: value }))}
-                >
-                  <Icon className="h-5 w-5 text-gray-500" />
-                  <div className="flex-1">
-                    <div className="font-medium">{label}</div>
-                    <div className="text-sm text-gray-500">{desc}</div>
-                  </div>
-                  {privacySettings.profileVisibility === value && (
-                    <Check className="h-5 w-5 text-primary" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Default Post Visibility */}
-          <div>
-            <Label className="text-base font-medium">Default Post Visibility</Label>
-            <p className="text-sm text-gray-500 mb-3">Choose who can see your posts by default</p>
-            <div className="space-y-3">
-              {[
-                { value: "public", label: "Public", desc: "Anyone can see your posts" },
-                { value: "followers", label: "Followers", desc: "Only your followers can see your posts" },
-                { value: "circles", label: "Circles", desc: "Only members of your circles can see your posts" },
-              ].map(({ value, label, desc }) => (
-                <div 
-                  key={value}
-                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${
-                    privacySettings.defaultPostVisibility === value 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setPrivacySettings(prev => ({ ...prev, defaultPostVisibility: value }))}
-                >
-                  <div className="flex-1">
-                    <div className="font-medium">{label}</div>
-                    <div className="text-sm text-gray-500">{desc}</div>
-                  </div>
-                  {privacySettings.defaultPostVisibility === value && (
-                    <Check className="h-5 w-5 text-primary" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Social Settings */}
-          <div className="space-y-4">
-            <Label className="text-base font-medium">Social Settings</Label>
-            
-            {[
-              {
-                key: "showFollowersCount",
-                label: "Show Followers Count",
-                desc: "Display your follower count on your profile",
-              },
-              {
-                key: "showFollowingCount",
-                label: "Show Following Count",
-                desc: "Display your following count on your profile",
-              },
-              {
-                key: "allowCircleInvites",
-                label: "Allow Circle Invites",
-                desc: "Let others invite you to their circles",
-              },
-              {
-                key: "allowDirectMessages",
-                label: "Allow Direct Messages",
-                desc: "Let others send you direct messages",
-              },
-            ].map(({ key, label, desc }) => (
-              <div key={key} className="flex items-center justify-between">
-                <div>
-                  <Label className="font-medium">{label}</Label>
-                  <p className="text-sm text-gray-500">{desc}</p>
-                </div>
-                <Switch
-                  checked={privacySettings[key as keyof typeof privacySettings] as boolean}
-                  onCheckedChange={(checked) => 
-                    setPrivacySettings(prev => ({ ...prev, [key]: checked }))
-                  }
-                />
-              </div>
-            ))}
-          </div>
-
-          <Button onClick={handlePrivacySave} disabled={updatePrivacyMutation.isPending}>
-            {updatePrivacyMutation.isPending ? "Saving..." : "Save Privacy Settings"}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const NotificationSettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notification Preferences
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Global Settings */}
-          <div className="space-y-4">
-            <Label className="text-base font-medium">Global Settings</Label>
-            
-            {[
-              {
-                key: "emailNotifications",
-                label: "Email Notifications",
-                desc: "Receive notifications via email",
-                icon: Mail,
-              },
-              {
-                key: "pushNotifications",
-                label: "Push Notifications",
-                desc: "Receive push notifications on your device",
-                icon: Smartphone,
-              },
-            ].map(({ key, label, desc, icon: Icon }) => (
-              <div key={key} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Icon className="h-5 w-5 text-gray-500" />
-                  <div>
-                    <Label className="font-medium">{label}</Label>
-                    <p className="text-sm text-gray-500">{desc}</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={notificationSettings[key as keyof typeof notificationSettings] as boolean}
-                  onCheckedChange={(checked) => 
-                    setNotificationSettings(prev => ({ ...prev, [key]: checked }))
-                  }
-                />
-              </div>
-            ))}
-          </div>
-
-          <Separator />
-
-          {/* Activity Notifications */}
-          <div className="space-y-4">
-            <Label className="text-base font-medium">Activity Notifications</Label>
-            
-            {[
-              {
-                key: "newFollower",
-                label: "New Followers",
-                desc: "When someone follows you",
-              },
-              {
-                key: "circleInvite",
-                label: "Circle Invites",
-                desc: "When someone invites you to a circle",
-              },
-              {
-                key: "postReply",
-                label: "Post Replies",
-                desc: "When someone comments on your posts",
-              },
-              {
-                key: "mentions",
-                label: "Mentions",
-                desc: "When someone mentions you in a post or comment",
-              },
-              {
-                key: "listShared",
-                label: "List Shares",
-                desc: "When someone shares your list",
-              },
-              {
-                key: "weeklyDigest",
-                label: "Weekly Digest",
-                desc: "Weekly summary of activity in your circles",
-              },
-            ].map(({ key, label, desc }) => (
-              <div key={key} className="flex items-center justify-between">
-                <div>
-                  <Label className="font-medium">{label}</Label>
-                  <p className="text-sm text-gray-500">{desc}</p>
-                </div>
-                <Switch
-                  checked={notificationSettings[key as keyof typeof notificationSettings] as boolean}
-                  onCheckedChange={(checked) => 
-                    setNotificationSettings(prev => ({ ...prev, [key]: checked }))
-                  }
-                  disabled={!notificationSettings.emailNotifications && !notificationSettings.pushNotifications}
-                />
-              </div>
-            ))}
-          </div>
-
-          <Button onClick={handleNotificationsSave} disabled={updateNotificationsMutation.isPending}>
-            {updateNotificationsMutation.isPending ? "Saving..." : "Save Notification Settings"}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const SecuritySettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            Account Security
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <Label className="font-medium">Password</Label>
-                <p className="text-sm text-gray-500">Last changed 3 months ago</p>
-              </div>
-              <Button variant="outline">Change Password</Button>
-            </div>
-            
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <Label className="font-medium">Two-Factor Authentication</Label>
-                <p className="text-sm text-gray-500">Add an extra layer of security</p>
-              </div>
-              <Button variant="outline">Enable 2FA</Button>
-            </div>
-            
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <Label className="font-medium">Login Sessions</Label>
-                <p className="text-sm text-gray-500">Manage your active sessions</p>
-              </div>
-              <Button variant="outline">View Sessions</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const DataSettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Data & Privacy
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <Label className="font-medium">Download Your Data</Label>
-                <p className="text-sm text-gray-500">Export all your data in JSON format</p>
-              </div>
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-            </div>
-            
-            <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
-              <div>
-                <Label className="font-medium text-red-600">Delete Account</Label>
-                <p className="text-sm text-gray-500">Permanently delete your account and all data</p>
-              </div>
-              <Button variant="destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="flex min-h-screen mb-16 md:mb-0">
-      <MobileNavigation />
+    <div className="flex min-h-screen bg-gray-50">
       <DesktopSidebar />
-      
-      <div className="flex-1 max-w-6xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <Link href="/profile" className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Profile
-          </Link>
-          <div className="relative bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-6 mb-4 overflow-hidden">
-            {/* Fun Food Elements */}
-            <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute top-2 left-4 text-2xl opacity-15 rotate-12">🍕</div>
-              <div className="absolute top-3 right-8 text-xl opacity-10 -rotate-6">🍔</div>
-              <div className="absolute bottom-2 left-8 text-xl opacity-15 rotate-45">🍜</div>
-              <div className="absolute bottom-1 right-4 text-2xl opacity-10 -rotate-12">🍝</div>
-              <div className="absolute top-4 left-1/3 text-lg opacity-8 rotate-6">🌮</div>
-              <div className="absolute bottom-3 right-1/3 text-lg opacity-12 -rotate-12">🍱</div>
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 p-4 md:p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/profile")}
+                className="md:hidden"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+                <p className="text-gray-600">Manage your account and preferences</p>
+              </div>
             </div>
-            <div className="relative z-10">
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <SettingsIcon className="h-8 w-8" />
-                Settings
-              </h1>
-              <p className="text-gray-600 mt-1">Manage your account preferences and privacy settings</p>
-            </div>
+            
+            {isEditing && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(false)}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={updateSettingsMutation.isPending}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Settings Content */}
-        <div className="flex flex-col md:flex-row gap-6">
-          <SettingsNav />
-          
-          <div className="flex-1">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsContent value="profile">
-                <ProfileSettings />
-              </TabsContent>
-              
-              <TabsContent value="privacy">
-                <PrivacySettings />
-              </TabsContent>
-              
-              <TabsContent value="notifications">
-                <NotificationSettings />
-              </TabsContent>
-              
-              <TabsContent value="connections">
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Connection Management</h3>
-                  <p className="text-gray-500">Manage your followers, following, and blocked users.</p>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="security">
-                <SecuritySettings />
-              </TabsContent>
-              
-              <TabsContent value="data">
-                <DataSettings />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
+          {/* Settings Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
+              <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="privacy">Privacy</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              <TabsTrigger value="account">Account</TabsTrigger>
+            </TabsList>
+
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Personal Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Profile Picture */}
+                  <div className="flex items-center gap-4">
+                    <Avatar className="w-20 h-20">
+                      <AvatarImage src={formData.profilePicture} alt={formData.name} />
+                      <AvatarFallback className="text-xl">
+                        {formData.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <Button variant="outline" size="sm">
+                        <Camera className="h-4 w-4 mr-2" />
+                        Change Photo
+                      </Button>
+                      <p className="text-sm text-gray-500 mt-1">
+                        JPG, PNG or GIF. Max size 5MB.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Basic Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        value={formData.username}
+                        onChange={(e) => handleInputChange("username", e.target.value)}
+                        placeholder="Enter your username"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        placeholder="Enter your email"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phoneNumber}
+                        onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  <div>
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      value={formData.bio}
+                      onChange={(e) => handleInputChange("bio", e.target.value)}
+                      placeholder="Tell us about yourself and your food preferences..."
+                      rows={4}
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <Label htmlFor="location">Location</Label>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <Input
+                        id="location"
+                        value={formData.preferredLocation}
+                        onChange={(e) => handleInputChange("preferredLocation", e.target.value)}
+                        placeholder="Enter your city or region"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Cuisine Preferences */}
+                  <div>
+                    <Label className="flex items-center gap-2 mb-3">
+                      <ChefHat className="h-4 w-4" />
+                      Cuisine Preferences
+                    </Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {cuisineOptions.map((cuisine) => (
+                        <Badge
+                          key={cuisine}
+                          variant={formData.preferredCuisines.includes(cuisine) ? "default" : "outline"}
+                          className="cursor-pointer justify-center py-2 px-3 hover:bg-primary/10"
+                          onClick={() => toggleCuisine(cuisine)}
+                        >
+                          {cuisine}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Privacy Tab */}
+            <TabsContent value="privacy" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Privacy Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Profile Visibility */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Label className="text-base font-medium">Private Account</Label>
+                      <p className="text-sm text-gray-500">
+                        Only approved followers can see your posts and profile
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.isPrivate}
+                      onCheckedChange={(checked) => handleInputChange("isPrivate", checked)}
+                    />
+                  </div>
+
+                  {/* Contact Info Visibility */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Contact Information Visibility</h3>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">Show Email</Label>
+                        <p className="text-sm text-gray-500">
+                          Display your email address on your profile
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.showEmail}
+                        onCheckedChange={(checked) => handleInputChange("showEmail", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">Show Phone</Label>
+                        <p className="text-sm text-gray-500">
+                          Display your phone number on your profile
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.showPhone}
+                        onCheckedChange={(checked) => handleInputChange("showPhone", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">Show Location</Label>
+                        <p className="text-sm text-gray-500">
+                          Display your location on your profile
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.showLocation}
+                        onCheckedChange={(checked) => handleInputChange("showLocation", checked)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Messaging */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Label className="text-base font-medium">Allow Direct Messages</Label>
+                      <p className="text-sm text-gray-500">
+                        Let other users send you direct messages
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.allowDirectMessages}
+                      onCheckedChange={(checked) => handleInputChange("allowDirectMessages", checked)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Notifications Tab */}
+            <TabsContent value="notifications" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    Notification Preferences
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Email Notifications */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Email Notifications</h3>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">Email Notifications</Label>
+                        <p className="text-sm text-gray-500">
+                          Receive notifications via email
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.emailNotifications}
+                        onCheckedChange={(checked) => handleInputChange("emailNotifications", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">Marketing Emails</Label>
+                        <p className="text-sm text-gray-500">
+                          Receive promotional emails and updates
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.marketingEmails}
+                        onCheckedChange={(checked) => handleInputChange("marketingEmails", checked)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Push Notifications */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Push Notifications</h3>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">Push Notifications</Label>
+                        <p className="text-sm text-gray-500">
+                          Receive push notifications on your device
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.pushNotifications}
+                        onCheckedChange={(checked) => handleInputChange("pushNotifications", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">New Reviews</Label>
+                        <p className="text-sm text-gray-500">
+                          Notify me when someone reviews a restaurant I've been to
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.reviewNotifications}
+                        onCheckedChange={(checked) => handleInputChange("reviewNotifications", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">New Followers</Label>
+                        <p className="text-sm text-gray-500">
+                          Notify me when someone follows me
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.followNotifications}
+                        onCheckedChange={(checked) => handleInputChange("followNotifications", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label className="text-base font-medium">Circle Invites</Label>
+                        <p className="text-sm text-gray-500">
+                          Notify me when I'm invited to join a circle
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.circleInviteNotifications}
+                        onCheckedChange={(checked) => handleInputChange("circleInviteNotifications", checked)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Account Tab */}
+            <TabsContent value="account" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Lock className="h-5 w-5" />
+                    Account Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Change Password */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Change Password</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="current-password">Current Password</Label>
+                        <Input
+                          id="current-password"
+                          type="password"
+                          placeholder="Enter your current password"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input
+                          id="new-password"
+                          type="password"
+                          placeholder="Enter your new password"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <Input
+                          id="confirm-password"
+                          type="password"
+                          placeholder="Confirm your new password"
+                        />
+                      </div>
+                      <Button variant="outline">
+                        Update Password
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Data Export */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Data Export</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Download a copy of your data including posts, lists, and profile information.
+                    </p>
+                    <Button variant="outline">
+                      Download My Data
+                    </Button>
+                  </div>
+
+                  {/* Delete Account */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-medium text-red-600 mb-4">Danger Zone</h3>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <h4 className="font-medium text-red-800 mb-2">Delete Account</h4>
+                      <p className="text-sm text-red-700 mb-4">
+                        Once you delete your account, there is no going back. This action cannot be undone.
+                      </p>
+                      {!showDeleteConfirm ? (
+                        <Button
+                          variant="destructive"
+                          onClick={() => setShowDeleteConfirm(true)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Account
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-red-700 mr-4">
+                            Are you sure? This action cannot be undone.
+                          </p>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleDeleteAccount}
+                            disabled={deleteAccountMutation.isPending}
+                          >
+                            {deleteAccountMutation.isPending ? "Deleting..." : "Yes, Delete"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowDeleteConfirm(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </main>
+        <MobileNavigation />
       </div>
     </div>
   );

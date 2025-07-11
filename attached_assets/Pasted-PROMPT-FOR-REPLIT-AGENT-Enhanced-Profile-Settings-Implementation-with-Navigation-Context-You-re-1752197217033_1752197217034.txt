@@ -1,0 +1,100 @@
+PROMPT FOR REPLIT AGENT: Enhanced Profile & Settings Implementation with Navigation
+
+Context: You're working on a food-focused social recommendation app called "Circles" - a trusted network for restaurant recommendations. We have existing Profile and Settings pages that need enhancement to match modern social app standards while staying true to our food-centric value proposition.
+
+Current State Assessment:
+
+Basic Profile page exists at client/src/pages/profile.tsx with food-themed decorative elements (pizza slices, etc.)
+Settings page exists at client/src/pages/settings.tsx with comprehensive privacy/notification controls
+ProfileStats component exists but has duplicate function declarations causing compilation errors
+App uses modern design system with primary color #E76F51 (Burnt Sienna)
+Database schema supports user preferences, cuisines, dining interests, and social features
+CRITICAL NAVIGATION REQUIREMENTS:
+
+1. Profile Page Access:
+
+Add Profile link to MobileNavigation (currently only shows when authenticated)
+Ensure Profile link is prominent in DesktopSidebar (already exists but verify visibility)
+Add Profile access from user avatar/name in header areas
+Consider adding Profile shortcut in quick actions or user menu
+2. Settings Page Access:
+
+Add Settings link to both MobileNavigation and DesktopSidebar
+Add Settings gear icon to Profile page header for easy access
+Include Settings in user dropdown menu (if implementing user menu)
+Add Settings shortcut from Profile page navigation
+3. Navigation Best Practices:
+
+Profile should be accessible from: Mobile nav, Desktop sidebar, User avatar clicks, Profile shortcuts
+Settings should be accessible from: Navigation menus, Profile page, User menu, Gear icons
+Ensure consistent navigation patterns across mobile and desktop
+Add breadcrumb navigation on Settings page (Back to Profile)
+Implementation Requirements:
+
+1. Profile Page Enhancements:
+
+Fix the fun food header elements (pizza slices, burgers, etc.) to be more visually appealing
+Add Settings gear icon in top-right corner of profile header
+Ensure food achievement badges and cuisine expertise are prominently displayed
+Implement trust indicators (verified reviews, circle contributions, local expertise)
+Organize content tabs around food expertise: Reviews, Lists, Circles, Saved, Connections
+Make the profile cover area more engaging without full-width photos (focus on food elements)
+Ensure mobile responsiveness and modern UI consistency
+2. Settings Page Structure:
+
+Maintain the current comprehensive organization: Account, Profile, Privacy, Notifications, Connections, Security, Data
+Add clear navigation back to Profile page
+Build upon existing PrivacySettings component functionality
+Ensure all form submissions work with existing user schema
+Keep the food-themed header design consistent with profile page
+3. Navigation Updates Required:
+
+Update client/src/components/navigation/MobileNavigation.tsx to include Profile and Settings links
+Update client/src/components/navigation/DesktopSidebar.tsx to include Settings link
+Add Settings access button to Profile page header
+Ensure Router component in client/src/components/Router.tsx handles both routes properly
+4. Critical Bug Fixes:
+
+URGENT: Fix ProfileStats component duplicate function declaration error in client/src/components/ProfileStats.tsx (line 116)
+Ensure all API endpoints align with existing backend routes
+Verify data persistence for all settings changes
+5. UI/UX Requirements:
+
+Maintain food-centric theme throughout both pages
+Use existing design tokens and color scheme (#E76F51 primary)
+Ensure mobile-first responsive design
+Follow Instagram/Linear-inspired clean, modern aesthetic
+Integrate seamlessly with existing navigation components
+Add clear visual hierarchy for navigation elements
+6. Data Integration:
+
+Leverage existing user schema fields: preferredCuisines, preferredLocation, diningInterests
+Connect with existing circle membership and social features
+Ensure profile stats work with current user relationships and content
+Technical Constraints:
+
+Work within existing React/TypeScript stack
+Use existing UI components from client/src/components/ui/
+Maintain compatibility with current authentication system
+Don't modify core schema or routing structure
+Success Criteria:
+
+Users can easily find Profile from home screen and main navigation
+Settings is accessible from Profile page and main navigation
+Compilation errors resolved (especially ProfileStats duplicate declaration)
+Both pages load without console errors and have clear navigation paths
+All form submissions persist data correctly
+Mobile responsive design matches desktop quality
+Food-themed visual elements enhance rather than distract from functionality
+Settings changes are reflected immediately in user experience
+Priority Order:
+
+Fix ProfileStats compilation error immediately
+Add Settings navigation to mobile and desktop navigation
+Add Settings access button to Profile page
+Enhance visual appeal of food decorative elements
+Ensure all data flows work correctly
+Polish mobile responsiveness
+Add any missing functionality for complete user profile management
+Focus on creating discoverable navigation paths that make Profile and Settings easily accessible from the home screen and throughout the app, while maintaining the cohesive, food-focused user experience that builds trust and showcases culinary expertise.
+

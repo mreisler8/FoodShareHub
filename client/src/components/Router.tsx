@@ -1,4 +1,4 @@
-# Adding the settings route to the router using lazy loading for the settings page.
+// Adding the settings route to the router using lazy loading for the settings page.
 import { Switch, Route } from "wouter";
 import { useEffect, lazy } from "react";
 import { addNativeAppClass } from "../lib/nativeAppBridge";
@@ -12,6 +12,7 @@ import CircleDetails from "../pages/circle-details";
 import Circles from "../pages/circles";
 import CircleMembers from "../pages/circle-members";
 import Profile from "../pages/profile";
+import Settings from "../pages/settings";
 import Discover from "../pages/discover";
 import DiscoverByLocation from "../pages/discover-by-location";
 import ListDetails from "../pages/list-details";
@@ -54,7 +55,7 @@ function Router() {
       <ProtectedRoute path="/restaurants/:id" component={RestaurantDetailPage} />
       <ProtectedRoute path="/user-discovery" component={UserDiscovery} />
       <Route path="/discover-by-location" component={DiscoverByLocation} />
-      <Route path="/settings" component={lazy(() => import("../pages/settings"))} />
+      <ProtectedRoute path="/settings" component={Settings} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

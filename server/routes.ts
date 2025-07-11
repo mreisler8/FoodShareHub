@@ -75,6 +75,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Settings routes
+  app.put("/api/users/settings", authenticate, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const updates = req.body;
+      
+      // Remove fields that shouldn't be updated directly
+      const { id, createdAt, updatedAt, password, ...allowedUpdates } = updates;
+      
+      const updatedUser = await storage.updateUser(userId, allowedUpdates);
+      
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/users/delete", authenticate, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      await storage.deleteUser(userId);
+      res.json({ message: "Account deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/users/:id", async (req, res) => {
     try {
       const user = await storage.getUser(parseInt(req.params.id));
