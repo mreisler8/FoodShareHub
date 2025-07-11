@@ -142,12 +142,15 @@ const CircularProgress = ({
 };
 
 export default function RestaurantDetailPage() {
-  const { id } = useParams();
+  const { id, placeId } = useParams();
   const [, setLocation] = useLocation();
 
+  const restaurantId = placeId || id;
+  const isGooglePlace = !!placeId;
+
   const { data: restaurant, isLoading, error } = useQuery<RestaurantDetails>({
-    queryKey: [`/api/restaurants/${id}`],
-    enabled: !!id,
+    queryKey: isGooglePlace ? [`/api/google/places/${restaurantId}`] : [`/api/restaurants/${restaurantId}`],
+    enabled: !!restaurantId,
   });
 
   if (isLoading) {

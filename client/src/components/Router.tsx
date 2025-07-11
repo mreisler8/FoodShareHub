@@ -52,7 +52,8 @@ function Router() {
       <ProtectedRoute path="/posts/:id" component={PostDetails} />
       <ProtectedRoute path="/join" component={JoinPage} />
       <ProtectedRoute path="/join/:inviteCode" component={JoinCirclePage} />
-      <ProtectedRoute path="/restaurants/:id" component={RestaurantDetailPage} />
+      <Route path="/restaurants/:id" component={RestaurantDetailPage} />
+        <Route path="/restaurants/google/:placeId" component={RestaurantDetailPage} />
       <ProtectedRoute path="/user-discovery" component={UserDiscovery} />
       <Route path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/settings" component={Settings} />

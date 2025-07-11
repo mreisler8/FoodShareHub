@@ -159,8 +159,13 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
       // Use Text Search API for general searches
       console.log(`Using Text Search API for query: ${query}`);
       
+      // For popular restaurant searches, use a broader query to get diverse results
+      const searchQuery = query.includes('popular') ? 
+        'highly rated restaurants' : 
+        `${query.trim()} restaurant`;
+      
       const textParams = {
-        query: `${query.trim()} restaurant`,
+        query: searchQuery,
         type: 'restaurant',
         key: GOOGLE_MAPS_API_KEY,
       };

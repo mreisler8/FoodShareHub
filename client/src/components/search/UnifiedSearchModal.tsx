@@ -141,7 +141,13 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     // Navigate based on result type
     switch (result.type) {
       case 'restaurant':
-        setLocation(`/restaurants/${result.id}`);
+        // Handle both database and Google Places results
+        if (result.id.startsWith('google_')) {
+          const googlePlaceId = result.id.replace('google_', '');
+          setLocation(`/restaurants/google/${googlePlaceId}`);
+        } else {
+          setLocation(`/restaurants/${result.id}`);
+        }
         onOpenChange(false);
         break;
       case 'list':
@@ -153,10 +159,10 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         onOpenChange(false);
         break;
       case 'user':
-        window.location.href = `/profile/${result.id}`;
+        setLocation(`/profile/${result.id}`);
+        onOpenChange(false);
         break;
     }
-    onOpenChange(false);
   };
 
   const handleRecentSearchClick = (term: string) => {
@@ -221,7 +227,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
               {locationPermission === 'denied' && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="h-3 w-3" />
-                  <span>Location disabled</span>
+                  <span>Location disabled - showing global results</span>
                   <Button
                     variant="outline"
                     size="sm"

@@ -11,7 +11,7 @@ const router = Router();
 router.get("/:id", authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     if (!id) {
       return res.status(400).json({ 
         error: "Restaurant ID is required",
@@ -22,10 +22,10 @@ router.get("/:id", authenticate, async (req, res) => {
     // Check if it's a Google Places result
     if (id.startsWith('google_')) {
       const googlePlaceId = id.replace('google_', '');
-      
+
       try {
         const placeDetails = await getPlaceDetails(googlePlaceId);
-        
+
         if (!placeDetails) {
           return res.status(404).json({ 
             error: "Restaurant not found",
@@ -102,12 +102,12 @@ router.get("/:id", authenticate, async (req, res) => {
     }
 
     const restaurantData = restaurant[0];
-    
+
     // Fetch comprehensive Google Places data if available
     let googlePlacesData = null;
     let location = restaurantData.location;
     let address = restaurantData.address || '';
-    
+
     if (restaurantData.googlePlaceId) {
       try {
         console.log("Fetching comprehensive Google Places data for restaurant:", restaurantData.name);
@@ -121,7 +121,7 @@ router.get("/:id", authenticate, async (req, res) => {
         // Keep existing location if Google Places fails
       }
     }
-    
+
     // Get community insights - posts from users that the current user follows
     const userId = req.user?.id;
     let communityInsights = {
@@ -131,7 +131,7 @@ router.get("/:id", authenticate, async (req, res) => {
       recentPosts: [],
       hasFollowersReviewed: false,
     };
-    
+
     if (userId) {
       try {
         // Get followers of the current user
@@ -139,9 +139,9 @@ router.get("/:id", authenticate, async (req, res) => {
           .select({ followingId: userFollowers.followingId })
           .from(userFollowers)
           .where(eq(userFollowers.followerId, userId));
-        
+
         const followingIds = following.map(f => f.followingId);
-        
+
         if (followingIds.length > 0) {
           // Get posts from followed users about this restaurant
           const followerPosts = await db
@@ -170,27 +170,27 @@ router.get("/:id", authenticate, async (req, res) => {
             ))
             .orderBy(desc(posts.createdAt))
             .limit(5);
-          
+
           if (followerPosts.length > 0) {
             // Calculate average rating from followers
             const totalRating = followerPosts.reduce((sum, post) => sum + post.rating, 0);
             const averageRating = totalRating / followerPosts.length;
-            
+
             // Extract top dishes mentioned
             const allDishes = followerPosts
               .flatMap(post => post.dishesTried || [])
               .filter(dish => dish && dish.trim().length > 0);
-            
+
             const dishCounts = allDishes.reduce((acc, dish) => {
               acc[dish] = (acc[dish] || 0) + 1;
               return acc;
             }, {} as Record<string, number>);
-            
+
             const topDishes = Object.entries(dishCounts)
               .sort(([, a], [, b]) => b - a)
               .slice(0, 5)
               .map(([dish, count]) => ({ dish, mentions: count }));
-            
+
             communityInsights = {
               followersAverageRating: Math.round(averageRating * 10) / 10,
               followersReviewCount: followerPosts.length,
@@ -223,7 +223,7 @@ router.get("/:id", authenticate, async (req, res) => {
         // Keep default empty insights if community data fails
       }
     }
-    
+
     // Format database restaurant to match our detail format with Google Places and community data
     const restaurantDetails = {
       id: restaurantData.id.toString(),

@@ -579,22 +579,55 @@ router.get("/trending", authenticate, async (req, res) => {
         }));
       }
     } else {
-      // No location provided, use database restaurants
-      const dbRestaurants = await db
-        .select({
-          id: restaurants.id,
-          name: restaurants.name,
-          location: restaurants.location,
-          category: restaurants.category,
-          type: sql<string>`'restaurant'`.as('type')
-        })
-        .from(restaurants)
-        .limit(3);
-      
-      trendingRestaurants = dbRestaurants.map(r => ({
-        ...r,
-        type: 'restaurant' as const
-      }));
+      // No location provided, try to get popular restaurants from Google Places without location
+      try {
+        console.log('No location provided, getting popular restaurants from Google Places');
+        // Get popular restaurants from major cities
+        const popularRestaurants = await searchGooglePlaces("popular restaurant");
+        console.log(`Google Places returned ${popularRestaurants.length} popular restaurants`);
+        
+        // Transform to our format
+        trendingRestaurants = popularRestaurants.slice(0, 8).map(r => ({
+          id: `google_${r.googlePlaceId}`,
+          name: r.name,
+          location: r.location,
+          category: r.category,
+          type: 'restaurant' as const,
+          thumbnailUrl: r.imageUrl,
+          avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
+          priceRange: r.priceRange,
+          cuisine: r.cuisine,
+          address: r.address,
+          source: 'google' as const,
+          googlePlaceId: r.googlePlaceId
+        }));
+      } catch (googleError) {
+        console.error("Error getting popular restaurants from Google Places:", googleError);
+        // Fall back to database restaurants but diversify them
+        const dbRestaurants = await db
+          .select({
+            id: restaurants.id,
+            name: restaurants.name,
+            location: restaurants.location,
+            category: restaurants.category,
+            cuisine: restaurants.cuisine,
+            priceRange: restaurants.priceRange,
+            imageUrl: restaurants.imageUrl,
+            type: sql<string>`'restaurant'`.as('type')
+          })
+          .from(restaurants)
+          .where(sql`${restaurants.location} NOT LIKE '%NYC%' AND ${restaurants.location} NOT LIKE '%New York%'`)
+          .limit(5);
+        
+        trendingRestaurants = dbRestaurants.map(r => ({
+          ...r,
+          type: 'restaurant' as const,
+          thumbnailUrl: r.imageUrl,
+          avgRating: 4.2,
+          address: r.location,
+          source: 'database' as const
+        }));
+      }
     }
     
     // Get trending lists (by view count)
