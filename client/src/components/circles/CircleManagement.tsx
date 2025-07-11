@@ -61,6 +61,9 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
     queryFn: () => apiRequest(`/api/circles/${circleId}/members`),
   });
   
+  // Check if user can manage members (must be after circle is loaded)
+  const canManageMembers = circle?.role === 'owner' || circle?.role === 'admin';
+  
   // Fetch pending member requests for this circle
   const { data: pendingRequests = [] } = useQuery({
     queryKey: [`/api/circles/${circleId}/requests`],
@@ -123,7 +126,6 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
     }
   };
 
-  const canManageMembers = circle?.role === 'owner' || circle?.role === 'admin';
   const pendingCount = pendingRequests.filter((req: any) => req.status === 'pending').length;
 
   if (circleLoading) {
