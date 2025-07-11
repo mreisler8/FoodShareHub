@@ -177,11 +177,26 @@ router.get('/', authenticate, async (req, res) => {
           sharedCirclesByList[share.listId].push(share.circleId);
         });
 
-        // Add shared circles to each list
+        // Get restaurant counts for all lists
+        const restaurantCounts = await db
+          .select({
+            listId: restaurantListItems.listId,
+            count: sql<number>`count(*)::int`
+          })
+          .from(restaurantListItems)
+          .where(inArray(restaurantListItems.listId, listIds))
+          .groupBy(restaurantListItems.listId);
+
+        const countByList: Record<number, number> = {};
+        restaurantCounts.forEach(({ listId, count }) => {
+          countByList[listId] = count;
+        });
+
+        // Add shared circles and restaurant count to each list
         const listsWithSharing = lists.map(list => ({
           ...list,
           sharedWithCircles: sharedCirclesByList[list.id] || [],
-          restaurantCount: 0 // This will be updated later if needed
+          restaurantCount: countByList[list.id] || 0
         }));
 
         res.json(listsWithSharing);
