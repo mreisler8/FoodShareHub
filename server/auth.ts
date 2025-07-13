@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { Request, Response, NextFunction } from "express";
+import { sendError } from "./utils/sendError";
 
 declare global {
   namespace Express {
@@ -116,12 +117,12 @@ export function setupAuth(app: Express) {
       const { username, password, name, bio, profilePicture } = req.body;
 
       if (!username || !password || !name) {
-        return res.status(400).json({ error: "Missing required fields" });
+        return sendError(res, 400, "Missing required fields");
       }
 
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
-        return res.status(400).json({ error: "Username already exists" });
+        return sendError(res, 400, "Username already exists");
       }
 
       const hashedPassword = await hashPassword(password);
@@ -143,7 +144,7 @@ export function setupAuth(app: Express) {
       });
     } catch (err: any) {
       console.error("Registration error:", err);
-      res.status(500).json({ error: "Registration failed" });
+      sendError(res, 500, "Registration failed");
     }
   });
 
@@ -157,7 +158,7 @@ export function setupAuth(app: Express) {
       }
       if (!user) {
         console.log("Login failed:", info?.message || "Authentication failed");
-        return res.status(401).json({ error: info?.message || "Authentication failed" });
+        return sendError(res, 401, info?.message || "Authentication failed");
       }
 
       console.log("User authenticated, creating session...");
@@ -188,9 +189,9 @@ export function setupAuth(app: Express) {
     console.log("Session:", req.session);
     console.log("Is authenticated:", req.isAuthenticated());
 
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
+      if (!req.isAuthenticated()) {
+        return sendError(res, 401, "Not authenticated");
+      }
 
     // Return user without password
     const { password, ...userWithoutPassword } = req.user as Express.User;
@@ -207,7 +208,7 @@ export function setupAuth(app: Express) {
     console.log("Headers:", req.headers);
 
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
+      return sendError(res, 401, "Not authenticated");
     }
 
     // Return user without password
@@ -233,5 +234,5 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   }
 
   console.log('Authentication failed for:', req.method, req.path);
-  res.status(401).json({ error: 'Not authenticated' });
+  sendError(res, 401, 'Not authenticated');
 };
