@@ -135,7 +135,3 @@ app.use((req, res, next) => {
   console.error('Unhandled server startup error:', error);
   process.exit(1);
 });
-
-
-
-// This was moved to the wrong location - removing from here
