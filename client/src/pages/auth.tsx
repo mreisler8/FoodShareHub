@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAuth, loginSchema, LoginData, RegisterData } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import {
   Form,
   FormControl,
@@ -19,12 +19,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
-// Define a custom registration schema for the form
+// Enhanced validation schemas
+const loginFormSchema = z.object({
+  username: z.string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+  password: z.string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
+});
+
 const registerFormSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+  username: z.string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+  name: z.string()
+    .min(1, "Name is required")
+    .min(2, "Name must be at least 2 characters"),
+  password: z.string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string()
+    .min(1, "Please confirm your password"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -45,7 +61,8 @@ export default function AuthPage() {
   }, [user, navigate]);
 
   const loginForm = useForm<LoginData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(loginFormSchema),
+    mode: "onBlur", // Validate on blur for better UX
     defaultValues: {
       username: "",
       password: "",
@@ -54,6 +71,7 @@ export default function AuthPage() {
 
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
+    mode: "onBlur", // Validate on blur for better UX
     defaultValues: {
       username: "",
       name: "",
@@ -87,14 +105,20 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       {/* Left side - Auth forms */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-md">
+          {/* App branding for mobile */}
+          <div className="text-center mb-8 sm:hidden">
+            <h1 className="text-2xl font-bold text-primary mb-2">Circles</h1>
+            <p className="text-muted-foreground">Share food experiences with your circle</p>
+          </div>
+          
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 sm:mb-8" role="tablist">
+              <TabsTrigger value="login" role="tab" aria-selected={activeTab === "login"}>Sign In</TabsTrigger>
+              <TabsTrigger value="register" role="tab" aria-selected={activeTab === "register"}>Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
@@ -113,9 +137,15 @@ export default function AuthPage() {
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel>Email Address</FormLabel>
                             <FormControl>
-                              <Input placeholder="Your username" {...field} />
+                              <Input 
+                                type="email"
+                                placeholder="your.email@example.com" 
+                                autoComplete="email"
+                                className="text-base sm:text-sm" // Better mobile experience
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -128,16 +158,27 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                className="text-base sm:text-sm" // Better mobile experience
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                      <Button 
+                        type="submit" 
+                        className="w-full min-h-[44px] text-base sm:text-sm" // Better mobile touch targets
+                        disabled={loginMutation.isPending}
+                        aria-label="Sign in to your account"
+                      >
                         {loginMutation.isPending ? (
                           <>
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
+                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" aria-hidden="true" />
                             Signing in...
                           </>
                         ) : (
@@ -166,9 +207,15 @@ export default function AuthPage() {
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel>Email Address</FormLabel>
                             <FormControl>
-                              <Input placeholder="Choose a username" {...field} />
+                              <Input 
+                                type="email"
+                                placeholder="your.email@example.com" 
+                                autoComplete="email"
+                                className="text-base sm:text-sm"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -179,9 +226,14 @@ export default function AuthPage() {
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Name</FormLabel>
+                            <FormLabel>Full Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Your full name" {...field} />
+                              <Input 
+                                placeholder="Enter your full name" 
+                                autoComplete="name"
+                                className="text-base sm:text-sm"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -194,7 +246,13 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="Create a secure password (6+ characters)"
+                                autoComplete="new-password"
+                                className="text-base sm:text-sm"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -207,16 +265,27 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Confirm Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="Re-enter your password"
+                                autoComplete="new-password"
+                                className="text-base sm:text-sm"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+                      <Button 
+                        type="submit" 
+                        className="w-full min-h-[44px] text-base sm:text-sm"
+                        disabled={registerMutation.isPending}
+                        aria-label="Create your account"
+                      >
                         {registerMutation.isPending ? (
                           <>
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
+                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" aria-hidden="true" />
                             Creating account...
                           </>
                         ) : (

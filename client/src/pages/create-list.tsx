@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,13 +18,14 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
 
-// Form Schema
+// Form Schema based on Robust List Creation user story
 const formSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
+  name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  circleId: z.string().optional(),
-  isPublic: z.boolean().default(true),
   tags: z.string().optional(),
+  shareWithCircle: z.boolean().default(false),
+  makePublic: z.boolean().default(false),
+  circleId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -44,47 +45,72 @@ export default function CreateList() {
     defaultValues: {
       name: "",
       description: "",
-      circleId: "",
-      isPublic: true,
       tags: "",
+      shareWithCircle: false,
+      makePublic: false,
+      circleId: undefined,
     },
   });
   
   // Create list mutation
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Convert tags from comma-separated string to array
-      const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+      // Apply default sharing rules if neither option is selected
+      let shareWithCircle = values.shareWithCircle;
+      let makePublic = values.makePublic;
       
-      // Convert circleId from string to number or null
-      const circleId = values.circleId ? parseInt(values.circleId) : null;
-      
-      // Create payload
+      if (!shareWithCircle && !makePublic) {
+        shareWithCircle = true; // Default to circle sharing
+      }
+
+      // Convert circleId to number if provided
+      const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
+
+      // Parse tags into array
+      const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
+
       const payload = {
         name: values.name,
         description: values.description || null,
-        isPublic: values.isPublic,
+        tags: tags,
         circleId: circleId,
-        tags: tagsArray.length > 0 ? tagsArray : null,
-        // Add createdById which is required
-        createdById: 1, // Using the current user ID
-        // Add required fields from schema
-        visibility: values.isPublic ? 'public' : 'private',
+        isPublic: makePublic,
+        visibility: makePublic ? "public" : "circle",
       };
       
-      // Use apiRequest with the correct pattern
-      const response = await apiRequest("POST", "/api/restaurant-lists", payload);
+      // Use the new /api/lists endpoint
+      const response = await apiRequest("POST", "/api/lists", payload);
       return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
       toast({
         title: "Success!",
         description: "Your restaurant list has been created.",
       });
       
-      // Navigate to the new list
-      navigate(`/lists/${data.id}`);
+      // Navigate directly to the list - handle different response structures
+      const listId = data?.id || (data as any)?.id;
+      if (listId) {
+        try {
+          navigate(`/lists/${listId}`);
+        } catch (error) {
+          console.error("Navigation failed:", error);
+          toast({
+            title: "Navigation Error",
+            description: "Couldn't open your list—please try again.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        console.error("No list ID in response:", data);
+        toast({
+          title: "Error",
+          description: "List created but couldn't navigate to it.",
+          variant: "destructive",
+        });
+      }
     },
     onError: () => {
       toast({
@@ -102,9 +128,9 @@ export default function CreateList() {
   
   // Set page title
   useEffect(() => {
-    document.title = "Create New List | TasteBuds";
+    document.title = "Create New List | Circles";
     return () => {
-      document.title = "TasteBuds";
+      document.title = "Circles";
     };
   }, []);
   
@@ -173,55 +199,72 @@ export default function CreateList() {
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="circleId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Share with Circle (Optional)</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
+                <div className="space-y-3">
+                  <Label>Sharing Settings</Label>
+                  
+                  <FormField
+                    control={form.control}
+                    name="shareWithCircle"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a circle (optional)" />
-                          </SelectTrigger>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="">Don't share with a circle</SelectItem>
-                          {circles?.map(circle => (
-                            <SelectItem key={circle.id} value={circle.id.toString()}>
-                              {circle.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="isPublic"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Make this list public</FormLabel>
-                        <p className="text-sm text-neutral-500">
-                          Public lists are visible to everyone. Private lists are only visible to you and members of the circle (if selected).
-                        </p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Share with Circle</FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="makePublic"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Make Public</FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {form.watch("shareWithCircle") && (
+                  <FormField
+                    control={form.control}
+                    name="circleId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Circle</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a circle" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {circles?.map((circle) => (
+                              <SelectItem key={circle.id} value={circle.id.toString()}>
+                                {circle.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 
                 <div className="flex justify-end space-x-2">
                   <Button 
@@ -233,7 +276,7 @@ export default function CreateList() {
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={createList.isPending}
+                    disabled={createList.isPending || !form.watch("name").trim()}
                   >
                     {createList.isPending ? "Creating..." : "Create List"}
                   </Button>

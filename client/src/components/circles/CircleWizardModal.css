@@ -1,0 +1,240 @@
+/* Circle Wizard Modal - Custom Implementation */
+.circle-wizard-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.circle-wizard-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Zero padding - complete control */
+  padding: 0;
+  margin: 0;
+}
+
+.circle-wizard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.circle-wizard-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: #111827;
+}
+
+.circle-wizard-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.circle-wizard-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.circle-wizard-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.circle-wizard-step {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.circle-wizard-step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.circle-wizard-step-number.active {
+  background: #2563eb;
+  color: white;
+}
+
+.circle-wizard-step-name {
+  margin-left: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.circle-wizard-step-name.active {
+  color: #2563eb;
+}
+
+.circle-wizard-step-arrow {
+  width: 16px;
+  height: 16px;
+  margin: 0 16px;
+  color: #6b7280;
+}
+
+.circle-wizard-content {
+  padding: 0;
+  /* Remove min-height to let content determine height */
+}
+
+.circle-wizard-step-content {
+  /* Remove all default spacing */
+  margin: 0;
+  padding: 0;
+}
+
+.circle-wizard-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+/* Override default component heights and spacing */
+.circle-wizard-modal textarea {
+  min-height: 60px !important;
+}
+
+.circle-wizard-modal input {
+  height: 36px !important;
+}
+
+.circle-wizard-modal label {
+  margin-bottom: 4px !important;
+}
+
+/* Reduce spacing between form groups */
+.circle-wizard-step-content > div > div {
+  margin-bottom: 12px !important;
+}
+
+.circle-wizard-step-content > div > div:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .circle-wizard-modal {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .circle-wizard-header {
+    border-bottom-color: #374151;
+  }
+  
+  .circle-wizard-title {
+    color: #f9fafb;
+  }
+  
+  .circle-wizard-close {
+    color: #9ca3af;
+  }
+  
+  .circle-wizard-close:hover {
+    background: #374151;
+    color: #f9fafb;
+  }
+  
+  .circle-wizard-steps {
+    background: #111827;
+    border-bottom-color: #374151;
+  }
+  
+  .circle-wizard-step-number {
+    background: #374151;
+    color: #9ca3af;
+  }
+  
+  .circle-wizard-step-number.active {
+    background: #3b82f6;
+    color: white;
+  }
+  
+  .circle-wizard-step-name {
+    color: #9ca3af;
+  }
+  
+  .circle-wizard-step-name.active {
+    color: #3b82f6;
+  }
+  
+  .circle-wizard-footer {
+    background: #111827;
+    border-top-color: #374151;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .circle-wizard-overlay {
+    padding: 8px;
+  }
+  
+  .circle-wizard-modal {
+    max-height: 95vh;
+  }
+  
+  .circle-wizard-header {
+    padding: 12px 16px;
+  }
+  
+  .circle-wizard-title {
+    font-size: 1.25rem;
+  }
+  
+  .circle-wizard-steps {
+    padding: 12px 16px;
+  }
+  
+  .circle-wizard-step-name {
+    display: none;
+  }
+  
+  .circle-wizard-step-arrow {
+    margin: 0 8px;
+  }
+  
+  .circle-wizard-content {
+    padding: 16px;
+  }
+  
+  .circle-wizard-footer {
+    padding: 12px 16px;
+  }
+}

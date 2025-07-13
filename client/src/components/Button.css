@@ -1,0 +1,138 @@
+:root {
+  /* Colors - Fresh & Natural Theme */
+  --color-primary:    #E76F51;  /* Burnt Sienna */
+  --color-primary-hover: hsl(14, 63%, 50%);/* Slightly darker */
+  --color-primary-active: hsl(14, 63%, 45%);/* Burnt Sienna active */
+  --color-secondary:  #E5E7EB;  /* Gray-200 */
+  --color-secondary-hover:#D1D5DB;/* Gray-300 */
+  --color-secondary-active:#9CA3AF;/* Gray-400 */
+  --color-text-primary:#FFFFFF;  /* White */
+  --color-text-secondary:#374151;/* Gray-700 */
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-pill: 9999px;
+
+  /* Typography */
+  --font-size-md: 14px;
+  --line-height-md: 20px;
+
+  /* Shadows */
+  --shadow-focus: 0 0 0 3px rgba(59,130,246,0.5); /* Blue-500 at 50% */
+}
+
+/* Modern Button System */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  transform: translateY(0px);
+  cursor: pointer;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  @apply pointer-events-none opacity-50 cursor-not-allowed;
+  transform: translateY(0px) !important;
+  box-shadow: none !important;
+}
+
+.btn-primary {
+  @apply bg-primary text-primary-foreground;
+  background-color: #E76F51;
+  box-shadow: 0 4px 12px hsl(14 73% 61% / 0.3);
+}
+
+.btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background-color: hsl(14, 63%, 50%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px hsl(14 73% 61% / 0.4);
+}
+
+.btn-primary:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(0px);
+  box-shadow: 0 2px 8px hsl(14 73% 61% / 0.4);
+}
+
+.btn-secondary {
+  @apply bg-secondary text-secondary-foreground border border-input shadow-sm;
+}
+
+.btn-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  @apply bg-secondary/80;
+}
+
+.btn-outline {
+  @apply border border-input bg-background shadow-sm;
+}
+
+.btn-outline:hover:not(:disabled):not([aria-disabled="true"]) {
+  @apply bg-accent text-accent-foreground;
+}
+
+.btn-ghost {
+  @apply bg-transparent;
+}
+
+.btn-ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  @apply bg-accent text-accent-foreground;
+}
+
+.btn-sm {
+  @apply h-8 px-3 text-xs rounded-md;
+}
+
+.btn-md {
+  @apply h-10 px-4 py-2;
+}
+
+.btn-lg {
+  @apply h-12 px-8 text-base rounded-lg;
+}
+
+/* Shape Variants */
+.btn-circle {
+  border-radius: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+
+  &.btn-sm {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  &.btn-lg {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+}
+
+.btn-loading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Sizes (optional) */
+.btn--sm { 
+  font-size: 12px; 
+  padding: var(--space-xs) var(--space-sm); 
+}
+.btn--lg { 
+  font-size: 16px; 
+  padding: var(--space-md) var(--space-lg); 
+}

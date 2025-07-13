@@ -1,0 +1,33 @@
+Pasted--CONTEXT-Goal-Build-an-easy-to-use-social-network-for-people-to-share-trusted-recommendation-1751848805750_1751848805752.txt
+# CONTEXT
+- **Goal:** Build an easy to use social-network for people to share trusted recommendations, starting with restaurants, meals and dishes, with their inner circle / network, balancing loggins / sharing and discovery / search
+
+# PERSONAS
+1. **Tracker Taylor**  
+   - **Age/Role:** 30-year-old software engineer  
+   - **Primary Goal:** Quickly log and resume personal lists of favorite restaurants  
+   - **Frustrations:** Losing track of past entries; cluttered UIs slow them down  
+   - **Usage Context:** Mobile right after a meal for quick logging; desktop when planning weekly  
+
+2. **Explorer Alex**  
+   - **Age/Role:** 24-year-old graduate student  
+   - **Primary Goal:** Discover new “hidden gem” spots via trusted community picks  
+   - **Frustrations:** Impersonal, noisy public reviews; hard to find curated content  
+   - **Usage Context:** Evenings/weekends on mobile; light browsing sessions  
+
+3. **Seeker Sam**  
+   - **Age/Role:** 26-year-old marketing coordinator  
+   - **Primary Goal:** Get occasion-specific recommendations (date night, pizza night) from friends  
+   - **Frustrations:** Generic Yelp results; lost suggestions in chat threads  
+   - **Usage Context:** Early evening on mobile when planning outings  
+
+4. **Influencer Riley**  
+   - **Age/Role:** 32-year-old lifestyle content creator  
+   - **Primary Goal:** Consolidate and grow a food recommendation community on one platform  
+   - **Frustrations:** Instagram/Facebook are too feed-driven; lists get buried  
+   - **Usage Context:** Desktop for in-depth posts; mobile for quick updates and community replies  
+
+# QUESTION
+**Given** where we are now and our personas’ top needs, **what** should be our **next highest-impact feature or improvement**? Please propose **3 options**, ranked by **effort vs. user-value**, and for the top choice give a **very brief implementation sketch** (file paths, key components or API changes). Please consider search ability, share-ability amongst the needs.
+
+Respond as a Senior Product Manager guiding the dev roadmap. 

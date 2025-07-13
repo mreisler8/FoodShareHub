@@ -1,0 +1,88 @@
+User Story 3: Persist & Optimistically Render
+As a list owner
+I want my “Save” on the inline form to immediately add the item to my list view (optimistic UI)
+So that I see instant feedback, yet still handle any server failures gracefully
+
+Acceptance Criteria
+API Call
+
+On form save, POST to:
+
+http
+Copy
+Edit
+POST /api/lists/:listId/items
+Content-Type: application/json
+
+{
+  "restaurantId": "<restaurantId>",
+  "rating": <number>,
+  "liked": "<string>",
+  "disliked": "<string>",
+  "notes": "<string>"
+}
+Expect a JSON response of the new list item including its id, createdAt, etc.
+
+Optimistic Update
+
+In ListPage.tsx’s handleSave, before awaiting the API response:
+
+ts
+Copy
+Edit
+const optimisticItem = {
+  id: `temp-${restaurantId}`,   // temporary unique key
+  restaurantId,
+  rating,
+  liked,
+  disliked,
+  notes,
+  createdAt: new Date().toISOString(),
+  isOptimistic: true
+};
+setListItems(prev => [optimisticItem, ...prev]);
+Then call the API:
+
+ts
+Copy
+Edit
+try {
+  const realItem = await apiFetch(`/api/lists/${listId}/items`, { … });
+  // Replace the temp item:
+  setListItems(prev =>
+    prev.map(item => item.id === optimisticItem.id ? realItem : item)
+  );
+} catch (err) {
+  // Remove the optimistic item:
+  setListItems(prev => prev.filter(item => item.id !== optimisticItem.id));
+  showToast('Failed to add. Please try again.');
+} finally {
+  setAddingId(null);
+}
+UI Indication
+
+While isOptimistic === true, render the item card with reduced opacity or a spinner to show it’s “saving.”
+
+After real data replaces it, it renders normally.
+
+Error Handling
+
+If the POST fails, show a toast error and ensure the inline form resets (i.e. addingId cleared).
+
+Implementation Steps for Replit Agent
+In src/pages/ListPage.tsx, inside your handleSave function:
+
+Create and prepend an optimisticItem as above.
+
+Try/catch around apiFetch to replace or remove that item.
+
+Update your <ListItemCard> to accept an isOptimistic prop and render a spinner or opacity change.
+
+Ensure addingId is reset in both success and failure paths.
+
+Commit & Push with message:
+
+scss
+Copy
+Edit
+feat(ui): implement optimistic add-to-list behavior and error handling

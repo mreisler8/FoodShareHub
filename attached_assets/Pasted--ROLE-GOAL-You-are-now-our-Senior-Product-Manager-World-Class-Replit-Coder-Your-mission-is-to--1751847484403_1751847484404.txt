@@ -1,0 +1,78 @@
+# ROLE & GOAL
+You are now our Senior Product Manager & World-Class Replit Coder. Your mission is to transform our busy, inconsistent homepage into a **clean, modern, persona-driven** landing page focused on Tracker Taylor (logging/sharing) and Explorer Alex (discovery). 
+
+# REFERENCE
+Here’s our current page for reference (too many CTAs, uneven coloring, mixed component styles):  
+![Current Homepage](/mnt/data/569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev_.png)
+
+# PERSONAS
+1. **Tracker Taylor** (30, power-user)  
+   - Primary: resume “My Lists” or create a new post immediately.  
+2. **Explorer Alex** (24, discoverer)  
+   - Secondary: see “Top Picks” quickly and save them.
+
+# SUCCESS CRITERIA
+- **Above the fold** shows only:
+  1. **HeroSection**: “Hi, {userName}! What’s on your plate today?” + inline search + single **New Post** button.
+  2. **Tab bar**: [My Lists] | [Top Picks] | [Circles].
+
+- **Below the fold**:
+  - **PreviewCarousel**: 3 cards based on active tab.
+  - **FeedPreview**: 2 most recent posts + **Load More** button.
+
+- **Removed**:
+  - “Quick Actions” cards.
+  - Duplicate CTAs (Create Circle/Create List) from main.
+  - Large gradient hero—use a simple white card.
+
+- **Layout**:  
+  - Desktop: two-column (Sidebar + Main).  
+  - Mobile: single column, full-width sections.
+
+- **Styling**:  
+  - Use unified `<Button>` and `<Card>` components.  
+  - Theme colors:  
+    - Primary: `#1D4ED8`, hover `#1E40AF`.  
+    - Secondary: `#E5E7EB`, hover `#D1D5DB`.
+  - Spacing: 48px vertical between sections, 16px padding inside cards.
+
+# TASKS & FILES
+
+1. **HeroSection**  
+   - **File:** `src/components/HeroSection.tsx` + `HeroSection.css`  
+   - Implement a white card, 24px padding, 8px radius, shadow.  
+   - Include `<input placeholder="Find a restaurant…" />` and `<Button variant="primary" size="md">New Post</Button>` side by side.
+
+2. **Tabs**  
+   - **File:** `src/components/SectionTabs.tsx` + `SectionTabs.css`  
+   - Render three tabs. Manage `activeTab` state, callback to parent.
+
+3. **PreviewCarousel**  
+   - **File:** `src/components/PreviewCarousel.tsx`  
+   - Accept `items: Array<{ id, title, subtitle }>` and render up to 3 `<Card>` children in a horizontal scroll.
+
+4. **FeedPreview**  
+   - **File:** `src/components/FeedPreview.tsx`  
+   - Show first 2 posts, then a `<Button variant="secondary" size="md">Load More</Button>` linking to `/feed`.
+
+5. **HomePage Layout**  
+   - **File:** `src/pages/HomePage.tsx` + `HomePage.css`  
+   - Import `HeroSection`, `SectionTabs`, `PreviewCarousel`, `FeedPreview`.  
+   - Replace existing markup with the new two-column flex layout and the 4 stacked sections in order:
+     1. HeroSection  
+     2. SectionTabs + PreviewCarousel  
+     3. FeedPreview  
+
+6. **Remove Old Elements**  
+   - Delete or comment out any `<QuickAddPanel>` and the “Quick Actions” grid in `HomePage.tsx`.
+
+7. **Styling & Responsive**  
+   - Ensure `.home__main { gap: 48px; padding: 24px; background: #F9FAFB; }`  
+   - Media query at `max-width: 640px` to stack elements vertically with 24px gaps.
+
+# TEST & VERIFY
+- **Smoke test**: log in, land on `/`, confirm only Hero, Tabs, Carousel, FeedPreview appear.  
+- **Taylor flow**: click **New Post** and verify modal, click **My Lists** tab, see your lists.  
+- **Alex flow**: switch to **Top Picks**, preview picks, then click **Load More** on feed.
+
+# COMMIT MESSAGE

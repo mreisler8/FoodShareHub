@@ -1,0 +1,173 @@
+Complete Access Control & Data Privacy Implementation
+
+Context: You're working on "Circles" - a food-focused social recommendation app. Critical security vulnerabilities exist where users can see ALL circles and lists regardless of permissions. This violates user privacy and trust expectations.
+
+CRITICAL SECURITY FIXES NEEDED:
+
+🔴 IMMEDIATE PRIORITY (Security Vulnerabilities):
+
+Fix Lists API Access Control
+
+Update /api/lists endpoint to only return lists user has access to:
+Lists they own
+Public lists (makePublic: true)
+Circle-shared lists where user is a member
+Add proper SQL filtering with JOIN conditions
+Remove any unauthorized data exposure
+Fix Circles API Access Control
+
+Update /api/circles endpoint to only return circles user has access to:
+Circles they own/created
+Circles they're members of
+Public circles (allowPublicJoin: true)
+Filter out private circles with no membership
+Implement Search Privacy Controls
+
+Update search endpoints to respect privacy settings
+Filter out private lists from search results
+Only show circle-shared content to circle members
+Ensure restaurant search respects list privacy
+🟡 HIGH PRIORITY (Access Control Framework):
+
+Create Centralized Permission Service
+
+Create server/services/permissions.ts with functions:
+canAccessList(userId, listId)
+canAccessCircle(userId, circleId)
+getUserAccessibleLists(userId)
+getUserAccessibleCircles(userId)
+Standardize Database Queries
+
+All list queries must filter by user permissions
+All circle queries must validate membership
+Use consistent JOIN patterns for access control
+Frontend Access Control
+
+Update UI components to only show accessible data
+Add permission-based rendering states
+Implement proper loading states for filtered data
+SPECIFIC IMPLEMENTATION REQUIREMENTS:
+
+Lists API Security Fix:
+
+// In /api/lists GET endpoint, replace current logic with:
+const accessibleLists = await db.execute(sql`
+  SELECT DISTINCT rl.*, u.name as creator_name
+  FROM restaurant_lists rl
+  LEFT JOIN users u ON rl.created_by_id = u.id
+  LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
+  WHERE (
+    -- User owns the list
+    rl.created_by_id = ${userId}
+    OR
+    -- List is public
+    rl.make_public = true
+    OR
+    -- List is shared with circle and user is member
+    (rl.share_with_circle = true AND cm.user_id = ${userId})
+  )
+  ORDER BY rl.created_at DESC
+`);
+Circles API Security Fix:
+
+// In /api/circles GET endpoint, replace current logic with:
+const accessibleCircles = await db.execute(sql`
+  SELECT DISTINCT c.*, cm.role, cm.joined_at
+  FROM circles c
+  LEFT JOIN circle_members cm ON c.id = cm.circle_id
+  WHERE (
+    -- User is a member of the circle
+    cm.user_id = ${userId}
+    OR
+    -- Circle allows public joining
+    c.allow_public_join = true
+  )
+  ORDER BY c.created_at DESC
+`);
+Permission Service Implementation:
+
+// Create server/services/permissions.ts
+export class PermissionService {
+  static async canAccessList(userId: number, listId: number): Promise<boolean> {
+    const result = await db.execute(sql`
+      SELECT 1 FROM restaurant_lists rl
+      LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
+      WHERE rl.id = ${listId} AND (
+        rl.created_by_id = ${userId} OR
+        rl.make_public = true OR
+        (rl.share_with_circle = true AND cm.user_id = ${userId})
+      )
+    `);
+    return result.rows.length > 0;
+  }
+  static async canAccessCircle(userId: number, circleId: number): Promise<boolean> {
+    const result = await db.execute(sql`
+      SELECT 1 FROM circles c
+      LEFT JOIN circle_members cm ON c.id = cm.circle_id
+      WHERE c.id = ${circleId} AND (
+        cm.user_id = ${userId} OR
+        c.allow_public_join = true
+      )
+    `);
+    return result.rows.length > 0;
+  }
+}
+Frontend Components to Update:
+
+client/src/pages/circles.tsx - Filter displayed circles
+client/src/components/lists/RestaurantListsSection.tsx - Filter displayed lists
+client/src/components/search/UnifiedSearchModal.tsx - Respect privacy in search
+client/src/pages/discover.tsx - Only show accessible content
+API Endpoints to Secure:
+
+GET /api/lists - Add user-specific filtering
+GET /api/circles - Add membership filtering
+GET /api/search - Add privacy filtering
+GET /api/discover - Add access control
+GET /api/top-picks - Respect list privacy
+Database Query Pattern:
+Every query that returns lists or circles must include proper access control JOINs and WHERE clauses. No raw SELECT * queries should return unauthorized data.
+
+Testing Requirements:
+
+Verify user A cannot see user B's private lists
+Verify user A cannot see circles they're not members of
+Verify search results respect privacy settings
+Verify public lists/circles are accessible to all users
+Verify circle members can see circle-shared content
+Success Criteria:
+✅ Privacy Compliance:
+
+Users only see lists they own, public lists, or circle-shared lists they have access to
+Users only see circles they're members of or public circles
+Search results respect privacy settings
+No unauthorized data exposure in any API response
+✅ Access Control Framework:
+
+Centralized permission checking service
+Consistent database query patterns
+Frontend components respect access permissions
+All endpoints properly validate user permissions
+✅ User Experience:
+
+Clear visual indicators for privacy levels
+Proper loading states for filtered data
+Intuitive access control without confusion
+Seamless experience for authorized content
+Priority Order:
+
+🔴 Fix Lists API security immediately
+🔴 Fix Circles API security immediately
+🔴 Fix Search privacy controls
+🟡 Implement Permission Service
+🟡 Update Frontend components
+🟡 Add comprehensive testing
+Files to Focus On:
+
+server/routes/lists.ts (critical security fix)
+server/routes/circles.ts (critical security fix)
+server/routes/search.ts (privacy controls)
+server/services/permissions.ts (new file)
+client/src/pages/circles.tsx (UI filtering)
+client/src/components/lists/RestaurantListsSection.tsx (UI filtering)
+This is a high-priority security issue that affects user trust and privacy. The current implementation exposes private data and violates user expectations for a "trusted circle" application.

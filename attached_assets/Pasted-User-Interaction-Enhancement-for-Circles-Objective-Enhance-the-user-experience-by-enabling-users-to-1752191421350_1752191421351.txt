@@ -1,0 +1,54 @@
+User Interaction Enhancement for Circles
+Objective:
+Enhance the user experience by enabling users to easily find and add friends to their circles for recommendations, and allow sharing of restaurant lists, dining experiences, meals tried, and related content.
+
+Key Features to Implement:
+
+User Discovery:
+
+Create a user search functionality that allows users to search for friends or other users based on usernames, names, or interests.
+Display a suggested list with users who match the search criteria, along with their profile pictures and basic information.
+Example API Endpoint:
+
+GET /api/users?query=searchTerm
+This should return a list of users matching the search term.
+Add to Circle Functionality:
+
+Allow users to add selected friends to their circles directly from the user list.
+An "Add to Circle" button next to each user in the search results.
+Example Interaction Flow:
+
+User searches for friends via the search bar.
+Displays a list of users; the user clicks "Add to Circle" next to a selected user.
+Sharing Lists and Experiences:
+
+Implement functionality so that when a user adds someone to their circle, they can choose to share their restaurant lists, past dining experiences, and meal details.
+The sharing should be permission-based, allowing users to select what they are willing to share with new circle members.
+Sharing Options:
+
+Popup/modal after adding a user to a circle, asking what lists/experiences they would like to share.
+Backend API to handle sharing parameters:
+POST /api/circles/:circleId/share with fields for restaurantIds and experienceDetails.
+Review and Rating Sharing:
+
+Users should be able to share their reviews and ratings of restaurants with the circles they manage.
+Display shared reviews in an organized manner within the circle feed for visibility and interaction.
+Example Feed Display:
+
+When a user shares a review, it appears on the circle feed with a link to the restaurant and the rating.
+Suggested User Flow Outline:
+Search for Users:
+
+User accesses the "Find Friends" section.
+Enters a search term to find users, and sees results.
+Add to Circle:
+
+User clicks "Add" beside a friend.
+Confirmation modal appears, asking what lists/experiences to share.
+Sharing:
+
+Users can select from their lists and past experiences to share with the added member.
+Successfully shared items appear in the circle's shared content area.
+Conclusion:
+This structure will allow for a more engaging and social experience within the app, making it easier for users to connect and collaborate through shared dining experiences, effectively increasing the platform's user engagement and overall usability.
+

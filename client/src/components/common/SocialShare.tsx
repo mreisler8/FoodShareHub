@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import { useState, useCallback } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Share2, Instagram, Twitter, Facebook, Linkedin, Link, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Share2, Instagram, Twitter, Facebook, Linkedin, Copy, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { analytics } from "@/lib/analytics";
 
 interface SocialShareProps {
@@ -33,71 +33,84 @@ export function SocialShare({
 }: SocialShareProps) {
   const { toast } = useToast();
   const [isSharing, setIsSharing] = useState(false);
-  
+
   // Use the current URL if none provided
   const shareUrl = url || window.location.href;
-  
-  const handleShare = async (platform: string) => {
-    setIsSharing(true);
+
+  const handleShare = useCallback(async (platform: string) => {
+    if (isSharing) return; // Prevent double clicks
     
+    setIsSharing(true);
+
     try {
-      // Track sharing analytics
+      // Track sharing analytics (non-blocking)
       if (userId && contentId) {
-        analytics.trackSocialShare(userId, contentId, platform);
+        analytics.trackSocialShare(userId, contentId, platform).catch(console.error);
       }
-      
+
       // Handle native sharing if available
       if (navigator.share && (platform === 'native' || platform === 'mobile')) {
-        await navigator.share({
-          title,
-          text: description,
-          url: shareUrl
-        });
-        
-        toast({
-          title: "Shared successfully",
-          description: "Your content has been shared"
-        });
-        
-        setIsSharing(false);
+        try {
+          await navigator.share({
+            title,
+            text: description,
+            url: shareUrl
+          });
+
+          toast({
+            title: "Shared successfully",
+            description: "Your content has been shared"
+          });
+        } catch (shareError: any) {
+          if (shareError.name !== 'AbortError') {
+            throw shareError;
+          }
+        }
         return;
       }
-      
-      // Platform specific sharing
-      let shareLink = '';
-      
+
+      // Platform specific sharing with better error handling
       switch (platform) {
         case 'instagram':
-          // Instagram doesn't have a direct share URL, 
-          // we'll need to use their API through a Mobile app or Stories sticker
           if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            // Deep link to Instagram app with image
-            shareLink = `instagram://library?AssetPath=${encodeURIComponent(image)}`;
-            window.location.href = shareLink;
+            // Try Instagram deep link first
+            const instagramUrl = `instagram://library?AssetPath=${encodeURIComponent(image)}`;
+            
+            // Fallback to web version if app not installed
+            const fallbackTimer = setTimeout(() => {
+              window.open('https://www.instagram.com/', '_blank');
+            }, 1000);
+            
+            window.location.href = instagramUrl;
+            
+            // Clear fallback if Instagram app opened
+            setTimeout(() => clearTimeout(fallbackTimer), 500);
           } else {
-            // On desktop we can only suggest to share manually
+            // Copy to clipboard and provide instructions
+            await navigator.clipboard.writeText(shareUrl);
             toast({
-              title: "Instagram Sharing",
-              description: "Instagram sharing works best on mobile devices with the Instagram app installed."
+              title: "Link copied for Instagram",
+              description: "Paste this link in your Instagram bio or stories. Instagram sharing works best on mobile devices."
             });
           }
           break;
-          
+
         case 'twitter':
-          shareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(shareUrl)}`;
-          window.open(shareLink, '_blank');
+          const twitterText = `${title} ${shareUrl}`;
+          const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(twitterText)}`;
+          window.open(twitterUrl, '_blank', 'width=550,height=420');
           break;
-          
+
         case 'facebook':
-          shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-          window.open(shareLink, '_blank');
+          const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&t=${encodeURIComponent(title)}`;
+          window.open(facebookUrl, '_blank', 'width=600,height=400');
           break;
-          
+
         case 'linkedin':
-          shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-          window.open(shareLink, '_blank');
+          const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(description)}`;
+          window.open(linkedinUrl, '_blank', 'width=600,height=400');
           break;
-          
+
         case 'copy':
           await navigator.clipboard.writeText(shareUrl);
           toast({
@@ -105,22 +118,25 @@ export function SocialShare({
             description: "Share it with your friends!"
           });
           break;
+
+        default:
+          throw new Error(`Unsupported platform: ${platform}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sharing:", error);
       toast({
         title: "Sharing failed",
-        description: "There was an issue sharing this content.",
+        description: error.message || "There was an issue sharing this content.",
         variant: "destructive"
       });
     } finally {
       setIsSharing(false);
     }
-  };
-  
+  }, [shareUrl, title, description, image, userId, contentId, isSharing, toast]);
+
   // Determine if we can use the native share API
   const canUseNativeShare = !!navigator.share;
-  
+
   if (variant === "icon") {
     return (
       <DropdownMenu>
@@ -159,7 +175,7 @@ export function SocialShare({
       </DropdownMenu>
     );
   }
-  
+
   return (
     <div className={`flex flex-col space-y-3 ${className}`}>
       {canUseNativeShare && (
@@ -172,7 +188,7 @@ export function SocialShare({
           Share
         </Button>
       )}
-      
+
       <div className="flex space-x-2 justify-between">
         <Button 
           variant="outline" 

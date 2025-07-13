@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button, ButtonProps } from "@/components/Button";
 import { UserPlus, Share2, Users } from "lucide-react";
 import { InviteModal } from "./InviteModal";
 
@@ -7,8 +7,9 @@ interface ReferralButtonProps extends Omit<ButtonProps, "onClick"> {
   circleId?: number;
   circleName?: string;
   userId: number;
-  variant?: "default" | "outline" | "ghost" | "secondary";
-  size?: "default" | "sm" | "lg" | "icon";
+  variant?: "primary" | "secondary" | "outline";
+  size?: "sm" | "md" | "lg";
+  shape?: "default" | "circle";
   referralType?: "app" | "circle";
   className?: string;
   children?: React.ReactNode;
@@ -18,8 +19,9 @@ export function ReferralButton({
   circleId,
   circleName,
   userId,
-  variant = "default",
-  size = "default",
+  variant = "primary",
+  size = "md",
+  shape = "default",
   referralType = "app",
   className = "",
   children,
@@ -32,11 +34,12 @@ export function ReferralButton({
       <Button
         variant={variant}
         size={size}
+        shape={shape}
         onClick={() => setIsModalOpen(true)}
         className={className}
         {...props}
       >
-        {size === "icon" ? (
+        {shape === "circle" ? (
           referralType === "app" ? <UserPlus className="h-4 w-4" /> : <Users className="h-4 w-4" />
         ) : children || (
           <>

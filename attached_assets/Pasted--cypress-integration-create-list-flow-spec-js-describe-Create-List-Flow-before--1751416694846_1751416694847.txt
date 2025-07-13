@@ -1,0 +1,57 @@
+// cypress/integration/create_list_flow.spec.js
+
+describe('Create List Flow', () => {
+  before(() => {
+    // log in once for all tests
+    cy.visit('/login');
+    cy.get('input[name="email"]').type('mitch.reisler@gmail.com');
+    cy.get('input[name="password"]').type('coach000');
+    cy.get('button[type="submit"]').click();
+    cy.url().should('not.include', '/login');
+  });
+
+  it('navigates to the Lists page and shows the Create List button', () => {
+    cy.visit('/lists');
+    cy.contains('+ Create List').should('be.visible');
+  });
+
+  it('opens the Create List modal with all fields', () => {
+    cy.contains('+ Create List').click();
+    cy.get('.modal-content').within(() => {
+      cy.contains('Create a New List').should('be.visible');
+      cy.get('input[placeholder="List Name"]').should('exist');
+      cy.get('textarea[placeholder="Description (optional)"]').should('exist');
+      cy.contains('Circle Only').should('exist');
+      cy.contains('Public').should('exist');
+      cy.contains('Create List').should('be.disabled');
+    });
+  });
+
+  it('enables the Create button when a name is entered', () => {
+    cy.get('input[placeholder="List Name"]').type('Best Pizza');
+    cy.contains('Create List').should('not.be.disabled');
+  });
+
+  it('creates a new list and redirects to its page', () => {
+    cy.contains('Create List').click();
+    cy.url().should('match', /\/lists\/\d+$/);
+    cy.contains('Best Pizza').should('be.visible');
+  });
+
+  it('canceling the modal does not create a list', () => {
+    cy.visit('/lists');
+    cy.contains('+ Create List').click();
+    cy.contains('Cancel').click();
+    cy.get('.lists-container .list-card').should('contain', 'Best Pizza').and('have.length.at.least', 1);
+  });
+
+  it('allows creating duplicate list names', () => {
+    cy.contains('+ Create List').click();
+    cy.get('input[placeholder="List Name"]').clear().type('Best Pizza');
+    cy.contains('Create List').click();
+    cy.visit('/lists');
+    cy.get('.lists-container .list-card')
+      .filter(':contains("Best Pizza")')
+      .should('have.length', 2);
+  });
+});

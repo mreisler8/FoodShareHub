@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Card, 
@@ -173,20 +173,11 @@ export function CreatePostForm() {
     setDishesList(updatedDishes);
   };
 
-  // Add image URL to the list
+  // Add image URL to the list - disabled placeholder functionality
   const addImageUrl = () => {
-    // In a real app, this would be a file upload
-    // For now, we'll simulate by using placeholder images
-    const placeholderImages = [
-      "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      "https://images.unsplash.com/photo-1581873372796-635b67ca2008?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
-    ];
-    
-    if (imageUrls.length < 3) {
-      const randomImage = placeholderImages[imageUrls.length];
-      setImageUrls([...imageUrls, randomImage]);
-    }
+    // This functionality has been disabled as it was adding placeholder images
+    // Users should use the modern PostModal component instead
+    console.log('CreatePostForm image upload disabled - use PostModal instead');
   };
 
   // Remove image from the list

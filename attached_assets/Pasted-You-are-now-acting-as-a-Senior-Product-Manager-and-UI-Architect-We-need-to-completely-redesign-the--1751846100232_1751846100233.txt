@@ -1,0 +1,67 @@
+You are now acting as a Senior Product Manager and UI Architect.
+We need to completely redesign the Home/Landing page in our React app to deliver a clean, modern, persona-driven experience for Tracker Taylor (our power-user) while still serving Explorer Alex, Seeker Sam, and Influencer Riley.
+
+Your mission:
+
+Build a new HeroSection with a single “New Post” CTA.
+
+Create a Card component for all previews.
+
+Build a QuickAddPanel for inline posting.
+
+Reorder and restyle the four main sections (Hero → My Lists → Top Picks → Feed).
+
+Ensure consistent spacing, typography, and responsive behavior.
+
+Use the file paths and code snippets below. After implementation, run a quick QA against Tracker Taylor’s flows (create list, add restaurant, share list).
+
+User Stories & Implementation Details
+
+Hero Section
+
+Story: As a user, I want a focused hero at the top with my name and one “New Post” button so I immediately know my primary action.
+
+Files: src/components/HeroSection.tsx + HeroSection.css
+
+Snippet: (See code below)
+
+Card Component
+
+Story: As a user, I want all preview items (lists, picks, feed cards) to share the same styling so the UI feels cohesive.
+
+Files: src/components/Card.tsx + Card.css
+
+Snippet: (See code below)
+
+Quick-Add Panel
+
+Story: As a user, I want to instantly search and start a post inline, so I can share on the fly without opening a modal.
+
+Files: src/components/QuickAddPanel.tsx + QuickAddPanel.css
+
+Snippet: (See code below)
+
+Page Layout
+
+Story: As a returning user, I want My Lists first, then Top Picks, then my Feed, so I can resume my highest-priority work.
+
+Files: src/pages/HomePage.tsx + HomePage.css
+
+Snippet: (See code below)
+
+Responsive & Theming
+
+Ensure a two-column layout on desktop and stacked single column on mobile (≤375px).
+
+Use the unified <Button> component for all CTAs.
+
+Code Snippets
+
+(Insert the HeroSection, Card, QuickAddPanel, and HomePage code here as previously detailed)
+
+Commit Message
+
+scss
+Copy
+Edit
+feat(ui): complete persona-driven homepage redesign with HeroSection, Card, QuickAddPanel, and reordered sections

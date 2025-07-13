@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +53,7 @@ export default function JoinPage() {
         navigate("/");
         
         toast({
-          title: "Welcome to TasteBuds!",
+          title: "Welcome to Circles!",
           description: "Your account has been created successfully.",
         });
       }
@@ -81,7 +81,7 @@ export default function JoinPage() {
       setIsJoining(false);
       
       toast({
-        title: "Welcome to TasteBuds!",
+        title: "Welcome to Circles!",
         description: `You've joined ${circle?.name || "the circle"} successfully.`,
       });
       
@@ -131,7 +131,7 @@ export default function JoinPage() {
       <div className="flex-1 flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-md">
           <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold text-primary">Join TasteBuds</h2>
+            <h2 className="text-3xl font-bold text-primary">Join Circles</h2>
             {referrer && !isLoadingReferrer && (
               <p className="mt-2 text-neutral-600">
                 <span className="font-medium">{referrer.name}</span> invited you to join
@@ -241,7 +241,7 @@ export default function JoinPage() {
             Discover restaurants through trusted connections
           </h2>
           <p className="text-xl mb-10 max-w-md text-center">
-            TasteBuds helps you find great restaurants based on recommendations from people you trust, not strangers on the internet.
+            Circles helps you find great restaurants based on recommendations from people you trust, not strangers on the internet.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">

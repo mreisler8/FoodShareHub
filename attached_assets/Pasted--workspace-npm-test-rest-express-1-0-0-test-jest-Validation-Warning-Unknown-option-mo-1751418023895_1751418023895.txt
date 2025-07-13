@@ -1,0 +1,337 @@
+~/workspace$ npm test
+
+> rest-express@1.0.0 test
+> jest
+
+● Validation Warning:
+
+  Unknown option "moduleNameMapping" with value {"^(\\.{1,2}/.*)\\.js$": "$1"} was found.
+  This is probably a typing mistake. Fixing it will remove this message.
+
+  Configuration Documentation:
+  https://jestjs.io/docs/configuration
+
+● Validation Warning:
+
+  Unknown option "moduleNameMapping" with value {"^(\\.{1,2}/.*)\\.js$": "$1"} was found.
+  This is probably a typing mistake. Fixing it will remove this message.
+
+  Configuration Documentation:
+  https://jestjs.io/docs/configuration
+
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+ FAIL  tests/listFlow.test.ts
+  ● Test suite failed to run
+
+    tests/listFlow.test.ts:4:8 - error TS1192: Module '"/home/runner/workspace/server/index"' has no default export.
+
+    4 import app from '../server/index';
+             ~~~
+    tests/listFlow.test.ts:6:1 - error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    6 describe('List & Recommendation API Flow', () => {
+      ~~~~~~~~
+    tests/listFlow.test.ts:12:3 - error TS2304: Cannot find name 'beforeAll'.
+
+    12   beforeAll(async () => {
+         ~~~~~~~~~
+    tests/listFlow.test.ts:18:18 - error TS2339: Property 'users' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    18       .insert(db.users)
+                        ~~~~~
+    tests/listFlow.test.ts:32:5 - error TS2304: Cannot find name 'expect'.
+
+    32     expect(loginRes.status).toBe(200);
+           ~~~~~~
+    tests/listFlow.test.ts:36:18 - error TS2339: Property 'restaurants' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    36       .insert(db.restaurants)
+                        ~~~~~~~~~~~
+    tests/listFlow.test.ts:47:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    47   it('creates a new list', async () => {
+         ~~
+    tests/listFlow.test.ts:56:5 - error TS2304: Cannot find name 'expect'.
+
+    56     expect(res.status).toBe(200);
+           ~~~~~~
+    tests/listFlow.test.ts:57:5 - error TS2304: Cannot find name 'expect'.
+
+    57     expect(res.body).toHaveProperty('id');
+           ~~~~~~
+    tests/listFlow.test.ts:58:5 - error TS2304: Cannot find name 'expect'.
+
+    58     expect(res.body.name).toBe('Best Pizza');
+           ~~~~~~
+    tests/listFlow.test.ts:62:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    62   it('fetches the newly created list', async () => {
+         ~~
+    tests/listFlow.test.ts:66:5 - error TS2304: Cannot find name 'expect'.
+
+    66     expect(res.status).toBe(200);
+           ~~~~~~
+    tests/listFlow.test.ts:67:5 - error TS2304: Cannot find name 'expect'.
+
+    67     expect(res.body.name).toBe('Best Pizza');
+           ~~~~~~
+    tests/listFlow.test.ts:68:5 - error TS2304: Cannot find name 'expect'.
+
+    68     expect(res.body.description).toBe('My fav pizzas');
+           ~~~~~~
+    tests/listFlow.test.ts:69:5 - error TS2304: Cannot find name 'expect'.
+
+    69     expect(res.body.visibility).toBe('public');
+           ~~~~~~
+    tests/listFlow.test.ts:72:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    72   it('adds a restaurant to the list', async () => {
+         ~~
+    tests/listFlow.test.ts:83:5 - error TS2304: Cannot find name 'expect'.
+
+    83     expect(res.status).toBe(200);
+           ~~~~~~
+    tests/listFlow.test.ts:84:5 - error TS2304: Cannot find name 'expect'.
+
+    84     expect(res.body.restaurantId).toBe(restaurantId);
+           ~~~~~~
+    tests/listFlow.test.ts:85:5 - error TS2304: Cannot find name 'expect'.
+
+    85     expect(res.body.listId).toBe(listId);
+           ~~~~~~
+    tests/listFlow.test.ts:86:5 - error TS2304: Cannot find name 'expect'.
+
+    86     expect(res.body.rating).toBe(5);
+           ~~~~~~
+    tests/listFlow.test.ts:87:5 - error TS2304: Cannot find name 'expect'.
+
+    87     expect(res.body.liked).toBe('Amazing cheese');
+           ~~~~~~
+    tests/listFlow.test.ts:90:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    90   it('updates a list item', async () => {
+         ~~
+    tests/listFlow.test.ts:95:5 - error TS2304: Cannot find name 'expect'.
+
+    95     expect(listRes.body.items).toHaveLength(1);
+           ~~~~~~
+    tests/listFlow.test.ts:108:5 - error TS2304: Cannot find name 'expect'.
+
+    108     expect(updateRes.status).toBe(200);
+            ~~~~~~
+    tests/listFlow.test.ts:109:5 - error TS2304: Cannot find name 'expect'.
+
+    109     expect(updateRes.body.rating).toBe(4);
+            ~~~~~~
+    tests/listFlow.test.ts:110:5 - error TS2304: Cannot find name 'expect'.
+
+    110     expect(updateRes.body.liked).toBe('Good cheese');
+            ~~~~~~
+    tests/listFlow.test.ts:111:5 - error TS2304: Cannot find name 'expect'.
+
+    111     expect(updateRes.body.disliked).toBe('A bit expensive');
+            ~~~~~~
+    tests/listFlow.test.ts:114:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    114   it('updates list metadata', async () => {
+          ~~
+    tests/listFlow.test.ts:123:5 - error TS2304: Cannot find name 'expect'.
+
+    123     expect(res.status).toBe(200);
+            ~~~~~~
+    tests/listFlow.test.ts:124:5 - error TS2304: Cannot find name 'expect'.
+
+    124     expect(res.body.name).toBe('Updated Pizza List');
+            ~~~~~~
+    tests/listFlow.test.ts:125:5 - error TS2304: Cannot find name 'expect'.
+
+    125     expect(res.body.description).toBe('My updated favorite pizzas');
+            ~~~~~~
+    tests/listFlow.test.ts:126:5 - error TS2304: Cannot find name 'expect'.
+
+    126     expect(res.body.visibility).toBe('circle');
+            ~~~~~~
+    tests/listFlow.test.ts:129:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    129   it('deletes a list item', async () => {
+          ~~
+    tests/listFlow.test.ts:140:5 - error TS2304: Cannot find name 'expect'.
+
+    140     expect(delRes.status).toBe(204);
+            ~~~~~~
+    tests/listFlow.test.ts:146:5 - error TS2304: Cannot find name 'expect'.
+
+    146     expect(verifyRes.body.items).toHaveLength(0);
+            ~~~~~~
+    tests/listFlow.test.ts:149:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    149   it('deletes the entire list', async () => {
+          ~~
+    tests/listFlow.test.ts:153:5 - error TS2304: Cannot find name 'expect'.
+
+    153     expect(res.status).toBe(204);
+            ~~~~~~
+    tests/listFlow.test.ts:159:5 - error TS2304: Cannot find name 'expect'.
+
+    159     expect(verifyRes.status).toBe(404);
+            ~~~~~~
+    tests/listFlow.test.ts:162:3 - error TS2304: Cannot find name 'afterAll'.
+
+    162   afterAll(async () => {
+          ~~~~~~~~
+    tests/listFlow.test.ts:165:26 - error TS2339: Property 'restaurantListItems' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    165       await db.delete(db.restaurantListItems).where(db.restaurantListItems.listId.eq(listId));
+                                 ~~~~~~~~~~~~~~~~~~~
+    tests/listFlow.test.ts:165:56 - error TS2339: Property 'restaurantListItems' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    165       await db.delete(db.restaurantListItems).where(db.restaurantListItems.listId.eq(listId));
+                                                               ~~~~~~~~~~~~~~~~~~~
+    tests/listFlow.test.ts:166:26 - error TS2339: Property 'restaurantLists' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    166       await db.delete(db.restaurantLists).where(db.restaurantLists.id.eq(listId));
+                                 ~~~~~~~~~~~~~~~
+    tests/listFlow.test.ts:166:52 - error TS2339: Property 'restaurantLists' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    166       await db.delete(db.restaurantLists).where(db.restaurantLists.id.eq(listId));
+                                                           ~~~~~~~~~~~~~~~
+    tests/listFlow.test.ts:167:26 - error TS2339: Property 'restaurants' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    167       await db.delete(db.restaurants).where(db.restaurants.id.eq(restaurantId));
+                                 ~~~~~~~~~~~
+    tests/listFlow.test.ts:167:48 - error TS2339: Property 'restaurants' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    167       await db.delete(db.restaurants).where(db.restaurants.id.eq(restaurantId));
+                                                       ~~~~~~~~~~~
+    tests/listFlow.test.ts:168:26 - error TS2339: Property 'users' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    168       await db.delete(db.users).where(db.users.id.eq(userId));
+                                 ~~~~~
+    tests/listFlow.test.ts:168:42 - error TS2339: Property 'users' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    168       await db.delete(db.users).where(db.users.id.eq(userId));
+                                                 ~~~~~
+
+ FAIL  tests/listRecommendationFlow.test.ts
+  ● Test suite failed to run
+
+    tests/listRecommendationFlow.test.ts:4:8 - error TS1192: Module '"/home/runner/workspace/server/index"' has no default export.
+
+    4 import app from '../server/index.js';
+             ~~~
+    tests/listRecommendationFlow.test.ts:6:1 - error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    6 describe('List & Recommendation API Flow', () => {
+      ~~~~~~~~
+    tests/listRecommendationFlow.test.ts:11:3 - error TS2304: Cannot find name 'beforeAll'.
+
+    11   beforeAll(async () => {
+         ~~~~~~~~~
+    tests/listRecommendationFlow.test.ts:14:18 - error TS2339: Property 'users' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    14       .insert(db.users)
+                        ~~~~~
+    tests/listRecommendationFlow.test.ts:26:18 - error TS2339: Property 'restaurants' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    26       .insert(db.restaurants)
+                        ~~~~~~~~~~~
+    tests/listRecommendationFlow.test.ts:37:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    37   it('creates a new list', async () => {
+         ~~
+    tests/listRecommendationFlow.test.ts:42:5 - error TS2304: Cannot find name 'expect'.
+
+    42     expect(res.status).toBe(201);
+           ~~~~~~
+    tests/listRecommendationFlow.test.ts:43:5 - error TS2304: Cannot find name 'expect'.
+
+    43     expect(res.body).toHaveProperty('id');
+           ~~~~~~
+    tests/listRecommendationFlow.test.ts:47:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    47   it('fetches the newly created list', async () => {
+         ~~
+    tests/listRecommendationFlow.test.ts:51:5 - error TS2304: Cannot find name 'expect'.
+
+    51     expect(res.status).toBe(200);
+           ~~~~~~
+    tests/listRecommendationFlow.test.ts:52:5 - error TS2304: Cannot find name 'expect'.
+
+    52     expect(res.body.name).toBe('Best Pizza');
+           ~~~~~~
+    tests/listRecommendationFlow.test.ts:55:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    55   it('adds a restaurant to the list', async () => {
+         ~~
+    tests/listRecommendationFlow.test.ts:60:5 - error TS2304: Cannot find name 'expect'.
+
+    60     expect(res.status).toBe(201);
+           ~~~~~~
+    tests/listRecommendationFlow.test.ts:61:5 - error TS2304: Cannot find name 'expect'.
+
+    61     expect(res.body.restaurantId).toBe(restaurantId);
+           ~~~~~~
+    tests/listRecommendationFlow.test.ts:62:5 - error TS2304: Cannot find name 'expect'.
+
+    62     expect(res.body.listId).toBe(listId);
+           ~~~~~~
+    tests/listRecommendationFlow.test.ts:65:3 - error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+
+    65   it('deletes the recommendation item', async () => {
+         ~~
+    tests/listRecommendationFlow.test.ts:74:5 - error TS2304: Cannot find name 'expect'.
+
+    74     expect(delRes.status).toBe(204);
+           ~~~~~~
+    tests/listRecommendationFlow.test.ts:77:3 - error TS2304: Cannot find name 'afterAll'.
+
+    77   afterAll(async () => {
+         ~~~~~~~~
+    tests/listRecommendationFlow.test.ts:79:24 - error TS2339: Property 'restaurantListItems' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    79     await db.delete(db.restaurantListItems).where(db.restaurantListItems.listId.eq(listId));
+                              ~~~~~~~~~~~~~~~~~~~
+    tests/listRecommendationFlow.test.ts:79:54 - error TS2339: Property 'restaurantListItems' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    79     await db.delete(db.restaurantListItems).where(db.restaurantListItems.listId.eq(listId));
+                                                            ~~~~~~~~~~~~~~~~~~~
+    tests/listRecommendationFlow.test.ts:80:24 - error TS2339: Property 'restaurantLists' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    80     await db.delete(db.restaurantLists).where(db.restaurantLists.id.eq(listId));
+                              ~~~~~~~~~~~~~~~
+    tests/listRecommendationFlow.test.ts:80:50 - error TS2339: Property 'restaurantLists' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    80     await db.delete(db.restaurantLists).where(db.restaurantLists.id.eq(listId));
+                                                        ~~~~~~~~~~~~~~~
+    tests/listRecommendationFlow.test.ts:81:24 - error TS2339: Property 'restaurants' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    81     await db.delete(db.restaurants).where(db.restaurants.id.eq(restaurantId));
+                              ~~~~~~~~~~~
+    tests/listRecommendationFlow.test.ts:81:46 - error TS2339: Property 'restaurants' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    81     await db.delete(db.restaurants).where(db.restaurants.id.eq(restaurantId));
+                                                    ~~~~~~~~~~~
+    tests/listRecommendationFlow.test.ts:82:24 - error TS2339: Property 'users' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    82     await db.delete(db.users).where(db.users.username.eq('e2e_test'));
+                              ~~~~~
+    tests/listRecommendationFlow.test.ts:82:40 - error TS2339: Property 'users' does not exist on type 'NeonDatabase<typeof import("/home/runner/workspace/shared/schema")> & { $client: Pool; }'.
+
+    82     await db.delete(db.users).where(db.users.username.eq('e2e_test'));
+                                              ~~~~~
+
+Test Suites: 2 failed, 2 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        18.273 s
+Ran all test suites.
+~/workspace$ 

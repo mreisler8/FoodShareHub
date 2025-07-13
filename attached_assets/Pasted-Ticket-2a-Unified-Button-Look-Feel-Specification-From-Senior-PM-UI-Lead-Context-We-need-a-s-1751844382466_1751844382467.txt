@@ -1,0 +1,186 @@
+Ticket 2a – Unified <Button> Look & Feel Specification
+From Senior PM & UI Lead
+Context: We need a single <Button> component that covers primary, secondary, icon, circle, and disabled states—so that all our click targets use the exact same design language.
+
+Design Tokens
+css
+Copy
+Edit
+:root {
+  /* Colors */
+  --color-primary:    #1D4ED8;  /* Blue-600 */
+  --color-primary-hover: #1E40AF;/* Blue-700 */
+  --color-primary-active:#1E3A8A;/* Blue-800 */
+  --color-secondary:  #E5E7EB;  /* Gray-200 */
+  --color-secondary-hover:#D1D5DB;/* Gray-300 */
+  --color-secondary-active:#9CA3AF;/* Gray-400 */
+  --color-text-primary:#FFFFFF;  /* White */
+  --color-text-secondary:#374151;/* Gray-700 */
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-pill: 9999px;
+
+  /* Typography */
+  --font-size-md: 14px;
+  --line-height-md: 20px;
+
+  /* Shadows */
+  --shadow-focus: 0 0 0 3px rgba(59,130,246,0.5); /* Blue-500 at 50% */
+}
+CSS Implementation (src/components/Button.css)
+css
+Copy
+Edit
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+  user-select: none;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Primary Variant */
+.btn--primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+.btn--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+.btn--primary:active:not(:disabled) {
+  background-color: var(--color-primary-active);
+  transform: scale(0.98);
+}
+.btn--primary:focus-visible {
+  outline: var(--shadow-focus);
+  outline-offset: 2px;
+}
+
+/* Secondary Variant */
+.btn--secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-text-secondary);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+.btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-secondary-hover);
+}
+.btn--secondary:active:not(:disabled) {
+  background-color: var(--color-secondary-active);
+  transform: scale(0.98);
+}
+.btn--secondary:focus-visible {
+  outline: var(--shadow-focus);
+  outline-offset: 2px;
+}
+
+/* Circle Shape (icon buttons) */
+.btn--circle {
+  padding: var(--space-sm);
+  border-radius: var(--radius-pill);
+  width: 2.5em;  /* e.g. ~40px */
+  height: 2.5em;
+}
+
+/* Sizes (optional) */
+.btn--sm { font-size: 12px; padding: var(--space-xs) var(--space-sm); }
+.btn--lg { font-size: 16px; padding: var(--space-md) var(--space-lg); }
+Updated Component (src/components/Button.tsx)
+tsx
+Copy
+Edit
+import React from 'react';
+import './Button.css';
+
+export type ButtonVariant = 'primary' | 'secondary';
+export type ButtonShape   = 'default' | 'circle';
+export type ButtonSize    = 'sm' | 'md' | 'lg';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  shape?: ButtonShape;
+  size?: ButtonSize;
+}
+
+export function Button({
+  variant = 'primary',
+  shape   = 'default',
+  size    = 'md',
+  className = '',
+  ...props
+}: ButtonProps) {
+  const classes = [
+    'btn',
+    `btn--${variant}`,
+    shape === 'circle' ? 'btn--circle' : '',
+    `btn--${size}`,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return <button className={classes} {...props} />;
+}
+Usage Examples
+tsx
+Copy
+Edit
+// Primary, default shape & size
+<Button onClick={handleSave}>Save Changes</Button>
+
+// Secondary, large
+<Button variant="secondary" size="lg">Load More Posts</Button>
+
+// Icon-only circle
+<Button variant="primary" shape="circle" aria-label="Add Restaurant">
+  <PlusIcon />
+</Button>
+Next Steps for Dev Agent:
+
+Merge the above CSS tokens and classes into Button.css.
+
+Implement the updated Button.tsx component.
+
+Replace all existing <button> tags in the app with <Button> using appropriate variant, shape, and size props.
+
+Review & Test visually in Preview for consistency, correct hover/active/focus states on desktop and mobile.
+
+Commit with:
+
+scss
+Copy
+Edit
+refactor(ui): apply detailed design spec to unified <Button> component
+This will give us crisp, consistent buttons that match our personas’ expectations for clarity, touch-target size, and visual feedback.
+
+
+
+
+
+
+
+
+Ask ChatGPT

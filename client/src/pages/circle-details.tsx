@@ -3,13 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Users } from "lucide-react";
+import { Button } from "@/components/Button";
+import { ArrowLeft, User, Users, Settings } from "lucide-react";
 import { CircleWithStats } from "@/lib/types";
-import { PostCard } from "@/components/home/PostCard";
-import { CreatePostButton } from "@/components/create-post/CreatePostButton";
+
 import { Skeleton } from "@/components/ui/skeleton";
-import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
+import { CircleListsSection } from "@/components/lists/CircleListsSection";
+import { CircleManagement } from "@/components/circles/CircleManagement";
 
 export default function CircleDetails() {
   const { id } = useParams();
@@ -18,19 +18,15 @@ export default function CircleDetails() {
     queryKey: [`/api/circles/${id}`],
   });
   
-  const { data: feedPosts, isLoading: isPostsLoading } = useQuery({
-    queryKey: ["/api/feed"],
-    // In a real app, we would fetch only posts for this circle
-    // queryKey: [`/api/circles/${id}/posts`],
-  });
+
   
   // Set page title
   useEffect(() => {
     if (circle) {
-      document.title = `${circle.name} | TasteBuds`;
+      document.title = `${circle.name} | Circles`;
     }
     return () => {
-      document.title = "TasteBuds";
+      document.title = "Circles";
     };
   }, [circle]);
 
@@ -60,12 +56,7 @@ export default function CircleDetails() {
           </div>
         ) : circle ? (
           <div className="mb-8">
-            <div className="relative h-40 rounded-xl overflow-hidden mb-4">
-              <img 
-                src={circle.image} 
-                alt={circle.name} 
-                className="w-full h-full object-cover"
-              />
+            <div className="relative h-40 rounded-xl overflow-hidden mb-4 bg-gradient-to-r from-primary to-primary-foreground">
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
               <div className="absolute bottom-4 left-4 right-4">
                 <h1 className="text-2xl font-heading font-bold text-white">{circle.name}</h1>
@@ -95,49 +86,23 @@ export default function CircleDetails() {
           </div>
         ) : null}
         
-        {/* Restaurant Lists */}
+        {/* Restaurant Lists - Combined Section */}
         {circle && (
-          <RestaurantListsSection 
+          <CircleListsSection 
             circleId={parseInt(id!)} 
-            title="Curated Restaurant Lists" 
-            showCreateButton={true} 
-            maxLists={4}
+            title="Shared Restaurant Lists" 
+            showCreateButton={true}
+            maxLists={undefined} // Show all lists
           />
         )}
         
-        {/* Circle Posts */}
-        <div className="mb-10">
-          <h2 className="text-xl font-heading font-bold text-neutral-900 mb-4">Recent Posts</h2>
-          
-          {isPostsLoading ? (
-            <div className="space-y-6">
-              {Array(2).fill(0).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-4 flex items-center">
-                    <Skeleton className="w-10 h-10 rounded-full" />
-                    <div className="ml-3 space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-64 w-full" />
-                </div>
-              ))}
-            </div>
-          ) : feedPosts && feedPosts.length > 0 ? (
-            feedPosts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))
-          ) : (
-            <div className="text-center py-10 bg-white rounded-xl shadow-sm">
-              <p className="text-neutral-500">No posts in this circle yet.</p>
-              <p className="text-neutral-500 mt-2">Be the first to share your experience!</p>
-            </div>
-          )}
-        </div>
-        
-        {/* Floating Action Button for Post Creation */}
-        <CreatePostButton />
+        {/* Circle Management Section */}
+        {circle && (
+          <div className="mb-10">
+            {console.log('Rendering CircleManagement for circle:', circle)}
+            <CircleManagement circleId={parseInt(id!)} />
+          </div>
+        )}
       </div>
     </div>
   );

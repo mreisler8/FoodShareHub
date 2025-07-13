@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { Request, Response, NextFunction } from "express";
 
 declare global {
   namespace Express {
@@ -34,7 +35,7 @@ export function setupAuth(app: Express) {
   // Use a random secret in production; for demo we're using a fixed string
   // In real applications, this should be stored in environment variables
   const sessionSecret = process.env.SESSION_SECRET || "food-circles-secret-key";
-  
+
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
     resave: false,
@@ -60,20 +61,31 @@ export function setupAuth(app: Express) {
         // Make username comparison case-insensitive
         const normalizedUsername = username.toLowerCase();
         console.log("Normalized username:", normalizedUsername);
-        
+
+        // Basic input validation
+        if (!username || !password) {
+          return done(null, false, { message: "Please enter both email and password" });
+        }
+
+        // Check if email format is valid
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(normalizedUsername)) {
+          return done(null, false, { message: "Please enter a valid email address" });
+        }
+
         const user = await storage.getUserByUsername(normalizedUsername);
         if (!user) {
           console.log("User not found");
-          return done(null, false, { message: "Invalid username or password" });
+          return done(null, false, { message: "No account found with this email address" });
         }
-        
+
         console.log("User found, verifying password");
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
           console.log("Invalid password");
-          return done(null, false, { message: "Invalid username or password" });
+          return done(null, false, { message: "Incorrect password. Please try again" });
         }
-        
+
         console.log("Password verified successfully");
         return done(null, user);
       } catch (err) {
@@ -102,18 +114,18 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     try {
       const { username, password, name, bio, profilePicture } = req.body;
-      
+
       if (!username || !password || !name) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      
+
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         return res.status(400).json({ error: "Username already exists" });
       }
-      
+
       const hashedPassword = await hashPassword(password);
-      
+
       const user = await storage.createUser({
         username,
         password: hashedPassword,
@@ -147,7 +159,7 @@ export function setupAuth(app: Express) {
         console.log("Login failed:", info?.message || "Authentication failed");
         return res.status(401).json({ error: info?.message || "Authentication failed" });
       }
-      
+
       console.log("User authenticated, creating session...");
       req.login(user, (err) => {
         if (err) {
@@ -175,14 +187,51 @@ export function setupAuth(app: Express) {
     console.log("Checking authentication, session id:", req.sessionID);
     console.log("Session:", req.session);
     console.log("Is authenticated:", req.isAuthenticated());
-    
+
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     // Return user without password
     const { password, ...userWithoutPassword } = req.user as Express.User;
     console.log("User authenticated:", userWithoutPassword);
     res.json(userWithoutPassword);
   });
+
+  // Also add /api/me endpoint for consistency
+  app.get("/api/me", (req, res) => {
+    console.log("Auth check - Method:", req.method, "Path:", req.path);
+    console.log("Session ID:", req.sessionID);
+    console.log("Is authenticated:", req.isAuthenticated());
+    console.log("Session user:", req.user?.id);
+    console.log("Headers:", req.headers);
+
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    // Return user without password
+    const { password, ...userWithoutPassword } = req.user as Express.User;
+    res.json(userWithoutPassword);
+  });
 }
+
+// Authentication middleware
+export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+  console.log('Auth check - Method:', req.method, 'Path:', req.path);
+  console.log('Session ID:', req.sessionID);
+  console.log('Is authenticated:', req.isAuthenticated());
+  console.log('Session user:', req.session?.passport?.user);
+  console.log('Headers:', req.headers);
+
+  // Set CORS headers for all authenticated requests
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:5000');
+
+  if (req.isAuthenticated()) {
+    return next();
+  }
+
+  console.log('Authentication failed for:', req.method, req.path);
+  res.status(401).json({ error: 'Not authenticated' });
+};

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { WebSocketServer, WebSocket } from "ws";
+// import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { searchGooglePlaces, getPlaceDetails } from "./services/google-places";
 import {
@@ -19,18 +19,36 @@ import {
   insertRestaurantListSchema,
   insertRestaurantListItemSchema,
 } from "@shared/schema";
+import { Router } from "express";
+import { z } from "zod";
+import { db } from "./db.js";
+import { authenticate } from "./auth.js";
+import recommendationsRouter from "./routes/recommendations.js";
+import listsRouter from "./routes/lists.js";
+import searchRouter from "./routes/search.ts";
+import searchAnalyticsRouter from "./routes/search-analytics.js";
+import followRoutes from './routes/follow';
+import followRequestsRouter from './routes/follow-requests';
+import listItemCommentsRouter from './routes/list-item-comments.js';
+import * as circleRoutes from './routes/circles';
+import circleRequestsRouter from './routes/circle-requests';
+import usersRouter from './routes/users';
+// import restaurantsRouter from './routes/restaurants.js';
+import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
+import { userFollowers, posts, restaurants, users } from "@shared/schema";
+import { getPlaceDetails } from './services/google-places';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
-    console.log('Setting up authentication...');
+    console.log("Setting up authentication...");
     // Set up authentication
     setupAuth(app);
-    console.log('Authentication setup complete');
+    console.log("Authentication setup complete");
   } catch (error) {
-    console.error('Failed to setup authentication:', error);
+    console.error("Failed to setup authentication:", error);
     throw error;
   }
-  
+
   // Error handling middleware
   const handleZodError = (err: any, res: Response) => {
     if (err instanceof ZodError) {
@@ -47,11 +65,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const users = await storage.getAllUsers();
       // Remove passwords from all user objects
-      const usersWithoutPasswords = users.map(user => {
+      const usersWithoutPasswords = users.map((user) => {
         const { password, ...userWithoutPassword } = user;
         return userWithoutPassword;
       });
       res.json(usersWithoutPasswords);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Settings routes
+  app.put("/api/users/settings", authenticate, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const updates = req.body;
+      
+      // Remove fields that shouldn't be updated directly
+      const { id, createdAt, updatedAt, password, ...allowedUpdates } = updates;
+      
+      const updatedUser = await storage.updateUser(userId, allowedUpdates);
+      
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/users/delete", authenticate, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      await storage.deleteUser(userId);
+      res.json({ message: "Account deleted successfully" });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -78,132 +125,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const followerId = req.user!.id;
       const followingId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(followingId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Check if the user exists
       const userToFollow = await storage.getUser(followingId);
       if (!userToFollow) {
         return res.status(404).json({ error: "User not found" });
       }
-      
-      const followRelationship = await storage.followUser(followerId, followingId);
+
+      const followRelationship = await storage.followUser(
+        followerId,
+        followingId,
+      );
       res.status(201).json(followRelationship);
     } catch (err: any) {
-      if (err.message === "Already following this user" || err.message === "Users cannot follow themselves") {
+      if (
+        err.message === "Already following this user" ||
+        err.message === "Users cannot follow themselves"
+      ) {
         return res.status(400).json({ error: err.message });
       }
       res.status(500).json({ error: err.message || "An error occurred" });
     }
   });
-  
+
   app.delete("/api/user/follow/:userId", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const followerId = req.user!.id;
       const followingId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(followingId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Check if the user exists
       const userToUnfollow = await storage.getUser(followingId);
       if (!userToUnfollow) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       await storage.unfollowUser(followerId, followingId);
       res.status(200).json({ message: "Successfully unfollowed user" });
     } catch (err: any) {
       res.status(500).json({ error: err.message || "An error occurred" });
     }
   });
-  
+
   app.get("/api/user/following/status/:userId", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const followerId = req.user!.id;
       const followingId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(followingId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
-      const isFollowing = await storage.isUserFollowing(followerId, followingId);
+
+      const isFollowing = await storage.isUserFollowing(
+        followerId,
+        followingId,
+      );
       res.json({ isFollowing });
     } catch (err: any) {
       res.status(500).json({ error: err.message || "An error occurred" });
     }
   });
-  
+
   app.get("/api/user/:userId/followers", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Check if the user exists
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       const followers = await storage.getFollowers(userId);
-      
+
       // Remove passwords from followers
-      const safeFollowers = followers.map(follower => {
+      const safeFollowers = followers.map((follower) => {
         const { password, ...safeFollower } = follower;
         return safeFollower;
       });
-      
+
       res.json(safeFollowers);
     } catch (err: any) {
       res.status(500).json({ error: err.message || "An error occurred" });
     }
   });
-  
+
   app.get("/api/user/:userId/following", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId, 10);
-      
+
       // Validate the userId is a number
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Check if the user exists
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       const following = await storage.getFollowing(userId);
-      
+
       // Remove passwords from followed users
-      const safeFollowing = following.map(followed => {
+      const safeFollowing = following.map((followed) => {
         const { password, ...safeFollowed } = followed;
         return safeFollowed;
       });
-      
+
       res.json(safeFollowing);
     } catch (err: any) {
       res.status(500).json({ error: err.message || "An error occurred" });
@@ -214,66 +270,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/restaurants", async (req, res) => {
     try {
       const { query, location } = req.query;
-      
-      console.log(`Restaurant search request received with params:`, { query, location });
-      
+
+      console.log(`Restaurant search request received with params:`, {
+        query,
+        location,
+      });
+
       // Search by query text
       if (query && typeof query === "string") {
         console.log(`Searching restaurants with query: "${query}"`);
-        
+
         // First search local database
         const dbResults = await storage.searchRestaurants(query);
-        console.log(`Local database search returned ${dbResults.length} results`);
+        console.log(
+          `Local database search returned ${dbResults.length} results`,
+        );
         if (dbResults.length > 0) {
-          console.log(`First local result: ${JSON.stringify(dbResults[0].name)}`);
+          console.log(
+            `First local result: ${JSON.stringify(dbResults[0].name)}`,
+          );
         }
-        
+
         // Then search Google Places API
         console.log(`Searching Google Places for: "${query}"`);
         const googleResults = await searchGooglePlaces(query);
-        console.log(`Google Places search returned ${googleResults.length} results`);
-        if (googleResults.length > 0) {
-          console.log(`First Google result: ${JSON.stringify(googleResults[0].name)}`);
-        }
-        
-        // Filter out Google results that already exist in the database to avoid duplicates
-        const filteredGoogleResults = googleResults.filter(gr => 
-          !dbResults.some(dr => dr.googlePlaceId === gr.googlePlaceId)
+        console.log(
+          `Google Places search returned ${googleResults.length} results`,
         );
-        console.log(`After filtering duplicates, using ${filteredGoogleResults.length} Google results`);
-        
+        if (googleResults.length > 0) {
+          console.log(
+            `First Google result: ${JSON.stringify(googleResults[0].name)}`,
+          );
+        }
+
+        // Filter out Google results that already exist in the database to avoid duplicates
+        const filteredGoogleResults = googleResults.filter(
+          (gr) =>
+            !dbResults.some((dr) => dr.googlePlaceId === gr.googlePlaceId),
+        );
+        console.log(
+          `After filtering duplicates, using ${filteredGoogleResults.length} Google results`,
+        );
+
         // Combine results, with local database results first
         const combinedResults = [...dbResults, ...filteredGoogleResults];
-        console.log(`Found ${dbResults.length} local results and ${filteredGoogleResults.length} unique Google results, total: ${combinedResults.length}`);
-        
+        console.log(
+          `Found ${dbResults.length} local results and ${filteredGoogleResults.length} unique Google results, total: ${combinedResults.length}`,
+        );
+
         return res.json(combinedResults);
       }
-      
+
       // Search by location
       if (location && typeof location === "string") {
         console.log(`Searching restaurants by location: "${location}"`);
-        
+
         // First search local database
         const dbResults = await storage.searchRestaurantsByLocation(location);
-        console.log(`Local database location search returned ${dbResults.length} results`);
-        
+        console.log(
+          `Local database location search returned ${dbResults.length} results`,
+        );
+
         // Then search Google Places API
         console.log(`Searching Google Places for location: "${location}"`);
         const googleResults = await searchGooglePlaces(location);
-        console.log(`Google Places location search returned ${googleResults.length} results`);
-        
-        // Filter out Google results that already exist in the database
-        const filteredGoogleResults = googleResults.filter(gr => 
-          !dbResults.some(dr => dr.googlePlaceId === gr.googlePlaceId)
+        console.log(
+          `Google Places location search returned ${googleResults.length} results`,
         );
-        
+
+        // Filter out Google results that already exist in the database
+        const filteredGoogleResults = googleResults.filter(
+          (gr) =>
+            !dbResults.some((dr) => dr.googlePlaceId === gr.googlePlaceId),
+        );
+
         // Combine results, with local database results first
         const combinedResults = [...dbResults, ...filteredGoogleResults];
-        console.log(`Combined location results: ${combinedResults.length} total`);
-        
+        console.log(
+          `Combined location results: ${combinedResults.length} total`,
+        );
+
         return res.json(combinedResults);
       }
-      
+
       // Return all restaurants if no query parameters
       console.log("No query or location provided, returning all restaurants");
       const restaurants = await storage.getAllRestaurants();
@@ -286,66 +365,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/restaurants/:id", async (req, res) => {
-    try {
-      const restaurant = await storage.getRestaurant(parseInt(req.params.id));
-      if (!restaurant) {
-        return res.status(404).json({ error: "Restaurant not found" });
-      }
-      res.json(restaurant);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  
+  // Restaurant detail endpoint moved to restaurant router
+
   // Google Places details endpoint
   app.get("/api/google/places/:placeId", async (req, res) => {
     try {
       const placeId = req.params.placeId;
       console.log(`Fetching Google Place details for ID: ${placeId}`);
-      
+
       const details = await getPlaceDetails(placeId);
       if (!details) {
         return res.status(404).json({ error: "Place details not found" });
       }
-      
+
       res.json(details);
     } catch (err: any) {
       console.error("Error fetching Google Place details:", err);
       res.status(500).json({ error: err.message });
     }
   });
-  
+
   // Save a Google Place to our database
   app.post("/api/google/places/save", async (req, res) => {
     try {
       const { placeId } = req.body;
-      
+
       if (!placeId) {
         return res.status(400).json({ error: "Google Place ID is required" });
       }
-      
+
       console.log(`Saving Google Place to database, ID: ${placeId}`);
-      
+
       // Get place details from Google
       const placeDetails = await getPlaceDetails(placeId);
       if (!placeDetails) {
         return res.status(404).json({ error: "Place details not found" });
       }
-      
+
       // Check if restaurant already exists in our database with this Google Place ID
-      const existingRestaurants = await storage.searchRestaurants(placeDetails.name || "");
-      const existingRestaurant = existingRestaurants.find(r => r.googlePlaceId === placeId);
-      
+      const existingRestaurants = await storage.searchRestaurants(
+        placeDetails.name || "",
+      );
+      const existingRestaurant = existingRestaurants.find(
+        (r) => r.googlePlaceId === placeId,
+      );
+
       if (existingRestaurant) {
-        console.log(`Restaurant already exists in database with ID: ${existingRestaurant.id}`);
+        console.log(
+          `Restaurant already exists in database with ID: ${existingRestaurant.id}`,
+        );
         return res.json(existingRestaurant);
       }
-      
+
       // Create a new restaurant in our database
       const restaurantData = {
         name: placeDetails.name || "",
-        location: placeDetails.address?.split(",").slice(-2).join(",").trim() || "",
+        location:
+          placeDetails.address?.split(",").slice(-2).join(",").trim() || "",
         category: placeDetails.category || "Restaurant",
         priceRange: placeDetails.priceRange || "$$",
         googlePlaceId: placeId,
@@ -357,10 +433,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cuisine: placeDetails.category,
         hours: placeDetails.hours,
       };
-      
+
       const newRestaurant = await storage.createRestaurant(restaurantData);
-      console.log(`Saved Google Place to database with ID: ${newRestaurant.id}`);
-      
+      console.log(
+        `Saved Google Place to database with ID: ${newRestaurant.id}`,
+      );
+
       res.status(201).json(newRestaurant);
     } catch (err: any) {
       console.error("Error saving Google Place to database:", err);
@@ -378,6 +456,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mount the search router
+  app.use('/api/search', searchRouter);
+
+  // Restaurant search is now handled by dedicated search router at /api/search
+
   // Post routes
   app.get("/api/posts", async (req, res) => {
     try {
@@ -390,7 +473,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (restaurantId && typeof restaurantId === "string") {
-        const posts = await storage.getPostsByRestaurant(parseInt(restaurantId));
+        const posts = await storage.getPostsByRestaurant(
+          parseInt(restaurantId),
+        );
         return res.json(posts);
       }
 
@@ -401,80 +486,334 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/feed", async (req, res) => {
+  // GET /feed - get paginated feed posts for authenticated user
+  app.get('/api/feed', authenticate, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "You must be logged in to view your feed" });
-      }
-      
-      // Get feed posts with pagination support
-      const page = req.query.page ? parseInt(req.query.page as string) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      
-      // Add query validation
-      if (isNaN(page) || page < 1) {
-        return res.status(400).json({ error: "Invalid page parameter" });
-      }
-      
-      if (isNaN(limit) || limit < 1 || limit > 50) {
-        return res.status(400).json({ error: "Invalid limit parameter" });
-      }
-      
-      // Apply offset pagination
+      const userId = req.user!.id;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
-      
-      // Get paginated posts with new optimized method
-      const feedPosts = await storage.getFeedPosts({ 
-        userId: req.user.id, 
-        offset, 
-        limit 
-      });
-      
+
+      // Get users that current user follows
+      const followingUsers = await db
+        .select({ id: userFollowers.followingId })
+        .from(userFollowers)
+        .where(eq(userFollowers.followerId, userId));
+
+      const followingUserIds = followingUsers.map(u => u.id);
+
+      const feedPosts = await db
+        .select({
+          id: posts.id,
+          userId: posts.userId,
+          restaurantId: posts.restaurantId,
+          content: posts.content,
+          rating: posts.rating,
+          visibility: posts.visibility,
+          dishesTried: posts.dishesTried,
+          images: posts.images,
+          priceAssessment: posts.priceAssessment,
+          atmosphere: posts.atmosphere,
+          serviceRating: posts.serviceRating,
+          dietaryOptions: posts.dietaryOptions,
+          createdAt: posts.createdAt,
+          restaurant: {
+            id: restaurants.id,
+            name: restaurants.name,
+            location: restaurants.location,
+            category: restaurants.category,
+            priceRange: restaurants.priceRange,
+            openTableId: restaurants.openTableId,
+            resyId: restaurants.resyId,
+            googlePlaceId: restaurants.googlePlaceId,
+            address: restaurants.address,
+            neighborhood: restaurants.neighborhood,
+            city: restaurants.city,
+            state: restaurants.state,
+            country: restaurants.country,
+            postalCode: restaurants.postalCode,
+            latitude: restaurants.latitude,
+            longitude: restaurants.longitude,
+            phone: restaurants.phone,
+            website: restaurants.website,
+            cuisine: restaurants.cuisine,
+            hours: restaurants.hours,
+            description: restaurants.description,
+            imageUrl: restaurants.imageUrl,
+            verified: restaurants.verified,
+            createdAt: restaurants.createdAt,
+            updatedAt: restaurants.updatedAt,
+          },
+          author: {
+            id: users.id,
+            username: users.username,
+            name: users.name,
+            bio: users.bio,
+            profilePicture: users.profilePicture,
+            preferredCuisines: users.preferredCuisines,
+            preferredPriceRange: users.preferredPriceRange,
+            preferredLocation: users.preferredLocation,
+            diningInterests: users.diningInterests,
+          },
+        })
+        .from(posts)
+        .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+        .innerJoin(users, eq(posts.userId, users.id))
+        .where(
+          and(
+            eq(posts.visibility, 'public'),
+            // Include posts from users you follow OR your own posts
+            or(
+              inArray(posts.userId, [...followingUserIds, userId]),
+              eq(posts.userId, userId)
+            )
+          )
+        )
+        .orderBy(desc(posts.createdAt))
+        .limit(limit)
+        .offset(offset);
+
       // Make sure the posts are safe (no password info)
-      const safeFeedPosts = feedPosts.map(post => {
+      const safeFeedPosts = feedPosts.map((post) => {
         // Clean post author using destructuring
         const { author, comments = [], ...postData } = post;
         let cleanAuthor = null;
-        
+
         if (author) {
           const { password, ...authorWithoutPassword } = author;
           cleanAuthor = authorWithoutPassword;
         }
-        
+
         // Process comments if they exist
-        const cleanComments = Array.isArray(comments) 
-          ? comments.map(comment => {
+        const cleanComments = Array.isArray(comments)
+          ? comments.map((comment) => {
               if (!comment || !comment.author) return comment;
               const { password, ...authorData } = comment.author;
               return { ...comment, author: authorData };
             })
           : [];
-        
+
         return {
           ...postData,
           author: cleanAuthor,
-          comments: cleanComments
+          comments: cleanComments,
         };
       });
-      
+
       // Get total count from the posts list
       // In this approach we just count from the first post
       const total = feedPosts.length > 0 ? feedPosts[0].totalPosts || 0 : 0;
       const totalPages = Math.ceil(total / limit);
       const hasMore = page < totalPages;
-      
+
       // Create pagination info
       const pagination = {
         page,
         limit,
-        total, 
+        total,
         totalPages,
-        hasMore
+        hasMore,
       };
-      
+
       res.json({
         posts: safeFeedPosts,
-        pagination
+        pagination,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // User Story 5: Content Moderation endpoints
+  app.post("/api/reports", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const reportData = {
+        ...req.body,
+        reporterId: req.user!.id,
+      };
+
+      // Validate required fields
+      if (!reportData.contentType || !reportData.contentId || !reportData.reason) {
+        return res.status(400).json({ error: "Missing required fields: contentType, contentId, reason" });
+      }
+
+      // Validate content type
+      const validContentTypes = ['post', 'comment', 'list', 'user'];
+      if (!validContentTypes.includes(reportData.contentType)) {
+        return res.status(400).json({ error: "Invalid content type" });
+      }
+
+      // Validate reason
+      const validReasons = ['spam', 'inappropriate', 'harassment', 'false_info', 'other'];
+      if (!validReasons.includes(reportData.reason)) {
+        return res.status(400).json({ error: "Invalid reason" });
+      }
+
+      const newReport = await storage.createContentReport(reportData);
+      res.status(201).json(newReport);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/reports", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { status, contentType, limit } = req.query;
+      const options: any = {};
+
+      if (status && typeof status === 'string') {
+        options.status = status;
+      }
+      if (contentType && typeof contentType === 'string') {
+        options.contentType = contentType;
+      }
+      if (limit && typeof limit === 'string') {
+        const parsedLimit = parseInt(limit);
+        if (!isNaN(parsedLimit) && parsedLimit > 0 && parsedLimit <= 100) {
+          options.limit = parsedLimit;
+        }
+      }
+
+      const reports = await storage.getContentReports(options);
+      res.json(reports);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/content/:contentType/:contentId/reports", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { contentType, contentId } = req.params;
+      const parsedContentId = parseInt(contentId);
+
+      if (isNaN(parsedContentId)) {
+        return res.status(400).json({ error: "Invalid content ID" });
+      }
+
+      const reports = await storage.getReportsByContent(contentType, parsedContentId);
+      res.json(reports);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/reports/:reportId/status", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const reportId = parseInt(req.params.reportId);
+      const { status, resolution } = req.body;
+
+      if (isNaN(reportId)) {
+        return res.status(400).json({ error: "Invalid report ID" });
+      }
+
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+
+      const validStatuses = ['pending', 'reviewing', 'resolved', 'dismissed'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+
+      const updatedReport = await storage.updateContentReportStatus(
+        reportId, 
+        status, 
+        req.user!.id, 
+        resolution
+      );
+
+      res.json(updatedReport);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // User Story 4: Top Picks endpoint
+  app.get("/api/top-picks", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const category = req.query.category as string || 'all'; // 'restaurants', 'posts', or 'all'
+
+      if (isNaN(limit) || limit < 1 || limit > 50) {
+        return res.status(400).json({ error: "Invalid limit parameter" });
+      }
+
+      let topPicks: any = {};
+
+      if (category === 'restaurants' || category === 'all') {
+        // Get top-rated restaurants based on average post ratings
+        const topRestaurants = await storage.getPopularContent();
+        const restaurantPicks = topRestaurants
+          .filter(item => item.type === 'restaurant')
+          .slice(0, Math.floor(limit / 2))
+          .map(item => ({
+            id: item.id,
+            name: item.name,
+            location: item.location,
+            category: item.category,
+            averageRating: item.averageRating,
+            totalPosts: item.postCount,
+            imageUrl: item.imageUrl,
+            type: 'restaurant'
+          }));
+
+        topPicks.restaurants = restaurantPicks;
+      }
+
+      if (category === 'posts' || category === 'all') {
+        // Get most liked and commented posts
+        const topPosts = await storage.getPopularContent();
+        const postPicks = topPosts
+          .filter(item => item.type === 'post')
+          .slice(0, Math.floor(limit / 2))
+          .map(item => ({
+            id: item.id,
+            content: item.content,
+            rating: item.rating,
+            likeCount: item.likeCount,
+            commentCount: item.commentCount,
+            author: {
+              id: item.authorId,
+              name: item.authorName,
+              username: item.authorUsername
+            },
+            restaurant: {
+              id: item.restaurantId,
+              name: item.restaurantName,
+              location: item.restaurantLocation
+            },
+            createdAt: item.createdAt,
+            type: 'post'
+          }));
+
+        topPicks.posts = postPicks;
+      }
+
+      res.json({
+        category,
+        limit,
+        data: topPicks,
+        timestamp: new Date().toISOString()
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -487,25 +826,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!postDetails) {
         return res.status(404).json({ error: "Post not found" });
       }
-      
+
       // Remove password hash from post author
       let safePostDetails = { ...postDetails };
       if (safePostDetails.author && safePostDetails.author.password) {
         const { password, ...authorWithoutPassword } = safePostDetails.author;
         safePostDetails.author = authorWithoutPassword;
       }
-      
+
       // Remove password hashes from comment authors
       if (safePostDetails.comments && Array.isArray(safePostDetails.comments)) {
-        safePostDetails.comments = safePostDetails.comments.map((comment: any) => {
-          if (comment.author && comment.author.password) {
-            const { password, ...authorWithoutPassword } = comment.author;
-            return { ...comment, author: authorWithoutPassword };
-          }
-          return comment;
-        });
+        safePostDetails.comments = safePostDetails.comments.map(
+          (comment: any) => {
+            if (comment.author && comment.author.password) {
+              const { password, ...authorWithoutPassword } = comment.author;
+              return { ...comment, author: authorWithoutPassword };
+            }
+            return comment;
+          },
+        );
       }
-      
+
       res.json(safePostDetails);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -516,39 +857,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
-      const postData = insertPostSchema.parse(req.body);
-      const newPost = await storage.createPost(postData);
+      const { listIds, ...postDataRaw } = req.body;
+      const postData = insertPostSchema.parse(postDataRaw);
+
+      // Use createPostWithLists if listIds are provided
+      const newPost = await storage.createPostWithLists(postData, listIds);
       res.status(201).json(newPost);
     } catch (err: any) {
       handleZodError(err, res);
     }
   });
-  
+
   // Update a post
   app.put("/api/posts/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const postId = parseInt(req.params.id);
       const post = await storage.getPost(postId);
-      
+
       // Check if post exists
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
-      
+
       // Check if the authenticated user is the author of the post
       if (post.userId !== req.user!.id) {
-        return res.status(403).json({ error: "Not authorized to update this post" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to update this post" });
       }
-      
+
       // Validate the request body
       const updateData = req.body;
-      
+
       // Update the post
       const updatedPost = await storage.updatePost(postId, updateData);
       res.json(updatedPost);
@@ -556,27 +902,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: err.message });
     }
   });
-  
+
   // Delete a post
   app.delete("/api/posts/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const postId = parseInt(req.params.id);
       const post = await storage.getPost(postId);
-      
+
       // Check if post exists
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
-      
+
       // Check if the authenticated user is the author of the post
       if (post.userId !== req.user!.id) {
-        return res.status(403).json({ error: "Not authorized to delete this post" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to delete this post" });
       }
-      
+
       // Delete the post
       await storage.deletePost(postId);
       res.status(200).json({ message: "Post deleted successfully" });
@@ -585,603 +933,233 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Comment routes
-  app.get("/api/posts/:postId/comments", async (req, res) => {
-    try {
-      const comments = await storage.getCommentsByPost(parseInt(req.params.postId));
-      res.json(comments);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/comments", async (req, res) => {
-    try {
-      const commentData = insertCommentSchema.parse(req.body);
-      const newComment = await storage.createComment(commentData);
-      res.status(201).json(newComment);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
-
-  // Circle routes (social networks for trusted recommendations)
-  app.get("/api/circles", async (req, res) => {
-    try {
-      const circles = await storage.getAllCircles();
-      res.json(circles);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/circles/featured", async (req, res) => {
-    try {
-      const featuredCircles = await storage.getFeaturedCircles();
-      res.json(featuredCircles);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Current user's circles - Authenticated endpoint
-  app.get("/api/circles/user", async (req, res) => {
+  // Like routes - User Story 8: Comments & Likes on Dining Posts
+  app.post("/api/posts/:postId/likes", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.postId);
+      const userId = req.user!.id;
+
+      // Check if user already liked this post
+      const existingLike = await storage.isPostLikedByUser(postId, userId);
+      if (existingLike) {
+        return res.status(400).json({ error: "Post already liked" });
+      }
+
+      const newLike = await storage.createLike({ postId, userId });
+      res.status(201).json(newLike);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Remove like from post
+  app.delete("/api/posts/:postId/likes", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const postId = parseInt(req.params.postId);
+      const userId = req.user!.id;
+
+      await storage.deleteLike(postId, userId);
+      res.status(200).json({ message: "Like removed successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Restaurant detail endpoint removed - now handled by restaurant router
+
+  // Circle endpoints (inline for compatibility)
+  app.get("/api/circles", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
     
     try {
-      const circles = await storage.getCirclesByUser(req.user.id);
-      res.json(circles);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      const allCircles = await storage.getAllCircles();
+      res.json(allCircles);
+    } catch (error) {
+      console.error('Error fetching circles:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
-  app.get("/api/circles/:id", async (req, res) => {
+  app.get("/api/me/circles", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
     try {
-      const circle = await storage.getCircle(parseInt(req.params.id));
-      if (!circle) {
-        return res.status(404).json({ error: "Circle not found" });
-      }
-      
-      const members = await storage.getCircleMembers(circle.id);
-      
-      res.json({
-        ...circle,
-        memberCount: members.length
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      const userId = req.user!.id;
+      const userCircles = await storage.getCirclesByUser(userId);
+      res.json(userCircles);
+    } catch (error) {
+      console.error('Error fetching user circles:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   app.post("/api/circles", async (req, res) => {
-    try {
-      const circleData = insertCircleSchema.parse(req.body);
-      const newCircle = await storage.createCircle(circleData);
-      res.status(201).json(newCircle);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
-
-  app.get("/api/users/:userId/circles", async (req, res) => {
-    try {
-      const userCircles = await storage.getCirclesByUser(parseInt(req.params.userId));
-      res.json(userCircles);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/circle-members", async (req, res) => {
-    try {
-      const memberData = insertCircleMemberSchema.parse(req.body);
-      const newMember = await storage.createCircleMember(memberData);
-      res.status(201).json(newMember);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
-
-  // Like routes
-  app.post("/api/likes", async (req, res) => {
-    try {
-      const likeData = insertLikeSchema.parse(req.body);
-      const newLike = await storage.createLike(likeData);
-      res.status(201).json(newLike);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
-
-  app.delete("/api/posts/:postId/likes/:userId", async (req, res) => {
-    try {
-      await storage.deleteLike(
-        parseInt(req.params.postId),
-        parseInt(req.params.userId)
-      );
-      res.status(204).end();
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/posts/:postId/likes", async (req, res) => {
-    try {
-      const likes = await storage.getLikesByPost(parseInt(req.params.postId));
-      res.json(likes);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Saved Restaurant routes
-  app.post("/api/saved-restaurants", async (req, res) => {
-    try {
-      const savedData = insertSavedRestaurantSchema.parse(req.body);
-      const newSavedRestaurant = await storage.createSavedRestaurant(savedData);
-      res.status(201).json(newSavedRestaurant);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
-
-  app.get("/api/users/:userId/saved-restaurants", async (req, res) => {
-    try {
-      const savedRestaurants = await storage.getSavedRestaurantsByUser(parseInt(req.params.userId));
-      res.json(savedRestaurants);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Story routes
-  app.get("/api/stories", async (req, res) => {
-    try {
-      const activeStories = await storage.getActiveStories();
-      
-      // Group stories by user
-      const storiesByUser = new Map();
-      
-      for (const story of activeStories) {
-        const user = await storage.getUser(story.userId);
-        if (!user) continue;
-        
-        // Remove password from user data
-        const { password, ...userWithoutPassword } = user;
-        
-        if (!storiesByUser.has(userWithoutPassword.id)) {
-          storiesByUser.set(userWithoutPassword.id, {
-            userId: userWithoutPassword.id,
-            userName: userWithoutPassword.name,
-            profilePicture: userWithoutPassword.profilePicture,
-            stories: []
-          });
-        }
-        
-        storiesByUser.get(userWithoutPassword.id).stories.push(story);
-      }
-      
-      res.json(Array.from(storiesByUser.values()));
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/stories", async (req, res) => {
-    try {
-      const storyData = insertStorySchema.parse(req.body);
-      const newStory = await storage.createStory(storyData);
-      res.status(201).json(newStory);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
-
-  // Restaurant List routes
-  app.get("/api/restaurant-lists", async (req, res) => {
-    try {
-      const circleId = req.query.circleId;
-      const userId = req.query.userId;
-      const publicOnly = req.query.publicOnly === "true";
-      
-      if (circleId && typeof circleId === "string") {
-        const lists = await storage.getRestaurantListsByCircle(parseInt(circleId));
-        return res.json(lists);
-      }
-      
-      if (userId && typeof userId === "string") {
-        const lists = await storage.getRestaurantListsByUser(parseInt(userId));
-        return res.json(lists);
-      }
-      
-      if (publicOnly) {
-        const lists = await storage.getPublicRestaurantLists();
-        return res.json(lists);
-      }
-      
-      // Default to public lists if no specific query
-      const lists = await storage.getPublicRestaurantLists();
-      res.json(lists);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  
-  // Current user's restaurant lists - Authenticated endpoint
-  app.get("/api/lists/user", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
+      return res.status(401).json({ error: "Not authenticated" });
     }
     
     try {
-      const lists = await storage.getRestaurantListsByUser(req.user.id);
-      res.json(lists);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  
-  app.get("/api/restaurant-lists/:id", async (req, res) => {
-    try {
-      const list = await storage.getRestaurantList(parseInt(req.params.id));
-      if (!list) {
-        return res.status(404).json({ error: "List not found" });
-      }
-      
-      // Get list items with restaurant details
-      const listItems = await storage.getDetailedRestaurantsInList(list.id);
-      
-      // Fix for security vulnerability - remove password from all user objects
-      // Clean detailed restaurants list items to remove all user password hashes
-      const cleanedListItems = await Promise.all(listItems.map(async item => {
-        // Clean the addedBy user object if it exists
-        if (item.addedBy && item.addedBy.password) {
-          const { password, ...cleanAddedBy } = item.addedBy;
-          return { ...item, addedBy: cleanAddedBy };
-        }
-        return item;
-      }));
-      
-      // Get and clean creator user data
-      const creator = await storage.getUser(list.createdById);
-      let creatorWithoutPassword = null;
-      if (creator) {
-        const { password, ...userWithoutPassword } = creator;
-        creatorWithoutPassword = userWithoutPassword;
-      }
-      
-      // If the list is associated with a circle, get the circle info
-      let circle = null;
-      if (list.circleId) {
-        circle = await storage.getCircle(list.circleId);
-      }
-      
-      res.json({
-        ...list,
-        creator: creatorWithoutPassword,
-        circle,
-        restaurants: cleanedListItems
+      const userId = req.user!.id;
+      const { name, description, primaryCuisine, priceRange, location, allowPublicJoin } = req.body;
+
+      // Create circle
+      const newCircle = await storage.createCircle({
+        name,
+        description,
+        creatorId: userId,
+        primaryCuisine: primaryCuisine || null,
+        priceRange: priceRange || null,
+        location: location || null,
+        allowPublicJoin: allowPublicJoin || false
       });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  
-  app.post("/api/restaurant-lists", async (req, res) => {
-    try {
-      const listData = insertRestaurantListSchema.parse(req.body);
-      const newList = await storage.createRestaurantList(listData);
-      res.status(201).json(newList);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
-  
-  app.post("/api/restaurant-list-items", async (req, res) => {
-    try {
-      const itemData = insertRestaurantListItemSchema.parse(req.body);
-      const newItem = await storage.addRestaurantToList(itemData);
-      res.status(201).json(newItem);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
-  
-  app.delete("/api/restaurant-lists/:listId/restaurants/:restaurantId", async (req, res) => {
-    try {
-      await storage.removeRestaurantFromList(
-        parseInt(req.params.listId),
-        parseInt(req.params.restaurantId)
-      );
-      res.status(204).end();
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
 
-  // Enhanced list management routes
-  app.patch("/api/restaurant-lists/:id", async (req, res) => {
-    try {
-      const updates = req.body;
-      const updatedList = await storage.updateRestaurantList(parseInt(req.params.id), updates);
-      res.json(updatedList);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/restaurant-lists/:id/view", async (req, res) => {
-    try {
-      const updatedList = await storage.incrementListViewCount(parseInt(req.params.id));
-      res.json({ viewCount: updatedList.viewCount });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/restaurant-lists/:id/save", async (req, res) => {
-    try {
-      const updatedList = await storage.incrementListSaveCount(parseInt(req.params.id));
-      res.json({ saveCount: updatedList.saveCount });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Location-based discovery routes
-  app.get("/api/restaurants/location/:location", async (req, res) => {
-    try {
-      const restaurants = await storage.getRestaurantsByLocation(req.params.location);
-      res.json(restaurants);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/restaurants/nearby", async (req, res) => {
-    try {
-      const { lat, lng, radius } = req.query;
-      
-      if (!lat || !lng || !radius || 
-          typeof lat !== 'string' || 
-          typeof lng !== 'string' || 
-          typeof radius !== 'string') {
-        return res.status(400).json({ error: "Missing or invalid parameters" });
-      }
-      
-      const restaurants = await storage.getNearbyRestaurants(
-        lat, 
-        lng, 
-        parseInt(radius)
-      );
-      
-      res.json(restaurants);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/restaurant-lists/location/:location", async (req, res) => {
-    try {
-      // Find restaurant lists that include restaurants in this location
-      const restaurants = await storage.getRestaurantsByLocation(req.params.location);
-      const restaurantIds = restaurants.map(r => r.id);
-      
-      // Since we don't have a direct method, we'll return public lists for now
-      const lists = await storage.getPublicRestaurantLists();
-      res.json(lists);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/restaurant-lists/popular/:location", async (req, res) => {
-    try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      
-      // For now, just return the most viewed public lists
-      const allLists = await storage.getPublicRestaurantLists();
-      const sortedLists = allLists
-        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-        .slice(0, limit);
-      
-      res.json(sortedLists);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Enhanced list sharing routes
-  app.post("/api/shared-lists", async (req, res) => {
-    try {
-      const { listId, circleId, permissions } = req.body;
-      
-      if (!listId || !circleId) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-      
-      // Ensure user is authenticated for this operation
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "You must be logged in to share lists" });
-      }
-      
-      // Check if list and circle exist
-      const list = await storage.getRestaurantList(listId);
-      if (!list) {
-        return res.status(404).json({ error: "List not found" });
-      }
-      
-      const circle = await storage.getCircle(circleId);
-      if (!circle) {
-        return res.status(404).json({ error: "Circle not found" });
-      }
-      
-      // Check if user has permission to share the list
-      if (list.createdById !== req.user.id) {
-        return res.status(403).json({ error: "You don't have permission to share this list" });
-      }
-      
-      // Feature not fully implemented yet
-      res.status(501).json({ 
-        message: "List sharing functionality will be available in a future update",
-        listId,
-        circleId, 
-        permissions
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/circles/:circleId/shared-lists", async (req, res) => {
-    try {
-      const circleId = parseInt(req.params.circleId);
-      
-      // Check if circle exists
-      const circle = await storage.getCircle(circleId);
-      if (!circle) {
-        return res.status(404).json({ error: "Circle not found" });
-      }
-      
-      // Feature not fully implemented yet
-      res.status(200).json([]);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/restaurant-lists/:listId/shared-with", async (req, res) => {
-    try {
-      const listId = parseInt(req.params.listId);
-      
-      // Check if list exists
-      const list = await storage.getRestaurantList(listId);
-      if (!list) {
-        return res.status(404).json({ error: "List not found" });
-      }
-      
-      // Feature not fully implemented yet
-      res.status(200).json([]);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.delete("/api/restaurant-lists/:listId/shared-with/:circleId", async (req, res) => {
-    try {
-      const listId = parseInt(req.params.listId);
-      const circleId = parseInt(req.params.circleId);
-      
-      // Ensure user is authenticated
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "You must be logged in to unshare lists" });
-      }
-      
-      // Check if the list and circle exist
-      const list = await storage.getRestaurantList(listId);
-      if (!list) {
-        return res.status(404).json({ error: "List not found" });
-      }
-      
-      const circle = await storage.getCircle(circleId);
-      if (!circle) {
-        return res.status(404).json({ error: "Circle not found" });
-      }
-      
-      // Allow unsharing if user created the list
-      const isListCreator = list.createdById === req.user.id;
-      
-      if (!isListCreator) {
-        return res.status(403).json({ error: "You don't have permission to unshare this list" });
-      }
-      
-      // Feature not fully implemented yet
-      res.status(501).json({ 
-        message: "List unsharing functionality will be available in a future update"
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Get featured circles
-  app.get("/api/circles/featured", async (req, res) => {
-    try {
-      const featuredCircles = await storage.getFeaturedCircles();
-      res.json(featuredCircles);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Join a circle
-  app.post("/api/circles/:id/join", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "You must be logged in to join a circle" });
-    }
-
-    try {
-      const circleId = parseInt(req.params.id);
-      const userId = req.user.id;
-
-      // Check if circle exists
-      const circle = await storage.getCircle(circleId);
-      if (!circle) {
-        return res.status(404).json({ error: "Circle not found" });
-      }
-
-      // Check if user is already a member
-      const isAlreadyMember = await storage.isUserMemberOfCircle(userId, circleId);
-      if (isAlreadyMember) {
-        return res.status(400).json({ error: "You are already a member of this circle" });
-      }
-
-      // Add user to circle
+      // Add creator as owner
       await storage.createCircleMember({
-        userId,
-        circleId
+        circleId: newCircle.id,
+        userId: userId,
+        role: 'owner',
+        joinedAt: new Date()
       });
 
-      res.json({ message: "Successfully joined circle", circle });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      res.status(201).json(newCircle);
+    } catch (error) {
+      console.error('Error creating circle:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
-  const httpServer = createServer(app);
-  
-  // Setup WebSocket server for real-time communication
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  wss.on('connection', (ws) => {
-    console.log('WebSocket client connected');
+  // Circle-List Integration endpoints
+  app.post("/api/circles/:circleId/lists", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
     
-    ws.on('message', (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        console.log('Received message:', data);
-        
-        // Broadcast to all connected clients
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              type: data.type,
-              payload: data.payload
-            }));
-          }
-        });
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
+    try {
+      const circleId = parseInt(req.params.circleId);
+      const { listId, canEdit, canReshare } = req.body;
+      const userId = req.user!.id;
+
+      // Check if user is member of circle
+      const isMember = await storage.isUserMemberOfCircle(userId, circleId);
+      if (!isMember) {
+        return res.status(403).json({ error: 'Only circle members can share lists' });
       }
-    });
-    
-    ws.on('close', () => {
-      console.log('WebSocket client disconnected');
-    });
+
+      // Share list with circle
+      const sharedList = await storage.shareListWithCircle(listId, circleId, userId, {
+        canEdit: canEdit || false,
+        canReshare: canReshare || false
+      });
+
+      res.status(201).json(sharedList);
+    } catch (error) {
+      console.error('Error sharing list with circle:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+
+  app.get("/api/circles/:circleId/lists", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const circleId = parseInt(req.params.circleId);
+      const userId = req.user!.id;
+
+      // Check if user is member of circle
+      const isMember = await storage.isUserMemberOfCircle(userId, circleId);
+      if (!isMember) {
+        return res.status(403).json({ error: 'Only circle members can view shared lists' });
+      }
+
+      // Get lists shared with circle
+      const sharedLists = await storage.getListsSharedWithCircle(circleId);
+      res.json(sharedLists);
+    } catch (error) {
+      console.error('Error fetching circle shared lists:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.delete("/api/circles/:circleId/lists/:listId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const circleId = parseInt(req.params.circleId);
+      const listId = parseInt(req.params.listId);
+      const userId = req.user!.id;
+
+      // Check if user is member of circle
+      const isMember = await storage.isUserMemberOfCircle(userId, circleId);
+      if (!isMember) {
+        return res.status(403).json({ error: 'Only circle members can unshare lists' });
+      }
+
+      // Unshare list from circle
+      await storage.unshareListFromCircle(listId, circleId);
+      res.status(200).json({ message: 'List unshared successfully' });
+    } catch (error) {
+      console.error('Error unsharing list from circle:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Add user to circle endpoint
+  app.post("/api/circles/:circleId/members", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      await circleRoutes.addUserToCircle(req, res);
+    } catch (error) {
+      console.error('Error adding user to circle:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Mount routers
+  app.use("/api/search", searchRouter);
   
+  // Mount restaurant router
+  const restaurantRouter = await import("./routes/restaurants");
+  app.use("/api/restaurants", restaurantRouter.default);
+  
+  app.use("/api/lists", listsRouter);
+  app.use("/api/recommendations", recommendationsRouter);
+  app.use("/api/list-item-comments", listItemCommentsRouter);
+  app.use("/api/follow", followRoutes);
+  app.use("/api/follow", followRequestsRouter);
+  // app.use("/api/search-analytics", searchAnalyticsRouter);
+  app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
+  app.use("/api/circles", circleRequestsRouter);
+  app.use("/api/users", usersRouter);
+
+  // Health check route
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Create HTTP server
+  const httpServer = createServer(app);
+
+  // WebSocket server temporarily disabled to fix login issues
+  // Will be re-enabled after login is working properly
+
   return httpServer;
 }

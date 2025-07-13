@@ -1,0 +1,89 @@
+That bright “Facebook blue” share button and the stark white search input feel disconnected and don’t leverage the warmer, more “food-friendly” palette we just discussed. To bring this snippet in line with our Fresh & Natural theme (which balances trust, warmth, and energy), here’s what I’d change:
+
+1. Replace the Primary Blue with Burnt Sienna
+Use Burnt Sienna (#E76F51) as your primary action color instead of the current electric blue. It’s vibrant, appetizing, and distinct from competitors.
+
+css
+Copy
+Edit
+/* Before (in Button.css) */
+.btn--primary {
+  background-color: #1D4ED8; /* Facebook-y blue */
+  color: #FFF;
+}
+
+/* After */
+.btn--primary {
+  background-color: #E76F51; /* Burnt Sienna */
+  color: #FFFFFF;
+}
+.btn--primary:hover {
+  background-color: hsl(14, 63%, 50%); /* slightly darker */
+}
+2. Tweak the Search Input Styling
+Right now the input’s border and background look too generic. Let’s:
+
+Border: Soft Sand #E9C46A at 30% opacity.
+
+Background: Very light Persian Green tint at 5%.
+
+Placeholder text: Darken to hsl(0,0%,40%) for readability.
+
+css
+Copy
+Edit
+.search-input {
+  border: 1px solid rgba(233, 196, 106, 0.3); /* Soft Sand @30% */
+  background-color: rgba(42, 157, 143, 0.05); /* Persian Green @5% */
+  border-radius: 6px;
+  padding: 0.75em 1em;
+  font-size: 1rem;
+  color: #111;  
+}
+
+.search-input::placeholder {
+  color: hsl(0, 0%, 40%);
+  opacity: 1;
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(233, 196, 106, 0.5); /* Soft Sand focus ring */
+}
+3. Update the “+ Share Experience” Button
+Swap the icon and label style to match our new primary, and add consistent padding:
+
+jsx
+Copy
+Edit
+<Button 
+  variant="primary" 
+  size="md" 
+  className="share-btn"
+  aria-label="Share Experience"
+>
+  <PlusIcon /> Share Experience
+</Button>
+css
+Copy
+Edit
+/* Additional Button tweaks */
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-weight: 600;
+}
+4. Live Preview
+Before	After
+
+(Imagine the input border now a gentle gold and the button a rich, warm red-orange.)
+
+Why This Works for Our Personas
+Tracker Taylor sees a warm, inviting primary button that pops against the soft input field—no more “Facebook deja vu.”
+
+Explorer Alex gets a fresh green tint on the search box, signaling “go discover.”
+
+Seeker Sam and Influencer Riley feel the cohesive, food-friendly palette that evokes trust and appetite.
+
+Apply these CSS changes to your HeroSection.css (or wherever your search and button are styled), redeploy, and you’ll instantly have a more modern, differentiated, and persona-aligned UI.

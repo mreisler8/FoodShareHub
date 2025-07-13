@@ -1,72 +1,57 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
-import { ReactNode } from 'react';
+import { Button } from "./button";
+import { Link } from "wouter";
 
-// Define props that accept both LucideIcon and ReactNode but type-narrowed
-interface EmptyStatePropsWithLucideIcon {
+interface EmptyStateProps {
   title: string;
   description: string;
-  icon: LucideIcon; // Type-narrowed to just LucideIcon
+  icon: LucideIcon;
   actionLabel?: string;
   actionHref?: string;
   onAction?: () => void;
   secondaryActionLabel?: string;
   secondaryActionHref?: string;
   onSecondaryAction?: () => void;
-  className?: string;
 }
 
 export function EmptyState({
+  icon: Icon,
   title,
   description,
-  icon: Icon, // Destructure and rename for component usage
   actionLabel,
   actionHref,
   onAction,
   secondaryActionLabel,
   secondaryActionHref,
-  onSecondaryAction,
-  className = '',
-}: EmptyStatePropsWithLucideIcon) {
+  onSecondaryAction
+}: EmptyStateProps) {
   return (
-    <Card className={`w-full border-dashed ${className}`}>
-      <CardHeader className="flex items-center space-y-5 pb-4">
-        <div className="p-5 rounded-full bg-muted">
-          <Icon className="h-10 w-10 text-muted-foreground" />
-        </div>
-        <div className="space-y-2 text-center">
-          <CardTitle className="text-2xl">{title}</CardTitle>
-          <CardDescription className="text-center max-w-md mx-auto">
-            {description}
-          </CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col sm:flex-row items-center justify-center gap-2 pb-6">
-        {(actionLabel || onAction) && (
-          <Button
-            onClick={onAction}
-            {...(actionHref ? { asChild: true } : {})}
-            className="w-full sm:w-auto"
-          >
-            {actionHref ? <a href={actionHref}>{actionLabel}</a> : actionLabel}
-          </Button>
-        )}
-        {(secondaryActionLabel || onSecondaryAction) && (
-          <Button
-            onClick={onSecondaryAction}
-            {...(secondaryActionHref ? { asChild: true } : {})}
-            variant="outline"
-            className="w-full sm:w-auto"
-          >
-            {secondaryActionHref ? (
-              <a href={secondaryActionHref}>{secondaryActionLabel}</a>
+    <div className="flex flex-col items-center justify-center p-8 text-center">
+      {Icon && <Icon className="h-12 w-12 text-muted-foreground mb-4" />}
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <p className="text-sm text-muted-foreground mt-2 mb-4">{description}</p>
+      {actionLabel && (
+        <div className="flex flex-col sm:flex-row gap-2">
+          {actionHref ? (
+            <Button asChild>
+              <Link to={actionHref}>{actionLabel}</Link>
+            </Button>
+          ) : (
+            <Button onClick={onAction}>{actionLabel}</Button>
+          )}
+          {secondaryActionLabel && (
+            secondaryActionHref ? (
+              <Button variant="outline" asChild>
+                <Link to={secondaryActionHref}>{secondaryActionLabel}</Link>
+              </Button>
             ) : (
-              secondaryActionLabel
-            )}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+              <Button variant="outline" onClick={onSecondaryAction}>
+                {secondaryActionLabel}
+              </Button>
+            )
+          )}
+        </div>
+      )}
+    </div>
   );
 }

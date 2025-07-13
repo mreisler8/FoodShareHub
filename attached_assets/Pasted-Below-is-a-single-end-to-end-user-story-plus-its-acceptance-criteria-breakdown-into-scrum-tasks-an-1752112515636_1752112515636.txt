@@ -1,0 +1,145 @@
+Below is a single end-to-end user story plus its acceptance criteria, breakdown into scrum tasks, and testing directions—all driven by our personas (let’s use Tracker Taylor) so you can hand it straight to your Replit agent and validate the full “Circle” flow.
+
+Epic – Full Circle Creation & Collaboration
+User Story
+As Tracker Taylor,
+I want to create a private “Inner Circle,” invite two friends, add my “Best Pizza” list into that circle, and then view the combined average rating for that list within the circle—so I can collaborate and see our collective favorite spots.
+
+Acceptance Criteria
+Create Circle
+
+Taylor clicks “Create Circle” → sees modal with Name, Description, Image, Privacy (Private/Public).
+
+On submit → POST /api/circles returns { id, name, ... } → Taylor is redirected to /circles/:circleId.
+
+Invite Members
+
+On the new Circle page, Taylor clicks “Invite” → enters two usernames/emails → clicks “Send” → UI shows “Invites pending.”
+
+Each invite generates a record in circleInvites table with status “pending.”
+
+Accept Invites
+
+Friend Bob logs in → sees a notification badge → clicks “Invites” → on Bob’s Pending Invites page → clicks “Accept” → POST /api/circles/invites/:inviteId/respond{accepted:true} → Bob becomes a member (role=“member”).
+
+Add Existing List to Circle
+
+Taylor visits My Lists → clicks “… > Add to Circle” on “Best Pizza” list → sees a dropdown of circles → selects “Inner Circle” → POST /api/circles/:circleId/lists → returns success → UI shows “List added.”
+
+Circle Feed with Weighted Average
+
+On /circles/:circleId, the feed tab shows each shared list and, for each, the circle-average rating of its items (computed via weighted formula).
+
+Example: “Best Pizza” has ratings [5,4,5] from three members → UI shows ★ 4.7 average.
+
+Privacy & Search
+
+Only circle members can view /circles/:circleId.
+
+On the Circle page, a search box filters lists/posts by keyword in title or dish names.
+
+Follow & Notification
+
+Taylor follows friend Bob (FollowButton on Bob’s profile).
+
+Bob’s new circle invites appear in Taylor’s notification drawer.
+
+Scrum Breakdown
+Task #	Title	Owner	Est (pts)
+1	DB: Create circleInvites & join table	Backend	2
+2	API: POST /api/circles	Backend	1
+3	API: Invite endpoints	Backend	2
+4	API: Accept/Decline invite	Backend	1
+5	API: Add list to circle	Backend	1
+6	API: GET /api/circles/:id/feed with weighted avg	Backend	3
+7	UI: CreateCircleModal & page scaffold	Frontend	2
+8	UI: InviteModal & PendingInvites list	Frontend	2
+9	UI: “Add to Circle” control on Lists	Frontend	1
+10	UI: CirclePage feed & search filter	Frontend	3
+11	UI: FollowButton notifications hook	Frontend	2
+12	E2E: Playwright spec for full flow	QA/Test	3
+
+Sprint Plan: 2 weeks. Deliver tasks 1–6 in week 1, tasks 7–12 in week 2.
+
+Development Details
+1. Database (shared/schema.ts)
+ts
+Copy
+Edit
+export const circleInvites = pgTable("circle_invites", {
+  id: serial("id").primaryKey(),
+  circleId: integer("circle_id").references(() => circles.id).notNull(),
+  invitee: text("invitee").notNull(),      // email or username
+  inviterId: integer("inviter_id").references(() => users.id).notNull(),
+  status: text("status").default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const circleListJoins = pgTable("circle_lists", {
+  id: serial("id").primaryKey(),
+  circleId: integer("circle_id").references(() => circles.id).notNull(),
+  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+});
+2. API Endpoints (server/routes/circles.ts)
+ts
+Copy
+Edit
+// POST /api/circles
+router.post("/", requireAuth, async (req, res) => { /* create circle */ });
+
+// POST /api/circles/:id/invites
+router.post("/:id/invites", requireAuth, async (req, res) => { /* create invites */ });
+
+// POST /api/circles/invites/:inviteId/respond
+router.post("/invites/:inviteId/respond", requireAuth, async (req, res) => { /* accept/decline */ });
+
+// POST /api/circles/:id/lists
+router.post("/:id/lists", requireAuth, async (req, res) => { /* add list to circle */ });
+
+// GET /api/circles/:id/feed
+router.get("/:id/feed", requireAuth, async (req, res) => {
+  // fetch shared lists & compute weighted avg via JOINs in db
+});
+3. Front-end Integration
+CreateCircleModal.tsx: form for name/desc/image/privacy
+
+CirclePage.tsx: tabs for “Feed” + “Members” + “Invites”
+
+InviteModal.tsx + PendingInvites.tsx
+
+ListItem.tsx: “Add to Circle” dropdown
+
+4. E2E Test (tests/e2e/circle.spec.ts)
+ts
+Copy
+Edit
+import { test, expect } from '@playwright/test';
+
+test('Tracker Taylor full circle flow', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('token','<taylor-token>'));
+
+  // 1. Create circle
+  await page.click('button:has-text("Create Circle")');
+  await page.fill('input[name="name"]', 'Pizza Pals');
+  await page.fill('textarea[name="description"]', 'My pizza crew');
+  await page.click('button:has-text("Save")');
+  const url = page.url();
+  const circleId = url.split('/').pop();
+
+  // 2. Invite friends
+  await page.click('button:has-text("Invite")');
+  await page.fill('input[name="invitee"]', 'bob');
+  await page.click('button:has-text("Send Invite")');
+  // assume Bob accepts in another context…
+
+  // 3. Add list to circle
+  await page.goto('/lists');
+  await page.click('.list-item:has-text("Best Pizza") >> button:has-text("Add to Circle")');
+  await page.click(`.dropdown-item:has-text("Pizza Pals")`);
+
+  // 4. View circle feed & weighted avg
+  await page.goto(`/circles/${circleId}`);
+  await expect(page.locator('.circle-feed .list-card')).toContainText('Best Pizza');
+  await expect(page.locator('.weighted-average')).toHaveText(/★\s*4\.\d/);
+});

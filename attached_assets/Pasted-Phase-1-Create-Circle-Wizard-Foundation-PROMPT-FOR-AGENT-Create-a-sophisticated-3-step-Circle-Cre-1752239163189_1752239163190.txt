@@ -1,0 +1,133 @@
+Phase 1: Create Circle Wizard Foundation
+PROMPT FOR AGENT:
+
+Create a sophisticated 3-step Circle Creation Wizard for Influencer Riley with these exact requirements:
+**Step 1 - Circle Setup Wizard Modal:**
+1. Replace the simple circle creation with a 3-step wizard modal
+2. Step indicator: "Name → Invite → Share" at the top
+3. Circle Name input with placeholder "e.g. Pizza Pals, Date-Night Crew"
+4. Smart template chips below input: "Pizza Pals", "Sushi Squad", "Weekend Brunchers" (clickable to auto-fill)
+5. Tags input with auto-suggest for "pizza", "sushi", "romantic", "brunch", "fine-dining"
+6. Privacy toggle: Public/Circle-only radio buttons (default Circle-only)
+7. Next button disabled until name ≥ 3 characters
+8. Validation with real-time feedback
+**Step 2 - Member Invitation:**
+1. Search-as-you-type input: "Find friends by name or email..."
+2. Auto-suggest dropdown showing existing users and "+ Invite new email" option
+3. Selected invitees become removable chips
+4. Secondary "Paste emails separated by commas" link that expands textarea
+5. "Send & Finish" button enabled when ≥ 1 chip present
+6. Toast notification "X invites sent!" on success
+**Step 3 - First List Sharing:**
+1. Inline prompt: "Add your favorite [circle theme] spots to get the party started"
+2. Show trending/popular lists with "Add to Circle" buttons
+3. "+ Create Custom List" button opens inline list creation
+4. List creation includes restaurant search with Google Places integration
+5. Drag-and-drop reordering for restaurant items
+6. Save & Share redirects to Circle feed
+**Files to create/modify:**
+- `client/src/components/circles/CircleCreationWizard.tsx`
+- `client/src/components/circles/CircleWizardSteps.tsx`
+- Update `client/src/pages/circles.tsx` to use new wizard
+- Add wizard styles to handle mobile responsive design
+**Key UX Requirements:**
+- Progressive disclosure (only ask what you need)
+- Smart defaults and templates
+- Real-time validation
+- Mobile-responsive (full-screen on mobile)
+- Smooth transitions between steps
+Phase 2: Enhanced Circle Homepage
+PROMPT FOR AGENT:
+
+Create a best-in-class Circle Detail Page that matches Riley's expectations:
+**Circle Header:**
+1. Circle name with auto-generated avatar (first two initials)
+2. Member count and role indicators
+3. Tabs: Feed (default), Members, Lists
+**Feed Tab:**
+1. Welcome banner for new circles
+2. "Shared by you" badge on Riley's content
+3. Sort by recency or "hot" engagement
+4. Next-best actions prompt: "Your Circle has no reviews yet. Invite more friends or add a review"
+**Members Tab:**
+1. Grid layout of member avatars
+2. Role labels (owner/admin/member)
+3. Remove button only visible to owners
+4. Invite more members button
+**Lists Tab:**
+1. Grid of shared lists with thumbnails
+2. Rating badges and restaurant count
+3. Hover effects showing "Edit" and "Add item" icons
+4. Inline search + add UI for quick restaurant additions
+**Micro-Interactions:**
+1. Hover states on all interactive elements
+2. Inline editing capabilities
+3. Toast notifications for all actions
+4. Skeleton loading states
+**Files to create/modify:**
+- `client/src/pages/circle-details.tsx` (enhance existing)
+- `client/src/components/circles/CircleFeed.tsx`
+- `client/src/components/circles/CircleMembers.tsx`
+- `client/src/components/circles/CircleLists.tsx`
+- Add micro-interaction styles and animations
+Phase 3: Smart Templates & Automation
+PROMPT FOR AGENT:
+
+Implement intelligent automation features for Riley's workflow:
+**Smart Templates System:**
+1. Create database of popular circle themes with preset tags
+2. Auto-suggest cuisine types based on circle name
+3. Template-based list suggestions for new circles
+4. Popular restaurant recommendations by location and theme
+**Auto-Suggest Enhancements:**
+1. Friend recommendations based on past interactions
+2. Restaurant suggestions from Google Places + internal DB
+3. Tag auto-complete with trending food categories
+4. Smart default privacy settings based on circle type
+**Notification System:**
+1. Real-time invite acceptances
+2. New member join notifications
+3. List sharing notifications
+4. Circle activity summaries
+**Files to create/modify:**
+- `server/services/circle-templates.ts`
+- `server/services/smart-suggestions.ts`
+- `client/src/components/circles/SmartTemplates.tsx`
+- `client/src/components/notifications/CircleNotifications.tsx`
+- Add template data to database schema
+Phase 4: Mobile Optimization
+PROMPT FOR AGENT:
+
+Optimize the entire Circle creation flow for mobile:
+**Mobile-First Design:**
+1. Convert wizard steps to full-screen slide cards on mobile
+2. Sticky bottom CTA buttons
+3. Touch-friendly tap targets (44px minimum)
+4. Swipe gestures for navigation
+5. Mobile-optimized keyboard handling
+**Responsive Breakpoints:**
+1. Mobile: Full-screen wizard
+2. Tablet: Centered modal with backdrop
+3. Desktop: Standard modal with hover states
+**Performance Optimizations:**
+1. Lazy load member avatars
+2. Infinite scroll for large member lists
+3. Debounced search inputs
+4. Optimistic UI updates
+**Files to modify:**
+- Add mobile-specific styles to all wizard components
+- Update navigation to handle mobile wizard flow
+- Add touch gesture handling
+- Optimize loading states for mobile
+Testing Strategy
+After implementation, validate with these test scenarios:
+
+Happy Path: Riley creates "Pizza Pals" circle, invites 3 friends, shares a pizza list
+Edge Cases: Empty states, network errors, duplicate names
+Mobile Flow: Complete wizard on mobile device
+Performance: Load time under 2 seconds, smooth animations
+Success Metrics
+Time to create circle: Under 60 seconds
+Invite acceptance rate: Track and optimize
+List sharing engagement: Monitor activity
+Mobile completion rate: Ensure parity with desktop

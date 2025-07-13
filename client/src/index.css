@@ -1,6 +1,133 @@
+/* Modern Design System - Updated July 2, 2025 1:13 AM */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Modern Color Palette - Professional Teal Theme */
+    --background: 0 0% 100%;
+    --foreground: 222 84% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 84% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 5%;
+
+    /* Primary - Burnt Sienna (Fresh & Natural Theme) */
+    --primary: 14 73% 61%; /* #E76F51 - Burnt Sienna */
+    --primary-foreground: 0 0% 100%;
+    --primary-50: 14 100% 97%;
+    --primary-100: 14 95% 93%;
+    --primary-200: 14 97% 87%;
+    --primary-300: 14 96% 78%;
+    --primary-400: 14 94% 68%;
+    --primary-500: 14 73% 61%;
+    --primary-600: 14 63% 50%; /* hover state - slightly darker */
+    --primary-700: 14 100% 45%;
+    --primary-800: 14 100% 40%;
+    --primary-900: 14 100% 35%;
+
+    /* Secondary - Subtle Gray */
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 215 25% 27%;
+
+    /* Muted - Light Gray System */
+    --muted: 210 40% 98%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent - Light Teal tint */
+    --accent: 175 43% 96%; /* Very light Teal */
+    --accent-foreground: 215 25% 27%;
+
+    /* Fresh & Natural Color Palette */
+    --burnt-sienna: 14 73% 61%; /* #E76F51 - Primary */
+    --burnt-sienna-30: 14 73% 61% / 0.3;
+    --burnt-sienna-50: 14 73% 61% / 0.5;
+
+    /* Soft Sand for borders and accents */
+    --soft-sand: 44 73% 66%; /* #E9C46A */
+    --soft-sand-30: 44 73% 66% / 0.3;
+    --soft-sand-50: 44 73% 66% / 0.5;
+
+    /* Persian Green for subtle backgrounds */
+    --persian-green: 216 87% 65%; /* #3B82F6 - Blue */
+    --persian-green-5: 216 87% 65% / 0.05;
+
+    /* Status Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Border & Input - Fresh & Natural Theme */
+    --border: 44 73% 66% / 0.3; /* Soft Sand at 30% */
+    --input: 44 73% 66% / 0.3; /* Soft Sand at 30% */
+    --ring: 44 73% 66%; /* Soft Sand for focus rings */
+
+    /* Typography */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+
+    /* Spacing & Layout */
+    --radius: 8px;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* Shadows - Modern Elevation System */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* Animation */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* Dark Mode - High Contrast */
+    --background: 0 0% 3%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Primary - Brighter in Dark Mode */
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 3%;
+
+    /* Secondary */
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Muted */
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+
+    /* Accent */
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
+
+    /* Border & Input */
+    --border: 240 6% 25%;
+    --input: 240 6% 25%;
+    --ring: 199 89% 48%;
+
+    /* Enhanced Shadows for Dark Mode */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  }
+}
 
 @layer base {
   * {
@@ -8,85 +135,457 @@
   }
 
   html {
-    -webkit-text-size-adjust: 100%;
-    touch-action: manipulation;
+    margin: 0;
+    padding: 0;
     height: 100%;
-    /* Prevent pull-to-refresh and overscroll behaviors on iOS */
-    overscroll-behavior-y: none;
+    overflow-x: hidden;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
-    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    height: 100%;
     position: relative;
-    /* Prevent pull-to-refresh and overscroll behaviors */
-    overscroll-behavior-y: none;
-    /* Improve scrolling on iOS */
-    -webkit-overflow-scrolling: touch;
-    /* Remove tap highlight */
-    -webkit-tap-highlight-color: transparent;
+    top: 0;
+    left: 0;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  
-  /* Fix iOS issues */
-  button, a, [role="button"] {
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    tap-highlight-color: transparent;
-    touch-action: manipulation;
+
+  #root {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    position: relative;
+    top: 0;
+    left: 0;
   }
-  
-  /* Fix iOS form input issues */
-  input, textarea, select {
-    -webkit-tap-highlight-color: transparent;
-    tap-highlight-color: transparent;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    /* Prevent zooming on iOS */
-    font-size: 16px !important;
-    /* Fix for iOS autocorrect and autofill */
-    transform: translateZ(0);
-  }
-  
-  /* Prevent iOS Safari from adding extra padding */
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="number"],
-  input[type="search"],
-  textarea {
+
+  * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
-    max-height: none;
-    /* Fixes various iOS input styling issues */
-    border-radius: 0.375rem;
+  }
+
+  /* Force remove any potential browser default spacing */
+  html, body, div, span, applet, object, iframe,
+  h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+  a, abbr, acronym, address, big, cite, code,
+  del, dfn, em, img, ins, kbd, q, s, samp,
+  small, strike, strong, sub, sup, tt, var,
+  b, u, i, center,
+  dl, dt, dd, ol, ul, li,
+  fieldset, form, label, legend,
+  table, caption, tbody, tfoot, thead, tr, th, td {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    vertical-align: baseline;
+  }
+
+  /* Typography Scale - Modern Hierarchy */
+  h1 {
+    @apply text-3xl font-bold tracking-tight;
+    line-height: 1.2;
+  }
+
+  h2 {
+    @apply text-2xl font-semibold tracking-tight;
+    line-height: 1.3;
+  }
+
+  h3 {
+    @apply text-xl font-semibold;
+    line-height: 1.4;
+  }
+
+  h4 {
+    @apply text-lg font-medium;
+    line-height: 1.4;
+  }
+
+  h5 {
+    @apply text-base font-medium;
+    line-height: 1.5;
+  }
+
+  h6 {
+    @apply text-sm font-medium;
+    line-height: 1.5;
+  }
+
+  p {
+    @apply text-base leading-relaxed;
+  }
+
+  small {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Focus States - WCAG Compliant */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* Modern Button System */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    transform: translateY(0px);
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground;
+    box-shadow: 0 4px 12px hsl(14 73% 61% / 0.3);
+  }
+
+  .btn-primary:hover {
+    background: hsl(var(--primary-600));
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px hsl(14 73% 61% / 0.4);
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-input shadow-sm;
+  }
+
+  .btn-outline {
+    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground shadow-sm;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .btn-sm {
+    @apply h-8 px-3 text-xs rounded-md;
+  }
+
+  .btn-md {
+    @apply h-10 px-4 py-2;
+  }
+
+  .btn-lg {
+    @apply h-12 px-8 text-base rounded-lg;
+  }
+
+  /* Modern Card System */
+  .card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  .card-interactive {
+    @apply cursor-pointer hover:shadow-lg hover:-translate-y-1 active:translate-y-0 active:shadow-sm;
+  }
+
+  /* Input System */
+  .input {
+    @apply flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
+    border-color: hsl(var(--soft-sand-30));
+    background-color: hsl(var(--muted));
+    color: #111;
+  }
+
+  .input::placeholder {
+    color: hsl(0, 0%, 40%);
+    opacity: 1;
+  }
+
+  .input:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px hsl(var(--soft-sand-50));
+  }
+
+  /* Avatar System */
+  .avatar {
+    @apply relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-border/20;
+  }
+
+  .avatar-sm {
+    @apply h-8 w-8;
+  }
+
+  .avatar-lg {
+    @apply h-12 w-12;
+  }
+
+  .avatar-xl {
+    @apply h-16 w-16;
+  }
+}
+
+@layer utilities {
+  /* Modern Spacing System */
+  .space-content {
+    @apply space-y-4;
+  }
+
+  .space-section {
+    @apply space-y-8;
+  }
+
+  /* Typography Utilities */
+  .text-display {
+    @apply text-4xl font-bold tracking-tight;
+  }
+
+  .text-headline {
+    @apply text-2xl font-semibold;
+  }
+
+  .text-title {
+    @apply text-lg font-medium;
+  }
+
+  .text-body {
+    @apply text-base;
+  }
+
+  .text-caption {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .text-overline {
+    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
+
+  /* Shadow Utilities */
+  .shadow-xs {
+    box-shadow: var(--shadow-xs);
+  }
+
+  .shadow-sm {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .shadow-md {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-lg {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shadow-xl {
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* Responsive Design Utilities */
+  .container-content {
+    @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-narrow {
+    @apply max-w-2xl mx-auto px-4 sm:px-6;
+  }
+
+  /* Accessibility Utilities */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  /* Animation Utilities */
+  .animate-in {
+    animation: animate-in var(--transition-normal) ease-out;
+  }
+
+  @keyframes animate-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-scale {
+    transition: transform var(--transition-fast) ease-out;
+  }
+
+  .animate-scale:hover {
+    transform: scale(1.02);
+  }
+
+  .animate-scale:active {
+    transform: scale(0.98);
+  }
+
+  /* Content Layout */
+  .content-grid {
+    @apply grid gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  @media (max-width: 768px) {
+    .content-grid {
+      @apply gap-4;
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Mobile-First Responsive Fixes */
+  .mobile-optimized {
+    @apply w-full max-w-none;
+  }
+
+  .mobile-padding {
+    @apply px-4 py-3;
+  }
+
+  .mobile-text {
+    @apply text-sm leading-5;
+  }
+
+  .mobile-button {
+    @apply min-h-[44px] px-4 py-2 text-base;
+  }
+
+  .mobile-input {
+    @apply min-h-[44px] px-3 py-2 text-base;
+  }
+
+  /* Prevent overlaps and ensure proper spacing */
+  .safe-area {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .content-spacing {
+    @apply space-y-2 md:space-y-4;
+  }
+
+  .section-spacing {
+    @apply mb-4 md:mb-6;
+  }
+
+  /* Responsive containers */
+  .responsive-container {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+  }
+
+  /* Navigation fixes */
+  .nav-mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: hsl(var(--background));
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  @media (min-width: 768px) {
+    .nav-mobile {
+      display: none;
+    }
+  }
+
+  .nav-desktop {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .nav-desktop {
+      display: flex;
+    }
+  }
+
+  /* Modal responsive fixes */
+  .modal-responsive {
+    @apply w-[95vw] max-w-lg mx-auto;
+  }
+
+  @media (min-width: 768px) {
+    .modal-responsive {
+      @apply w-full max-w-2xl;
+    }
+  }
+
+  /* Button responsive sizing */
+  .btn-responsive {
+    font-size: 0.875rem;
     padding: 0.5rem 0.75rem;
-  }
-  
-  /* Fix iOS scrolling issue on modals/popups */
-  .fixed, .absolute {
-    transform: translateZ(0);
+    min-height: 40px;
   }
 
-  /* Prevent image-based content from being draggable */
-  img {
-    -webkit-user-drag: none;
-    user-drag: none;
-    pointer-events: none;
-  }
-  
-  /* Fix bottom padding on iOS to account for navigation bar */
-  .mb-16 {
-    padding-bottom: env(safe-area-inset-bottom, 64px);
-  }
-
-  /* Fix for mobile viewport height issues on iOS */
-  @supports (-webkit-touch-callout: none) {
-    .min-h-screen {
-      min-height: -webkit-fill-available;
+  @media (min-width: 768px) {
+    .btn-responsive {
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      min-height: 44px;
     }
+  }
 
-    .h-screen {
-      height: -webkit-fill-available;
+  /* Text responsive sizing */
+  .text-responsive-title {
+    @apply text-lg font-semibold;
+  }
+
+  @media (min-width: 768px) {
+    .text-responsive-title {
+      @apply text-xl font-semibold;
     }
+  }
+
+  .text-responsive-body {
+    @apply text-sm leading-5;
+  }
+
+  @media (min-width: 768px) {
+    .text-responsive-body {
+      @apply text-base leading-6;
+    }
+  }
+
+  /* Form responsive improvements */
+  .form-responsive {
+    @apply space-y-4;
+  }
+
+  .form-responsive .input {
+    @apply min-h-[44px] text-base;
+  }
+
+  /* Card responsive improvements */
+  .card-responsive {
+    @apply p-4 rounded-lg border bg-card shadow-sm;
+  }
+
+  @media (min-width: 768px) {
+    .card-responsive {
+      @apply p-6 rounded-xl;
+    }
+  }
+
+  /* Loading states */
+  .loading-skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  /* Focus improvements for accessibility */
+  .focus-improved {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 }

@@ -1,0 +1,112 @@
+8. Comments & Likes on Dining Posts
+As a user
+I want to like and comment on other people’s dining posts
+So that I can engage with friends’ restaurant experiences and share feedback
+
+Acceptance Criteria
+Like Button
+
+Given I’m viewing any post card, When I hover or focus on it, Then a ❤️ Like icon appears.
+
+When I click the Like icon, Then it toggles to a filled state and sends:
+
+ruby
+Copy
+Edit
+POST /api/posts/:postId/likes
+or
+
+ruby
+Copy
+Edit
+DELETE /api/posts/:postId/likes
+Then the total like count on the post updates in real time.
+
+Comment Input
+
+Given I’m on a post’s detail view or in-feed expansion, When I scroll to the bottom of the post, Then I see a text field with placeholder “Add a comment…” and a Send button.
+
+Given I type at least one character, Then the Send button enables.
+
+When I click Send, Then call:
+
+bash
+Copy
+Edit
+POST /api/posts/:postId/comments
+Content-Type: application/json
+
+{ "content": "Great recommendation!" }
+Then my comment appears immediately below, with my avatar and timestamp.
+
+View Comments
+
+Given there are 0 comments, Then show “Be the first to comment!”
+
+Given there are >3 comments, Then display the 3 most recent and a “View all X comments” link.
+
+When I click View all, Then expand to show the full comment thread.
+
+Comment Deletion
+
+Given I’m the author of a comment, When I hover over it, Then a 🗑️ Delete icon appears.
+
+When I click it and confirm, Then call:
+
+bash
+Copy
+Edit
+DELETE /api/comments/:commentId
+and remove the comment from the thread.
+
+Implementation Notes
+Schema Updates (shared/schema.ts)
+
+diff
+Copy
+Edit
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  userId: integer("user_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+// No change needed
+});
+
+less
+Copy
+Edit
+
+2. **API Routes** (`server/routes/posts.ts` or new `comments.ts`)  
+```ts
+// Likes
+router.post('/:postId/likes', authenticate, async (req, res) => { /* insert like */ });
+router.delete('/:postId/likes', authenticate, async (req, res) => { /* delete like */ });
+
+// Comments
+router.post('/:postId/comments', authenticate, async (req, res) => { /* insert comment */ });
+router.delete('/comments/:commentId', authenticate, async (req, res) => { /* delete comment */ });
+Frontend – PostCard & CommentList
+
+File: src/components/PostCard.tsx
+
+Add onLike, likeCount, userHasLiked props.
+
+File: src/components/CommentList.tsx
+
+Render top 3 comments, “View all” toggle, and inline comment input.
+
+Frontend – FeedPage & PostDetailPage
+
+Pass handlers down to cards and comment components.
+
+Manage state for likes and comments per post.
+
+Tests
+
+tests/likes.test.ts: cover like/unlike endpoints and UI toggle.
+
+tests/comments.test.ts: cover adding, fetching, and deleting comments.
+
+Once this is live, your users can meaningfully react and converse around the dining posts, boosting engagement and community value.

@@ -49,7 +49,7 @@ export function InstagramShareButton({ post, size, variant = "outline", classNam
       }
       
       // Add app hashtag
-      shareContent.push("#TasteBuds");
+      shareContent.push("#Circles");
       
       const shareText = shareContent.join("\n\n");
       
@@ -162,7 +162,7 @@ export function InstagramShareButton({ post, size, variant = "outline", classNam
                   <p>"{post.content}"</p>
                 )}
                 {caption && <p>{caption}</p>}
-                <p>#TasteBuds</p>
+                <p>#Circles</p>
               </div>
             </div>
           </div>

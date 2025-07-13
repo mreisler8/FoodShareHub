@@ -26,6 +26,7 @@ interface GooglePlaceResult {
 interface PlacesSearchResponse {
   results: GooglePlaceResult[];
   status: string;
+  error_message?: string;
 }
 
 interface PlaceDetailsResponse {
@@ -34,12 +35,33 @@ interface PlaceDetailsResponse {
     formatted_phone_number?: string;
     opening_hours?: {
       weekday_text?: string[];
+      periods?: Array<{
+        open: { day: number; time: string };
+        close: { day: number; time: string };
+      }>;
+      open_now?: boolean;
     };
     photos?: Array<{
       photo_reference: string;
+      width: number;
+      height: number;
     }>;
+    reviews?: Array<{
+      rating: number;
+      text: string;
+      author_name: string;
+      time: number;
+    }>;
+    user_ratings_total?: number;
+    price_level?: number;
+    business_status?: string;
+    permanently_closed?: boolean;
+    editorial_summary?: {
+      overview?: string;
+    };
   };
   status: string;
+  error_message?: string;
 }
 
 const convertPriceLevel = (level?: number): string => {
@@ -56,7 +78,7 @@ const convertPriceLevel = (level?: number): string => {
 
 const getCuisineType = (types?: string[]): string => {
   if (!types || types.length === 0) return 'Restaurant';
-  
+
   // Map Google place types to readable cuisine types
   const cuisineMap: Record<string, string> = {
     'bakery': 'Bakery',
@@ -81,56 +103,117 @@ const getCuisineType = (types?: string[]): string => {
     'coffee_shop': 'Coffee',
     'pizza_restaurant': 'Pizza',
   };
-  
+
   // Find the first matching cuisine type
   for (const type of types) {
     if (cuisineMap[type]) {
       return cuisineMap[type];
     }
   }
-  
+
   // Default to "Restaurant" if no specific cuisine type is found
   return 'Restaurant';
 };
 
-export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> => {
+export const searchGooglePlaces = async (query: string, location?: { lat: number; lng: number; radius?: number }): Promise<Restaurant[]> => {
   if (!GOOGLE_MAPS_API_KEY) {
     console.error('Google Maps API key is not set');
     return [];
   }
 
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+
   try {
-    const response = await axios.get<PlacesSearchResponse>(
-      'https://maps.googleapis.com/maps/api/place/textsearch/json',
-      {
-        params: {
-          query: `${query} restaurant`,
-          type: 'restaurant',
-          key: GOOGLE_MAPS_API_KEY,
-        },
+    let response: any;
+    
+    if (location) {
+      // Use Nearby Search API for location-based searches
+      console.log(`Using Nearby Search API for location: ${location.lat}, ${location.lng} with radius ${location.radius || 10000}m`);
+      
+      const nearbyParams = {
+        location: `${location.lat},${location.lng}`,
+        radius: location.radius || 10000, // 10km default radius
+        type: 'restaurant',
+        keyword: query.trim(),
+        key: GOOGLE_MAPS_API_KEY,
+      };
+
+      console.log('Nearby Search API request params:', nearbyParams);
+
+      response = await axios.get<PlacesSearchResponse>(
+        'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
+        {
+          params: nearbyParams,
+          timeout: 5000, // 5 second timeout
+        }
+      );
+      
+      console.log('Nearby Search API response status:', response.data.status);
+      console.log('Nearby Search API response result count:', response.data.results?.length || 0);
+      if (response.data.status !== 'OK') {
+        console.log('Nearby Search API error:', response.data.error_message);
       }
-    );
+    } else {
+      // Use Text Search API for general searches
+      console.log(`Using Text Search API for query: ${query}`);
+      
+      // For popular restaurant searches, use a broader query to get diverse results
+      const searchQuery = query.includes('popular') ? 
+        'highly rated restaurants' : 
+        `${query.trim()} restaurant`;
+      
+      const textParams = {
+        query: searchQuery,
+        type: 'restaurant',
+        key: GOOGLE_MAPS_API_KEY,
+      };
+
+      response = await axios.get<PlacesSearchResponse>(
+        'https://maps.googleapis.com/maps/api/place/textsearch/json',
+        {
+          params: textParams,
+          timeout: 5000, // 5 second timeout
+        }
+      );
+    }
 
     if (response.data.status !== 'OK') {
-      console.error('Google Places API error:', response.data.status);
+      console.error('Google Places API error:', response.data.status, response.data.error_message);
+      return [];
+    }
+
+    if (!response.data.results || response.data.results.length === 0) {
       return [];
     }
 
     const restaurants: Restaurant[] = response.data.results.map(place => {
       let location = place.formatted_address || place.vicinity || '';
-      
-      // Extract city or area
+
+      // Extract meaningful location info - prioritize city/area over full address
       if (location) {
         const parts = location.split(',');
-        if (parts.length > 1) {
-          // Take the last 2 parts if available
-          location = parts.slice(-2).join(',').trim();
+        if (parts.length >= 2) {
+          // For addresses like "123 Main St, Toronto, ON M5V 1A1, Canada"
+          // Take the city and province/state: "Toronto, ON"
+          const cityPart = parts[parts.length - 3]?.trim();
+          const statePart = parts[parts.length - 2]?.trim();
+          
+          if (cityPart && statePart) {
+            // Remove postal code from state part if present
+            const stateWithoutPostal = statePart.replace(/\s+[A-Z0-9]{3,}\s*$/, '');
+            location = `${cityPart}, ${stateWithoutPostal}`;
+          } else {
+            // Fallback to last two parts
+            location = parts.slice(-2).join(',').trim();
+          }
         }
       }
-      
+
       return {
         id: -1, // Temporary ID for Google places results
-        name: place.name,
+        name: place.name || 'Unknown Restaurant',
         location,
         category: getCuisineType(place.types),
         priceRange: convertPriceLevel(place.price_level),
@@ -155,13 +238,26 @@ export const searchGooglePlaces = async (query: string): Promise<Restaurant[]> =
         verified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
+        rating: typeof place.rating === 'number' ? place.rating : 4.0,
       };
     });
 
     console.log(`Google Places search for "${query}" returned ${restaurants.length} results`);
     return restaurants;
   } catch (error) {
-    console.error('Error searching Google Places:', error);
+    if (axios.isAxiosError(error)) {
+      if (error.code === 'ENOTFOUND') {
+        console.error('Network error: Unable to reach Google Places API');
+      } else if (error.response?.status === 429) {
+        console.error('Google Places API rate limit exceeded');
+      } else if (error.response?.status === 403) {
+        console.error('Google Places API access denied - check API key and billing');
+      } else {
+        console.error('Google Places API error:', error.response?.status, error.message);
+      }
+    } else {
+      console.error('Unexpected error searching Google Places:', error);
+    }
     return [];
   }
 };
@@ -172,27 +268,33 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
     return null;
   }
 
+  if (!placeId) {
+    console.error('Place ID is required');
+    return null;
+  }
+
   try {
     const response = await axios.get<PlaceDetailsResponse>(
       'https://maps.googleapis.com/maps/api/place/details/json',
       {
         params: {
           place_id: placeId,
-          fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,types,price_level,geometry',
+          fields: 'name,formatted_address,formatted_phone_number,website,opening_hours,types,price_level,geometry,rating,user_ratings_total,photos,reviews,business_status,permanently_closed,editorial_summary,url',
           key: GOOGLE_MAPS_API_KEY,
         },
+        timeout: 5000,
       }
     );
 
     if (response.data.status !== 'OK' || !response.data.result) {
-      console.error('Google Place Details API error:', response.data.status);
+      console.error('Google Place Details API error:', response.data.status, response.data.error_message);
       return null;
     }
 
     const place = response.data.result;
-    
+
     return {
-      name: place.name,
+      name: place.name || 'Unknown Restaurant',
       address: place.formatted_address || '',
       phone: place.formatted_phone_number || null,
       website: place.website || null,
@@ -202,9 +304,31 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
       latitude: place.geometry?.location.lat?.toString(),
       longitude: place.geometry?.location.lng?.toString(),
       googlePlaceId: place.place_id,
+      rating: place.rating || 0,
+      // Enhanced Google Places data
+      reviewCount: place.user_ratings_total || 0,
+      isOpen: place.opening_hours?.open_now || null,
+      businessStatus: place.business_status || null,
+      isPermanentlyClosed: place.permanently_closed || false,
+      description: place.editorial_summary?.overview || null,
+      photos: place.photos?.map(photo => ({
+        reference: photo.photo_reference,
+        width: photo.width,
+        height: photo.height,
+      })) || [],
+      googleReviews: place.reviews?.map(review => ({
+        rating: review.rating,
+        text: review.text,
+        authorName: review.author_name,
+        time: review.time,
+      })) || [],
     };
   } catch (error) {
-    console.error('Error getting Google Place details:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Error fetching Google Place details:', error.response?.status, error.message);
+    } else {
+      console.error('Unexpected error fetching Google Place details:', error);
+    }
     return null;
   }
 };

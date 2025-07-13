@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, User, LogIn, LogOut } from "lucide-react";
+import { Home, Search, PlusCircle, Users, User, LogIn, LogOut, List, Settings, TrendingUp } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { User as UserType } from "@shared/schema";
@@ -25,62 +25,64 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg z-50 border-t border-gray-200" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
-      <div className="flex justify-around items-center h-16 max-h-16">
+    <div className="nav-mobile bg-background/98 backdrop-blur-md shadow-lg border-t border-soft-sand-30" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+      <div className="flex justify-around items-center h-16 px-3 max-w-screen-sm mx-auto">
         <Link href="/" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center ${isActive('/') ? 'text-primary' : 'text-neutral-500'}`}>
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
             <Home className="h-5 w-5" />
-            <span className="text-xs mt-1">Home</span>
+            <span className="text-xs mt-1 font-medium">Home</span>
           </div>
         </Link>
         
         <Link href="/discover" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center ${isActive('/discover') ? 'text-primary' : 'text-neutral-500'}`}>
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/discover') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
             <Search className="h-5 w-5" />
-            <span className="text-xs mt-1">Discover</span>
+            <span className="text-xs mt-1 font-medium">Discover</span>
           </div>
         </Link>
         
-        <Link href="/create-post" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center ${isActive('/create-post') ? 'text-primary' : 'text-neutral-500'}`}>
-            <PlusCircle className="h-5 w-5" />
-            <span className="text-xs mt-1">Post</span>
+        <Link href="/lists" className="flex-1 h-full">
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${location.startsWith('/lists') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+            <List className="h-5 w-5" />
+            <span className="text-xs mt-1 font-medium">Lists</span>
           </div>
         </Link>
         
         {isAuthenticated ? (
           <>
             <Link href="/circles" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/circles') ? 'text-primary' : 'text-neutral-500'}`}>
+              <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${location.startsWith('/circles') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
                 <Users className="h-5 w-5" />
-                <span className="text-xs mt-1">Circles</span>
+                <span className="text-xs mt-1 font-medium">Circles</span>
               </div>
             </Link>
             
             <Link href="/profile" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center ${location.startsWith('/profile') ? 'text-primary' : 'text-neutral-500'}`}>
+              <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${location.startsWith('/profile') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
                 <User className="h-5 w-5" />
-                <span className="text-xs mt-1">Profile</span>
+                <span className="text-xs mt-1 font-medium">Profile</span>
               </div>
             </Link>
+            
+
           </>
         ) : (
           <>
             <Link href="/auth" className="flex-1 h-full">
-              <div className={`h-full flex flex-col items-center justify-center ${isActive('/auth') ? 'text-primary' : 'text-neutral-500'}`}>
+              <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/auth') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
                 <LogIn className="h-5 w-5" />
-                <span className="text-xs mt-1">Login</span>
+                <span className="text-xs mt-1 font-medium">Login</span>
               </div>
             </Link>
             
             <button 
-              className="flex-1 h-full outline-none border-0 bg-transparent"
+              className="flex-1 h-full outline-none border-0 bg-transparent transition-all duration-200 mobile-button rounded-lg hover:text-red-400 hover:bg-red-50 touch-manipulation"
               onClick={handleLogout}
               aria-label="Logout"
             >
               <div className="h-full flex flex-col items-center justify-center text-red-500">
                 <LogOut className="h-5 w-5" />
-                <span className="text-xs mt-1">Logout</span>
+                <span className="text-xs mt-1 font-medium">Logout</span>
               </div>
             </button>
           </>

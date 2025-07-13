@@ -1,0 +1,62 @@
+🚀 Restaurant Profile Page Redesign - Complete Implementation
+
+Create a modern restaurant profile page that replaces the existing RestaurantDetailPage.tsx with a redesigned layout featuring dual scoring, hero imagery, and improved user actions. Use our existing brand colors and components where possible.
+
+Key Requirements:
+
+Hero Section
+
+Full-width restaurant image with dark overlay
+Restaurant name as white overlay text (bottom-left)
+Fallback to placeholder with restaurant icon if no image
+Dual Score Display
+
+Two circular progress indicators side-by-side
+Left: Google rating (use existing restaurant.googlePlaces.rating)
+Right: Community rating (use existing restaurant.communityInsights.followersAverageRating)
+Use primary brand color (#3b82f6) for both circles
+Show percentage format (e.g., 87%, 91%)
+Top Mentions Section
+
+Display 3 badge pills below scores
+Use existing restaurant.communityInsights.topDishes data
+Style with existing Badge component
+Tabbed Navigation
+
+Three tabs: Details, Menu, Reviews
+Use existing Tabs component from shadcn/ui
+Default to Details tab
+Details Content (Details Tab)
+
+Two-column layout on desktop, stacked on mobile
+Left column: Address, phone, website link
+Right column: Hours, price range, cuisine type
+Use existing data from restaurant object
+Action Bar
+
+Three buttons at bottom: "Share Experience", "Add to List", "View on Maps"
+Use existing Button component variants
+"Share Experience" = primary (solid), others = outline
+Sticky on mobile, fixed position on desktop
+Technical Implementation:
+
+File to modify: client/src/pages/RestaurantDetailPage.tsx
+Preserve existing: Data fetching logic, error handling, loading states
+Use existing components: Badge, Button, Tabs, Card from shadcn/ui
+Responsive design: Mobile-first approach with desktop enhancements
+Brand consistency: Use existing color scheme and typography
+Expected Layout Structure:
+
+[Hero Image with Title Overlay]
+[Dual Score Circles]
+[Top Mentions Badges]
+[Tabbed Navigation]
+[Details Content Area]
+[Action Bar - Sticky Bottom]
+Data Requirements:
+
+All data should come from existing API response structure
+No backend changes needed - use current /api/restaurants/:id endpoint
+Handle missing data gracefully with fallbacks
+Please implement this as a complete replacement of the existing RestaurantDetailPage component, ensuring it maintains all current functionality while providing the new visual design.
+

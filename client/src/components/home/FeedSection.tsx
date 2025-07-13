@@ -1,14 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { PostCard } from "./PostCard";
 import { PostWithDetails } from "@/lib/types";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Filter, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function FeedSection() {
-  const { data: posts, isLoading, refetch } = useQuery<PostWithDetails[]>({
+  const { data: feedData, isLoading, refetch } = useQuery({
     queryKey: ["/api/feed"],
   });
+
+  // Handle both direct posts array and nested posts object structure
+  const posts = Array.isArray(feedData?.posts) ? feedData.posts : 
+                Array.isArray(feedData) ? feedData : [];
 
   return (
     <div className="mb-20 md:mb-10">
@@ -54,9 +58,15 @@ export function FeedSection() {
       )}
       
       {/* Post list */}
-      {posts?.map((post) => (
-        <PostCard key={post.id} post={post} />
-      ))}
+      {posts && posts.length > 0 ? (
+        posts.slice(0, 3).map((post) => (
+          <PostCard key={post.id} post={post} />
+        ))
+      ) : !isLoading && (
+        <div className="text-center py-8 bg-white rounded-xl shadow-sm">
+          <p className="text-neutral-500">No posts in your feed yet.</p>
+        </div>
+      )}
       
       {/* Load more */}
       {posts && posts.length > 0 && (

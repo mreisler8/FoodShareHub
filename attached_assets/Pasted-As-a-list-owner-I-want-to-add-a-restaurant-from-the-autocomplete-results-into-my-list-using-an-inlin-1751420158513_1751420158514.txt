@@ -1,0 +1,107 @@
+As a list owner
+I want to add a restaurant from the autocomplete results into my list using an inline form
+So that I can capture my personal rating and notes without leaving the search context
+
+Acceptance Criteria
+Add Button
+
+Each autocomplete result (in ListPage.tsx) renders a button:
+
+tsx
+Copy
+Edit
+<button
+  className="add-btn"
+  onClick={() => setAddingId(r.id)}
+>
+  Add
+</button>
+Clicking it sets React state addingId = r.id.
+
+Inline Form Rendering
+
+When addingId === r.id, replace that list item with <ListItemForm> instead of the “Add” button.
+
+Create src/components/ListItemForm.tsx exporting a component that takes props:
+
+ts
+Copy
+Edit
+interface ListItemFormProps {
+  restaurantId: string;
+  onSave: (data: {rating:number; liked:string; disliked:string; notes:string})=>void;
+  onCancel: ()=>void;
+}
+Form Fields
+Inside ListItemForm.tsx, render a form with:
+
+tsx
+Copy
+Edit
+const [rating, setRating]     = useState<number|null>(null);
+const [liked, setLiked]       = useState('');
+const [disliked, setDisliked] = useState('');
+const [notes, setNotes]       = useState('');
+
+return (
+  <div className="inline-form">
+    <StarRating value={rating} onChange={setRating} />            {/* 1–5 stars */}
+    <input placeholder="What I liked"      value={liked}      onChange={e=>setLiked(e.target.value)} />
+    <input placeholder="What I didn’t like" value={disliked}   onChange={e=>setDisliked(e.target.value)} />
+    <textarea placeholder="Additional notes" value={notes}      onChange={e=>setNotes(e.target.value)} />
+    <button disabled={rating===null} onClick={() => onSave({rating: rating!, liked, disliked, notes})}>
+      Save
+    </button>
+    <button onClick={onCancel}>Cancel</button>
+  </div>
+);
+Save Behavior
+
+onSave calls:
+
+ts
+Copy
+Edit
+apiFetch(`/api/lists/${listId}/items`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ restaurantId, rating, liked, disliked, notes })
+})
+Optimistically update parent state in ListPage.tsx:
+
+ts
+Copy
+Edit
+setListItems(prev => [...prev, newItem]);
+setAddingId(null);
+On API failure, show showToast('Failed to add. Please try again.') and keep the form open.
+
+Cancel Behavior
+
+onCancel simply calls setAddingId(null) to hide the form and restore the original list item view.
+
+State in ListPage.tsx
+At the top of your ListPage component, add:
+
+ts
+Copy
+Edit
+const [addingId, setAddingId]     = useState<string|null>(null);
+const [listItems, setListItems]   = useState<ListItem[]>([]);
+Implementation Steps for AI Agent
+Create src/components/ListItemForm.tsx with the above code.
+
+Import ListItemForm and StarRating into src/pages/ListPage.tsx.
+
+In the .map(results) dropdown, conditionally render either the “Add” button or <ListItemForm> when addingId === id.
+
+Implement handleSave(data) and handleCancel() in ListPage.tsx to call onSave/onCancel.
+
+Style .inline-form so it matches your dropdown items visually.
+
+Commit & Push with message:
+
+pgsql
+Copy
+Edit
+feat(ui): add inline ListItemForm for adding restaurants to list

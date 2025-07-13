@@ -1,0 +1,230 @@
+You are our world-class Replit coding agent. We’re Phase 2: building **best-in-class media support**—photo & video uploads, crop & filters, and rich carousels—competitive with Instagram, Facebook, and Pinterest. Every UI element must serve our four personas:
+
+- **Tracker Taylor**: fast, frictionless logging  
+- **Explorer Alex**: rich, swipeable discovery  
+- **Seeker Sam**: occasion-tagged visuals  
+- **Influencer Riley**: polished, brand-worthy posts  
+
+---
+
+## UI/UX PLAYBOOK (Must-Have)
+
+1. **Media Uploader** (in PostModal & AddListItemModal)  
+   - Full-width drag-&-drop + “Click to browse”  
+   - Horizontal thumbnail scroller with per-file progress rings  
+   - Crop/rotate overlay (react-easy-crop) on thumbnail click  
+   - “Filter: None ▾” dropdown for Instagram-style presets (auto-enhance default)  
+   - Retry (“↻”) and remove (“×”) controls per file  
+
+2. **Media Carousel** (in feed & detail)  
+   - Swipeable/full-screen lightbox via `swiper`  
+   - Thumbnail strip with highlight  
+   - Pinch-zoom on mobile, arrow navigation on desktop  
+   - Video controls (play/pause, scrub) and lazy-load  
+
+3. **Tagging & Themes**  
+   - “Add Tag” dropdown, drag tag onto thumbnail to sticker it  
+   - “Media Tags” filter on List pages  
+
+4. **Accessibility & Performance**  
+   - Keyboard nav (Tab/Enter), ARIA labels, 4.5:1 contrast  
+   - Client-side JPEG compression (70%), 200×200 thumbnails  
+   - Responsive collapse on <480px  
+
+---
+
+## GRANULAR IMPLEMENTATION STEPS
+
+### 1. Install Dependencies  
+```bash
+npm install --save cloudinary multer multer-storage-cloudinary react-dropzone react-easy-crop swiper
+npm install --save-dev @playwright/test
+npx playwright install --with-deps
+2. Cloudinary Config
+File: server/config/cloudinary.ts
+
+ts
+Copy
+Edit
+import { v2 as cloudinary } from 'cloudinary';
+cloudinary.config({
+  cloud_name:    process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:       process.env.CLOUDINARY_API_KEY,
+  api_secret:    process.env.CLOUDINARY_API_SECRET,
+});
+export default cloudinary;
+3. Uploads Route
+File: server/routes/uploads.ts
+
+ts
+Copy
+Edit
+import { Router } from 'express';
+import multer from 'multer';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../config/cloudinary';
+
+const router = Router();
+const storage = new CloudinaryStorage({ cloudinary, params: { folder: 'media', resource_type: 'auto' } });
+const upload = multer({ storage });
+
+router.post('/', upload.fields([
+  { name: 'images', maxCount: 10 },
+  { name: 'videos', maxCount: 2 }
+]), (req, res) => {
+  const files: any[] = [];
+  ['images','videos'].forEach(field =>
+    (req.files[field] || []).forEach((f: any) =>
+      files.push({
+        url: f.path,
+        thumbnailUrl: f.thumbnail_url || f.path,
+        type: f.mimetype.startsWith('video') ? 'video' : 'image'
+      })
+    )
+  );
+  res.json({ files });
+});
+export default router;
+Integrate in server/index.ts:
+
+ts
+Copy
+Edit
+import uploadsRouter from './routes/uploads';
+app.use('/api/uploads', uploadsRouter);
+4. Schema Updates
+File: shared/schema.ts
+
+diff
+Copy
+Edit
+ export const posts = pgTable("posts", {
+   // existing...
++  images: text("images").array().default([]),
++  videos: text("videos").array().default([]),
+ });
+5. MediaUploader Component
+File: client/src/components/MediaUploader.tsx
+
+tsx
+Copy
+Edit
+import React, { useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import Cropper from 'react-easy-crop';
+import axios from 'axios';
+
+export default function MediaUploader({ onChange }: { onChange: (files: any[]) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [previews, setPreviews] = useState<any[]>([]);
+
+  const { getRootProps, getInputProps } = useDropzone({
+    accept: 'image/*,video/*',
+    onDrop: async files => {
+      setUploading(true);
+      const form = new FormData();
+      files.forEach(f => form.append(f.type.startsWith('video') ? 'videos' : 'images', f));
+      const res = await axios.post('/api/uploads', form);
+      const uploaded = res.data.files;
+      setPreviews(uploaded);
+      onChange(uploaded);
+      setUploading(false);
+    }
+  });
+
+  return (
+    <div {...getRootProps()} className="dropzone border-2 border-dashed p-6 text-center">
+      <input {...getInputProps()} />
+      {uploading ? 'Uploading…' : 'Drag & drop or click to upload (max 10 images, 2 videos)'}
+      <div className="flex overflow-x-auto mt-4">
+        {previews.map((f,i) => (
+          <div key={i} className="relative mr-2">
+            {f.type==='image' 
+              ? <img src={f.thumbnailUrl} className="w-24 h-24 object-cover" />
+              : <video src={f.url} className="w-24 h-24 object-cover" />}
+            <button className="absolute top-0 right-0 bg-white rounded-full">×</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+6. Integrate Uploader in Forms
+Files:
+
+client/src/components/PostModal.tsx
+
+client/src/components/AddListItemModal.tsx
+Do:
+
+tsx
+Copy
+Edit
+import MediaUploader from './MediaUploader';
+// …
+const [media, setMedia] = useState<any[]>([]);
+<MediaUploader onChange={setMedia} />
+// On submit include:
+// images: media.filter(f=>f.type==='image').map(f=>f.url)
+// videos: media.filter(f=>f.type==='video').map(f=>f.url)
+7. MediaCarousel Component
+File: client/src/components/MediaCarousel.tsx
+
+tsx
+Copy
+Edit
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+
+export default function MediaCarousel({ items }: { items: any[] }) {
+  return (
+    <Swiper spaceBetween={10} slidesPerView={1}>
+      {items.map((f,i) => (
+        <SwiperSlide key={i}>
+          {f.type==='image'
+            ? <img src={f.url} className="w-full object-contain" />
+            : <video src={f.url} controls className="w-full" />}
+        </SwiperSlide>
+      ))}
+    </Swiper>
+  );
+}
+8. Manual QA
+npm run dev → open in browser.
+
+Create a post → upload 3 images + 1 video → confirm:
+
+Thumbnails, crop/rotate, filters work
+
+Progress rings, retry on failure
+
+Carousel on feed/detail with swipe & controls
+
+No console errors
+
+9. Commit Changes
+bash
+Copy
+Edit
+git add .
+git commit -m "feat(media): multi-file uploader, crop, filters, Cloudinary, carousel"
+git push
+10. (Optional) E2E Test
+File: tests/e2e/media.spec.ts
+
+ts
+Copy
+Edit
+import { test, expect } from '@playwright/test';
+test('media upload & carousel', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('token','<token>'));
+  await page.click('.hero-cta');
+  const [fc] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.click('.dropzone input[type=file]'),
+  ]);
+  await fc.setFiles(['test/fixtures/photo1.jpg','test/fixtures/video1.mp4']);
+  await expect(page.locator('.swiper-slide')).toHaveCount(2);
+});
+Please execute each step in order, test manually after step 8, and commit as specified. Let me know when the media flows are live and polished!

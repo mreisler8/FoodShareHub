@@ -6,9 +6,9 @@ import { User } from "@shared/schema";
  * Returns the authenticated user or null if not authenticated
  */
 export function useCurrentUser() {
-  const { data: currentUser } = useQuery<User | null>({
+  const { data: currentUser, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/me"],
   });
   
-  return currentUser;
+  return { currentUser, isLoading, error };
 }

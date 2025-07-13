@@ -77,7 +77,8 @@ export interface RestaurantList extends BaseRestaurantList {
   circleName?: string;
   creator?: User;
   circle?: Circle;
-  restaurants?: RestaurantListItemWithDetails[];
+  restaurants?: RestaurantListItemWithDetails[]; // Keep for backward compatibility
+  items?: RestaurantListItemWithDetails[]; // New API format
 }
 
 export interface RestaurantListItemWithDetails extends RestaurantListItem {

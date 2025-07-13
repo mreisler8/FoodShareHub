@@ -10,10 +10,15 @@ import {
   stories, type Story, type InsertStory,
   restaurantLists, type RestaurantList, type InsertRestaurantList,
   restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem,
-  userFollowers, type UserFollower, type InsertUserFollower
+  sharedLists, type SharedList, type InsertSharedList,
+  userFollowers, type UserFollower, type InsertUserFollower,
+  contentReports, type ContentReport, type InsertContentReport,
+  postListItems, type PostListItem, type InsertPostListItem,
+  searchAnalytics, type SearchAnalytics, type InsertSearchAnalytics,
+  userSearchPreferences, type UserSearchPreferences, type InsertUserSearchPreferences
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, like, desc, gt, or } from "drizzle-orm";
+import { eq, and, like, desc, gt, or, not, inArray } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -29,6 +34,8 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<User>): Promise<User>;
+  deleteUser(id: number): Promise<void>;
   getAllUsers(): Promise<User[]>;
   
   // User Following operations
@@ -50,18 +57,26 @@ export interface IStorage {
   // Post operations
   getPost(id: number): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
+  createPostWithLists(post: InsertPost, listIds?: number[]): Promise<Post>;
   updatePost(id: number, post: Partial<InsertPost>): Promise<Post>;
   deletePost(id: number): Promise<void>;
   getAllPosts(): Promise<Post[]>;
   getPostsByUser(userId: number): Promise<Post[]>;
   getPostsByRestaurant(restaurantId: number): Promise<Post[]>;
   getPostDetails(postId: number): Promise<any>;
-  getFeedPosts(): Promise<any[]>;
+  getFeedPosts(options?: { offset?: number; limit?: number; userId?: number; scope?: 'feed' | 'circle'; circleId?: number }): Promise<any[]>;
   
   // Comment operations
   getComment(id: number): Promise<Comment | undefined>;
   createComment(comment: InsertComment): Promise<Comment>;
+  deleteComment(id: number): Promise<void>;
   getCommentsByPost(postId: number): Promise<Comment[]>;
+  
+  // Post List Item operations
+  createPostListItem(postListItem: InsertPostListItem): Promise<PostListItem>;
+  deletePostListItem(postId: number, listId: number): Promise<void>;
+  getPostListItems(postId: number): Promise<PostListItem[]>;
+  getListsByPost(postId: number): Promise<RestaurantList[]>;
   
   // Circle operations
   getCircle(id: number): Promise<Hub | undefined>;
@@ -105,6 +120,8 @@ export interface IStorage {
   // Restaurant List operations
   createRestaurantList(list: InsertRestaurantList): Promise<RestaurantList>;
   getRestaurantList(id: number): Promise<RestaurantList | undefined>;
+  updateRestaurantList(id: number, updates: Partial<RestaurantList>): Promise<RestaurantList>;
+  deleteRestaurantList(id: number): Promise<void>;
   getRestaurantListsByHub(hubId: number): Promise<RestaurantList[]>;
   getRestaurantListsByCircle(circleId: number): Promise<RestaurantList[]>;
   getRestaurantListsByUser(userId: number): Promise<RestaurantList[]>;
@@ -113,8 +130,16 @@ export interface IStorage {
   // Restaurant List Item operations
   addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem>;
   removeRestaurantFromList(listId: number, restaurantId: number): Promise<void>;
+  removeRestaurantListItem(itemId: number): Promise<void>;
+  updateRestaurantListItem(itemId: number, updates: Partial<RestaurantListItem>): Promise<RestaurantListItem>;
   getRestaurantsInList(listId: number): Promise<RestaurantListItem[]>;
   getDetailedRestaurantsInList(listId: number): Promise<any[]>; // with restaurant details
+  
+  // Shared List operations
+  shareListWithCircle(listId: number, circleId: number, sharedById: number, permissions?: { canEdit?: boolean; canReshare?: boolean }): Promise<SharedList>;
+  unshareListFromCircle(listId: number, circleId: number): Promise<void>;
+  getListsSharedWithCircle(circleId: number): Promise<any[]>; // Lists with details
+  getCirclesListIsSharedWith(listId: number): Promise<any[]>; // Circles with permissions
   
   // Session store for authentication
   sessionStore: any; // Using any for session store
@@ -123,6 +148,24 @@ export interface IStorage {
   logUserAction(userId: number, action: string, metadata: Record<string, any>): Promise<void>;
   getActionsByUser(userId: number): Promise<any[]>;
   getPopularContent(): Promise<any[]>;
+  
+  // Content Moderation operations
+  createContentReport(report: InsertContentReport): Promise<ContentReport>;
+  getContentReports(options?: { status?: string; contentType?: string; limit?: number }): Promise<ContentReport[]>;
+  updateContentReportStatus(reportId: number, status: string, reviewedById: number, resolution?: string): Promise<ContentReport>;
+  getReportsByContent(contentType: string, contentId: number): Promise<ContentReport[]>;
+  // New methods for personalized suggestions and invite codes
+  getCircleByInviteCode(inviteCode: string): Promise<Circle | undefined>;
+  getPersonalizedCircleSuggestions(userId: number): Promise<Circle[]>;
+  joinCircleByInviteCode(inviteCode: string, userId: number): Promise<{ success: boolean; circle?: Circle; error?: string }>;
+  
+  // Search Analytics operations
+  trackSearchAnalytics(data: InsertSearchAnalytics & { timestamp: Date }): Promise<SearchAnalytics>;
+  getTrendingSearches(limit: number, timeframe: string): Promise<any[]>;
+  getPopularSearchesByCategory(category: string, limit: number): Promise<any[]>;
+  getSearchSuggestions(query: string, limit: number): Promise<string[]>;
+  getUserRecentSearches(userId: number, limit: number): Promise<string[]>;
+  updateUserRecentSearches(userId: number, query: string): Promise<void>;
 }
 
 // Implementation using PostgreSQL Database via Drizzle ORM
@@ -183,6 +226,15 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User> {
+    const [user] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return user;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
   
   // Restaurant operations
@@ -267,6 +319,27 @@ export class DatabaseStorage implements IStorage {
     }).returning();
     return post;
   }
+
+  async createPostWithLists(insertPost: InsertPost, listIds?: number[]): Promise<Post> {
+    const [post] = await db.insert(posts).values({
+      ...insertPost,
+      createdAt: new Date()
+    }).returning();
+    
+    // If listIds are provided, create post list items
+    if (listIds && listIds.length > 0) {
+      const postListItems = listIds.map(listId => ({
+        postId: post.id,
+        listId: listId
+      }));
+      
+      await Promise.all(
+        postListItems.map(item => this.createPostListItem(item))
+      );
+    }
+    
+    return post;
+  }
   
   async updatePost(id: number, postUpdates: Partial<InsertPost>): Promise<Post> {
     const [updatedPost] = await db
@@ -335,14 +408,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Optimized getFeedPosts method with pagination support
-  async getFeedPosts(options?: { offset?: number; limit?: number; userId?: number }): Promise<any[]> {
-    // Get all posts with ordering
-    const allPosts = await this.getAllPosts();
+  async getFeedPosts(options?: { offset?: number; limit?: number; userId?: number; scope?: 'feed' | 'circle'; circleId?: number }): Promise<any[]> {
+    let allPosts;
+    
+    if (options?.scope === 'circle' && options?.circleId) {
+      // Get posts shared to the specific circle
+      // For now, get all posts and filter by visibility (simplified)
+      allPosts = await db.select().from(posts)
+        .orderBy(desc(posts.createdAt))
+        .where(eq(posts.visibility, 'public')); // Simplified: assuming circle posts are public
+    } else {
+      // Default feed - get posts by followed users where visibility includes feed
+      // For now, get all public posts (would need user following implementation for full functionality)
+      allPosts = await db.select().from(posts)
+        .orderBy(desc(posts.createdAt))
+        .where(eq(posts.visibility, 'public'));
+    }
     
     // Apply offset and limit if options are provided
     const offset = options?.offset || 0;
     const limit = options?.limit || allPosts.length;
-    const userId = options?.userId; // For future use
+    const userId = options?.userId;
     
     // Get paginated posts
     const paginatedPosts = allPosts.slice(offset, offset + limit);
@@ -409,8 +495,43 @@ export class DatabaseStorage implements IStorage {
     return comment;
   }
 
+  async deleteComment(id: number): Promise<void> {
+    await db.delete(comments).where(eq(comments.id, id));
+  }
+
   async getCommentsByPost(postId: number): Promise<Comment[]> {
     return await db.select().from(comments).where(eq(comments.postId, postId));
+  }
+  
+  // Post List Item operations
+  async createPostListItem(insertPostListItem: InsertPostListItem): Promise<PostListItem> {
+    const [item] = await db.insert(postListItems).values({
+      ...insertPostListItem,
+      addedAt: new Date()
+    }).returning();
+    return item;
+  }
+
+  async deletePostListItem(postId: number, listId: number): Promise<void> {
+    await db.delete(postListItems).where(and(
+      eq(postListItems.postId, postId),
+      eq(postListItems.listId, listId)
+    ));
+  }
+
+  async getPostListItems(postId: number): Promise<PostListItem[]> {
+    return await db.select().from(postListItems).where(eq(postListItems.postId, postId));
+  }
+
+  async getListsByPost(postId: number): Promise<RestaurantList[]> {
+    const result = await db.select({
+      list: restaurantLists
+    })
+    .from(postListItems)
+    .innerJoin(restaurantLists, eq(postListItems.listId, restaurantLists.id))
+    .where(eq(postListItems.postId, postId));
+    
+    return result.map(item => item.list);
   }
   
   // Circle operations
@@ -420,11 +541,128 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCircle(insertCircle: InsertCircle): Promise<Circle> {
+    // Generate unique invite code
+    const inviteCode = this.generateInviteCode();
+    
     const [circle] = await db.insert(circles).values({
       ...insertCircle,
+      inviteCode,
+      memberCount: 1, // Creator is the first member
       createdAt: new Date()
     }).returning();
     return circle;
+  }
+
+  private generateInviteCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  async getCircleByInviteCode(inviteCode: string): Promise<Circle | undefined> {
+    const [circle] = await db.select().from(circles).where(eq(circles.inviteCode, inviteCode));
+    return circle;
+  }
+
+  async getPersonalizedCircleSuggestions(userId: number): Promise<Circle[]> {
+    // Get user's dining preferences
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return [];
+
+    // Get circles user isn't already a member of
+    const userCircleIds = await db.select({ circleId: circleMembers.circleId })
+      .from(circleMembers)
+      .where(eq(circleMembers.userId, userId));
+    
+    const excludeIds = userCircleIds.map(m => m.circleId);
+
+    // Base query for available circles
+    let query = db.select().from(circles)
+      .where(and(
+        eq(circles.allowPublicJoin, true),
+        ...(excludeIds.length > 0 ? [not(inArray(circles.id, excludeIds))] : [])
+      ))
+      .limit(10);
+
+    const allCircles = await query;
+
+    // Score circles based on user preferences
+    const scoredCircles = allCircles.map(circle => {
+      let score = 0;
+      
+      // Match by cuisine preference
+      if (user.preferredCuisines && circle.primaryCuisine) {
+        if (user.preferredCuisines.includes(circle.primaryCuisine)) {
+          score += 10;
+        }
+      }
+      
+      // Match by price range
+      if (user.preferredPriceRange && circle.priceRange) {
+        if (user.preferredPriceRange === circle.priceRange) {
+          score += 8;
+        }
+      }
+      
+      // Match by location
+      if (user.preferredLocation && circle.location) {
+        if (user.preferredLocation.toLowerCase().includes(circle.location.toLowerCase()) ||
+            circle.location.toLowerCase().includes(user.preferredLocation.toLowerCase())) {
+          score += 6;
+        }
+      }
+      
+      // Boost featured and trending circles
+      if (circle.featured) score += 5;
+      if (circle.trending) score += 3;
+      
+      // Boost circles with more members (popularity)
+      if (circle.memberCount) {
+        score += Math.min(circle.memberCount / 10, 5);
+      }
+      
+      return { ...circle, score };
+    });
+
+    // Sort by score and return top matches
+    return scoredCircles
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6);
+  }
+
+  async joinCircleByInviteCode(inviteCode: string, userId: number): Promise<{ success: boolean; circle?: Circle; error?: string }> {
+    const circle = await this.getCircleByInviteCode(inviteCode);
+    
+    if (!circle) {
+      return { success: false, error: "Invalid invite code" };
+    }
+
+    if (!circle.allowPublicJoin) {
+      return { success: false, error: "This circle doesn't allow public joining" };
+    }
+
+    // Check if user is already a member
+    const isAlreadyMember = await this.isUserMemberOfCircle(userId, circle.id);
+    if (isAlreadyMember) {
+      return { success: false, error: "You're already a member of this circle" };
+    }
+
+    // Add user to circle
+    await this.createCircleMember({
+      circleId: circle.id,
+      userId,
+      role: "member"
+    });
+
+    // Update member count
+    await db.update(circles)
+      .set({ memberCount: (circle.memberCount || 0) + 1 })
+      .where(eq(circles.id, circle.id));
+
+    return { success: true, circle };
   }
 
   async getAllCircles(): Promise<Circle[]> {
@@ -646,7 +884,22 @@ export class DatabaseStorage implements IStorage {
     
     return this.updateRestaurantList(id, { saveCount: currentSaves + 1 });
   }
-  
+
+  async deleteRestaurantList(id: number): Promise<void> {
+    // First delete all items in the list
+    await db.delete(restaurantListItems).where(eq(restaurantListItems.listId, id));
+    
+    // Delete any shared list records
+    await db.delete(sharedLists).where(eq(sharedLists.listId, id));
+    
+    // Finally delete the list itself
+    await db.delete(restaurantLists).where(eq(restaurantLists.id, id));
+  }
+
+  async removeRestaurantListItem(itemId: number): Promise<void> {
+    await db.delete(restaurantListItems).where(eq(restaurantListItems.id, itemId));
+  }
+
   // Restaurant List Item operations
   async addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem> {
     const [listItem] = await db.insert(restaurantListItems).values({
@@ -686,6 +939,15 @@ export class DatabaseStorage implements IStorage {
     );
     
     return itemsWithDetails;
+  }
+
+  async updateRestaurantListItem(itemId: number, updates: Partial<RestaurantListItem>): Promise<RestaurantListItem> {
+    const [updatedItem] = await db
+      .update(restaurantListItems)
+      .set(updates)
+      .where(eq(restaurantListItems.id, itemId))
+      .returning();
+    return updatedItem;
   }
 
   // Analytics operations
@@ -778,17 +1040,278 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPopularContent(): Promise<any[]> {
-    const result = await db.execute(`
-      SELECT 
-        metadata->>'contentId' as content_id, 
-        COUNT(*) as view_count 
-      FROM analytics 
-      WHERE action = 'view_content' 
-      GROUP BY metadata->>'contentId' 
-      ORDER BY view_count DESC 
-      LIMIT 10
-    `);
-    return result.rows;
+    try {
+      // Get popular restaurants with average ratings and post counts
+      const popularRestaurants = await db.execute(`
+        SELECT 
+          r.id,
+          r.name,
+          r.location,
+          r.category,
+          r.image_url as "imageUrl",
+          AVG(p.rating::numeric) as "averageRating",
+          COUNT(p.id) as "postCount",
+          'restaurant' as type
+        FROM restaurants r
+        LEFT JOIN posts p ON r.id = p.restaurant_id
+        GROUP BY r.id, r.name, r.location, r.category, r.image_url
+        HAVING COUNT(p.id) > 0
+        ORDER BY AVG(p.rating::numeric) DESC, COUNT(p.id) DESC
+        LIMIT 10
+      `);
+
+      // Get popular posts with like and comment counts
+      const popularPosts = await db.execute(`
+        SELECT 
+          p.id,
+          p.content,
+          p.rating,
+          p.created_at as "createdAt",
+          COUNT(DISTINCT l.id) as "likeCount",
+          COUNT(DISTINCT c.id) as "commentCount",
+          u.id as "authorId",
+          u.name as "authorName", 
+          u.username as "authorUsername",
+          r.id as "restaurantId",
+          r.name as "restaurantName",
+          r.location as "restaurantLocation",
+          'post' as type
+        FROM posts p
+        LEFT JOIN likes l ON p.id = l.post_id
+        LEFT JOIN comments c ON p.id = c.post_id
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN restaurants r ON p.restaurant_id = r.id
+        WHERE p.visibility = 'public'
+        GROUP BY p.id, p.content, p.rating, p.created_at, u.id, u.name, u.username, r.id, r.name, r.location
+        ORDER BY (COUNT(DISTINCT l.id) + COUNT(DISTINCT c.id)) DESC, p.rating DESC
+        LIMIT 10
+      `);
+
+      return [...popularRestaurants.rows, ...popularPosts.rows];
+    } catch (error) {
+      console.error('Error getting popular content:', error);
+      return [];
+    }
+  }
+
+  // Content Moderation operations implementation
+  async createContentReport(insertReport: InsertContentReport): Promise<ContentReport> {
+    const [report] = await db.insert(contentReports).values(insertReport).returning();
+    return report;
+  }
+
+  async getContentReports(options?: { status?: string; contentType?: string; limit?: number }): Promise<ContentReport[]> {
+    let query = db.select().from(contentReports);
+    
+    const conditions = [];
+    if (options?.status) {
+      conditions.push(eq(contentReports.status, options.status));
+    }
+    if (options?.contentType) {
+      conditions.push(eq(contentReports.contentType, options.contentType));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    query = query.orderBy(desc(contentReports.createdAt));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+    
+    return await query;
+  }
+
+  async updateContentReportStatus(reportId: number, status: string, reviewedById: number, resolution?: string): Promise<ContentReport> {
+    const updateData: any = {
+      status,
+      reviewedById,
+      reviewedAt: new Date(),
+    };
+    
+    if (resolution) {
+      updateData.resolution = resolution;
+    }
+    
+    const [updatedReport] = await db
+      .update(contentReports)
+      .set(updateData)
+      .where(eq(contentReports.id, reportId))
+      .returning();
+    
+    return updatedReport;
+  }
+
+  async getReportsByContent(contentType: string, contentId: number): Promise<ContentReport[]> {
+    return await db
+      .select()
+      .from(contentReports)
+      .where(and(
+        eq(contentReports.contentType, contentType),
+        eq(contentReports.contentId, contentId)
+      ))
+      .orderBy(desc(contentReports.createdAt));
+  }
+
+  // Shared List operations implementation
+  async shareListWithCircle(listId: number, circleId: number, sharedById: number, permissions: { canEdit?: boolean; canReshare?: boolean } = {}): Promise<SharedList> {
+    const [sharedList] = await db.insert(sharedLists).values({
+      listId,
+      circleId,
+      sharedById,
+      canEdit: permissions.canEdit || false,
+      canReshare: permissions.canReshare || false,
+      sharedAt: new Date()
+    }).returning();
+    return sharedList;
+  }
+
+  async unshareListFromCircle(listId: number, circleId: number): Promise<void> {
+    await db.delete(sharedLists)
+      .where(and(eq(sharedLists.listId, listId), eq(sharedLists.circleId, circleId)));
+  }
+
+  async getListsSharedWithCircle(circleId: number): Promise<any[]> {
+    const sharedListsData = await db.select({
+      sharedList: sharedLists,
+      list: restaurantLists,
+      sharedBy: {
+        id: users.id,
+        name: users.name,
+        username: users.username
+      }
+    })
+    .from(sharedLists)
+    .innerJoin(restaurantLists, eq(sharedLists.listId, restaurantLists.id))
+    .innerJoin(users, eq(sharedLists.sharedById, users.id))
+    .where(eq(sharedLists.circleId, circleId));
+
+    return sharedListsData;
+  }
+
+  async getCirclesListIsSharedWith(listId: number): Promise<any[]> {
+    const sharedWithData = await db.select({
+      sharedList: sharedLists,
+      circle: circles
+    })
+    .from(sharedLists)
+    .innerJoin(circles, eq(sharedLists.circleId, circles.id))
+    .where(eq(sharedLists.listId, listId));
+
+    return sharedWithData;
+  }
+
+  // Search Analytics implementation
+  async trackSearchAnalytics(data: InsertSearchAnalytics & { timestamp: Date }): Promise<SearchAnalytics> {
+    try {
+      const [analytics] = await db.insert(searchAnalytics).values({
+        userId: data.userId,
+        query: data.query,
+        category: data.category || 'all',
+        resultCount: data.resultCount || 0,
+        clicked: data.clicked || false,
+        clickedResultId: data.clickedResultId,
+        clickedResultType: data.clickedResultType,
+        timestamp: data.timestamp
+      }).returning();
+      
+      return analytics;
+    } catch (error) {
+      console.error('Error tracking search analytics:', error);
+      throw error;
+    }
+  }
+
+  async getTrendingSearches(limit: number = 10, timeframe: string = '7d'): Promise<any[]> {
+    try {
+      const days = timeframe === '30d' ? 30 : timeframe === 'all' ? 365 : 7;
+      
+      const trending = await db.execute(`
+        SELECT 
+          query,
+          COUNT(*) as search_count,
+          COUNT(DISTINCT user_id) as unique_users,
+          AVG(result_count::numeric) as avg_results
+        FROM search_analytics 
+        WHERE timestamp >= NOW() - INTERVAL '${days} days'
+        AND LENGTH(query) >= 2
+        GROUP BY query
+        HAVING COUNT(*) >= 2
+        ORDER BY COUNT(*) DESC
+        LIMIT $1
+      `, [limit]);
+      
+      return trending.rows;
+    } catch (error) {
+      console.error('Error getting trending searches:', error);
+      return [];
+    }
+  }
+
+  async getPopularSearchesByCategory(category: string, limit: number = 5): Promise<any[]> {
+    try {
+      const popular = await db.execute(`
+        SELECT 
+          query,
+          COUNT(*) as search_count
+        FROM search_analytics 
+        WHERE category = $1 
+        AND timestamp >= NOW() - INTERVAL '30 days'
+        AND LENGTH(query) >= 2
+        GROUP BY query
+        ORDER BY COUNT(*) DESC
+        LIMIT $2
+      `, [category, limit]);
+      
+      return popular.rows;
+    } catch (error) {
+      console.error('Error getting popular searches by category:', error);
+      return [];
+    }
+  }
+
+  async getSearchSuggestions(query: string, limit: number = 5): Promise<string[]> {
+    try {
+      const suggestions = await db.execute(`
+        SELECT DISTINCT query
+        FROM search_analytics 
+        WHERE query ILIKE $1
+        AND LENGTH(query) >= 2
+        AND result_count > 0
+        GROUP BY query
+        ORDER BY COUNT(*) DESC
+        LIMIT $2
+      `, [`${query}%`, limit]);
+      
+      return suggestions.rows.map((row: any) => row.query);
+    } catch (error) {
+      console.error('Error getting search suggestions:', error);
+      return [];
+    }
+  }
+
+  async getUserRecentSearches(userId: number, limit: number = 10): Promise<string[]> {
+    try {
+      const recent = await db.execute(`
+        SELECT DISTINCT query
+        FROM search_analytics 
+        WHERE user_id = $1
+        AND LENGTH(query) >= 2
+        ORDER BY MAX(timestamp) DESC
+        LIMIT $2
+      `, [userId, limit]);
+      
+      return recent.rows.map((row: any) => row.query);
+    } catch (error) {
+      console.error('Error getting user recent searches:', error);
+      return [];
+    }
+  }
+
+  async updateUserRecentSearches(userId: number, query: string): Promise<void> {
+    // This is handled automatically by trackSearchAnalytics
   }
 }
 

@@ -22,6 +22,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, apiBaseUrl }) 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAuth = async () => {
@@ -30,8 +31,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, apiBaseUrl }) 
       return;
     }
 
-    if (!isLogin && !email) {
-      Alert.alert('Error', 'Please provide an email address');
+    if (!isLogin && (!email || !name)) {
+      Alert.alert('Error', 'Please provide both email address and full name');
       return;
     }
 
@@ -41,7 +42,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, apiBaseUrl }) 
       const endpoint = isLogin ? '/api/login' : '/api/register';
       const payload = isLogin
         ? { username, password }
-        : { username, password, email };
+        : { 
+            username, 
+            password, 
+            name, 
+            bio: '', 
+            profilePicture: '' 
+          };
 
       const response = await fetch(`${apiBaseUrl}${endpoint}`, {
         method: 'POST',
@@ -55,21 +62,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, apiBaseUrl }) 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Authentication failed');
+        throw new Error(data.error || 'Authentication failed');
       }
 
-      // Check user status
-      const userResponse = await fetch(`${apiBaseUrl}/api/me`, {
-        credentials: 'include', // Important for cookies
-      });
-
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        // Use a token-based approach for native apps
-        const fakeToken = `auth_${Date.now()}`; // In a real app, get this from your server
-        onAuthenticated(fakeToken, userData);
+      // If authentication is successful, handle the user session
+      if (response.ok) {
+        const fakeToken = `auth_${Date.now()}`; // Replace with the real token from the server
+        onAuthenticated(fakeToken, data); // data contains user details from login/register
+        
+        // Clear form fields after successful authentication
+        setUsername('');
+        setPassword('');
+        setEmail('');
+        setName('');
       } else {
-        throw new Error('Failed to get user profile');
+        throw new Error('Failed to authenticate');
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Authentication failed');
@@ -111,17 +118,30 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, apiBaseUrl }) 
             </View>
 
             {!isLogin && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Enter your email"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-              </View>
+              <>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Enter your full name"
+                    autoCapitalize="words"
+                  />
+                </View>
+                
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Enter your email"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+              </>
             )}
 
             <View style={styles.inputContainer}>

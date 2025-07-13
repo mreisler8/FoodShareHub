@@ -1,10 +1,43 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import uploadsRouter from "./routes/uploads";
+import { performanceMiddleware } from "./middleware/performance.js";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Export app for testing
+export default app;
+// CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:5000');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
+app.use(express.json({ limit: '10mb' })); // Increased limit for media uploads
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Add caching headers for static content
+app.use((req, res, next) => {
+  // Cache static assets
+  if (req.url.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg)$/)) {
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+  }
+  // Cache API responses for GET requests (except user-specific data)
+  else if (req.method === 'GET' && req.url.startsWith('/api/') && 
+           !req.url.includes('/me') && !req.url.includes('/feed')) {
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -38,15 +71,30 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    console.log('Starting TasteBuds server...');
-    
+    console.log('Starting Circles server...');
+
+    // Add request logging for debugging
+    app.use((req, res, next) => {
+      if (req.method === 'POST') {
+        console.log('POST Request:', req.path);
+        console.log('Content-Type:', req.headers['content-type']);
+        console.log('Session exists:', !!req.session);
+        console.log('SessionID:', req.sessionID);
+      }
+      next();
+    });
+
+    // Performance monitoring
+    app.use(performanceMiddleware);
+
     const server = await registerRoutes(app);
+    app.use('/api/uploads', uploadsRouter);
     console.log('Routes registered successfully');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-      
+
       console.error('Express error:', err);
       res.status(status).json({ message });
     });
@@ -72,7 +120,7 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
-      log(`TasteBuds server running successfully on port ${port}`);
+      log(`Circles server running successfully on port ${port}`);
       console.log(`🚀 Server is ready at http://localhost:${port}`);
     });
   } catch (error) {
@@ -87,3 +135,7 @@ app.use((req, res, next) => {
   console.error('Unhandled server startup error:', error);
   process.exit(1);
 });
+
+
+
+// This was moved to the wrong location - removing from here

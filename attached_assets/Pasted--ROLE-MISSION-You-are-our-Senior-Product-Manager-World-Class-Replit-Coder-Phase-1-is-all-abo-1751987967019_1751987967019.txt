@@ -1,0 +1,145 @@
+# ROLE & MISSION  
+You are our Senior Product Manager & World-Class Replit Coder. Phase 1 is all about **trusted, collaborative lists**—making them rich, interactive, and crystal-clear in terms of privacy.
+
+# PERSONA ALIGNMENT  
+- **Tracker Taylor** must be able to discuss each restaurant entry with friends, record ratings/notes, and filter/sort their collaborative lists.  
+- **Explorer Alex**, **Seeker Sam**, and **Influencer Riley** benefit downstream once the core collaboration UX is rock-solid.
+
+---
+
+## FEATURE 1: Item-Level Comments  
+**User Story**  
+> As a user  
+> I want to comment on each restaurant in a list  
+> So that my trusted circle can share their opinions directly on that item  
+
+**Acceptance Criteria**  
+1. Under each list‐item row on `ListDetailPage`, show a “💬 Comments (N)” toggle.  
+2. Clicking it expands an inline `ItemComments` component that:  
+   - **GET**s `/api/list-items/:itemId/comments` and renders each comment (author + timestamp + content).  
+   - Provides a textarea + “Send” button to **POST** `{ itemId, content }` to `/api/list-items/:itemId/comments`.  
+3. Only circle members (or public viewers if list is public) can view/post comments.  
+
+---
+
+## FEATURE 2: Rich List-Item Metadata  
+**User Story**  
+> As a list creator  
+> I want to record a rating, price assessment, and personal notes per item  
+> So that we can compare and filter entries later  
+
+**Acceptance Criteria**  
+1. Extend **AddListItemModal** to include:  
+   - **Rating** (★ 1–5)  
+   - **Price Assessment** dropdown (`Great value` / `Fair` / `Overpriced`)  
+   - **Notes** (free-text)  
+2. Persist these fields in the `restaurant_list_items` table.  
+3. Display the rating (★ X), price text, and notes under each item in `ListDetailPage`.  
+
+---
+
+## FEATURE 3: Aggregation & Sorting/Filtering  
+**User Story**  
+> As a circle member  
+> I want to see “Avg Rating: ★★★★☆ (4.2)” and filter by cuisine or location  
+> So that I can quickly find the best recommendations in that list  
+
+**Acceptance Criteria**  
+1. **ListDetailPage** header shows aggregated stats:  
+   - **Avg Rating**, **Count**, **Filter dropdowns** for “Cuisine” and “City”.  
+2. **Filter & Sort Controls** above the item list:  
+   - `Sort by: [Rating ↓|↑]`, `Filter: [Cuisine ▾]`, `Filter: [City ▾]`.  
+3. Requests to **GET** `/api/lists/:id/items?sort=rating&filter[cuisine]=italian&filter[city]=Toronto` return the correctly ordered/filtered array.  
+
+---
+
+## FEATURE 4: Clarify Private vs. Public Toggles  
+**User Story**  
+> As a list creator  
+> I want the share controls labeled clearly “Private: share with circles…” and “Public: anyone can see”  
+> So that there’s no confusion about who will view or edit the list  
+
+**Acceptance Criteria**  
+1. In **CreateListModal** and **ListSettings**, replace generic “Share to Circle(s)” label with:  
+   - **Private:** Share only with… (multi-select circles)  
+2. Beneath it, a collapsed **More options** section containing:  
+   - **Public:** Anyone can view this list (toggle, off by default)  
+3. Ensure defaults are **private** and **Public** toggle is tucked away.  
+
+---
+
+# IMPLEMENTATION TASKS & FILES
+
+### 1. Schema Updates  
+- **File**: `shared/schema.ts`  
+  ```diff
+  export const restaurantListItems = pgTable("restaurant_list_items", {
+    // existing…
+  +  rating: integer("rating"),
+  +  priceAssessment: text("price_assessment"),
+  +  notes: text("notes"),
+  });
+Migration: run Drizzle migration to alter table.
+
+2. API Routes
+Item Comments:
+
+server/routes/list-item-comments.ts
+
+ts
+Copy
+Edit
+router.get("/:itemId/comments", authenticate, listComments);
+router.post("/:itemId/comments", authenticate, addComment);
+List Items:
+
+Extend server/routes/list-items.ts for POST to accept rating, priceAssessment, notes.
+
+Aggregates & Filters:
+
+Update GET /api/lists/:id/items in server/routes/lists.ts to accept sort & filter query params and include AVG(rating) in response.
+
+3. Frontend Components
+AddListItemModal:
+
+client/src/components/AddListItemModal.tsx → add inputs for rating, price, notes.
+
+ListDetailPage:
+
+client/src/pages/ListDetailPage.tsx →
+
+Inject FilterSortControls above item list.
+
+Map each item to <ListItemRow> including metadata and <ItemComments>.
+
+ListItemRow:
+
+client/src/components/ListItemRow.tsx → render ★ rating, priceAssessment, notes, and a “Comments (N)” toggle.
+
+ItemComments:
+
+client/src/components/ItemComments.tsx → fetch & post comments inline.
+
+CreateListModal & ListSettings:
+
+Update client/src/components/CreateListModal.tsx labels & toggle placement.
+
+4. Tests
+API tests: tests/list-comments.test.ts, tests/list-items-metadata.test.ts, tests/list-filters.test.ts.
+
+UI tests: client/src/__tests__/ListDetailPage.test.tsx to simulate adding metadata, commenting, and filtering.
+
+COMMIT MESSAGE
+csharp
+Copy
+Edit
+feat(lists): add item comments, rich metadata, aggregates & filters, clarify private/public toggles
+Please run these changes in order (schema → API → frontend → tests), then QA by:
+
+Creating a list, adding items with rating/price/notes.
+
+Viewing aggregate stats and applying filters.
+
+Posting comments on items and verifying visibility.
+
+Checking that lists default to private and toggles behave as specified.

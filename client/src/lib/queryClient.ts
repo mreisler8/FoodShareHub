@@ -7,36 +7,49 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  console.log(`API Request: ${method} ${url}`, data);
-
-  const headers: Record<string, string> = {};
-  if (data) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  const options = {
+export async function apiRequest(method: string, url: string, data?: any) {
+  const options: RequestInit = {
     method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include" as RequestCredentials,
+    headers: {
+      'Content-Type': 'application/json',
+      "Cache-Control": "no-cache",
+    },
+    credentials: 'include',
   };
 
-  console.log("Request options:", options);
-
-  const res = await fetch(url, options);
-
-  console.log(`Response status: ${res.status} ${res.statusText}`);
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
 
   try {
-    await throwIfResNotOk(res);
-    return res;
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch (e) {
+        // Ignore JSON parsing errors
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Invalidate queries after successful mutations
+    if (response.ok && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          predicate: (query) => {
+            const key = query.queryKey[0] as string;
+            return key?.startsWith('/api/');
+          }
+        });
+      }, 100);
+    }
+
+    return response;
   } catch (error) {
-    console.error("API request error:", error);
+    console.error(`API request failed: ${method} ${url}`, error);
     throw error;
   }
 }
@@ -51,6 +64,9 @@ export const getQueryFn: <T>(options: {
 
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        "Cache-Control": "no-cache",
+      },
     });
 
     console.log(`Query response status: ${res.status} ${res.statusText}`);
@@ -74,18 +90,66 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2,
-      staleTime: 60000,
+      queryFn: async ({ queryKey }) => {
+        console.log("Query request for key:", queryKey[0]);
+
+        try {
+          const response = await fetch(queryKey[0] as string, {
+            credentials: "include",
+            headers: {
+              "Cache-Control": "no-cache",
+            },
+          });
+
+          console.log("Query response status:", response.status, response.statusText);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Query failed for", queryKey[0], ":", errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+
+          const data = await response.json();
+          console.log("Query response data:", data);
+          return data;
+        } catch (error) {
+          console.error("Query function error:", error);
+          throw error;
+        }
+      },
+      retry: (failureCount, error) => {
+        // Don't retry on 401 (authentication) or 404 (not found) errors
+        if (error.message.includes('401')) {
+           queryClient.setQueryData(["/api/user"], null);
+           queryClient.setQueryData(["/api/me"], null);
+          return false;
+        }
+        if (error.message.includes('404')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
+      cacheTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false,
-      onError: (error) => {
-        console.error('Query error:', error);
-      }
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
-      retry: 2,
+      retry: 1,
       onError: (error) => {
         console.error('Mutation error:', error);
-      }
-    }
-  }
+      },
+      onSuccess: () => {
+        // Invalidate related queries on successful mutations
+        queryClient.invalidateQueries({ 
+          predicate: (query) => {
+            const key = query.queryKey[0] as string;
+            return key?.startsWith('/api/');
+          }
+        });
+      },
+    },
+  },
 });
