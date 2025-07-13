@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import { storage } from "./storage";
 import { z } from "zod";
+import { sendError } from "./utils/sendError";
 
 const analyticEventSchema = z.object({
   userId: z.number(),
@@ -23,7 +24,7 @@ export function setupAnalytics(app: Express) {
       res.status(200).json({ success: true });
     } catch (error) {
       console.error("Analytics tracking error:", error);
-      res.status(400).json({ error: "Invalid analytics data" });
+      sendError(res, 400, "Invalid analytics data");
     }
   });
 
@@ -38,14 +39,14 @@ export function setupAnalytics(app: Express) {
       
       // Only allow users to view their own analytics
       if (req.user?.id !== userId) {
-        return res.status(403).json({ error: "Forbidden" });
+        return sendError(res, 403, "Forbidden");
       }
       
       const actions = await storage.getActionsByUser(userId);
       res.status(200).json(actions);
     } catch (error) {
       console.error("Error fetching user analytics:", error);
-      res.status(500).json({ error: "Failed to fetch analytics" });
+      sendError(res, 500, "Failed to fetch analytics");
     }
   });
 
@@ -56,7 +57,7 @@ export function setupAnalytics(app: Express) {
       res.status(200).json(popularContent);
     } catch (error) {
       console.error("Error fetching popular content:", error);
-      res.status(500).json({ error: "Failed to fetch popular content" });
+      sendError(res, 500, "Failed to fetch popular content");
     }
   });
 }
