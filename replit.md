@@ -112,6 +112,12 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 14, 2025: **Consolidated Create & Rank Lists Feature**: Streamlined list creation functionality by integrating ranking capabilities directly into the existing Create List form:
+  - **User Experience Enhancement**: Removed duplicate "Create Ranked List" button from Quick Actions to avoid confusion
+  - **Unified Interface**: Enhanced existing Create List form already includes drag-and-drop ranking, audience selection, and enhanced metadata
+  - **Temporary Storage Integration**: Enhanced server routes with proper fallback to temporary storage when database is unavailable
+  - **Simplified Navigation**: Updated Quick Actions to show "Create List" with subtitle "Curate & rank restaurants" to indicate full functionality
+  - **Status**: Single, comprehensive list creation experience with all ranking features integrated seamlessly
 - July 11, 2025: **Enhanced Create Circle Page with Inline Member Search**: Completely redesigned the create circle page with comprehensive features:
   - **Always-Visible Member Search**: Search input is always visible for instant member discovery
   - **Real-time Search Results**: Dropdown appears as you type with clickable user results
