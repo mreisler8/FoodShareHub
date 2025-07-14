@@ -331,7 +331,7 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-// GET /api/lists/:id - Get specific list with items (with filtering and sorting)
+// GET /api/lists/:id - Get specific list with items and enhanced metadata
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const listId = parseInt(req.params.id);
@@ -340,93 +340,162 @@ router.get('/:id', authenticate, async (req, res) => {
     // Parse query parameters for filtering and sorting
     const { sort, 'filter[cuisine]': cuisineFilter, 'filter[city]': cityFilter } = req.query;
 
-    // Get list metadata
-    const [list] = await db
-      .select()
-      .from(restaurantLists)
-      .where(eq(restaurantLists.id, listId));
+    try {
+      // Get list metadata with creator information
+      const listResult = await db.execute(sql`
+        SELECT 
+          rl.*, 
+          u.name as "creator.name", 
+          u.username as "creator.username",
+          u.profile_picture as "creator.profilePicture"
+        FROM restaurant_lists rl
+        LEFT JOIN users u ON rl.created_by_id = u.id
+        WHERE rl.id = ${listId}
+      `);
 
-    if (!list) {
-      return res.status(404).json({ error: 'List not found' });
+      const list = listResult.rows?.[0];
+      if (!list) {
+        return res.status(404).json({ error: 'List not found' });
+      }
+
+      // Access control: Allow access if:
+      // 1. User owns the list
+      // 2. List is public (makePublic = true)
+      // 3. List is shared with circle and user is member of that circle
+      const isOwner = list.createdById === userId;
+      const isPublic = list.makePublic === true;
+
+      let hasCircleAccess = false;
+      if (list.shareWithCircle && list.circleId) {
+        // Check if user is member of the associated circle
+        const [circleMember] = await db
+          .select()
+          .from(circleMembers)
+          .where(and(
+            eq(circleMembers.circleId, list.circleId),
+            eq(circleMembers.userId, userId)
+          ));
+        hasCircleAccess = !!circleMember;
+      }
+
+      if (!isOwner && !isPublic && !hasCircleAccess) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Increment view count if not the owner
+      if (!isOwner) {
+        await db
+          .update(restaurantLists)
+          .set({ 
+            viewCount: sql`${restaurantLists.viewCount} + 1`
+          })
+          .where(eq(restaurantLists.id, listId));
+      }
+
+      // Build query for list items with enhanced data
+      const sortColumn = sort === 'rating' ? 'rli.rating DESC NULLS LAST' :
+                        sort === 'rating_asc' ? 'rli.rating ASC NULLS LAST' :
+                        sort === 'rank' ? 'rli.rank ASC NULLS LAST' :
+                        'rli.position ASC';
+
+      const cuisineCondition = cuisineFilter ? sql`AND r.cuisine = ${cuisineFilter}` : sql``;
+      const cityCondition = cityFilter ? sql`AND r.city = ${cityFilter}` : sql``;
+
+      const itemsResult = await db.execute(sql`
+        SELECT 
+          rli.id, rli.list_id as "listId", rli.restaurant_id as "restaurantId",
+          rli.rating, rli.price_assessment as "priceAssessment", rli.liked, 
+          rli.disliked, rli.notes, rli.must_try_dishes as "mustTryDishes",
+          rli.added_by_id as "addedById", rli.position, rli.rank, rli.added_at as "addedAt",
+          rli.name as "itemName", rli.tags as "itemTags", rli.city as "itemCity", 
+          rli.media_url as "mediaUrl",
+          r.id as "restaurant.id", r.name as "restaurant.name", 
+          r.location as "restaurant.location", r.category as "restaurant.category",
+          r.price_range as "restaurant.priceRange", r.address as "restaurant.address",
+          r.cuisine as "restaurant.cuisine", r.city as "restaurant.city",
+          r.image_url as "restaurant.imageUrl", r.phone as "restaurant.phone"
+        FROM restaurant_list_items rli
+        LEFT JOIN restaurants r ON rli.restaurant_id = r.id
+        WHERE rli.list_id = ${listId}
+        ${cuisineCondition}
+        ${cityCondition}
+        ORDER BY ${sql.raw(sortColumn)}
+      `);
+
+      const items = (itemsResult.rows || []).map(item => ({
+        name: item.itemName || item['restaurant.name'] || 'Unknown Item',
+        notes: item.notes,
+        tags: item.itemTags || [],
+        city: item.itemCity || item['restaurant.city'],
+        mediaUrl: item.mediaUrl,
+        rank: item.rank,
+        rating: item.rating,
+        priceAssessment: item.priceAssessment,
+        liked: item.liked,
+        disliked: item.disliked,
+        mustTryDishes: item.mustTryDishes || [],
+        restaurant: item['restaurant.id'] ? {
+          id: item['restaurant.id'],
+          name: item['restaurant.name'],
+          location: item['restaurant.location'],
+          category: item['restaurant.category'],
+          priceRange: item['restaurant.priceRange'],
+          address: item['restaurant.address'],
+          cuisine: item['restaurant.cuisine'],
+          city: item['restaurant.city'],
+          imageUrl: item['restaurant.imageUrl'],
+          phone: item['restaurant.phone']
+        } : null
+      }));
+
+      // Calculate aggregated stats
+      const stats = {
+        totalItems: items.length,
+        avgRating: items.length > 0 ? 
+          items.reduce((sum, item) => sum + (item.rating || 0), 0) / items.filter(item => item.rating).length : 0,
+        cuisines: [...new Set(items.map(item => item.restaurant?.cuisine).filter(Boolean))],
+        cities: [...new Set(items.map(item => item.city).filter(Boolean))],
+      };
+
+      const responseData = {
+        id: list.id,
+        name: list.name,
+        description: list.description,
+        createdById: list.createdById,
+        circleId: list.circleId,
+        isPublic: list.isPublic,
+        visibility: list.visibility,
+        shareWithCircle: list.shareWithCircle,
+        makePublic: list.makePublic,
+        tags: list.tags || [],
+        type: list.type || 'restaurant',
+        audience: list.audience || 'profile',
+        coverImage: list.coverImage,
+        primaryLocation: list.primaryLocation,
+        primaryCuisine: list.primaryCuisine,
+        viewCount: list.viewCount || 0,
+        saveCount: list.saveCount || 0,
+        createdAt: list.createdAt,
+        updatedAt: list.updatedAt,
+        creator: {
+          name: list['creator.name'],
+          username: list['creator.username'],
+          profilePicture: list['creator.profilePicture']
+        },
+        items,
+        stats
+      };
+
+      res.json(responseData);
+    } catch (dbError) {
+      console.error('Database error, using temp storage:', dbError);
+      // Fallback to temp storage
+      const list = await tempSavedListStorage.getRestaurantList(listId);
+      if (!list) {
+        return res.status(404).json({ error: 'List not found' });
+      }
+      res.json(list);
     }
-
-    // Access control: Allow access if:
-    // 1. User owns the list
-    // 2. List is public (makePublic = true)
-    // 3. List is shared with circle and user is member of that circle
-    const isOwner = list.createdById === userId;
-    const isPublic = list.makePublic === true;
-
-    let hasCircleAccess = false;
-    if (list.shareWithCircle && list.circleId) {
-      // Check if user is member of the associated circle
-      const [circleMember] = await db
-        .select()
-        .from(circleMembers)
-        .where(and(
-          eq(circleMembers.circleId, list.circleId),
-          eq(circleMembers.userId, userId)
-        ));
-      hasCircleAccess = !!circleMember;
-    }
-
-    if (!isOwner && !isPublic && !hasCircleAccess) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    // Build query conditions for filtering
-    let queryConditions = [eq(restaurantListItems.listId, listId)];
-
-    if (cuisineFilter) {
-      queryConditions.push(eq(restaurants.cuisine, cuisineFilter as string));
-    }
-
-    if (cityFilter) {
-      queryConditions.push(eq(restaurants.city, cityFilter as string));
-    }
-
-    // Optimize with a single efficient query including all needed data
-    const sortColumn = sort === 'rating' ? 'rli.rating DESC NULLS LAST' :
-                      sort === 'rating_asc' ? 'rli.rating ASC NULLS LAST' :
-                      'rli.position ASC';
-
-    const cuisineCondition = cuisineFilter ? sql`AND r.cuisine = ${cuisineFilter}` : sql``;
-    const cityCondition = cityFilter ? sql`AND r.city = ${cityFilter}` : sql``;
-
-    const itemsResult = await db.execute(sql`
-      SELECT 
-        rli.id, rli.list_id as "listId", rli.restaurant_id as "restaurantId",
-        rli.rating, rli.price_assessment as "priceAssessment", rli.liked, 
-        rli.disliked, rli.notes, rli.must_try_dishes as "mustTryDishes",
-        rli.added_by_id as "addedById", rli.position, rli.added_at as "addedAt",
-        r.id as "restaurant.id", r.name as "restaurant.name", 
-        r.location as "restaurant.location", r.category as "restaurant.category",
-        r.price_range as "restaurant.priceRange", r.address as "restaurant.address",
-        r.cuisine as "restaurant.cuisine", r.city as "restaurant.city",
-        r.image_url as "restaurant.imageUrl", r.phone as "restaurant.phone"
-      FROM restaurant_list_items rli
-      LEFT JOIN restaurants r ON rli.restaurant_id = r.id
-      WHERE rli.list_id = ${listId}
-      ${cuisineCondition}
-      ${cityCondition}
-      ORDER BY ${sql.raw(sortColumn)}
-    `);
-
-    const items = itemsResult.rows || [];
-
-    // Calculate aggregated stats
-    const stats = {
-      totalItems: items.length,
-      avgRating: items.length > 0 ? items.reduce((sum, item) => sum + (item.rating || 0), 0) / items.filter(item => item.rating).length : 0,
-      cuisines: [...new Set(items.map(item => item.restaurant.cuisine).filter(Boolean))],
-      cities: [...new Set(items.map(item => item.restaurant.city).filter(Boolean))],
-    };
-
-    res.json({
-      ...list,
-      items,
-      stats
-    });
   } catch (error) {
     console.error('Error fetching list:', error);
     res.status(500).json({ error: 'Failed to fetch list' });
@@ -597,6 +666,113 @@ router.delete('/items/:itemId', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error removing item from list:', error);
     res.status(500).json({ error: 'Failed to remove item from list' });
+  }
+});
+
+// POST /api/lists/:id/save - Save a list to user's saved lists
+router.post('/:id/save', authenticate, async (req, res) => {
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    // Check if list exists and is accessible
+    const [list] = await db
+      .select()
+      .from(restaurantLists)
+      .where(eq(restaurantLists.id, listId));
+
+    if (!list) {
+      return res.status(404).json({ error: 'List not found' });
+    }
+
+    // Don't allow users to save their own lists
+    if (list.createdById === userId) {
+      return res.status(400).json({ error: 'Cannot save your own list' });
+    }
+
+    // Check if already saved
+    const [existingSave] = await db
+      .select()
+      .from(savedLists)
+      .where(and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      ));
+
+    if (existingSave) {
+      return res.status(409).json({ error: 'List already saved' });
+    }
+
+    // Save the list
+    const [savedList] = await db
+      .insert(savedLists)
+      .values({
+        listId,
+        userId,
+      })
+      .returning();
+
+    // Increment save count
+    await db
+      .update(restaurantLists)
+      .set({ 
+        saveCount: sql`${restaurantLists.saveCount} + 1`
+      })
+      .where(eq(restaurantLists.id, listId));
+
+    res.json({ 
+      success: true, 
+      savedList,
+      message: 'List saved successfully' 
+    });
+  } catch (error) {
+    console.error('Error saving list:', error);
+    res.status(500).json({ error: 'Failed to save list' });
+  }
+});
+
+// DELETE /api/lists/:id/save - Remove a list from user's saved lists
+router.delete('/:id/save', authenticate, async (req, res) => {
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    // Check if the save exists
+    const [existingSave] = await db
+      .select()
+      .from(savedLists)
+      .where(and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      ));
+
+    if (!existingSave) {
+      return res.status(404).json({ error: 'List not saved' });
+    }
+
+    // Remove the save
+    await db
+      .delete(savedLists)
+      .where(and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      ));
+
+    // Decrement save count
+    await db
+      .update(restaurantLists)
+      .set({ 
+        saveCount: sql`GREATEST(${restaurantLists.saveCount} - 1, 0)`
+      })
+      .where(eq(restaurantLists.id, listId));
+
+    res.json({ 
+      success: true,
+      message: 'List removed from saved lists' 
+    });
+  } catch (error) {
+    console.error('Error removing saved list:', error);
+    res.status(500).json({ error: 'Failed to remove saved list' });
   }
 });
 

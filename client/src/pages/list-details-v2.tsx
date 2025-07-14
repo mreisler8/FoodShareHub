@@ -114,6 +114,9 @@ export default function ListDetailsPage() {
     cover_image: list.coverImage,
     description: list.description,
     type: list.type,
+    viewCount: list.viewCount,
+    saveCount: list.saveCount,
+    createdAt: list.createdAt,
     items: list.items?.map((item: any) => ({
       name: item.name,
       notes: item.notes,
@@ -121,6 +124,11 @@ export default function ListDetailsPage() {
       city: item.city,
       mediaUrl: item.mediaUrl,
       rank: item.rank,
+      rating: item.rating,
+      priceAssessment: item.priceAssessment,
+      liked: item.liked,
+      disliked: item.disliked,
+      mustTryDishes: item.mustTryDishes || [],
     })) || [],
   };
 
