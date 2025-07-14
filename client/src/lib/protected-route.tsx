@@ -1,33 +1,40 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { Redirect, Route, RouteProps } from "wouter";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
+interface ProtectedRouteProps extends Omit<RouteProps, 'component'> {
+  component: React.ComponentType;
+  redirectTo?: string;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  path,
+  component: Component,
+  redirectTo = "/auth",
+  ...rest
+}: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
-  const [location, setLocation] = useLocation();
 
-  useEffect(() => {
-    // Only redirect if we're sure the user is not authenticated
-    if (!isLoading && !user && location !== "/auth") {
-      setLocation("/auth");
-    }
-  }, [user, isLoading, setLocation, location]);
-
+  // Show loading indicator while checking auth state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
+      <Route path={path}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Route>
     );
   }
 
+  // Redirect to auth page if not authenticated
   if (!user) {
-    return null; // Will redirect via useEffect
+    return (
+      <Route path={path}>
+        <Redirect to={redirectTo} />
+      </Route>
+    );
   }
 
-  return <>{children}</>;
+  // Render the protected component if authenticated
+  return <Route path={path} component={Component} {...rest} />;
 }

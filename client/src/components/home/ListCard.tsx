@@ -10,7 +10,7 @@ import { RestaurantList } from "@shared/schema";
 import { Bookmark, User, MapPin, Clock } from "lucide-react";
 
 interface ListCardProps {
-  list?: RestaurantList & {
+  list: RestaurantList & {
     creator?: {
       id: number;
       name: string;
@@ -20,51 +20,27 @@ interface ListCardProps {
     isFollowing?: boolean;
     isSaved?: boolean;
   };
-  // Mock data props
-  title?: string;
-  image?: string;
-  user?: {
-    name: string;
-    handle: string;
-    avatar: string;
-  };
-  saved?: boolean;
-  followed?: boolean;
-  restaurantCount?: number;
 }
 
-export function ListCard({ list, title, image, user, saved, followed, restaurantCount }: ListCardProps) {
+export function ListCard({ list }: ListCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // Use props from either list object or direct props (for mock data)
-  const listTitle = list?.name || title || "";
-  const listImage = list?.coverImage || image;
-  const listCreator = list?.creator || (user ? { name: user.name, username: user.handle.replace('@', ''), id: 0 } : null);
-  const listRestaurantCount = list?.restaurantCount || restaurantCount || 0;
-  
-  const [isFollowing, setIsFollowing] = useState(list?.isFollowing || followed || false);
-  const [isSaved, setIsSaved] = useState(list?.isSaved || saved || false);
+  const [isFollowing, setIsFollowing] = useState(list.isFollowing || false);
+  const [isSaved, setIsSaved] = useState(list.isSaved || false);
 
   const followMutation = useMutation({
     mutationFn: async () => {
-      if (list?.creator?.id) {
-        return await apiRequest(`/api/follow/${list.creator.id}`, {
-          method: isFollowing ? "DELETE" : "POST",
-        });
-      }
-      // For mock data, just simulate success
-      return Promise.resolve();
+      return await apiRequest(`/api/follow/${list.creator?.id}`, {
+        method: isFollowing ? "DELETE" : "POST",
+      });
     },
     onSuccess: () => {
       setIsFollowing(!isFollowing);
       toast({
         title: isFollowing ? "Unfollowed" : "Following!",
-        description: `You ${isFollowing ? "unfollowed" : "are now following"} ${listCreator?.name}`,
+        description: `You ${isFollowing ? "unfollowed" : "are now following"} ${list.creator?.name}`,
       });
-      if (list?.id) {
-        queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
-      }
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
     },
     onError: () => {
       toast({
@@ -77,13 +53,9 @@ export function ListCard({ list, title, image, user, saved, followed, restaurant
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (list?.id) {
-        return await apiRequest(`/api/lists/${list.id}/save`, {
-          method: isSaved ? "DELETE" : "POST",
-        });
-      }
-      // For mock data, just simulate success
-      return Promise.resolve();
+      return await apiRequest(`/api/lists/${list.id}/save`, {
+        method: isSaved ? "DELETE" : "POST",
+      });
     },
     onSuccess: () => {
       setIsSaved(!isSaved);
@@ -91,9 +63,7 @@ export function ListCard({ list, title, image, user, saved, followed, restaurant
         title: isSaved ? "Removed from saved" : "Saved!",
         description: `List ${isSaved ? "removed from" : "added to"} your saved lists`,
       });
-      if (list?.id) {
-        queryClient.invalidateQueries({ queryKey: ["/api/saved-lists"] });
-      }
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-lists"] });
     },
     onError: () => {
       toast({
@@ -107,16 +77,16 @@ export function ListCard({ list, title, image, user, saved, followed, restaurant
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 space-y-3">
       {/* Cover Image */}
-      {listImage && (
+      {list.coverImage && (
         <div className="relative">
           <img 
-            src={listImage} 
-            alt={listTitle}
+            src={list.coverImage} 
+            alt={list.name}
             className="rounded-md w-full h-36 object-cover"
           />
           <div className="absolute top-2 right-2">
             <Badge variant="secondary" className="bg-black/20 text-white">
-              {listRestaurantCount} places
+              {list.restaurantCount || 0} places
             </Badge>
           </div>
         </div>
@@ -124,22 +94,18 @@ export function ListCard({ list, title, image, user, saved, followed, restaurant
 
       {/* Content */}
       <div className="space-y-2">
-        {list?.id ? (
-          <Link href={`/lists/${list.id}`}>
-            <h3 className="font-semibold text-lg hover:text-blue-600 cursor-pointer">
-              {listTitle}
-            </h3>
-          </Link>
-        ) : (
-          <h3 className="font-semibold text-lg">{listTitle}</h3>
-        )}
+        <Link href={`/lists/${list.id}`}>
+          <h3 className="font-semibold text-lg hover:text-blue-600 cursor-pointer">
+            {list.name}
+          </h3>
+        </Link>
         
-        {list?.description && (
+        {list.description && (
           <p className="text-gray-600 text-sm line-clamp-2">{list.description}</p>
         )}
 
         {/* Tags */}
-        {list?.tags && list.tags.length > 0 && (
+        {list.tags && list.tags.length > 0 && (
           <div className="flex gap-2 flex-wrap">
             {list.tags.slice(0, 3).map((tag) => (
               <Badge key={tag} variant="outline" className="text-xs">
@@ -151,37 +117,25 @@ export function ListCard({ list, title, image, user, saved, followed, restaurant
 
         {/* Metadata */}
         <div className="flex items-center gap-4 text-xs text-gray-500">
-          {list?.primaryLocation && (
+          {list.primaryLocation && (
             <div className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
               <span>{list.primaryLocation}</span>
             </div>
           )}
-          {list?.createdAt && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{new Date(list.createdAt).toLocaleDateString()}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>{new Date(list.createdAt).toLocaleDateString()}</span>
+          </div>
         </div>
 
         {/* Creator and Actions */}
         <div className="flex justify-between items-center pt-2">
           <div className="flex items-center gap-2">
-            {user?.avatar ? (
-              <img 
-                src={user.avatar} 
-                alt={user.name}
-                className="w-6 h-6 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
-                <User className="w-3 h-3 text-gray-600" />
-              </div>
-            )}
-            <span className="text-sm text-gray-600">
-              {user?.handle || `@${listCreator?.username}`}
-            </span>
+            <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+              <User className="w-3 h-3 text-gray-600" />
+            </div>
+            <span className="text-sm text-gray-600">@{list.creator?.username}</span>
           </div>
           
           <div className="flex gap-2">
@@ -196,7 +150,7 @@ export function ListCard({ list, title, image, user, saved, followed, restaurant
               {isSaved ? "Saved" : "Save"}
             </Button>
             
-            {listCreator && (
+            {list.creator && (
               <Button 
                 size="sm"
                 variant={isFollowing ? "outline" : "default"}

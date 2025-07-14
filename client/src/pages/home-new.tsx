@@ -1,22 +1,17 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { HeroSection } from "@/components/HeroSection";
-import { QuickAddPanel } from "@/components/QuickAddPanel";
 import { TabNav } from "@/components/home/TabNav";
 import { ListCard } from "@/components/home/ListCard";
 import { FollowRow } from "@/components/home/FollowRow";
 import { EmptyState } from "@/components/home/EmptyState";
+import { SuggestedTags } from "@/components/home/SuggestedTags";
 import { CircleCard } from "@/components/home/CircleCard";
-import { Onboarding } from "@/components/home/Onboarding";
-import { PendingInvites } from "@/components/circles/PendingInvites";
 import { apiRequest } from "@/lib/queryClient";
 import { RestaurantList, User, Circle } from "@shared/schema";
-import { mockFeed } from "@/data/mockFeedData";
-import "./HomePage.css";
 
 type TabType = "foryou" | "trending" | "nearby";
 
@@ -33,7 +28,7 @@ interface UserStatus {
   circleCount: number;
 }
 
-export default function HomePage() {
+export default function Homepage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<TabType>("foryou");
@@ -51,17 +46,7 @@ export default function HomePage() {
       const endpoint = tab === "foryou" 
         ? `/api/feed/foryou?user=${user?.id}`
         : `/api/feed/${tab}`;
-      try {
-        return await apiRequest(endpoint);
-      } catch (error) {
-        console.error(`Error fetching ${tab} feed:`, error);
-        // Return mock data when API fails
-        return {
-          lists: mockFeed.filter(item => item.type === "list"),
-          circles: [],
-          followSuggestions: []
-        };
-      }
+      return await apiRequest(endpoint);
     },
     enabled: !!user?.id,
   });
@@ -79,21 +64,16 @@ export default function HomePage() {
 
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
         <div className="max-w-2xl mx-auto">
-          {/* Hero Section - Key Design Element */}
-          <HeroSection />
-
-          {/* Quick Actions Panel - Key Functionality */}
-          <div className="px-4 py-4">
-            <QuickAddPanel />
-          </div>
-
-          {/* Pending Invites - Social Features */}
-          <div className="px-4">
-            <PendingInvites />
-          </div>
-
-          {/* Feed Navigation */}
+          {/* Header */}
           <div className="bg-white border-b sticky top-0 z-10">
+            <div className="flex items-center justify-between p-4">
+              <h1 className="text-2xl font-bold">Circles</h1>
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">
+                  {user.name?.charAt(0)?.toUpperCase()}
+                </span>
+              </div>
+            </div>
             <TabNav currentTab={tab} setTab={setTab} />
           </div>
 
@@ -101,10 +81,10 @@ export default function HomePage() {
           <div className="px-4 space-y-6 py-4">
             {isNewUser ? (
               <>
-                <Onboarding />
-                {feedData?.followSuggestions && feedData.followSuggestions.length > 0 ? (
+                <EmptyState />
+                {feedData?.followSuggestions && (
                   <FollowRow creators={feedData.followSuggestions} />
-                ) : null}
+                )}
                 {feedData?.circles && feedData.circles.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Popular Circles</h3>
@@ -129,42 +109,14 @@ export default function HomePage() {
                     ))}
                   </div>
                 ) : (
-                  <>
-                    {/* Render feed data with fallback to mock data */}
-                    {feedData?.lists && feedData.lists.length > 0 ? (
-                      feedData.lists.map((list) => (
-                        <ListCard key={list.id} list={list} />
-                      ))
-                    ) : (
-                      /* Use mock data when API is unavailable */
-                      <div className="space-y-4">
-                        {mockFeed.map((item) =>
-                          item.type === "list" ? (
-                            <ListCard key={item.id} list={item} />
-                          ) : null
-                        )}
-                      </div>
-                    )}
-
-                    {/* Follow suggestions at the bottom */}
-                    {feedData?.followSuggestions && feedData.followSuggestions.length > 0 && (
-                      <div className="mt-8">
-                        <FollowRow creators={feedData.followSuggestions} />
-                      </div>
-                    )}
-
-                    {/* Empty state if no content */}
-                    {(!feedData?.lists || feedData.lists.length === 0) && 
-                     (!mockFeed || mockFeed.length === 0) && (
-                      <EmptyState 
-                        title="No content yet" 
-                        description="Start by creating your first restaurant list or joining a circle to see content here." 
-                      />
-                    )}
-                  </>
+                  feedData?.lists?.map((list) => (
+                    <ListCard key={list.id} list={list} />
+                  ))
                 )}
               </>
             )}
+
+            <SuggestedTags />
           </div>
         </div>
       </div>

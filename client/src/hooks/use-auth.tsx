@@ -86,8 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setError(null);
         } else {
           setUser(null);
-          // Clear error on failed auth check - user just needs to log in
-          setError(null);
+          setError('Authentication failed');
         }
       } catch (err: any) {
         setError('Network error: ' + err.message);
@@ -111,42 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return cleanup;
     }
   }, []);
-
-  const { data: user, isLoading, error, refetch } = useQuery({
-    queryKey: ["user"],
-    queryFn: async (): Promise<SelectUser | null> => {
-      try {
-        const response = await fetch("/api/user", {
-          credentials: "include",
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.status === 401) {
-          return null;
-        }
-
-        if (!response.ok) {
-          // For server errors, return null to allow graceful fallback
-          console.warn(`User fetch failed with status: ${response.status}`);
-          return null;
-        }
-
-        const userData = await response.json();
-        return userData;
-      } catch (error: any) {
-        console.error("User fetch error:", error);
-        // Return null for any fetch errors to allow graceful fallback
-        return null;
-      }
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: false, // Don't retry to avoid auth loops
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
-  });
 
   // Login mutation
   const loginMutation = useMutation({

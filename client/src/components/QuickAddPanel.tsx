@@ -1,12 +1,9 @@
 import { useState } from 'react';
-import { Search, MapPin, Star, Users, List, Plus } from 'lucide-react';
+import { Search, MapPin, Star } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { PostModal } from '@/components/post/PostModal';
-import { CreateListModal } from '@/components/lists/CreateListModal';
-import { CircleCreationWizard } from '@/components/circles/CircleCreationWizard';
 import { useRestaurantSearch } from '@/hooks/useRestaurantSearch';
-import { useLocation } from 'wouter';
 import './QuickAddPanel.css';
 
 interface Restaurant {
@@ -22,10 +19,7 @@ export function QuickAddPanel() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [isCreateListOpen, setIsCreateListOpen] = useState(false);
-  const [isCreateCircleOpen, setIsCreateCircleOpen] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [, setLocation] = useLocation();
 
   const { restaurants, isLoading } = useRestaurantSearch(searchTerm);
 
@@ -51,41 +45,8 @@ export function QuickAddPanel() {
     <>
       <Card className="quick-add-panel" variant="elevated" padding="lg">
         <div className="quick-add-header">
-          <h3 className="quick-add-title">Quick Actions</h3>
-          <p className="quick-add-subtitle">Create content and organize your food experiences</p>
-        </div>
-
-        {/* Quick Action Buttons */}
-        <div className="quick-actions-grid mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsCreateListOpen(true)}
-            className="quick-action-btn"
-          >
-            <List className="h-4 w-4" />
-            <span>Create List</span>
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsCreateCircleOpen(true)}
-            className="quick-action-btn"
-          >
-            <Users className="h-4 w-4" />
-            <span>Create Circle</span>
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setLocation('/create-list')}
-            className="quick-action-btn"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Advanced List</span>
-          </Button>
+          <h3 className="quick-add-title">Quick Post</h3>
+          <p className="quick-add-subtitle">Share your dining experience instantly</p>
         </div>
 
         <div className="quick-add-search">
@@ -162,16 +123,6 @@ export function QuickAddPanel() {
           setIsPostModalOpen(open);
           if (!open) setSelectedRestaurant(null);
         }}
-      />
-
-      <CreateListModal
-        open={isCreateListOpen}
-        onOpenChange={setIsCreateListOpen}
-      />
-
-      <CircleCreationWizard
-        open={isCreateCircleOpen}
-        onOpenChange={setIsCreateCircleOpen}
       />
     </>
   );

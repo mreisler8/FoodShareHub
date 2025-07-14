@@ -1,16 +1,12 @@
 import { useState } from "react";
-import { Search, Plus, Users, List } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Button } from "./Button";
 import { UnifiedSearchModal } from "./search/UnifiedSearchModal";
-import { CreateListModal } from "./lists/CreateListModal";
-import { CircleCreationWizard } from "./circles/CircleCreationWizard";
 import { useLocation } from "wouter";
 import "./HeroSection.css";
 
 export function HeroSection() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isCreateListOpen, setIsCreateListOpen] = useState(false);
-  const [isCreateCircleOpen, setIsCreateCircleOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   const handleCreatePost = () => {
@@ -48,7 +44,7 @@ export function HeroSection() {
           </p>
         </div>
 
-        <div className="hero-actions flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-2xl">
+        <div className="hero-actions flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md">
           <Button
             variant="outline"
             size="md"
@@ -61,36 +57,13 @@ export function HeroSection() {
           </Button>
 
           <Button
-            variant="outline"
-            size="md"
-            className="hero-cta btn-responsive focus-improved w-full sm:flex-1"
-            onClick={() => setIsCreateListOpen(true)}
-          >
-            <List className="h-4 w-4" />
-            <span className="hidden sm:inline">Create List</span>
-            <span className="sm:hidden">List</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="md"
-            className="hero-cta btn-responsive focus-improved w-full sm:flex-1"
-            onClick={() => setIsCreateCircleOpen(true)}
-          >
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Create Circle</span>
-            <span className="sm:hidden">Circle</span>
-          </Button>
-
-          <Button
             variant="primary"
             size="md"
             className="hero-cta btn-responsive focus-improved w-full sm:flex-1"
             onClick={handleCreatePost}
           >
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Share Experience</span>
-            <span className="sm:hidden">Share</span>
+            Share Experience
           </Button>
         </div>
       </div>
@@ -98,16 +71,6 @@ export function HeroSection() {
       <UnifiedSearchModal
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
-      />
-
-      <CreateListModal
-        open={isCreateListOpen}
-        onOpenChange={setIsCreateListOpen}
-      />
-
-      <CircleCreationWizard
-        open={isCreateCircleOpen}
-        onOpenChange={setIsCreateCircleOpen}
       />
     </section>
   );

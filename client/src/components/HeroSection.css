@@ -1,6 +1,9 @@
 .hero-section {
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, 
+    hsl(var(--background)) 0%,
+    hsl(var(--muted)) 100%
+  );
+  border-bottom: 1px solid hsl(var(--soft-sand-30));
   width: 100%;
   margin: 0;
   padding-left: 1.5rem;
@@ -24,10 +27,10 @@
 .hero-title {
   font-size: 1.75rem;
   font-weight: 800;
-  color: #1f2937;
+  color: hsl(var(--primary));
   margin-bottom: 0.5rem;
   line-height: 1.2;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.025em; /* Tight letter spacing like modern apps */
 }
 
 .hero-subtitle {
