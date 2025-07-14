@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
@@ -23,8 +24,7 @@ const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   tags: z.string().optional(),
-  shareWithCircle: z.boolean().default(false),
-  makePublic: z.boolean().default(false),
+  audience: z.enum(["profile", "circle", "public"]).default("profile"),
   circleId: z.string().optional(),
 });
 
@@ -46,8 +46,7 @@ export default function CreateList() {
       name: "",
       description: "",
       tags: "",
-      shareWithCircle: false,
-      makePublic: false,
+      audience: "profile",
       circleId: undefined,
     },
   });
@@ -55,14 +54,6 @@ export default function CreateList() {
   // Create list mutation
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Apply default sharing rules if neither option is selected
-      let shareWithCircle = values.shareWithCircle;
-      let makePublic = values.makePublic;
-      
-      if (!shareWithCircle && !makePublic) {
-        shareWithCircle = true; // Default to circle sharing
-      }
-
       // Convert circleId to number if provided
       const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
 
@@ -73,14 +64,14 @@ export default function CreateList() {
         name: values.name,
         description: values.description || null,
         tags: tags,
+        audience: values.audience,
         circleId: circleId,
-        isPublic: makePublic,
-        visibility: makePublic ? "public" : "circle",
+        items: [], // Default empty items array
       };
       
       // Use the new /api/lists endpoint
       const response = await apiRequest("POST", "/api/lists", payload);
-      return await response.json();
+      return response;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
@@ -199,47 +190,30 @@ export default function CreateList() {
                   )}
                 />
                 
-                <div className="space-y-3">
-                  <Label>Sharing Settings</Label>
-                  
-                  <FormField
-                    control={form.control}
-                    name="shareWithCircle"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormField
+                  control={form.control}
+                  name="audience"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Who can see this list?</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select audience" />
+                          </SelectTrigger>
                         </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Share with Circle</FormLabel>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                        <SelectContent>
+                          <SelectItem value="profile">Private - Only me</SelectItem>
+                          <SelectItem value="circle">Circle - My circles only</SelectItem>
+                          <SelectItem value="public">Public - Everyone</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="makePublic"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Make Public</FormLabel>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {form.watch("shareWithCircle") && (
+                {form.watch("audience") === "circle" && (
                   <FormField
                     control={form.control}
                     name="circleId"
