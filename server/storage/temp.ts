@@ -68,9 +68,9 @@ export const tempStorage = {
         favoriteRestaurant: null,
       });
 
-      // Create your account with password "coach000"
+      // Create your account with password "password123"
       salt = randomBytes(16).toString("hex");
-      buf = (await scryptAsync("coach000", salt, 64)) as Buffer;
+      buf = (await scryptAsync("password123", salt, 64)) as Buffer;
       hashedPassword = `${buf.toString("hex")}.${salt}`;
       
       tempUsers.push({
