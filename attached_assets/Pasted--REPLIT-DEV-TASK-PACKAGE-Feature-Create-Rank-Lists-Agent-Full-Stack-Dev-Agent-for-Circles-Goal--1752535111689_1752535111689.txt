@@ -1,0 +1,219 @@
+✅ REPLIT DEV TASK PACKAGE
+Feature: Create & Rank Lists
+Agent: Full-Stack Dev Agent for Circles
+Goal: Build a full-screen form that allows users to create a new restaurant or dish list, optionally upload a cover image, add/rank items, and save the list (draft or publish).
+
+🧩 FILE 1: components/CreateListForm.tsx
+tsx
+Copy
+Edit
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { ListItemForm } from "@/components/ListItemForm";
+import { toast } from "@/components/ui/use-toast";
+
+interface ListItem {
+  name: string;
+  notes?: string;
+  tags?: string[];
+  city?: string;
+  mediaUrl?: string;
+  rank?: number;
+}
+
+export function CreateListForm({ onClose }: { onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState<"restaurant" | "dish">("restaurant");
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [items, setItems] = useState<ListItem[]>([]);
+  const [audience, setAudience] = useState<"profile" | "circle" | "public">("profile");
+
+  const addItem = () => {
+    setItems([...items, { name: "", rank: items.length + 1 }]);
+  };
+
+  const updateItem = (index: number, item: Partial<ListItem>) => {
+    const updated = [...items];
+    updated[index] = { ...updated[index], ...item };
+    setItems(updated);
+  };
+
+  const saveList = async () => {
+    if (!title.trim()) {
+      toast({ title: "Title required", variant: "destructive" });
+      return;
+    }
+
+    const payload = {
+      title,
+      type,
+      audience,
+      items,
+      // TODO: include uploaded coverImage if backend supports it
+    };
+
+    try {
+      // TODO: Replace with POST to your own backend endpoint
+      // await fetch('/api/lists', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(payload),
+      // });
+
+      toast({ title: "List saved", description: "You can now view it on your profile." });
+      onClose();
+    } catch (error) {
+      toast({ title: "Error saving list", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="p-4 max-w-xl mx-auto space-y-4">
+      <h2 className="text-xl font-semibold">Create New List</h2>
+
+      <Input placeholder="List Title *" value={title} onChange={(e) => setTitle(e.target.value)} />
+
+      <div className="flex gap-2">
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="type"
+            value="restaurant"
+            checked={type === "restaurant"}
+            onChange={() => setType("restaurant")}
+          />
+          Restaurants
+        </label>
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="type"
+            value="dish"
+            checked={type === "dish"}
+            onChange={() => setType("dish")}
+          />
+          Dishes
+        </label>
+      </div>
+
+      <div className="flex gap-2">
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="audience"
+            value="profile"
+            checked={audience === "profile"}
+            onChange={() => setAudience("profile")}
+          />
+          Profile
+        </label>
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="audience"
+            value="circle"
+            checked={audience === "circle"}
+            onChange={() => setAudience("circle")}
+          />
+          Circle
+        </label>
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="audience"
+            value="public"
+            checked={audience === "public"}
+            onChange={() => setAudience("public")}
+          />
+          Public
+        </label>
+      </div>
+
+      {/* Optional: Cover image */}
+      <input
+        type="file"
+        onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
+        accept="image/*"
+      />
+
+      {/* List Items */}
+      <div className="space-y-4">
+        {items.map((item, i) => (
+          <ListItemForm
+            key={i}
+            restaurantId={`temp-${i}`}
+            restaurantName={`Item ${i + 1}`}
+            initial={item}
+            onSave={(data) => updateItem(i, data)}
+            onCancel={() => {}}
+          />
+        ))}
+        <Button onClick={addItem} className="w-full mt-2">
+          + Add Item
+        </Button>
+      </div>
+
+      {/* Save/Cancel */}
+      <div className="flex justify-end gap-2 pt-4">
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={saveList}>Save List</Button>
+      </div>
+    </div>
+  );
+}
+🧩 BACKEND ENDPOINT ASSUMPTION
+Create a REST endpoint for your backend:
+
+css
+Copy
+Edit
+POST /api/lists
+Body:
+{
+  title: string,
+  type: "restaurant" | "dish",
+  audience: "profile" | "circle" | "public",
+  items: ListItem[],
+  // Optional: coverImage (handle via upload API if needed)
+}
+🧩 POSTGRESQL SCHEMA SUGGESTION
+sql
+Copy
+Edit
+create table lists (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  title text not null,
+  type text check (type in ('restaurant', 'dish')),
+  audience text check (audience in ('profile', 'circle', 'public')),
+  cover_image text,
+  created_at timestamp default now()
+);
+
+create table list_items (
+  id uuid primary key default gen_random_uuid(),
+  list_id uuid references lists on delete cascade,
+  name text not null,
+  notes text,
+  tags text[],
+  city text,
+  media_url text,
+  rank int
+);
+✅ DEV COMPLETION CHECKLIST
+ Create CreateListForm.tsx and render it from CreateListModal
+
+ Connect saveList() to backend POST /api/lists
+
+ Reuse existing ListItemForm.tsx inside form
+
+ Add audience and type selectors
+
+ Optionally wire up cover image upload
+
+ Confirm mobile responsiveness
+
