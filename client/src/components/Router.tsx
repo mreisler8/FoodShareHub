@@ -4,7 +4,7 @@ import { useEffect, lazy } from "react";
 import { addNativeAppClass } from "../lib/nativeAppBridge";
 import { ProtectedRoute } from "../lib/protected-route";
 import NotFound from "../pages/not-found";
-import HomePage from "@/pages/home";
+import HomePage from "@/pages/home-original";
 import CreatePost from "../pages/create-post";
 import FeedPage from "../pages/feed";
 import TopPicksPage from "../pages/top-picks";

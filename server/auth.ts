@@ -83,7 +83,7 @@ export function setupAuth(app: Express) {
           console.log("Database error, using temp storage:", dbError.message);
           user = await tempStorage.getUserByUsername(normalizedUsername);
         }
-        
+
         if (!user) {
           console.log("User not found");
           return done(null, false, { message: "No account found with this email address" });
@@ -144,7 +144,7 @@ export function setupAuth(app: Express) {
         console.log("Database error in registration, using temp storage:", dbError.message);
         existingUser = await tempStorage.getUserByUsername(username);
       }
-      
+
       if (existingUser) {
         return sendError(res, 400, "Username already exists");
       }
@@ -266,27 +266,6 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   // Set CORS headers for all authenticated requests
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:5000');
-
-  // Database fallback - if database is unavailable, allow development mode access
-  if (process.env.NODE_ENV === "development" && !req.isAuthenticated()) {
-    console.log("Development mode: Creating demo session for database fallback");
-    // Create a mock authenticated session for development
-    req.user = {
-      id: 1,
-      username: "demo@example.com",
-      name: "Demo User",
-      bio: "Demo user for development",
-      profilePicture: null,
-      preferredCuisines: null,
-      preferredPriceRange: null,
-      preferredLocation: null,
-      diningInterests: null,
-      favoriteFood: null,
-      favoriteRestaurant: null,
-      password: ""
-    };
-    return next();
-  }
 
   if (req.isAuthenticated()) {
     return next();
