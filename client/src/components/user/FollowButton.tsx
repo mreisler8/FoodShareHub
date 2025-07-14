@@ -39,7 +39,7 @@ export function FollowButton({
   const { data: followStatus, isLoading } = useQuery({
     queryKey: [`/api/follow/status/${userId}`],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/follow/status/${userId}`);
+      const res = await apiRequest(`/api/follow/status/${userId}`);
       return res.json();
     },
     enabled: !!currentUser && currentUser.id !== userId,
@@ -49,10 +49,14 @@ export function FollowButton({
   const followMutation = useMutation({
     mutationFn: async (action: 'follow' | 'unfollow') => {
       if (action === 'follow') {
-        const res = await apiRequest("POST", `/api/follow/${userId}`);
+        const res = await apiRequest(`/api/follow/${userId}`, {
+          method: "POST",
+        });
         return res.json();
       } else {
-        const res = await apiRequest("DELETE", `/api/follow/${userId}`);
+        const res = await apiRequest(`/api/follow/${userId}`, {
+          method: "DELETE",
+        });
         return res.json();
       }
     },

@@ -7,22 +7,20 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(method: string, url: string, data?: any) {
-  const options: RequestInit = {
-    method,
+export async function apiRequest(url: string, options: RequestInit = {}) {
+  const finalOptions: RequestInit = {
+    method: 'GET',
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       "Cache-Control": "no-cache",
+      ...options.headers,
     },
     credentials: 'include',
   };
 
-  if (data) {
-    options.body = JSON.stringify(data);
-  }
-
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(url, finalOptions);
 
     if (!response.ok) {
       let errorMessage = `HTTP error! status: ${response.status}`;
@@ -36,7 +34,7 @@ export async function apiRequest(method: string, url: string, data?: any) {
     }
 
     // Invalidate queries after successful mutations
-    if (response.ok && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
+    if (response.ok && (finalOptions.method === 'POST' || finalOptions.method === 'PUT' || finalOptions.method === 'DELETE')) {
       setTimeout(() => {
         queryClient.invalidateQueries({ 
           predicate: (query) => {
@@ -49,7 +47,7 @@ export async function apiRequest(method: string, url: string, data?: any) {
 
     return response;
   } catch (error) {
-    console.error(`API request failed: ${method} ${url}`, error);
+    console.error(`API request failed: ${finalOptions.method} ${url}`, error);
     throw error;
   }
 }
@@ -82,7 +80,7 @@ export const getQueryFn: <T>(options: {
       console.log(`Query response data:`, data);
       return data;
     } catch (error) {
-      console.error("Query function error:", error);
+      console.error("Query function error:", error instanceof Error ? error.message : JSON.stringify(error));
       throw error;
     }
   };
@@ -113,7 +111,7 @@ export const queryClient = new QueryClient({
           console.log("Query response data:", data);
           return data;
         } catch (error) {
-          console.error("Query function error:", error);
+          console.error("Query function error:", error instanceof Error ? error.message : JSON.stringify(error));
           throw error;
         }
       },

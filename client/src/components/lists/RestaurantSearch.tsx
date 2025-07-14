@@ -166,14 +166,17 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
         restaurantId = parseInt(restaurant.id);
       } else {
         // For Google Places results, we need to create a restaurant first
-        const response = await apiRequest("POST", "/api/restaurants", {
-          name: restaurant.name,
-          location: restaurant.location || "Unknown location",
-          category: "Restaurant",
-          priceRange: "$$",
-          cuisine: "Restaurant",
-          imageUrl: restaurant.thumbnailUrl,
-          googlePlaceId: restaurant.id.replace('google_', ''),
+        const response = await apiRequest("/api/restaurants", {
+          method: "POST",
+          body: JSON.stringify({
+            name: restaurant.name,
+            location: restaurant.location || "Unknown location",
+            category: "Restaurant",
+            priceRange: "$$",
+            cuisine: "Restaurant",
+            imageUrl: restaurant.thumbnailUrl,
+            googlePlaceId: restaurant.id.replace('google_', ''),
+          }),
         });
         const newRestaurant = await response.json() as { id: number };
         restaurantId = newRestaurant.id;
@@ -187,7 +190,10 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
         notes: data.notes || null,
       };
 
-      return await apiRequest("POST", `/api/lists/${listId}/items`, payload);
+      return await apiRequest(`/api/lists/${listId}/items`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
     },
     onSuccess: (_, variables) => {
       // Invalidate list details to refresh items

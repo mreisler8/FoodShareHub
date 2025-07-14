@@ -110,7 +110,7 @@ export function QuickAddRestaurant() {
     queryKey: [`/api/restaurants?query=${encodeURIComponent(searchQuery)}`],
     queryFn: async () => {
       console.log("Searching for:", searchQuery);
-      const res = await apiRequest("GET", `/api/restaurants?query=${encodeURIComponent(searchQuery)}`);
+      const res = await apiRequest(`/api/restaurants?query=${encodeURIComponent(searchQuery)}`);
       const results = await res.json();
       console.log("Search results:", results);
       return results;
@@ -121,7 +121,10 @@ export function QuickAddRestaurant() {
   // Create restaurant mutation
   const createRestaurantMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/restaurants", data);
+      const res = await apiRequest("/api/restaurants", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
       return res.json();
     },
     onSuccess: (newRestaurant) => {
@@ -145,7 +148,10 @@ export function QuickAddRestaurant() {
   // Quick save restaurant mutation (saves to your favorites)
   const quickSaveMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/saved-restaurants", data);
+      const res = await apiRequest("/api/saved-restaurants", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
       return res.json();
     },
     onSuccess: () => {

@@ -137,7 +137,10 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
         visibility: makePublic ? "public" : "circle",
       };
 
-      const response = await apiRequest("POST", "/api/lists", payload);
+      const response = await apiRequest("/api/lists", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
       return await response.json();
     },
     onSuccess: (data) => {

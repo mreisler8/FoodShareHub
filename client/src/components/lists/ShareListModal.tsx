@@ -39,7 +39,7 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
   const { data: circles, isLoading: circlesLoading } = useQuery({
     queryKey: ["/api/me/circles"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/me/circles");
+      const res = await apiRequest("/api/me/circles");
       return res.json();
     },
   });
@@ -52,7 +52,7 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
   } = useQuery({
     queryKey: ["/api/restaurant-lists", listId, "shared-with"],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/restaurant-lists/${listId}/shared-with`);
+      const res = await apiRequest(`/api/restaurant-lists/${listId}/shared-with`);
       return res.json();
     },
     enabled: !!listId,
@@ -67,10 +67,13 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
       
       const permissions = canEdit ? "edit" : canReshare ? "reshare" : "view";
       
-      const res = await apiRequest("POST", "/api/shared-lists", {
-        listId,
-        circleId: parseInt(selectedCircleId),
-        permissions,
+      const res = await apiRequest("/api/shared-lists", {
+        method: "POST",
+        body: JSON.stringify({
+          listId,
+          circleId: parseInt(selectedCircleId),
+          permissions,
+        }),
       });
       
       return res.json();
@@ -98,7 +101,9 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
   // Mutation to remove sharing
   const removeShareMutation = useMutation({
     mutationFn: async (circleId: number) => {
-      const res = await apiRequest("DELETE", `/api/restaurant-lists/${listId}/shared-with/${circleId}`);
+      const res = await apiRequest(`/api/restaurant-lists/${listId}/shared-with/${circleId}`, {
+        method: "DELETE",
+      });
       return res;
     },
     onSuccess: () => {

@@ -52,10 +52,13 @@ export function InviteModal({
         ? "/api/invites/circle" 
         : "/api/invites/app";
         
-      return await apiRequest("POST", endpoint, {
-        email,
-        userId,
-        ...(circleId && { circleId })
+      return await apiRequest(endpoint, {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          userId,
+          ...(circleId && { circleId })
+        }),
       });
     },
     onSuccess: () => {

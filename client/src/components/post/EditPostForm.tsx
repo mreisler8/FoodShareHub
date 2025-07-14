@@ -70,7 +70,10 @@ export function EditPostForm({ post, open, onOpenChange }: EditPostFormProps) {
   // Update post mutation
   const updateMutation = useMutation({
     mutationFn: async (formData: EditPostFormValues) => {
-      return await apiRequest("PUT", `/api/posts/${post.id}`, formData);
+      return await apiRequest(`/api/posts/${post.id}`, {
+        method: "PUT",
+        body: JSON.stringify(formData),
+      });
     },
     onSuccess: () => {
       // Invalidate any queries that may contain the post

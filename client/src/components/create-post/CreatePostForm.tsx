@@ -103,7 +103,10 @@ export function CreatePostForm() {
       category: string;
       priceRange: string;
     }) => {
-      const response = await apiRequest("POST", "/api/restaurants", data);
+      const response = await apiRequest("/api/restaurants", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
       return await response.json();
     },
   });
@@ -111,7 +114,10 @@ export function CreatePostForm() {
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/posts", data);
+      const response = await apiRequest("/api/posts", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
       return await response.json();
     },
     onSuccess: () => {
@@ -209,8 +215,11 @@ export function CreatePostForm() {
       // If we've selected a Google restaurant that hasn't been saved to the database yet
       else if (selectedRestaurant && selectedRestaurant.googlePlaceId && !selectedRestaurant.id) {
         console.log("Saving Google Place to database:", selectedRestaurant.googlePlaceId);
-        const response = await apiRequest("POST", "/api/google/places/save", { 
-          placeId: selectedRestaurant.googlePlaceId 
+        const response = await apiRequest("/api/google/places/save", {
+          method: "POST",
+          body: JSON.stringify({
+            placeId: selectedRestaurant.googlePlaceId
+          }),
         });
         restaurant = await response.json();
       } 
