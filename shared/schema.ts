@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -147,7 +147,6 @@ export const circles = pgTable("circles", {
   description: text("description"),
   isPrivate: boolean("is_private").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(), // Added for activity sorting
   creatorId: integer("creator_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   // Shareable join link features
   inviteCode: text("invite_code").unique(),
@@ -160,13 +159,7 @@ export const circles = pgTable("circles", {
   memberCount: integer("member_count").default(0),
   featured: boolean("featured").default(false),
   trending: boolean("trending").default(false),
-}, (table) => ({
-  // Indexes for performance optimization
-  inviteCodeIdx: index("circles_invite_code_idx").on(table.inviteCode),
-  creatorIdx: index("circles_creator_id_idx").on(table.creatorId),
-  updatedAtIdx: index("circles_updated_at_idx").on(table.updatedAt),
-  featuredIdx: index("circles_featured_idx").on(table.featured),
-}));
+});
 export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
   circleId: integer("circle_id")
@@ -215,14 +208,7 @@ export const circleMembers = pgTable("circle_members", {
   invitedBy: integer("invited_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
   approvedBy: integer("approved_by").references(() => users.id),
-}, (table) => ({
-  // Critical index for quickly getting all circles a user belongs to
-  userIdIdx: index("circle_members_user_id_idx").on(table.userId),
-  circleIdIdx: index("circle_members_circle_id_idx").on(table.circleId),
-  statusIdx: index("circle_members_status_idx").on(table.status),
-  // Composite index for efficient membership lookups
-  userCircleIdx: index("circle_members_user_circle_idx").on(table.userId, table.circleId),
-}));
+});
 
 export const insertCircleMemberSchema = createInsertSchema(circleMembers).pick({
   circleId: true,
@@ -387,21 +373,13 @@ export const restaurantListItems = pgTable("restaurant_list_items", {
   addedById: integer("added_by_id").notNull(),
   position: integer("position").default(0),
   rank: integer("rank").default(0), // For ranking items in Create & Rank Lists
-  isFavorite: boolean("is_favorite").default(false), // User can flag favorite items
   // Enhanced Create & Rank Lists fields
   name: text("name").notNull(), // Item name (restaurant name or dish name)
   tags: text("tags").array(), // Tags for the item
   city: text("city"), // City for the item
   mediaUrl: text("media_url"), // Media URL for the item
   addedAt: timestamp("added_at").defaultNow().notNull(),
-}, (table) => ({
-  // Performance indexes for common queries
-  listIdIdx: index("restaurant_list_items_list_id_idx").on(table.listId),
-  restaurantIdIdx: index("restaurant_list_items_restaurant_id_idx").on(table.restaurantId),
-  addedByIdx: index("restaurant_list_items_added_by_idx").on(table.addedById),
-  rankIdx: index("restaurant_list_items_rank_idx").on(table.rank),
-  isFavoriteIdx: index("restaurant_list_items_is_favorite_idx").on(table.isFavorite),
-}));
+});
 
 export const insertRestaurantListItemSchema = createInsertSchema(restaurantListItems).pick({
   listId: true,
@@ -415,7 +393,6 @@ export const insertRestaurantListItemSchema = createInsertSchema(restaurantListI
   addedById: true,
   position: true,
   rank: true,
-  isFavorite: true,
   name: true,
   tags: true,
   city: true,

@@ -26,14 +26,13 @@ import { authenticate } from "./auth.js";
 import recommendationsRouter from "./routes/recommendations.js";
 import listsRouter from "./routes/lists.js";
 import searchRouter from "./routes/search.ts";
-import searchAnalyticsRouter from './routes/search-analytics';
-import { router as feedRouter } from './routes/feed';
+import searchAnalyticsRouter from "./routes/search-analytics.js";
 import followRoutes from './routes/follow';
 import followRequestsRouter from './routes/follow-requests';
 import listItemCommentsRouter from './routes/list-item-comments.js';
 import * as circleRoutes from './routes/circles';
 import circleRequestsRouter from './routes/circle-requests';
-import { router as usersRouter } from './routes/users';
+import usersRouter from './routes/users';
 import savedListsRouter from './routes/saved-lists';
 // import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
@@ -82,12 +81,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const updates = req.body;
-
+      
       // Remove fields that shouldn't be updated directly
       const { id, createdAt, updatedAt, password, ...allowedUpdates } = updates;
-
+      
       const updatedUser = await storage.updateUser(userId, allowedUpdates);
-
+      
       // Remove password from response
       const { password: _, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
@@ -982,7 +981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
+    
     try {
       const allCircles = await storage.getAllCircles();
       res.json(allCircles);
@@ -996,7 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
+    
     try {
       const userId = req.user!.id;
       const userCircles = await storage.getCirclesByUser(userId);
@@ -1011,7 +1010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
+    
     try {
       const userId = req.user!.id;
       const { name, description, primaryCuisine, priceRange, location, allowPublicJoin } = req.body;
@@ -1047,7 +1046,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
+    
     try {
       const circleId = parseInt(req.params.circleId);
       const { listId, canEdit, canReshare } = req.body;
@@ -1076,7 +1075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
+    
     try {
       const circleId = parseInt(req.params.circleId);
       const userId = req.user!.id;
@@ -1100,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
+    
     try {
       const circleId = parseInt(req.params.circleId);
       const listId = parseInt(req.params.listId);
@@ -1126,7 +1125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
+    
     try {
       await circleRoutes.addUserToCircle(req, res);
     } catch (error) {
@@ -1137,19 +1136,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount routers
   app.use("/api/search", searchRouter);
-
+  
   // Mount restaurant router
   const restaurantRouter = await import("./routes/restaurants");
   app.use("/api/restaurants", restaurantRouter.default);
-
+  
   app.use("/api/lists", listsRouter);
   app.use("/api/saved-lists", savedListsRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/list-item-comments", listItemCommentsRouter);
   app.use("/api/follow", followRoutes);
   app.use("/api/follow", followRequestsRouter);
-  app.use('/api/search-analytics', searchAnalyticsRouter);
-  app.use('/api/feed', feedRouter);
+  // app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
   app.use("/api/circles", circleRequestsRouter);
   app.use("/api/users", usersRouter);

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db";
-import { users, userFollowers, circleMembers, circles, posts, restaurants, restaurantLists, restaurantListItems, savedRestaurants, savedLists } from "@shared/schema";
+import { users, userFollowers, circleMembers, circles, posts, restaurants, restaurantLists, restaurantListItems, savedRestaurants } from "@shared/schema";
 import { eq, or, ilike, and, ne, sql, desc, inArray } from "drizzle-orm";
 import { authenticate } from "../auth";
 
@@ -10,24 +10,24 @@ const router = Router();
 router.get("/", authenticate, async (req, res) => {
   try {
     const { query: searchTerm } = req.query;
-
+    
     if (!searchTerm || typeof searchTerm !== "string") {
       return res.status(400).json({ 
         error: "Search query is required",
         code: "MISSING_QUERY"
       });
     }
-
+    
     if (searchTerm.length < 2) {
       return res.status(400).json({ 
         error: "Search query must be at least 2 characters",
         code: "QUERY_TOO_SHORT"
       });
     }
-
+    
     const searchPattern = `%${searchTerm}%`;
     const currentUserId = req.user!.id;
-
+    
     // Search users with enhanced metadata
     const userResults = await db
       .select({
@@ -147,7 +147,7 @@ router.get("/:id", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const currentUserId = req.user!.id;
-
+    
     // Get user profile
     const user = await db
       .select()
@@ -203,7 +203,7 @@ router.get("/:id/stats", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const currentUserId = req.user!.id;
-
+    
     // Get social stats
     const followerCount = await db
       .select({ count: sql<number>`count(*)` })
@@ -242,7 +242,7 @@ router.get("/:id/stats", authenticate, async (req, res) => {
 router.get("/:id/posts", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-
+    
     // Get user posts with restaurant and engagement data
     const userPosts = await db
       .select({
@@ -284,7 +284,7 @@ router.get("/:id/posts", authenticate, async (req, res) => {
 router.get("/:id/lists", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-
+    
     // Get user's lists with restaurant counts
     const userLists = await db
       .select({
@@ -304,7 +304,7 @@ router.get("/:id/lists", authenticate, async (req, res) => {
 
     // Get restaurant counts for each list
     const listIds = userLists.map(list => list.id);
-
+    
     if (listIds.length > 0) {
       const restaurantCounts = await db
         .select({
@@ -340,7 +340,7 @@ router.get("/:id/lists", authenticate, async (req, res) => {
 router.get("/:id/circles", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-
+    
     // Get user's circles through membership
     const userCircles = await db
       .select({
@@ -373,7 +373,7 @@ router.get("/:id/circles", authenticate, async (req, res) => {
 router.get("/:id/saved", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-
+    
     // For now, return empty array to fix the Profile page runtime error
     // TODO: Implement proper saved restaurants functionality
     res.json([]);
@@ -388,7 +388,7 @@ router.put("/settings", authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
     const updateData = req.body;
-
+    
     // Filter out undefined values and only update provided fields
     const filteredUpdateData: any = {};
     Object.keys(updateData).forEach(key => {
@@ -396,18 +396,18 @@ router.put("/settings", authenticate, async (req, res) => {
         filteredUpdateData[key] = updateData[key];
       }
     });
-
+    
     // Update user settings
     const updatedUser = await db
       .update(users)
       .set(filteredUpdateData)
       .where(eq(users.id, userId))
       .returning();
-
+    
     if (updatedUser.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
-
+    
     res.json(updatedUser[0]);
   } catch (error) {
     console.error("Error updating user settings:", error);
@@ -415,56 +415,4 @@ router.put("/settings", authenticate, async (req, res) => {
   }
 });
 
-// Get user status for homepage personalization
-router.get('/:id/status', authenticate, async (req, res) => {
-  try {
-    const userId = parseInt(req.params.id);
-    const currentUserId = req.user!.id;
-
-    // Users can only check their own status
-    if (userId !== currentUserId) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    // Get follow count
-    const followCount = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(userFollowers)
-      .where(eq(userFollowers.followerId, userId));
-
-    // Get saved lists count
-    const savedCount = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(savedLists)
-      .where(eq(savedLists.userId, userId));
-
-    // Get circles count
-    const circleCount = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(circleMembers)
-      .where(eq(circleMembers.userId, userId));
-
-    // Get user creation date to determine if new
-    const user = await db
-      .select({ createdAt: users.profilePicture }) // Using existing timestamp field as proxy
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    const isNewUser = followCount[0].count === 0 && 
-                     savedCount[0].count === 0 && 
-                     circleCount[0].count === 0;
-
-    res.json({
-      isNewUser,
-      followCount: followCount[0].count,
-      savedCount: savedCount[0].count,
-      circleCount: circleCount[0].count
-    });
-  } catch (error) {
-    console.error('Error fetching user status:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-export { router };
+export default router;

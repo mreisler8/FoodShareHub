@@ -1,169 +1,86 @@
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { BookmarkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Bookmark, BookmarkCheck, Heart, HeartOff } from "lucide-react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SaveListButtonProps {
-  listId: string | number;
-  userId: string | number;
+  listId: number;
   className?: string;
-  initialSaved?: boolean;
-  variant?: "default" | "outline" | "ghost";
-  size?: "sm" | "md" | "lg";
 }
 
-export function SaveListButton({ 
-  listId, 
-  userId, 
-  className = "", 
-  initialSaved = false,
-  variant = "outline",
-  size = "sm"
-}: SaveListButtonProps) {
-  const [isSaved, setIsSaved] = useState(initialSaved);
-  const queryClient = useQueryClient();
+export function SaveListButton({ listId, className }: SaveListButtonProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Check if list is already saved
-  const { data: savedStatus } = useQuery({
-    queryKey: ["saved-list-status", listId, userId],
+  // Query to check if list is saved
+  const { data: saveStatus } = useQuery({
+    queryKey: ['/api/saved-lists', listId, 'status'],
     queryFn: async () => {
-      try {
-        const response = await fetch(`/api/saved-lists/check/${listId}`, {
-          credentials: 'include',
+      const response = await apiRequest(`/api/saved-lists/${listId}/status`);
+      return response.json();
+    },
+    enabled: !!listId,
+  });
+
+  const isSaved = saveStatus?.isSaved || false;
+
+  // Mutation to toggle save/unsave
+  const toggleSaveMutation = useMutation({
+    mutationFn: async () => {
+      if (isSaved) {
+        // Unsave the list
+        await apiRequest(`/api/saved-lists/${listId}`, {
+          method: 'DELETE',
         });
-        if (response.ok) {
-          const data = await response.json();
-          return data.isSaved;
-        }
-        return false;
-      } catch (error) {
-        console.log('Error checking save status:', error);
-        return false;
+      } else {
+        // Save the list
+        await apiRequest('/api/saved-lists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listId }),
+        });
       }
     },
-    enabled: !!listId && !!userId,
-  });
-
-  // Update local state when query data changes
-  useEffect(() => {
-    if (savedStatus !== undefined) {
-      setIsSaved(savedStatus);
-    }
-  }, [savedStatus]);
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/lists/${listId}/save`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-        },
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save list");
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setIsSaved(true);
-      queryClient.invalidateQueries({ queryKey: ["saved-lists"] });
-      queryClient.invalidateQueries({ queryKey: ["lists"] });
-      queryClient.invalidateQueries({ queryKey: ["list", listId.toString()] });
-      queryClient.invalidateQueries({ queryKey: ["saved-list-status", listId, userId] });
+    onSuccess: () => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists', listId, 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists'] });
       
       toast({
-        title: "List saved!",
-        description: data.message || "List has been added to your saved lists.",
+        title: isSaved ? "List removed" : "List saved",
+        description: isSaved
+          ? "Removed from your Saved tab."
+          : "You can find this in your Saved tab.",
       });
     },
-    onError: (error: Error) => {
-      console.error("Error saving list:", error);
+    onError: (error: any) => {
+      console.error('Error toggling save status:', error);
       toast({
-        title: "Unable to save list",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const unsaveMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/lists/${listId}/save`, {
-        method: "DELETE",
-        headers: { 
-          "Content-Type": "application/json",
-        },
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to unsave list");
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setIsSaved(false);
-      queryClient.invalidateQueries({ queryKey: ["saved-lists"] });
-      queryClient.invalidateQueries({ queryKey: ["lists"] });
-      queryClient.invalidateQueries({ queryKey: ["list", listId.toString()] });
-      queryClient.invalidateQueries({ queryKey: ["saved-list-status", listId, userId] });
-      
-      toast({
-        title: "List removed",
-        description: data.message || "List has been removed from your saved lists.",
-      });
-    },
-    onError: (error: Error) => {
-      console.error("Error unsaving list:", error);
-      toast({
-        title: "Unable to remove list",
-        description: error.message,
+        title: "Error",
+        description: "Failed to save/unsave list. Please try again.",
         variant: "destructive",
       });
     },
   });
 
   const handleToggleSave = () => {
-    if (isSaved) {
-      unsaveMutation.mutate();
-    } else {
-      saveMutation.mutate();
-    }
+    toggleSaveMutation.mutate();
   };
-
-  const isLoading = saveMutation.isPending || unsaveMutation.isPending;
-
-  const buttonVariant = isSaved ? "default" : variant;
-  const buttonSize = size === "sm" ? "sm" : size === "lg" ? "lg" : "default";
 
   return (
     <Button
-      variant={buttonVariant}
-      size={buttonSize}
+      variant="ghost"
+      size="icon"
+      aria-label={isSaved ? "Unsave this list" : "Save this list"}
       onClick={handleToggleSave}
-      disabled={isLoading}
-      className={`transition-all duration-200 ${className}`}
+      disabled={toggleSaveMutation.isPending}
+      className={`transition-transform hover:scale-105 ${className}`}
     >
-      {isSaved ? (
-        <>
-          <BookmarkCheck className="w-4 h-4 mr-2" />
-          {isLoading ? "Removing..." : "Saved"}
-        </>
-      ) : (
-        <>
-          <Bookmark className="w-4 h-4 mr-2" />
-          {isLoading ? "Saving..." : "Save List"}
-        </>
-      )}
+      <BookmarkIcon
+        className={`h-6 w-6 ${isSaved ? "text-primary fill-primary" : "text-muted-foreground"}`}
+      />
     </Button>
   );
 }
