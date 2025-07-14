@@ -10,8 +10,11 @@ import { FollowRow } from "@/components/home/FollowRow";
 import { EmptyState } from "@/components/home/EmptyState";
 import { SuggestedTags } from "@/components/home/SuggestedTags";
 import { CircleCard } from "@/components/home/CircleCard";
+import { Onboarding } from "@/components/home/Onboarding";
+import { TagCard } from "@/components/cards/TagCard";
 import { apiRequest } from "@/lib/queryClient";
 import { RestaurantList, User, Circle } from "@shared/schema";
+import { mockFeed } from "@/data/mockFeedData";
 
 type TabType = "foryou" | "trending" | "nearby";
 
@@ -81,10 +84,10 @@ export default function Homepage() {
           <div className="px-4 space-y-6 py-4">
             {isNewUser ? (
               <>
-                <EmptyState />
-                {feedData?.followSuggestions && (
+                <Onboarding />
+                {feedData?.followSuggestions && feedData.followSuggestions.length > 0 ? (
                   <FollowRow creators={feedData.followSuggestions} />
-                )}
+                ) : null}
                 {feedData?.circles && feedData.circles.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Popular Circles</h3>
@@ -109,9 +112,43 @@ export default function Homepage() {
                     ))}
                   </div>
                 ) : (
-                  feedData?.lists?.map((list) => (
-                    <ListCard key={list.id} list={list} />
-                  ))
+                  <>
+                    {/* Render real feed data if available, otherwise use mock data */}
+                    {feedData?.lists && feedData.lists.length > 0 ? (
+                      feedData.lists.map((list) => (
+                        <ListCard key={list.id} list={list} />
+                      ))
+                    ) : (
+                      /* Render mock feed data */
+                      <div className="space-y-4">
+                        {mockFeed.map((item) =>
+                          item.type === "list" ? (
+                            <ListCard 
+                              key={item.id} 
+                              title={item.title}
+                              image={item.image}
+                              user={item.user}
+                              saved={item.saved}
+                              followed={item.followed}
+                              restaurantCount={item.restaurantCount}
+                            />
+                          ) : item.type === "circle" ? (
+                            <CircleCard 
+                              key={item.id} 
+                              name={item.name}
+                              members={item.members}
+                              icon={item.icon}
+                              description={item.description}
+                            />
+                          ) : item.type === "tag" ? (
+                            <div key={item.id} className="flex justify-center">
+                              <TagCard tag={item.tag} />
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
