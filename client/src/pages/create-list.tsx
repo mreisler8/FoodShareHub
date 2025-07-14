@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -7,8 +7,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Button } from "@/components/Button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Utensils } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Utensils, Search, Plus, Star, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -16,9 +16,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
+import { RestaurantSearchAndAdd } from "@/components/lists/RestaurantSearchAndAdd";
+import { DraggableRestaurantList } from "@/components/lists/DraggableRestaurantList";
 
 // Form Schema based on Robust List Creation user story
 const formSchema = z.object({
@@ -31,9 +34,30 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface Restaurant {
+  id: number;
+  name: string;
+  location: string;
+  category: string;
+  priceRange: string;
+  imageUrl?: string;
+  averageRating?: number;
+  totalPosts?: number;
+}
+
+interface ListItem {
+  id: string;
+  restaurant: Restaurant;
+  notes?: string;
+  personalRating?: number;
+  rank: number;
+}
+
 export default function CreateList() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [listItems, setListItems] = useState<ListItem[]>([]);
+  const [activeTab, setActiveTab] = useState("details");
   
   // Fetch circles for the dropdown
   const { data: circles } = useQuery<CircleWithStats[]>({
@@ -52,6 +76,30 @@ export default function CreateList() {
     },
   });
   
+  // Helper functions
+  const handleAddRestaurant = (restaurant: Restaurant) => {
+    const newItem: ListItem = {
+      id: `item-${Date.now()}-${restaurant.id}`,
+      restaurant,
+      rank: listItems.length + 1,
+    };
+    setListItems([...listItems, newItem]);
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    const updatedItems = listItems.filter(item => item.id !== itemId);
+    // Update ranks
+    const rerankedItems = updatedItems.map((item, index) => ({
+      ...item,
+      rank: index + 1,
+    }));
+    setListItems(rerankedItems);
+  };
+
+  const handleItemsChange = (newItems: ListItem[]) => {
+    setListItems(newItems);
+  };
+
   // Create list mutation
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -61,13 +109,22 @@ export default function CreateList() {
       // Parse tags into array
       const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
 
+      // Convert list items to API format
+      const items = listItems.map(item => ({
+        name: item.restaurant.name,
+        notes: item.notes || "",
+        rating: item.personalRating || undefined,
+        rank: item.rank,
+        restaurantId: item.restaurant.id,
+      }));
+
       const payload = {
         name: values.name,
         description: values.description || null,
         tags: tags,
         audience: values.audience,
         circleId: circleId,
-        items: [], // Default empty items array
+        items: items,
       };
       
       // Use the new /api/lists endpoint

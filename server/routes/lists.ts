@@ -48,7 +48,7 @@ const createListSchema = z.object({
   type: z.enum(['restaurant', 'dish']).default('restaurant'),
   audience: z.enum(['profile', 'circle', 'public']).default('profile'),
   coverImage: z.string().nullable().optional(),
-  createdById: z.number().int().positive(),
+  // createdById will be set server-side from authenticated user
   items: z.array(z.object({
     name: z.string().min(1, 'Item name is required'),
     notes: z.string().optional(),
