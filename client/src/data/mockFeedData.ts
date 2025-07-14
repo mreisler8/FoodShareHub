@@ -1,5 +1,5 @@
 
-export const mockFeed = [
+export const mockFeed: any[] = [
   {
     type: "list",
     id: "1",

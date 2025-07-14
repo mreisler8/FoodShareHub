@@ -1,9 +1,9 @@
 /* Clean Modern Home Page Styles */
 
-/* Simple, clean background */
-.clean-home-background {
-  background: #f9fafb;
-  min-height: 100vh;
+/* Remove excessive top spacing */
+.home-container {
+  padding-top: 0;
+  margin-top: 0;
 }
 
 /* Dynamic header with depth */
