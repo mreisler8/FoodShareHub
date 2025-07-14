@@ -86,58 +86,40 @@ export default function Homepage() {
   const featuredContent = getFeaturedContent();
 
   return (
-    <div className="enhanced-home-background">
+    <div className="min-h-screen bg-gray-50">
       {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
 
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
         <div className="max-w-2xl mx-auto">
-          {/* Enhanced Hero Section with Modern Design */}
-          <div className="enhanced-card rounded-none border-b-0">
-            <HeroSection />
-          </div>
+          {/* Hero Section - Key Design Element */}
+          <HeroSection />
 
-          {/* Enhanced Quick Actions Panel */}
+          {/* Quick Actions Panel - Key Functionality */}
           <div className="px-4 py-4">
-            <div className="enhanced-card enhanced-quick-actions rounded-2xl p-4">
-              <QuickAddPanel />
-            </div>
+            <QuickAddPanel />
           </div>
 
-          {/* Enhanced Pending Invites */}
+          {/* Pending Invites - Social Features */}
           <div className="px-4">
-            <div className="enhanced-card enhanced-pending-invites rounded-2xl p-4">
-              <PendingInvites />
-            </div>
+            <PendingInvites />
           </div>
 
-          {/* Enhanced Feed Navigation */}
-          <div className="enhanced-header sticky top-0 z-10 border-b">
-            <div className="enhanced-tabs">
-              <TabNav currentTab={tab} setTab={setTab} />
-            </div>
+          {/* Feed Navigation */}
+          <div className="bg-white border-b sticky top-0 z-10">
+            <TabNav currentTab={tab} setTab={setTab} />
           </div>
 
-          {/* Enhanced Content Section */}
-          <div className="px-4 space-y-6 py-6">
+          {/* Content */}
+          <div className="px-4 space-y-6 py-4">
             {isNewUser ? (
               <>
-                {/* Enhanced Onboarding */}
-                <div className="enhanced-card rounded-2xl p-6">
-                  <Onboarding />
-                </div>
-                
+                <Onboarding />
                 {feedData?.followSuggestions && feedData.followSuggestions.length > 0 ? (
-                  <div className="enhanced-card rounded-2xl p-6">
-                    <FollowRow creators={feedData.followSuggestions} />
-                  </div>
+                  <FollowRow creators={feedData.followSuggestions} />
                 ) : null}
-                
                 {feedData?.circles && feedData.circles.length > 0 && (
-                  <div className="enhanced-card rounded-2xl p-6">
-                    <div className="section-header flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold text-gray-900">Popular Circles</h3>
-                      <span className="text-sm text-blue-600 font-medium">Discover</span>
-                    </div>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Popular Circles</h3>
                     <div className="grid grid-cols-1 gap-4">
                       {feedData.circles.slice(0, 3).map((circle) => (
                         <CircleCard key={circle.id} circle={circle} />
@@ -149,141 +131,52 @@ export default function Homepage() {
             ) : (
               <>
                 {isLoading ? (
-                  /* Enhanced Loading States */
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="enhanced-card rounded-2xl p-6">
-                        <div className="animate-pulse">
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="enhanced-loading w-10 h-10 rounded-full"></div>
-                            <div className="flex-1">
-                              <div className="enhanced-loading h-4 rounded mb-2"></div>
-                              <div className="enhanced-loading h-3 rounded w-1/2"></div>
-                            </div>
-                          </div>
-                          <div className="enhanced-loading h-48 rounded-xl mb-4"></div>
-                          <div className="enhanced-loading h-4 rounded mb-2"></div>
-                          <div className="enhanced-loading h-3 rounded w-3/4"></div>
-                        </div>
+                      <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
+                        <div className="bg-gray-200 h-36 rounded-md mb-4"></div>
+                        <div className="bg-gray-200 h-4 rounded mb-2"></div>
+                        <div className="bg-gray-200 h-3 rounded w-1/2"></div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <>
-                    {/* Enhanced Feed Rendering */}
+                    {/* Render feed data with fallback to mock data */}
                     {feedData?.lists && feedData.lists.length > 0 ? (
-                      <div className="space-y-6">
-                        {feedData.lists.map((list) => (
-                          <div key={list.id} className="enhanced-card rounded-2xl">
-                            <ListCard list={list} />
-                          </div>
-                        ))}
-                      </div>
+                      feedData.lists.map((list) => (
+                        <ListCard key={list.id} list={list} />
+                      ))
                     ) : (
-                      /* Enhanced Mock Data Rendering */
-                      <div className="space-y-6">
+                      /* Use mock data when API is unavailable */
+                      <div className="space-y-4">
                         {mockFeed.map((item) =>
                           item.type === "list" ? (
-                            <div key={item.id} className="enhanced-card rounded-2xl">
-                              <div className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <div className="flex items-center space-x-3">
-                                    <div className="user-avatar-gradient w-10 h-10 rounded-full flex items-center justify-center">
-                                      <span className="text-white text-sm font-medium">
-                                        {item.user?.name?.charAt(0)?.toUpperCase()}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <p className="font-semibold text-gray-900">{item.user?.name}</p>
-                                      <p className="text-sm text-gray-600">{item.user?.handle}</p>
-                                    </div>
-                                  </div>
-                                  <span className="list-badge content-badge px-3 py-1 text-xs font-medium rounded-full">
-                                    List by @{item.user?.handle?.replace('@', '')}
-                                  </span>
-                                </div>
-                                <ListCard 
-                                  key={item.id} 
-                                  title={item.title}
-                                  image={item.image}
-                                  user={item.user}
-                                  saved={item.saved}
-                                  followed={item.followed}
-                                  restaurantCount={item.restaurantCount}
-                                />
-                              </div>
-                            </div>
-                          ) : item.type === "circle" ? (
-                            <div key={item.id} className="enhanced-card rounded-2xl">
-                              <div className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <span className="circle-badge content-badge px-3 py-1 text-xs font-medium rounded-full">
-                                    Circle
-                                  </span>
-                                </div>
-                                <CircleCard 
-                                  key={item.id} 
-                                  name={item.name}
-                                  members={item.members}
-                                  icon={item.icon}
-                                  description={item.description}
-                                />
-                              </div>
-                            </div>
-                          ) : item.type === "tag" ? (
-                            <div key={item.id} className="enhanced-card rounded-2xl">
-                              <div className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <span className="tag-badge content-badge px-3 py-1 text-xs font-medium rounded-full">
-                                    Trending Tag
-                                  </span>
-                                </div>
-                                <div className="flex justify-center">
-                                  <TagCard tag={item.tag} />
-                                </div>
-                              </div>
-                            </div>
+                            <ListCard key={item.id} list={item} />
                           ) : null
                         )}
                       </div>
                     )}
 
-                    {/* Enhanced Follow Suggestions */}
+                    {/* Follow suggestions at the bottom */}
                     {feedData?.followSuggestions && feedData.followSuggestions.length > 0 && (
-                      <div className="enhanced-card rounded-2xl p-6 mt-8">
-                        <div className="section-header flex items-center justify-between mb-4">
-                          <h3 className="text-xl font-bold text-gray-900">Discover People</h3>
-                          <span className="text-sm text-blue-600 font-medium">View All</span>
-                        </div>
+                      <div className="mt-8">
                         <FollowRow creators={feedData.followSuggestions} />
                       </div>
                     )}
 
-                    {/* Enhanced Empty State */}
+                    {/* Empty state if no content */}
                     {(!feedData?.lists || feedData.lists.length === 0) && 
                      (!mockFeed || mockFeed.length === 0) && (
-                      <div className="enhanced-empty-state rounded-2xl p-12 text-center">
-                        <div className="empty-state-icon w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <span className="text-3xl">🍽️</span>
-                        </div>
-                        <EmptyState 
-                          title="Your feed is empty" 
-                          description="Start by creating your first restaurant list or joining a circle to see content here." 
-                        />
-                      </div>
+                      <EmptyState 
+                        title="No content yet" 
+                        description="Start by creating your first restaurant list or joining a circle to see content here." 
+                      />
                     )}
                   </>
                 )}
               </>
             )}
-
-            {/* Enhanced Suggested Tags */}
-            <div className="enhanced-card rounded-2xl p-6">
-              <div className="section-header mb-4">
-                <h3 className="text-xl font-bold text-gray-900">Trending Topics</h3>
-              </div>
-              <SuggestedTags />
-            </div>
           </div>
         </div>
       </div>

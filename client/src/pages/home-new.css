@@ -1,8 +1,8 @@
-/* Enhanced Home Page Styles - Spotify/Resy/Pinterest Inspired */
+/* Clean Modern Home Page Styles */
 
-/* Enhanced gradient background */
-.enhanced-home-background {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+/* Simple, clean background */
+.clean-home-background {
+  background: #f9fafb;
   min-height: 100vh;
 }
 
