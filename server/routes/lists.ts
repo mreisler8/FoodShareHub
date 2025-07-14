@@ -282,10 +282,52 @@ router.post('/', authenticate, async (req, res) => {
           tags: data.tags || [],
           shareWithCircle: shareWithCircle,
           makePublic: isPublic,
+          type: data.type || 'restaurant',
+          audience: data.audience || 'profile',
+          coverImage: data.coverImage || null,
         })
         .returning();
 
-      res.json(list);
+      // Handle items array - store each item in restaurant_list_items table
+      if (data.items && data.items.length > 0) {
+        const itemPromises = data.items.map(async (item, index) => {
+          let restaurantId = item.restaurantId;
+          
+          // If no restaurantId provided, create a placeholder restaurant
+          if (!restaurantId) {
+            const [restaurant] = await db
+              .insert(restaurants)
+              .values({
+                name: item.name,
+                location: item.city || 'Unknown location',
+                category: 'Restaurant',
+                priceRange: '$$',
+                cuisine: 'General',
+              })
+              .returning();
+            restaurantId = restaurant.id;
+          }
+
+          return db
+            .insert(restaurantListItems)
+            .values({
+              listId: list.id,
+              restaurantId: restaurantId,
+              name: item.name,
+              notes: item.notes || null,
+              tags: item.tags || [],
+              city: item.city || null,
+              mediaUrl: item.mediaUrl || null,
+              rank: item.rank || index + 1,
+              rating: item.rating || null,
+              addedById: userId,
+            });
+        });
+
+        await Promise.all(itemPromises);
+      }
+
+      res.json({ success: true, listId: list.id });
     } catch (dbError) {
       console.error('Database error, using temp storage for list creation:', dbError);
 
@@ -319,7 +361,7 @@ router.post('/', authenticate, async (req, res) => {
         };
 
         const newList = await tempSavedListStorage.createRestaurantList(listData);
-        res.json(newList);
+        res.json({ success: true, listId: newList.id });
       } catch (tempError) {
         console.error('Error creating list in temp storage:', tempError);
         res.status(500).json({ error: 'Failed to create list' });

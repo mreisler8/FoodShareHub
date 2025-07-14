@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { RestaurantList } from "@shared/schema";
 import { MapPin, Users, Eye, Heart } from "lucide-react";
 import { SaveListButton } from "../SaveListButton";
+import { ListAudienceBadge } from "../ListAudienceBadge";
 
 interface RestaurantListCardProps {
   list: RestaurantList;
@@ -13,7 +14,10 @@ export function RestaurantListCard({ list }: RestaurantListCardProps) {
       <div className="card card-hover p-6 cursor-pointer bg-card border border-border">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-semibold text-foreground truncate">{list.name}</h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-xl font-semibold text-foreground truncate">{list.name}</h3>
+              <ListAudienceBadge audience={list.audience} />
+            </div>
             {list.description && (
               <p className="text-muted-foreground mt-1 text-sm line-clamp-2">{list.description}</p>
             )}

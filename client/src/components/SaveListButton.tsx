@@ -1,79 +1,78 @@
-
-import { useState, useEffect } from "react";
-import { Bookmark } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { Button } from "./ui/button";
+import { BookmarkPlus, BookmarkCheck, Loader2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface SaveListButtonProps {
-  listId: number;
-  className?: string;
+  listId: string;
+  userId: string;
 }
 
-export function SaveListButton({ listId, className }: SaveListButtonProps) {
-  const { user } = useAuth();
+export function SaveListButton({ listId, userId }: SaveListButtonProps) {
+  const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Check if list is already saved
-  const { data: savedLists } = useQuery<any[]>({
-    queryKey: [`/api/users/${user?.id}/saved`],
-    enabled: !!user?.id,
+  const { data: savedLists } = useQuery({
+    queryKey: [`/api/users/${userId}/saved-lists`],
+    enabled: !!userId,
   });
 
-  const isSaved = savedLists?.some(saved => saved.listId === listId) || false;
+  // Check if current list is in saved lists
+  const isListSaved = savedLists?.some((saved: any) => saved.listId === parseInt(listId));
 
   // Save/unsave mutation
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const method = isSaved ? 'DELETE' : 'POST';
-      const response = await fetch(`/api/lists/${listId}/save`, {
-        method,
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save list');
+  const saveListMutation = useMutation({
+    mutationFn: async (action: 'save' | 'unsave') => {
+      if (action === 'save') {
+        return await apiRequest("POST", `/api/lists/${listId}/save`);
+      } else {
+        return await apiRequest("DELETE", `/api/lists/${listId}/save`);
       }
-      
-      return response.json();
     },
-    onSuccess: () => {
-      // Invalidate saved lists query to refresh UI
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/saved`] });
-      
+    onSuccess: (_, action) => {
+      setIsSaved(action === 'save');
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/saved-lists`] });
       toast({
-        title: isSaved ? "List removed" : "List saved",
-        description: isSaved 
-          ? "Removed from your saved lists" 
-          : "Added to your saved lists",
+        title: action === 'save' ? "List saved!" : "List removed",
+        description: action === 'save' 
+          ? "This list has been added to your saved collection" 
+          : "This list has been removed from your saved collection",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to save list. Please try again.",
+        description: error.message || "Failed to update saved list",
         variant: "destructive",
       });
     },
   });
 
-  if (!user) return null;
+  const handleSaveClick = () => {
+    const action = isListSaved ? 'unsave' : 'save';
+    saveListMutation.mutate(action);
+  };
 
   return (
     <Button
-      variant="ghost"
+      variant={isListSaved ? "default" : "outline"}
       size="sm"
-      onClick={() => saveMutation.mutate()}
-      disabled={saveMutation.isPending}
-      className={className}
-      aria-label={isSaved ? "Remove from saved" : "Save list"}
+      onClick={handleSaveClick}
+      disabled={saveListMutation.isPending}
+      className="flex items-center gap-2"
     >
-      <Bookmark 
-        className={`h-4 w-4 mr-1 ${isSaved ? 'fill-current' : ''}`} 
-      />
-      {isSaved ? 'Saved' : 'Save'}
+      {saveListMutation.isPending ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : isListSaved ? (
+        <BookmarkCheck className="h-4 w-4" />
+      ) : (
+        <BookmarkPlus className="h-4 w-4" />
+      )}
+      {isListSaved ? "Saved" : "Save"}
     </Button>
   );
 }
