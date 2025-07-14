@@ -4,6 +4,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
+import { HeroSection } from "@/components/HeroSection";
+import { QuickAddPanel } from "@/components/QuickAddPanel";
+import { PendingInvites } from "@/components/circles/PendingInvites";
 import { TabNav } from "@/components/home/TabNav";
 import { ListCard } from "@/components/home/ListCard";
 import { FollowRow } from "@/components/home/FollowRow";
@@ -50,7 +53,17 @@ export default function Homepage() {
       const endpoint = tab === "foryou" 
         ? `/api/feed/foryou?user=${user?.id}`
         : `/api/feed/${tab}`;
-      return await apiRequest(endpoint);
+      try {
+        return await apiRequest(endpoint);
+      } catch (error) {
+        console.error(`Error fetching ${tab} feed:`, error);
+        // Return mock data when API fails
+        return {
+          lists: mockFeed.filter(item => item.type === "list"),
+          circles: [],
+          followSuggestions: []
+        };
+      }
     },
     enabled: !!user?.id,
   });
@@ -78,58 +91,28 @@ export default function Homepage() {
 
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
         <div className="max-w-2xl mx-auto">
-          {/* Enhanced Dynamic Hero Section */}
-          <div className="enhanced-header sticky top-0 z-10">
-            <div className="px-4 py-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h1 className="text-3xl font-bold gradient-title">
-                    Circles
-                  </h1>
-                  <p className="text-gray-600 text-sm mt-1">
-                    {tab === "foryou" ? "Your personalized feed" : 
-                     tab === "trending" ? "What's trending now" : 
-                     "Discover nearby"}
-                  </p>
-                </div>
-                <div className="enhanced-avatar w-10 h-10 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">
-                    {user.name?.charAt(0)?.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Featured Content Preview */}
-              {featuredContent && (
-                <div className="featured-card mb-4 p-4 rounded-xl">
-                  <div className="flex items-start space-x-3">
-                    <div className="featured-icon w-16 h-16 rounded-lg flex items-center justify-center">
-                      <span className="text-2xl">🍽️</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">
-                        Featured: {featuredContent.title || featuredContent.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2">
-                        {featuredContent.user?.name && `by ${featuredContent.user.name}`}
-                        {featuredContent.restaurantCount && ` • ${featuredContent.restaurantCount} restaurants`}
-                      </p>
-                      <div className="flex items-center space-x-2">
-                        <span className="content-badge px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          Trending
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {tab === "foryou" ? "For You" : tab}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+          {/* Enhanced Hero Section with Modern Design */}
+          <div className="enhanced-card rounded-none border-b-0">
+            <HeroSection />
+          </div>
+
+          {/* Enhanced Quick Actions Panel */}
+          <div className="px-4 py-4">
+            <div className="enhanced-card enhanced-quick-actions rounded-2xl p-4">
+              <QuickAddPanel />
             </div>
-            
-            {/* Enhanced Tab Navigation */}
-            <div className="enhanced-tabs border-t">
+          </div>
+
+          {/* Enhanced Pending Invites */}
+          <div className="px-4">
+            <div className="enhanced-card enhanced-pending-invites rounded-2xl p-4">
+              <PendingInvites />
+            </div>
+          </div>
+
+          {/* Enhanced Feed Navigation */}
+          <div className="enhanced-header sticky top-0 z-10 border-b">
+            <div className="enhanced-tabs">
               <TabNav currentTab={tab} setTab={setTab} />
             </div>
           </div>

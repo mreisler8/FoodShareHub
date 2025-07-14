@@ -15,6 +15,77 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Enhanced Quick Actions Panel */
+.enhanced-quick-actions {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enhanced-quick-actions:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.1);
+}
+
+/* Enhanced Quick Action Button */
+.quick-action-button {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quick-action-button:hover::before {
+  left: 100%;
+}
+
+.quick-action-button:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+}
+
+/* Enhanced Quick Action Icon */
+.quick-action-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quick-action-button:hover .quick-action-icon {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+}
+
+/* Enhanced Pending Invites */
+.enhanced-pending-invites {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.03) 0%, rgba(59, 130, 246, 0.03) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enhanced-pending-invites:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(59, 130, 246, 0.06) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.1);
+}
+
 /* Enhanced gradient text */
 .gradient-title {
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
