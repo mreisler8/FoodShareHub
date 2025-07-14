@@ -82,7 +82,7 @@ export default function CreateList() {
       });
       
       // Navigate directly to the list - handle different response structures
-      const listId = data?.id || (data as any)?.id;
+      const listId = data?.id;
       if (listId) {
         try {
           navigate(`/lists/${listId}`);
