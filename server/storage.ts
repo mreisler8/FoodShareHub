@@ -22,12 +22,13 @@ import { eq, and, like, desc, gt, or, not, inArray } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
+import MemoryStore from "memorystore";
 
 // For backward compatibility
 import { Hub, InsertHub, HubMember, InsertHubMember } from "@shared/schema";
 
-// Use PostgreSQL for session storage
-const PostgresSessionStore = connectPg(session);
+// Use memory store for session storage (fallback for database issues)
+const MemorySessionStore = MemoryStore(session);
 
 export interface IStorage {
   // User operations
@@ -174,11 +175,14 @@ export class DatabaseStorage implements IStorage {
   
   constructor() {
     try {
-      this.sessionStore = new PostgresSessionStore({ 
-        pool, 
-        createTableIfMissing: true,
-        tableName: 'session'
+      // Use memory store temporarily due to database endpoint issues
+      this.sessionStore = new MemorySessionStore({
+        checkPeriod: 86400000, // prune expired entries every 24h
+        max: 1000, // max number of sessions
+        ttl: 86400000, // 24 hours
       });
+      console.log('Using memory session store (temporary fallback)');
+      
       // Initialize analytics table asynchronously to not block startup
       this.initializeAnalyticsTable().catch(err => {
         console.error('Failed to initialize analytics table:', err);
