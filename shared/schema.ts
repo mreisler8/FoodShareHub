@@ -146,8 +146,11 @@ export const circles = pgTable("circles", {
   name: text("name").notNull(),
   description: text("description"),
   isPrivate: boolean("is_private").default(false),
+  // Tracking fields
   createdAt: timestamp("created_at").defaultNow().notNull(),
   creatorId: integer("creator_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  // Cover image support
+  coverImage: text("cover_image"),
   // Shareable join link features
   inviteCode: text("invite_code").unique(),
   allowPublicJoin: boolean("allow_public_join").default(false),
@@ -195,6 +198,7 @@ export const insertCircleSchema = createInsertSchema(circles).pick({
   featured: true,
   trending: true,
   inviteCode: true,
+  coverImage: true,
 });
 
 // CircleMember model
