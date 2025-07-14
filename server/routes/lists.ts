@@ -4,6 +4,7 @@ import { eq, and, desc, asc, sql, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
 import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists } from '../../shared/schema';
+import { tempSavedListStorage } from '../temp-storage';
 
 const router = Router();
 
@@ -43,6 +44,22 @@ const createListSchema = z.object({
     .default([]),
   shareWithCircle: z.boolean().optional(),
   makePublic: z.boolean().optional(),
+  // Enhanced Create & Rank Lists fields
+  type: z.enum(['restaurant', 'dish']).default('restaurant'),
+  audience: z.enum(['profile', 'circle', 'public']).default('profile'),
+  coverImage: z.string().nullable().optional(),
+  createdById: z.number().int().positive(),
+  items: z.array(z.object({
+    name: z.string().min(1, 'Item name is required'),
+    notes: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    city: z.string().optional(),
+    mediaUrl: z.string().optional(),
+    rank: z.number().int().min(1).optional(),
+    rating: z.number().int().min(1).max(5).optional(),
+    restaurantId: z.number().int().positive().optional(),
+    addedById: z.number().int().positive().optional(),
+  })).optional().default([]),
 });
 
 const updateListSchema = z.object({
@@ -81,128 +98,142 @@ router.get('/', authenticate, async (req, res) => {
 
     // Handle duplicate name checking
     if (name) {
-      const lists = await db
-        .select()
-        .from(restaurantLists)
-        .where(and(
-          eq(restaurantLists.name, name),
-          eq(restaurantLists.createdById, userId)
-        ));
-      return res.json(lists);
+      try {
+        const lists = await db
+          .select()
+          .from(restaurantLists)
+          .where(and(
+            eq(restaurantLists.name, name),
+            eq(restaurantLists.createdById, userId)
+          ));
+        return res.json(lists);
+      } catch (dbError) {
+        console.error('Database error checking duplicate name, using temp storage:', dbError);
+        // Fallback to temp storage for duplicate checking
+        const allLists = await tempSavedListStorage.getRestaurantListsByUser(userId);
+        const duplicates = allLists.filter(list => list.name === name);
+        return res.json(duplicates);
+      }
     }
 
-    if (filter === 'mine') {
-      // More efficient approach: use database joins instead of multiple queries
-      // This gets all lists the user can access in one optimized query
+    try {
+      if (filter === 'mine') {
+        // More efficient approach: use database joins instead of multiple queries
+        // This gets all lists the user can access in one optimized query
 
-      try {
-        // Single optimized query to get all accessible lists using UNION
-        // This is much more efficient than multiple separate queries
-        const accessibleLists = await db.execute(sql`
-          -- User's own lists
-          SELECT DISTINCT 
-            rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
-            rl.circle_id as "circleId", rl.is_public as "isPublic",
-            rl.visibility, rl.share_with_circle as "shareWithCircle",
-            rl.make_public as "makePublic", rl.created_at as "createdAt",
-            rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
-          FROM restaurant_lists rl
-          WHERE rl.created_by_id = ${userId}
-          
-          UNION
-          
-          -- Public lists (not owned by user)
-          SELECT DISTINCT 
-            rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
-            rl.circle_id as "circleId", rl.is_public as "isPublic",
-            rl.visibility, rl.share_with_circle as "shareWithCircle",
-            rl.make_public as "makePublic", rl.created_at as "createdAt",
-            rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
-          FROM restaurant_lists rl
-          WHERE rl.make_public = true 
-          AND rl.created_by_id != ${userId}
-          
-          UNION
-          
-          -- Circle-shared lists (user is member, not owner, not public)
-          SELECT DISTINCT 
-            rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
-            rl.circle_id as "circleId", rl.is_public as "isPublic",
-            rl.visibility, rl.share_with_circle as "shareWithCircle",
-            rl.make_public as "makePublic", rl.created_at as "createdAt",
-            rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
-          FROM restaurant_lists rl
-          INNER JOIN circle_members cm ON rl.circle_id = cm.circle_id
-          WHERE rl.share_with_circle = true
-          AND cm.user_id = ${userId}
-          AND rl.created_by_id != ${userId}
-          AND rl.make_public = false
-          
-          ORDER BY "createdAt" DESC
-        `);
+        try {
+          // Single optimized query to get all accessible lists using UNION
+          // This is much more efficient than multiple separate queries
+          const accessibleLists = await db.execute(sql`
+            -- User's own lists
+            SELECT DISTINCT 
+              rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
+              rl.circle_id as "circleId", rl.is_public as "isPublic",
+              rl.visibility, rl.share_with_circle as "shareWithCircle",
+              rl.make_public as "makePublic", rl.created_at as "createdAt",
+              rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
+            FROM restaurant_lists rl
+            WHERE rl.created_by_id = ${userId}
+            
+            UNION
+            
+            -- Public lists (not owned by user)
+            SELECT DISTINCT 
+              rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
+              rl.circle_id as "circleId", rl.is_public as "isPublic",
+              rl.visibility, rl.share_with_circle as "shareWithCircle",
+              rl.make_public as "makePublic", rl.created_at as "createdAt",
+              rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
+            FROM restaurant_lists rl
+            WHERE rl.make_public = true 
+            AND rl.created_by_id != ${userId}
+            
+            UNION
+            
+            -- Circle-shared lists (user is member, not owner, not public)
+            SELECT DISTINCT 
+              rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
+              rl.circle_id as "circleId", rl.is_public as "isPublic",
+              rl.visibility, rl.share_with_circle as "shareWithCircle",
+              rl.make_public as "makePublic", rl.created_at as "createdAt",
+              rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
+            FROM restaurant_lists rl
+            INNER JOIN circle_members cm ON rl.circle_id = cm.circle_id
+            WHERE rl.share_with_circle = true
+            AND cm.user_id = ${userId}
+            AND rl.created_by_id != ${userId}
+            AND rl.make_public = false
+            
+            ORDER BY "createdAt" DESC
+          `);
 
-        res.json(accessibleLists.rows || []);
-      } catch (dbError) {
-        console.error('Database error fetching accessible lists:', dbError);
-        res.status(500).json({ 
-          error: 'Failed to fetch your lists. Please try again.',
-          code: 'DATABASE_ERROR'
-        });
-      }
-    } else {
-      // Default: return user's own lists with circle sharing information
-      const lists = await db
-        .select()
-        .from(restaurantLists)
-        .where(eq(restaurantLists.createdById, userId));
-
-      // Get circle shared information for all lists
-      const listIds = lists.map(list => list.id);
-      
-      if (listIds.length > 0) {
-        const sharedInfo = await db
-          .select({
-            listId: circleSharedLists.listId,
-            circleId: circleSharedLists.circleId
-          })
-          .from(circleSharedLists)
-          .where(inArray(circleSharedLists.listId, listIds));
-
-        // Group shared circles by list ID
-        const sharedCirclesByList: Record<number, number[]> = {};
-        sharedInfo.forEach(share => {
-          if (!sharedCirclesByList[share.listId]) {
-            sharedCirclesByList[share.listId] = [];
-          }
-          sharedCirclesByList[share.listId].push(share.circleId);
-        });
-
-        // Get restaurant counts for all lists
-        const restaurantCounts = await db
-          .select({
-            listId: restaurantListItems.listId,
-            count: sql<number>`count(*)::int`
-          })
-          .from(restaurantListItems)
-          .where(inArray(restaurantListItems.listId, listIds))
-          .groupBy(restaurantListItems.listId);
-
-        const countByList: Record<number, number> = {};
-        restaurantCounts.forEach(({ listId, count }) => {
-          countByList[listId] = count;
-        });
-
-        // Add shared circles and restaurant count to each list
-        const listsWithSharing = lists.map(list => ({
-          ...list,
-          sharedWithCircles: sharedCirclesByList[list.id] || [],
-          restaurantCount: countByList[list.id] || 0
-        }));
-
-        res.json(listsWithSharing);
+          res.json(accessibleLists.rows || []);
+        } catch (dbError) {
+          console.error('Database error fetching accessible lists, using temp storage:', dbError);
+          // Fallback to temp storage
+          const lists = await tempSavedListStorage.getRestaurantListsByUser(userId);
+          res.json(lists);
+        }
       } else {
-        res.json(lists);
+        // Default: return user's own lists with circle sharing information
+        const lists = await db
+          .select()
+          .from(restaurantLists)
+          .where(eq(restaurantLists.createdById, userId));
+
+        // Get circle shared information for all lists
+        const listIds = lists.map(list => list.id);
+        
+        if (listIds.length > 0) {
+          const sharedInfo = await db
+            .select({
+              listId: circleSharedLists.listId,
+              circleId: circleSharedLists.circleId
+            })
+            .from(circleSharedLists)
+            .where(inArray(circleSharedLists.listId, listIds));
+
+          // Group shared circles by list ID
+          const sharedCirclesByList: Record<number, number[]> = {};
+          sharedInfo.forEach(share => {
+            if (!sharedCirclesByList[share.listId]) {
+              sharedCirclesByList[share.listId] = [];
+            }
+            sharedCirclesByList[share.listId].push(share.circleId);
+          });
+
+          // Get restaurant counts for all lists
+          const restaurantCounts = await db
+            .select({
+              listId: restaurantListItems.listId,
+              count: sql<number>`count(*)::int`
+            })
+            .from(restaurantListItems)
+            .where(inArray(restaurantListItems.listId, listIds))
+            .groupBy(restaurantListItems.listId);
+
+          const countByList: Record<number, number> = {};
+          restaurantCounts.forEach(({ listId, count }) => {
+            countByList[listId] = count;
+          });
+
+          // Add shared circles and restaurant count to each list
+          const listsWithSharing = lists.map(list => ({
+            ...list,
+            sharedWithCircles: sharedCirclesByList[list.id] || [],
+            restaurantCount: countByList[list.id] || 0
+          }));
+
+          res.json(listsWithSharing);
+        } else {
+          res.json(lists);
+        }
       }
+    } catch (dbError) {
+      console.error('Database error, using temp storage:', dbError);
+      // Fallback to temp storage
+      const lists = await tempSavedListStorage.getRestaurantListsByUser(userId);
+      res.json(lists);
     }
   } catch (error) {
     console.error('Error fetching lists:', error);
@@ -216,44 +247,84 @@ router.post('/', authenticate, async (req, res) => {
     const data = createListSchema.parse(req.body);
     const userId = req.user!.id;
 
-    // Check for duplicate name before creating
-    const existingLists = await db
-      .select()
-      .from(restaurantLists)
-      .where(and(
-        eq(restaurantLists.name, data.name),
-        eq(restaurantLists.createdById, userId)
+    try {
+      // Check for duplicate name before creating
+      const existingLists = await db
+        .select()
+        .from(restaurantLists)
+        .where(and(
+          eq(restaurantLists.name, data.name),
+          eq(restaurantLists.createdById, userId)
       ))
       .limit(1);
 
-    if (existingLists.length > 0) {
-      return res.status(409).json({
-        error: 'duplicate_list',
-        existingId: existingLists[0].id
-      });
+      if (existingLists.length > 0) {
+        return res.status(409).json({
+          error: 'duplicate_list',
+          existingId: existingLists[0].id
+        });
+      }
+
+      // Handle the frontend's sharing model
+      const isPublic = data.makePublic || data.isPublic || false;
+      const shareWithCircle = data.shareWithCircle || false;
+      const visibility = isPublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
+
+      const [list] = await db
+        .insert(restaurantLists)
+        .values({
+          name: data.name,
+          description: data.description || null,
+          createdById: userId,
+          circleId: data.circleId || null,
+          visibility: visibility,
+          isPublic: isPublic,
+          tags: data.tags || [],
+          shareWithCircle: shareWithCircle,
+          makePublic: isPublic,
+        })
+        .returning();
+
+      res.json(list);
+    } catch (dbError) {
+      console.error('Database error, using temp storage for list creation:', dbError);
+      
+      // Fallback to temp storage when database is unavailable
+      try {
+        // Check for duplicate name in temp storage
+        const existingLists = await tempSavedListStorage.getRestaurantListsByUser(userId);
+        const duplicate = existingLists.find(list => list.name === data.name);
+        
+        if (duplicate) {
+          return res.status(409).json({
+            error: 'duplicate_list',
+            existingId: duplicate.id
+          });
+        }
+
+        // Create list using temp storage with enhanced data
+        const listData = {
+          name: data.name,
+          description: data.description || null,
+          createdById: userId,
+          circleId: data.circleId || null,
+          tags: data.tags || [],
+          type: data.type || 'restaurant',
+          audience: data.audience || 'profile',
+          coverImage: data.coverImage || null,
+          shareWithCircle: data.shareWithCircle || false,
+          makePublic: data.makePublic || false,
+          visibility: data.visibility || { public: false, followers: true, circleIds: [] },
+          items: data.items || []
+        };
+
+        const newList = await tempSavedListStorage.createRestaurantList(listData);
+        res.json(newList);
+      } catch (tempError) {
+        console.error('Error creating list in temp storage:', tempError);
+        res.status(500).json({ error: 'Failed to create list' });
+      }
     }
-
-    // Handle the frontend's sharing model
-    const isPublic = data.makePublic || data.isPublic || false;
-    const shareWithCircle = data.shareWithCircle || false;
-    const visibility = isPublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
-
-    const [list] = await db
-      .insert(restaurantLists)
-      .values({
-        name: data.name,
-        description: data.description || null,
-        createdById: userId,
-        circleId: data.circleId || null,
-        visibility: visibility,
-        isPublic: isPublic,
-        tags: data.tags || [],
-        shareWithCircle: shareWithCircle,
-        makePublic: isPublic,
-      })
-      .returning();
-
-    res.json(list);
   } catch (error) {
     console.error('Error creating list:', error);
     res.status(500).json({ error: 'Failed to create list' });

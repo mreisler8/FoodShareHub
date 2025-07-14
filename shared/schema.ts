@@ -316,6 +316,10 @@ export const restaurantLists = pgTable("restaurant_lists", {
   circleId: integer("circle_id").references(() => circles.id), // Optional: if associated with a circle
   isPublic: boolean("is_public").default(true),
   tags: text("tags").array(),
+  // Enhanced Create & Rank Lists fields
+  type: text("type").notNull().default("restaurant"), // "restaurant" | "dish"
+  audience: text("audience").notNull().default("profile"), // "profile" | "circle" | "public"
+  coverImage: text("cover_image"), // Optional cover image URL
   // Location-based fields
   primaryLocation: text("primary_location"), // City name (e.g., "Toronto")
   locationLat: text("location_lat"), // For geographic search
@@ -345,6 +349,9 @@ export const insertRestaurantListSchema = createInsertSchema(restaurantLists).pi
   allowSharing: true,
   shareableCircles: true,
   tags: true,
+  type: true,
+  audience: true,
+  coverImage: true,
   primaryLocation: true,
   locationLat: true,
   locationLng: true,
@@ -365,6 +372,12 @@ export const restaurantListItems = pgTable("restaurant_list_items", {
   mustTryDishes: text("must_try_dishes").array(),
   addedById: integer("added_by_id").notNull(),
   position: integer("position").default(0),
+  rank: integer("rank").default(0), // For ranking items in Create & Rank Lists
+  // Enhanced Create & Rank Lists fields
+  name: text("name").notNull(), // Item name (restaurant name or dish name)
+  tags: text("tags").array(), // Tags for the item
+  city: text("city"), // City for the item
+  mediaUrl: text("media_url"), // Media URL for the item
   addedAt: timestamp("added_at").defaultNow().notNull(),
 });
 
@@ -379,6 +392,11 @@ export const insertRestaurantListItemSchema = createInsertSchema(restaurantListI
   mustTryDishes: true,
   addedById: true,
   position: true,
+  rank: true,
+  name: true,
+  tags: true,
+  city: true,
+  mediaUrl: true,
 });
 
 // List Item Comments model (comments on specific list items)

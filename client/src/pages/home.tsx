@@ -10,13 +10,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Plus, TrendingUp, Star, MapPin, Users } from "lucide-react";
+import { Plus, TrendingUp, Star, MapPin, Users, List, Award } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import "./HomePage.css";
 import { FollowRequestCard } from "@/components/follow/FollowRequestCard";
 import { PendingInvites } from "@/components/circles/PendingInvites";
+import { CreateRankListModal } from "@/components/lists/CreateRankListModal";
 
 // TopPicks component for homepage
 function TopPicks() {
@@ -181,7 +182,7 @@ export default function Home() {
                 <p className="section-subtitle">Create and discover new food communities</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="quick-action-card card-hover" onClick={() => window.location.href = '/circles'}>
                 <div className="p-6">
                   <div className="flex items-center space-x-4">
@@ -201,7 +202,7 @@ export default function Home() {
                   <div className="p-6">
                     <div className="flex items-center space-x-4">
                       <div className="bg-blue-100 p-3 rounded-lg">
-                        <Plus className="h-6 w-6 text-blue-600" />
+                        <List className="h-6 w-6 text-blue-600" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">Create List</h3>
@@ -211,6 +212,22 @@ export default function Home() {
                   </div>
                 </Card>
               </Link>
+
+              <CreateRankListModal>
+                <Card className="quick-action-card card-hover">
+                  <div className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-orange-100 p-3 rounded-lg">
+                        <Award className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Create Ranked List</h3>
+                        <p className="text-sm text-gray-600">Rank your favorites</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </CreateRankListModal>
             </div>
           </section>
 
