@@ -4,7 +4,8 @@ import { useEffect, lazy } from "react";
 import { addNativeAppClass } from "../lib/nativeAppBridge";
 import { ProtectedRoute } from "../lib/protected-route";
 import NotFound from "../pages/not-found";
-import Home from "../pages/home";
+import HomePage from "@/pages/home";
+import NewHomePage from "@/pages/home-new";
 import CreatePost from "../pages/create-post";
 import FeedPage from "../pages/feed";
 import TopPicksPage from "../pages/top-picks";
@@ -35,7 +36,7 @@ function Router() {
 
   return (
     <Switch>
-      <ProtectedRoute path="/" component={Home} />
+      <ProtectedRoute path="/" component={NewHomePage} />
       <ProtectedRoute path="/feed" component={() => <FeedPage scope="feed" />} />
       <ProtectedRoute path="/feed/circle/:circleId" component={({ params }: any) => <FeedPage scope="circle" circleId={params?.circleId} />} />
       <ProtectedRoute path="/top-picks" component={TopPicksPage} />
