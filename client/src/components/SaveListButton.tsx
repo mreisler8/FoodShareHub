@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { BookmarkIcon } from "lucide-react";
+
+import { useState, useEffect } from "react";
+import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/components/ui/use-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SaveListButtonProps {
   listId: number;
@@ -11,76 +12,68 @@ interface SaveListButtonProps {
 }
 
 export function SaveListButton({ listId, className }: SaveListButtonProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query to check if list is saved
-  const { data: saveStatus } = useQuery({
-    queryKey: ['/api/saved-lists', listId, 'status'],
-    queryFn: async () => {
-      const response = await apiRequest(`/api/saved-lists/${listId}/status`);
-      return response.json();
-    },
-    enabled: !!listId,
+  // Check if list is already saved
+  const { data: savedLists } = useQuery<any[]>({
+    queryKey: [`/api/users/${user?.id}/saved`],
+    enabled: !!user?.id,
   });
 
-  const isSaved = saveStatus?.isSaved || false;
+  const isSaved = savedLists?.some(saved => saved.listId === listId) || false;
 
-  // Mutation to toggle save/unsave
-  const toggleSaveMutation = useMutation({
+  // Save/unsave mutation
+  const saveMutation = useMutation({
     mutationFn: async () => {
-      if (isSaved) {
-        // Unsave the list
-        await apiRequest(`/api/saved-lists/${listId}`, {
-          method: 'DELETE',
-        });
-      } else {
-        // Save the list
-        await apiRequest('/api/saved-lists', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ listId }),
-        });
+      const method = isSaved ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/lists/${listId}/save`, {
+        method,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save list');
       }
+      
+      return response.json();
     },
     onSuccess: () => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists', listId, 'status'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists'] });
+      // Invalidate saved lists query to refresh UI
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/saved`] });
       
       toast({
         title: isSaved ? "List removed" : "List saved",
-        description: isSaved
-          ? "Removed from your Saved tab."
-          : "You can find this in your Saved tab.",
+        description: isSaved 
+          ? "Removed from your saved lists" 
+          : "Added to your saved lists",
       });
     },
-    onError: (error: any) => {
-      console.error('Error toggling save status:', error);
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to save/unsave list. Please try again.",
+        description: "Failed to save list. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const handleToggleSave = () => {
-    toggleSaveMutation.mutate();
-  };
+  if (!user) return null;
 
   return (
     <Button
       variant="ghost"
-      size="icon"
-      aria-label={isSaved ? "Unsave this list" : "Save this list"}
-      onClick={handleToggleSave}
-      disabled={toggleSaveMutation.isPending}
-      className={`transition-transform hover:scale-105 ${className}`}
+      size="sm"
+      onClick={() => saveMutation.mutate()}
+      disabled={saveMutation.isPending}
+      className={className}
+      aria-label={isSaved ? "Remove from saved" : "Save list"}
     >
-      <BookmarkIcon
-        className={`h-6 w-6 ${isSaved ? "text-primary fill-primary" : "text-muted-foreground"}`}
+      <Bookmark 
+        className={`h-4 w-4 mr-1 ${isSaved ? 'fill-current' : ''}`} 
       />
+      {isSaved ? 'Saved' : 'Save'}
     </Button>
   );
 }

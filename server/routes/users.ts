@@ -10,24 +10,24 @@ const router = Router();
 router.get("/", authenticate, async (req, res) => {
   try {
     const { query: searchTerm } = req.query;
-    
+
     if (!searchTerm || typeof searchTerm !== "string") {
       return res.status(400).json({ 
         error: "Search query is required",
         code: "MISSING_QUERY"
       });
     }
-    
+
     if (searchTerm.length < 2) {
       return res.status(400).json({ 
         error: "Search query must be at least 2 characters",
         code: "QUERY_TOO_SHORT"
       });
     }
-    
+
     const searchPattern = `%${searchTerm}%`;
     const currentUserId = req.user!.id;
-    
+
     // Search users with enhanced metadata
     const userResults = await db
       .select({
@@ -147,7 +147,7 @@ router.get("/:id", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const currentUserId = req.user!.id;
-    
+
     // Get user profile
     const user = await db
       .select()
@@ -203,7 +203,7 @@ router.get("/:id/stats", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const currentUserId = req.user!.id;
-    
+
     // Get social stats
     const followerCount = await db
       .select({ count: sql<number>`count(*)` })
@@ -242,7 +242,7 @@ router.get("/:id/stats", authenticate, async (req, res) => {
 router.get("/:id/posts", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-    
+
     // Get user posts with restaurant and engagement data
     const userPosts = await db
       .select({
@@ -284,7 +284,7 @@ router.get("/:id/posts", authenticate, async (req, res) => {
 router.get("/:id/lists", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-    
+
     // Get user's lists with restaurant counts
     const userLists = await db
       .select({
@@ -304,7 +304,7 @@ router.get("/:id/lists", authenticate, async (req, res) => {
 
     // Get restaurant counts for each list
     const listIds = userLists.map(list => list.id);
-    
+
     if (listIds.length > 0) {
       const restaurantCounts = await db
         .select({
@@ -340,7 +340,7 @@ router.get("/:id/lists", authenticate, async (req, res) => {
 router.get("/:id/circles", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-    
+
     // Get user's circles through membership
     const userCircles = await db
       .select({
@@ -373,7 +373,7 @@ router.get("/:id/circles", authenticate, async (req, res) => {
 router.get("/:id/saved", authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-    
+
     // For now, return empty array to fix the Profile page runtime error
     // TODO: Implement proper saved restaurants functionality
     res.json([]);
@@ -388,7 +388,7 @@ router.put("/settings", authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
     const updateData = req.body;
-    
+
     // Filter out undefined values and only update provided fields
     const filteredUpdateData: any = {};
     Object.keys(updateData).forEach(key => {
@@ -396,18 +396,18 @@ router.put("/settings", authenticate, async (req, res) => {
         filteredUpdateData[key] = updateData[key];
       }
     });
-    
+
     // Update user settings
     const updatedUser = await db
       .update(users)
       .set(filteredUpdateData)
       .where(eq(users.id, userId))
       .returning();
-    
+
     if (updatedUser.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     res.json(updatedUser[0]);
   } catch (error) {
     console.error("Error updating user settings:", error);

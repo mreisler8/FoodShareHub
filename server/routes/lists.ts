@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { eq, and, desc, asc, sql, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists } from '../../shared/schema';
+import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists } from '../../shared/schema';
 import { tempSavedListStorage } from '../temp-storage';
 
 const router = Router();
@@ -134,9 +134,9 @@ router.get('/', authenticate, async (req, res) => {
               rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
             FROM restaurant_lists rl
             WHERE rl.created_by_id = ${userId}
-            
+
             UNION
-            
+
             -- Public lists (not owned by user)
             SELECT DISTINCT 
               rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
@@ -147,9 +147,9 @@ router.get('/', authenticate, async (req, res) => {
             FROM restaurant_lists rl
             WHERE rl.make_public = true 
             AND rl.created_by_id != ${userId}
-            
+
             UNION
-            
+
             -- Circle-shared lists (user is member, not owner, not public)
             SELECT DISTINCT 
               rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
@@ -163,7 +163,7 @@ router.get('/', authenticate, async (req, res) => {
             AND cm.user_id = ${userId}
             AND rl.created_by_id != ${userId}
             AND rl.make_public = false
-            
+
             ORDER BY "createdAt" DESC
           `);
 
@@ -183,7 +183,7 @@ router.get('/', authenticate, async (req, res) => {
 
         // Get circle shared information for all lists
         const listIds = lists.map(list => list.id);
-        
+
         if (listIds.length > 0) {
           const sharedInfo = await db
             .select({
@@ -288,13 +288,13 @@ router.post('/', authenticate, async (req, res) => {
       res.json(list);
     } catch (dbError) {
       console.error('Database error, using temp storage for list creation:', dbError);
-      
+
       // Fallback to temp storage when database is unavailable
       try {
         // Check for duplicate name in temp storage
         const existingLists = await tempSavedListStorage.getRestaurantListsByUser(userId);
         const duplicate = existingLists.find(list => list.name === data.name);
-        
+
         if (duplicate) {
           return res.status(409).json({
             error: 'duplicate_list',
@@ -328,6 +328,61 @@ router.post('/', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error creating list:', error);
     res.status(500).json({ error: 'Failed to create list' });
+  }
+});
+
+// Save/unsave a list
+router.post("/:id/save", authenticate, async (req, res) => {
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    // Check if already saved
+    const existing = await db
+      .select()
+      .from(savedLists)
+      .where(
+        and(
+          eq(savedLists.listId, listId),
+          eq(savedLists.userId, userId)
+        )
+      );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "List already saved" });
+    }
+
+    // Save the list
+    await db.insert(savedLists).values({
+      listId,
+      userId,
+    });
+
+    res.json({ success: true, message: "List saved successfully" });
+  } catch (error) {
+    console.error("Error saving list:", error);
+    res.status(500).json({ error: "Failed to save list" });
+  }
+});
+
+router.delete("/:id/save", authenticate, async (req, res) => {
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    await db
+      .delete(savedLists)
+      .where(
+        and(
+          eq(savedLists.listId, listId),
+          eq(savedLists.userId, userId)
+        )
+      );
+
+    res.json({ success: true, message: "List removed from saved" });
+  } catch (error) {
+    console.error("Error removing saved list:", error);
+    res.status(500).json({ error: "Failed to remove saved list" });
   }
 });
 

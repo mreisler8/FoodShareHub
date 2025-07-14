@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { RestaurantListCard } from "./lists/RestaurantListCard";
+import { RestaurantListCard } from "@/components/lists/RestaurantListCard";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function SavedListsSection() {
-  const { data: savedLists, isLoading } = useQuery({
-    queryKey: ['/api/saved-lists'],
-    queryFn: async () => {
-      const response = await apiRequest('/api/saved-lists');
-      return response.json();
-    },
+interface SavedListsSectionProps {
+  userId: number;
+}
+
+export function SavedListsSection({ userId }: SavedListsSectionProps) {
+  const { data: savedLists, isLoading } = useQuery<any[]>({
+    queryKey: [`/api/users/${userId}/saved`],
+    enabled: !!userId,
   });
 
   if (isLoading) {
@@ -17,34 +17,32 @@ export function SavedListsSection() {
       <div>
         <h2 className="text-xl font-bold mb-4">Saved Lists</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-32 w-full" />
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32 w-full" />
           ))}
         </div>
       </div>
     );
   }
 
-  if (!savedLists || savedLists.length === 0) {
+  if (!savedLists?.length) {
     return (
       <div>
         <h2 className="text-xl font-bold mb-4">Saved Lists</h2>
-        <div className="text-center py-8 text-muted-foreground">
-          <p>No saved lists yet.</p>
-          <p className="text-sm mt-2">Lists you save will appear here.</p>
-        </div>
+        <p className="text-muted-foreground">No saved lists yet.</p>
       </div>
     );
   }
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Saved Lists</h2>
+      <h2 className="text-xl font-bold mb-4">Saved Lists ({savedLists.length})</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {savedLists.map((savedList: any) => (
+        {savedLists.map((savedItem) => (
           <RestaurantListCard 
-            key={savedList.id} 
-            list={savedList.list}
+            key={savedItem.listId} 
+            list={savedItem.list}
+            showSaveButton={false}
           />
         ))}
       </div>

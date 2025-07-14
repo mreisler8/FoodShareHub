@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
@@ -43,6 +42,9 @@ import { FollowsPanel } from "@/components/user/FollowsPanel";
 import { UserSearchModal } from "@/components/search/UserSearchModal";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
+import { SavedListsSection } from "@/components/SavedListsSection";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Profile() {
   const { id } = useParams();
@@ -54,16 +56,16 @@ export default function Profile() {
   const [showFindFriendsModal, setShowFindFriendsModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // If no id specified, show the current user's profile
   const userId = id ? parseInt(id) : currentUser?.id;
-  
+
   // Fetch user profile with enhanced data
   const { data: profileUser, isLoading: isUserLoading } = useQuery<UserWithStats>({
     queryKey: [userId ? `/api/users/${userId}` : "/api/me"],
     enabled: !!userId || !!currentUser,
   });
-  
+
   // Fetch user posts/reviews
   const { data: userPosts, isLoading: isPostsLoading } = useQuery({
     queryKey: [`/api/users/${userId}/posts`],
@@ -87,7 +89,7 @@ export default function Profile() {
     queryKey: [`/api/users/${userId}/saved`],
     enabled: !!userId,
   });
-  
+
   // Check if viewing own profile
   const isOwnProfile = currentUser && (!id || parseInt(id) === currentUser.id);
 
@@ -140,9 +142,9 @@ export default function Profile() {
         method: "POST",
         body: JSON.stringify({ targetUserId: user.id }),
       });
-      
+
       await queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
-      
+
       toast({
         title: "Success!",
         description: `You are now following ${user.name}`,
@@ -210,7 +212,7 @@ export default function Profile() {
               <Camera className="h-4 w-4" />
             </Button>
           )}
-          
+
           {/* Trust Indicators */}
           <div className="absolute -top-2 -right-2 flex flex-col gap-1">
             {profileUser?.verified && (
@@ -299,7 +301,7 @@ export default function Profile() {
                   </div>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Favorite Food */}
                 <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
@@ -468,7 +470,7 @@ export default function Profile() {
     <div className="flex min-h-screen mb-16 md:mb-0">
       <MobileNavigation />
       <DesktopSidebar />
-      
+
       <div className="flex-1 max-w-5xl mx-auto">
         {/* Back Button and Settings */}
         <div className="p-4 flex items-center justify-between">
@@ -476,7 +478,7 @@ export default function Profile() {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Feed
           </Link>
-          
+
           {isOwnProfile && (
             <Link href="/settings" className="inline-flex items-center text-gray-600 hover:text-gray-900">
               <Settings className="h-5 w-5" />
@@ -533,7 +535,7 @@ export default function Profile() {
                 Connections
               </TabsTrigger>
             </TabsList>
-            
+
             <div className="px-6 md:px-8 py-6">
               <TabsContent value="reviews" className="mt-0">
                 {isPostsLoading ? (
@@ -574,7 +576,7 @@ export default function Profile() {
                   </Card>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="lists" className="mt-0">
                 {isListsLoading ? (
                   <div className="space-y-4">
@@ -636,7 +638,7 @@ export default function Profile() {
                   </Card>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="circles" className="mt-0">
                 {isCirclesLoading ? (
                   <div className="space-y-4">
@@ -707,14 +709,53 @@ export default function Profile() {
 
               {isOwnProfile && (
                 <TabsContent value="saved" className="mt-0">
-                  <div className="text-center py-12">
-                    <Heart className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nothing saved yet</h3>
-                    <p className="text-gray-500">Save restaurants and posts to find them later!</p>
-                  </div>
+                  {isSavedLoading ? (
+                    <div className="space-y-4">
+                      {Array(3).fill(0).map((_, i) => (
+                        <Card key={i}>
+                          <CardContent className="p-4">
+                            <Skeleton className="h-6 w-48 mb-2" />
+                            <Skeleton className="h-4 w-32 mb-2" />
+                            <Skeleton className="h-4 w-24" />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : savedItems && savedItems.length > 0 ? (
+                    <div className="space-y-4">
+                      {savedItems.map((item: any) => (
+                        <Card key={item.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-lg mb-2">{item.name}</h3>
+                                {item.description && (
+                                  <p className="text-gray-600 mb-2">{item.description}</p>
+                                )}
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                  <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href={`/restaurants/${item.id}`}>View</Link>
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card className="text-center py-12">
+                      <CardContent>
+                        <Heart className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Nothing saved yet</h3>
+                        <p className="text-gray-500">Save restaurants and posts to find them later!</p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
               )}
-              
+
               <TabsContent value="connections" className="mt-0">
                 {userId ? (
                   <FollowsPanel userId={userId} />
