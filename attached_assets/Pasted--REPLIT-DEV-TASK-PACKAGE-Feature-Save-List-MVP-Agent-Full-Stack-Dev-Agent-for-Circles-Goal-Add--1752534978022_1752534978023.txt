@@ -1,0 +1,191 @@
+✅ REPLIT DEV TASK PACKAGE
+Feature: Save List MVP
+Agent: Full-Stack Dev Agent for Circles
+Goal: Add "Save List" button to list view, show toast confirmation, persist save state in Supabase, and surface saved lists on profile.
+
+🧩 FILE 1: components/SaveListButton.tsx
+tsx
+Copy
+Edit
+import { useEffect, useState } from "react";
+import { BookmarkIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabaseClient"; // ✅ Ensure this exists
+
+interface SaveListButtonProps {
+  listId: string;
+  userId: string; // Required to track saved lists per user
+}
+
+export function SaveListButton({ listId, userId }: SaveListButtonProps) {
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    const fetchSavedStatus = async () => {
+      const { data } = await supabase
+        .from("saved_lists")
+        .select("list_id")
+        .eq("list_id", listId)
+        .eq("user_id", userId);
+      setIsSaved(data?.length > 0);
+    };
+
+    if (listId && userId) fetchSavedStatus();
+  }, [listId, userId]);
+
+  const handleToggleSave = async () => {
+    let error;
+
+    if (isSaved) {
+      ({ error } = await supabase
+        .from("saved_lists")
+        .delete()
+        .match({ list_id: listId, user_id: userId }));
+    } else {
+      ({ error } = await supabase
+        .from("saved_lists")
+        .insert({ list_id: listId, user_id: userId }));
+    }
+
+    if (!error) {
+      setIsSaved(!isSaved);
+      toast({
+        title: isSaved ? "List removed" : "List saved",
+        description: isSaved
+          ? "Removed from your Saved tab."
+          : "You can find this in your Saved tab.",
+      });
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={isSaved ? "Unsave this list" : "Save this list"}
+      onClick={handleToggleSave}
+      className="transition-transform hover:scale-105"
+    >
+      <BookmarkIcon
+        className={`h-6 w-6 ${isSaved ? "text-primary fill-primary" : ""}`}
+      />
+    </Button>
+  );
+}
+🧩 FILE 2: components/SavedListsSection.tsx
+tsx
+Copy
+Edit
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { ListCard } from "./ListCard";
+
+interface List {
+  id: string;
+  title: string;
+  creator: string;
+  cuisine: string;
+  city: string;
+}
+
+export function SavedListsSection({ userId }: { userId: string }) {
+  const [lists, setLists] = useState<List[]>([]);
+
+  useEffect(() => {
+    const fetchSavedLists = async () => {
+      const { data, error } = await supabase
+        .from("saved_lists")
+        .select("list:lists(*)")
+        .eq("user_id", userId);
+
+      if (data) {
+        const formatted = data.map((entry) => entry.list);
+        setLists(formatted);
+      }
+    };
+
+    if (userId) fetchSavedLists();
+  }, [userId]);
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Saved Lists</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {lists.map((list) => (
+          <ListCard key={list.id} {...list} />
+        ))}
+      </div>
+    </div>
+  );
+}
+🧩 FILE 3: lib/supabaseClient.ts
+ts
+Copy
+Edit
+import { createClient } from "@supabase/supabase-js";
+
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_ANON_KEY!
+);
+✅ Update .env in Replit:
+
+ini
+Copy
+Edit
+VITE_SUPABASE_URL=https://xyzcompany.supabase.co
+VITE_SUPABASE_ANON_KEY=your-public-api-key
+🧩 SQL: SUPABASE TABLE FOR SAVED LISTS
+Run this in your Supabase SQL editor:
+
+sql
+Copy
+Edit
+create table saved_lists (
+  user_id uuid references auth.users,
+  list_id uuid references lists on delete cascade,
+  saved_at timestamp default now(),
+  primary key (user_id, list_id)
+);
+✅ RLS Policy for saved_lists:
+
+sql
+Copy
+Edit
+-- Enable RLS
+alter table saved_lists enable row level security;
+
+-- Add policy
+create policy "Users can manage their own saved lists"
+on saved_lists
+for all
+using (auth.uid() = user_id);
+✅ HOW TO INTEGRATE IN EXISTING FILES
+In your ListDetails.tsx or wherever you render the full list:
+tsx
+Copy
+Edit
+import { SaveListButton } from "@/components/SaveListButton";
+
+<SaveListButton listId={list.id} userId={user.id} />
+In your profile page:
+tsx
+Copy
+Edit
+import { SavedListsSection } from "@/components/SavedListsSection";
+
+<SavedListsSection userId={user.id} />
+📌 TESTING CHECKLIST
+ Save button shows filled icon after tap
+
+ Toast feedback appears
+
+ Saved list appears in profile under "Saved"
+
+ RLS prevents others from saving on your behalf
+
+ Logic works on both mobile + desktop
+
+ Local error doesn't crash the app
+
