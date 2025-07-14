@@ -134,9 +134,9 @@ router.get('/', authenticate, async (req, res) => {
               rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
             FROM restaurant_lists rl
             WHERE rl.created_by_id = ${userId}
-            
+
             UNION
-            
+
             -- Public lists (not owned by user)
             SELECT DISTINCT 
               rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
@@ -147,9 +147,9 @@ router.get('/', authenticate, async (req, res) => {
             FROM restaurant_lists rl
             WHERE rl.make_public = true 
             AND rl.created_by_id != ${userId}
-            
+
             UNION
-            
+
             -- Circle-shared lists (user is member, not owner, not public)
             SELECT DISTINCT 
               rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
@@ -163,7 +163,7 @@ router.get('/', authenticate, async (req, res) => {
             AND cm.user_id = ${userId}
             AND rl.created_by_id != ${userId}
             AND rl.make_public = false
-            
+
             ORDER BY "createdAt" DESC
           `);
 
@@ -183,7 +183,7 @@ router.get('/', authenticate, async (req, res) => {
 
         // Get circle shared information for all lists
         const listIds = lists.map(list => list.id);
-        
+
         if (listIds.length > 0) {
           const sharedInfo = await db
             .select({
@@ -288,13 +288,13 @@ router.post('/', authenticate, async (req, res) => {
       res.json(list);
     } catch (dbError) {
       console.error('Database error, using temp storage for list creation:', dbError);
-      
+
       // Fallback to temp storage when database is unavailable
       try {
         // Check for duplicate name in temp storage
         const existingLists = await tempSavedListStorage.getRestaurantListsByUser(userId);
         const duplicate = existingLists.find(list => list.name === data.name);
-        
+
         if (duplicate) {
           return res.status(409).json({
             error: 'duplicate_list',
@@ -693,6 +693,225 @@ router.get('/:id/items', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching list items:', error);
     res.status(500).json({ error: 'Failed to fetch list items' });
+  }
+});
+
+export default router;
+import express, { type Request, Response } from "express";
+import { z } from "zod";
+import { db } from "../db";
+import { isAuthenticated } from "../auth";
+import { restaurantLists, restaurantListItems, users, circles, savedLists } from "@shared/schema";
+import { eq, and, desc, sql, isNull, or, inArray } from "drizzle-orm";
+const router = express.Router();
+
+// Get a specific list by ID with items
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const listId = parseInt(req.params.id);
+
+    if (isNaN(listId)) {
+      return res.status(400).json({ error: "Invalid list ID" });
+    }
+
+    // Get the list with creator information
+    const [list] = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        type: restaurantLists.type,
+        audience: restaurantLists.audience,
+        coverImage: restaurantLists.coverImage,
+        primaryCuisine: restaurantLists.primaryCuisine,
+        primaryLocation: restaurantLists.primaryLocation,
+        tags: restaurantLists.tags,
+        createdAt: restaurantLists.createdAt,
+        createdById: restaurantLists.createdById,
+        isPublic: restaurantLists.isPublic,
+        visibility: restaurantLists.visibility,
+        viewCount: restaurantLists.viewCount,
+        saveCount: restaurantLists.saveCount,
+        creator: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+        }
+      })
+      .from(restaurantLists)
+      .leftJoin(users, eq(restaurantLists.createdById, users.id))
+      .where(eq(restaurantLists.id, listId));
+
+    if (!list) {
+      return res.status(404).json({ error: "List not found" });
+    }
+
+    // Check if the list is accessible to the current user
+    const isOwner = req.user?.id === list.createdById;
+    const isPublic = list.isPublic || list.visibility.public;
+
+    if (!isPublic && !isOwner) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Get list items
+    const items = await db
+      .select({
+        id: restaurantListItems.id,
+        name: restaurantListItems.name,
+        notes: restaurantListItems.notes,
+        tags: restaurantListItems.tags,
+        city: restaurantListItems.city,
+        mediaUrl: restaurantListItems.mediaUrl,
+        rank: restaurantListItems.rank,
+        rating: restaurantListItems.rating,
+        priceAssessment: restaurantListItems.priceAssessment,
+        liked: restaurantListItems.liked,
+        disliked: restaurantListItems.disliked,
+        mustTryDishes: restaurantListItems.mustTryDishes,
+        position: restaurantListItems.position,
+        addedAt: restaurantListItems.addedAt,
+      })
+      .from(restaurantListItems)
+      .where(eq(restaurantListItems.listId, listId))
+      .orderBy(restaurantListItems.position);
+
+    // Increment view count if not the owner
+    if (!isOwner) {
+      await db
+        .update(restaurantLists)
+        .set({ 
+          viewCount: sql`${restaurantLists.viewCount} + 1`
+        })
+        .where(eq(restaurantLists.id, listId));
+    }
+
+    res.json({
+      ...list,
+      items,
+    });
+
+  } catch (error) {
+    console.error("Error fetching list:", error);
+    res.status(500).json({ error: "Failed to fetch list" });
+  }
+});
+
+// Get lists for the current user
+router.get("/", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const lists = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        type: restaurantLists.type,
+        audience: restaurantLists.audience,
+        coverImage: restaurantLists.coverImage,
+        primaryCuisine: restaurantLists.primaryCuisine,
+        primaryLocation: restaurantLists.primaryLocation,
+        tags: restaurantLists.tags,
+        createdAt: restaurantLists.createdAt,
+        createdById: restaurantLists.createdById,
+        isPublic: restaurantLists.isPublic,
+        visibility: restaurantLists.visibility,
+        viewCount: restaurantLists.viewCount,
+        saveCount: restaurantLists.saveCount,
+      })
+      .from(restaurantLists)
+      .where(eq(restaurantLists.createdById, userId));
+
+    res.json(lists);
+  } catch (error) {
+    console.error("Error fetching lists:", error);
+    res.status(500).json({ error: "Failed to fetch lists" });
+  }
+});
+
+// Create a new list
+router.post("/", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId =req.user!.id;
+
+    const createListSchema = z.object({
+      name: z.string().min(1),
+      description: z.string().optional(),
+      type: z.enum(["restaurant", "dish"]).default("restaurant"),
+      audience: z.enum(["profile", "circle", "public"]).default("profile"),
+      coverImage: z.string().optional(),
+      primaryCuisine: z.string().optional(),
+      primaryLocation: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+      isPublic: z.boolean().default(false),
+      visibility: z.object({
+        public: z.boolean().default(false),
+        followers: z.boolean().default(false),
+        circleIds: z.array(z.number()).default([]),
+      }).default({ public: false, followers: false, circleIds: [] }),
+      items: z.array(
+        z.object({
+          name: z.string().min(1),
+          notes: z.string().optional(),
+          tags: z.array(z.string()).optional(),
+          city: z.string().optional(),
+          mediaUrl: z.string().optional(),
+          rank: z.number().int().min(1).optional(),
+          rating: z.number().int().min(1).max(5).optional(),
+          priceAssessment: z.enum(['Great value', 'Fair', 'Overpriced']).optional(),
+          liked: z.string().optional(),
+          disliked: z.string().optional(),
+          mustTryDishes: z.array(z.string()).optional(),
+        })
+      ).optional().default([]),
+    });
+
+    const parsedList = createListSchema.parse(req.body);
+
+    const [list] = await db
+      .insert(restaurantLists)
+      .values({
+        name: parsedList.name,
+        description: parsedList.description,
+        type: parsedList.type,
+        audience: parsedList.audience,
+        coverImage: parsedList.coverImage,
+        primaryCuisine: parsedList.primaryCuisine,
+        primaryLocation: parsedList.primaryLocation,
+        tags: parsedList.tags,
+        createdById: userId,
+        isPublic: parsedList.isPublic,
+        visibility: parsedList.visibility,
+      })
+      .returning();
+
+    // Insert items
+    if (parsedList.items && parsedList.items.length > 0) {
+      const itemsToInsert = parsedList.items.map((item, index) => ({
+        listId: list.id,
+        name: item.name,
+        notes: item.notes,
+        tags: item.tags,
+        city: item.city,
+        mediaUrl: item.mediaUrl,
+        rank: item.rank,
+        rating: item.rating,
+		priceAssessment: item.priceAssessment,
+		liked: item.liked,
+		disliked: item.disliked,
+		mustTryDishes: item.mustTryDishes,
+        position: index + 1, // Set position based on order
+      }));
+
+      await db.insert(restaurantListItems).values(itemsToInsert);
+    }
+
+    res.json({ ...list, items: parsedList.items });
+  } catch (error) {
+    console.error("Error creating list:", error);
+    res.status(500).json({ error: "Failed to create list" });
   }
 });
 

@@ -60,6 +60,8 @@ function Router() {
       <Route path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/settings" component={Settings} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/list-details/:id" component={lazy(() => import("../pages/list-details"))} />
+        <Route path="/lists/:id" component={lazy(() => import("../pages/list-details-v2"))} />
       <Route component={NotFound} />
     </Switch>
   );
