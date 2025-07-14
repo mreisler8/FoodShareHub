@@ -37,7 +37,7 @@ function Router() {
 
   return (
     <Switch>
-      <ProtectedRoute path="/" component={NewHomePage} />
+      <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/feed" component={() => <FeedPage scope="feed" />} />
       <ProtectedRoute path="/feed/circle/:circleId" component={({ params }: any) => <FeedPage scope="circle" circleId={params?.circleId} />} />
       <ProtectedRoute path="/top-picks" component={TopPicksPage} />

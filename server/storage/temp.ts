@@ -41,17 +41,17 @@ export const tempStorage = {
     return tempUsers[userIndex];
   },
 
-  // Initialize with demo user
+  // Initialize with demo user and your account
   async init() {
     if (tempUsers.length === 0) {
-      // Create a properly hashed password for "demo123"
       const { scrypt, randomBytes } = await import("crypto");
       const { promisify } = await import("util");
       const scryptAsync = promisify(scrypt);
       
-      const salt = randomBytes(16).toString("hex");
-      const buf = (await scryptAsync("demo123", salt, 64)) as Buffer;
-      const hashedPassword = `${buf.toString("hex")}.${salt}`;
+      // Create demo user with password "demo123"
+      let salt = randomBytes(16).toString("hex");
+      let buf = (await scryptAsync("demo123", salt, 64)) as Buffer;
+      let hashedPassword = `${buf.toString("hex")}.${salt}`;
       
       tempUsers.push({
         id: 1,
@@ -66,6 +66,26 @@ export const tempStorage = {
         diningInterests: null,
         favoriteFood: null,
         favoriteRestaurant: null,
+      });
+
+      // Create your account with password "password123"
+      salt = randomBytes(16).toString("hex");
+      buf = (await scryptAsync("password123", salt, 64)) as Buffer;
+      hashedPassword = `${buf.toString("hex")}.${salt}`;
+      
+      tempUsers.push({
+        id: 2,
+        username: "mitch.reisler@gmail.com",
+        password: hashedPassword,
+        name: "Mitch Reisler",
+        bio: "Founder of Circles - connecting food lovers through trusted recommendations",
+        profilePicture: null,
+        preferredCuisines: "Italian, Asian, Mediterranean",
+        preferredPriceRange: "$$ - $$$",
+        preferredLocation: "Toronto, ON",
+        diningInterests: "Fine dining, local gems, authentic cuisines",
+        favoriteFood: "Fresh pasta",
+        favoriteRestaurant: "Local Italian spot",
       });
     }
   }
