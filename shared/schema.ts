@@ -277,6 +277,19 @@ export const insertSavedRestaurantSchema = createInsertSchema(savedRestaurants).
   userId: true,
 });
 
+// Saved Lists model
+export const savedLists = pgTable("saved_lists", {
+  id: serial("id").primaryKey(),
+  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  savedAt: timestamp("saved_at").defaultNow().notNull(),
+});
+
+export const insertSavedListSchema = createInsertSchema(savedLists).pick({
+  listId: true,
+  userId: true,
+});
+
 // Story model
 export const stories = pgTable("stories", {
   id: serial("id").primaryKey(),
@@ -443,6 +456,9 @@ export type InsertLike = z.infer<typeof insertLikeSchema>;
 
 export type SavedRestaurant = typeof savedRestaurants.$inferSelect;
 export type InsertSavedRestaurant = z.infer<typeof insertSavedRestaurantSchema>;
+
+export type SavedList = typeof savedLists.$inferSelect;
+export type InsertSavedList = z.infer<typeof insertSavedListSchema>;
 
 export type Story = typeof stories.$inferSelect;
 export type InsertStory = z.infer<typeof insertStorySchema>;

@@ -26,6 +26,12 @@ export function SectionTabs({ onTabChange, activeTab = 'My Lists' }: SectionTabs
           My Lists
         </button>
         <button 
+          onClick={() => handleTabChange('Saved Lists')} 
+          className={`tab-button ${currentTab === 'Saved Lists' ? 'active' : ''}`}
+        >
+          Saved Lists
+        </button>
+        <button 
           onClick={() => handleTabChange('Top Picks')} 
           className={`tab-button ${currentTab === 'Top Picks' ? 'active' : ''}`}
         >

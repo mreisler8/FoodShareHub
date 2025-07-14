@@ -33,6 +33,7 @@ import listItemCommentsRouter from './routes/list-item-comments.js';
 import * as circleRoutes from './routes/circles';
 import circleRequestsRouter from './routes/circle-requests';
 import usersRouter from './routes/users';
+import savedListsRouter from './routes/saved-lists';
 // import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
@@ -1141,6 +1142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/restaurants", restaurantRouter.default);
   
   app.use("/api/lists", listsRouter);
+  app.use("/api/saved-lists", savedListsRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/list-item-comments", listItemCommentsRouter);
   app.use("/api/follow", followRoutes);

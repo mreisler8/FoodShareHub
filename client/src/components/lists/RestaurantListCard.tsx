@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { RestaurantList } from "@shared/schema";
 import { MapPin, Users, Eye, Heart } from "lucide-react";
+import { SaveListButton } from "../SaveListButton";
 
 interface RestaurantListCardProps {
   list: RestaurantList;
@@ -20,6 +21,7 @@ export function RestaurantListCard({ list }: RestaurantListCardProps) {
           <div className="flex items-center space-x-2 text-sm text-muted-foreground ml-4">
             <Eye className="h-4 w-4" />
             <span>{list.viewCount || 0}</span>
+            <SaveListButton listId={list.id} />
           </div>
         </div>
 

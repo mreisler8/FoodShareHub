@@ -7,6 +7,7 @@ import {
   circleMembers, type CircleMember, type InsertCircleMember,
   likes, type Like, type InsertLike,
   savedRestaurants, type SavedRestaurant, type InsertSavedRestaurant,
+  savedLists, type SavedList, type InsertSavedList,
   stories, type Story, type InsertStory,
   restaurantLists, type RestaurantList, type InsertRestaurantList,
   restaurantListItems, type RestaurantListItem, type InsertRestaurantListItem,
@@ -112,6 +113,12 @@ export interface IStorage {
   // Saved Restaurant operations
   createSavedRestaurant(savedRestaurant: InsertSavedRestaurant): Promise<SavedRestaurant>;
   getSavedRestaurantsByUser(userId: number): Promise<SavedRestaurant[]>;
+  
+  // Saved List operations
+  createSavedList(savedList: InsertSavedList): Promise<SavedList>;
+  deleteSavedList(listId: number, userId: number): Promise<void>;
+  getSavedListsByUser(userId: number): Promise<any[]>; // with list details
+  isListSavedByUser(listId: number, userId: number): Promise<boolean>;
   
   // Story operations
   createStory(story: InsertStory): Promise<Story>;
@@ -795,6 +802,63 @@ export class DatabaseStorage implements IStorage {
 
   async getSavedRestaurantsByUser(userId: number): Promise<SavedRestaurant[]> {
     return await db.select().from(savedRestaurants).where(eq(savedRestaurants.userId, userId));
+  }
+  
+  // Saved List operations
+  async createSavedList(insertSavedList: InsertSavedList): Promise<SavedList> {
+    const [savedList] = await db.insert(savedLists).values({
+      ...insertSavedList,
+      savedAt: new Date()
+    }).returning();
+    return savedList;
+  }
+
+  async deleteSavedList(listId: number, userId: number): Promise<void> {
+    await db.delete(savedLists).where(
+      and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      )
+    );
+  }
+
+  async getSavedListsByUser(userId: number): Promise<any[]> {
+    return await db.select({
+      id: savedLists.id,
+      savedAt: savedLists.savedAt,
+      list: {
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        createdById: restaurantLists.createdById,
+        isPublic: restaurantLists.isPublic,
+        tags: restaurantLists.tags,
+        primaryLocation: restaurantLists.primaryLocation,
+        createdAt: restaurantLists.createdAt,
+        updatedAt: restaurantLists.updatedAt
+      },
+      creator: {
+        id: users.id,
+        name: users.name,
+        username: users.username,
+        profilePicture: users.profilePicture
+      }
+    })
+    .from(savedLists)
+    .innerJoin(restaurantLists, eq(savedLists.listId, restaurantLists.id))
+    .innerJoin(users, eq(restaurantLists.createdById, users.id))
+    .where(eq(savedLists.userId, userId))
+    .orderBy(desc(savedLists.savedAt));
+  }
+
+  async isListSavedByUser(listId: number, userId: number): Promise<boolean> {
+    const [savedList] = await db.select().from(savedLists).where(
+      and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      )
+    );
+    return !!savedList;
   }
   
   // Story operations

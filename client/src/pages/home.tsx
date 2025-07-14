@@ -5,6 +5,7 @@ import { SectionTabs } from "@/components/home/SectionTabs";
 import { PreviewCarousel } from "@/components/home/PreviewCarousel";
 import { FeedPreview } from "@/components/home/FeedPreview";
 import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
+import { SavedListsSection } from "@/components/SavedListsSection";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/Card";
@@ -150,11 +151,15 @@ export default function Home() {
             />
 
             <div className="tab-content">
-              <PreviewCarousel 
-                items={getCarouselData()}
-                type={activeTab === 'My Lists' ? 'lists' : 
-                     activeTab === 'Top Picks' ? 'restaurants' : 'circles'}
-              />
+              {activeTab === 'Saved Lists' ? (
+                <SavedListsSection />
+              ) : (
+                <PreviewCarousel 
+                  items={getCarouselData()}
+                  type={activeTab === 'My Lists' ? 'lists' : 
+                       activeTab === 'Top Picks' ? 'restaurants' : 'circles'}
+                />
+              )}
             </div>
           </section>
 
