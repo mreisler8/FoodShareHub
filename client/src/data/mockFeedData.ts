@@ -1,102 +1,80 @@
 
-export const mockFeed: any[] = [
+// Mock data for development and fallback scenarios
+export const mockLists = [
   {
-    type: "list",
-    id: "1",
-    title: "Best of Madrid",
-    image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&h=300&fit=crop",
-    user: { 
-      name: "David Lee", 
-      handle: "@david.eats", 
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
+    id: 1,
+    name: "Best Brunch Spots in NYC",
+    description: "My favorite weekend brunch places",
+    createdById: 1,
+    isPublic: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    creator: {
+      id: 1,
+      name: "Sarah Chen",
+      username: "sarahc",
+      profilePicture: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
     },
-    saved: false,
-    followed: false,
-    restaurantCount: 12
+    itemCount: 8,
+    tags: ["brunch", "weekend", "nyc"]
   },
   {
-    type: "circle",
-    id: "2",
-    name: "Tokyo Eats",
-    members: 48,
-    icon: "🍜",
-    description: "Best ramen and sushi spots in Tokyo"
-  },
-  {
-    type: "list",
-    id: "3",
-    title: "NYC Pizza Guide",
-    image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=300&fit=crop",
-    user: { 
-      name: "Emma Wilson", 
-      handle: "@emma.foodie", 
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face"
+    id: 2,
+    name: "Tokyo Food Adventures",
+    description: "Incredible eats from my Japan trip",
+    createdById: 2,
+    isPublic: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    creator: {
+      id: 2,
+      name: "Mike Johnson",
+      username: "mikej",
+      profilePicture: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
     },
-    saved: true,
-    followed: true,
-    restaurantCount: 8
-  },
-  {
-    type: "tag",
-    id: "4",
-    tag: "#BrunchGoals"
-  },
-  {
-    type: "circle",
-    id: "5",
-    name: "Little Cactus",
-    members: 23,
-    icon: "🌵",
-    description: "Mexican food lovers unite"
-  },
-  {
-    type: "tag",
-    id: "6",
-    tag: "#Farmer'sMarket"
-  },
-  {
-    type: "list",
-    id: "7",
-    title: "SF Coffee Culture",
-    image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=300&fit=crop",
-    user: { 
-      name: "Sophie Wang", 
-      handle: "@sophie.brew", 
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face"
-    },
-    saved: false,
-    followed: false,
-    restaurantCount: 15
+    itemCount: 12,
+    tags: ["tokyo", "japan", "travel"]
   }
 ];
 
-export const suggestedUsers = [
+export const mockCircles = [
   {
-    id: "1",
+    id: 1,
+    name: "NYC Foodies",
+    description: "Best restaurants in the five boroughs",
+    memberCount: 247,
+    isPrivate: false,
+    creator: {
+      name: "Food Enthusiast",
+      username: "foodie_nyc"
+    }
+  },
+  {
+    id: 2,
+    name: "Coffee Connoisseurs",
+    description: "Third wave coffee shops and roasters",
+    memberCount: 89,
+    isPrivate: false,
+    creator: {
+      name: "Bean Counter",
+      username: "coffee_pro"
+    }
+  }
+];
+
+export const mockUsers = [
+  {
+    id: 1,
     name: "Emma Wilson",
-    handle: "@emma.foodie",
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64&h=64&fit=crop&crop=face",
-    followed: false
+    username: "emmaw",
+    profilePicture: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
+    bio: "Food blogger and restaurant explorer"
   },
   {
-    id: "2", 
-    name: "David Lee",
-    handle: "@david.eats",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face",
-    followed: false
-  },
-  {
-    id: "3",
-    name: "Sophie Wang", 
-    handle: "@sophie.brew",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face",
-    followed: false
-  },
-  {
-    id: "4",
-    name: "Alex Chen",
-    handle: "@alex.tastes",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face",
-    followed: false
+    id: 2,
+    name: "David Park",
+    username: "davidp",
+    profilePicture: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+    bio: "Chef and culinary instructor"
   }
 ];
