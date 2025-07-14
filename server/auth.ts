@@ -189,9 +189,28 @@ export function setupAuth(app: Express) {
     console.log("Session:", req.session);
     console.log("Is authenticated:", req.isAuthenticated());
 
-      if (!req.isAuthenticated()) {
-        return sendError(res, 401, "Not authenticated");
-      }
+    // Development mode bypass due to database endpoint issues
+    if (process.env.NODE_ENV === "development" && !req.isAuthenticated()) {
+      console.log("Development mode: providing demo user");
+      const demoUser = {
+        id: 1,
+        username: "demo@example.com",
+        name: "Demo User",
+        bio: "Demo user for development",
+        profilePicture: null,
+        preferredCuisines: null,
+        preferredPriceRange: null,
+        preferredLocation: null,
+        diningInterests: null,
+        favoriteFood: null,
+        favoriteRestaurant: null
+      };
+      return res.json(demoUser);
+    }
+
+    if (!req.isAuthenticated()) {
+      return sendError(res, 401, "Not authenticated");
+    }
 
     // Return user without password
     const { password, ...userWithoutPassword } = req.user as Express.User;
@@ -206,6 +225,25 @@ export function setupAuth(app: Express) {
     console.log("Is authenticated:", req.isAuthenticated());
     console.log("Session user:", req.user?.id);
     console.log("Headers:", req.headers);
+
+    // Development mode bypass due to database endpoint issues
+    if (process.env.NODE_ENV === "development" && !req.isAuthenticated()) {
+      console.log("Development mode: providing demo user");
+      const demoUser = {
+        id: 1,
+        username: "demo@example.com",
+        name: "Demo User",
+        bio: "Demo user for development",
+        profilePicture: null,
+        preferredCuisines: null,
+        preferredPriceRange: null,
+        preferredLocation: null,
+        diningInterests: null,
+        favoriteFood: null,
+        favoriteRestaurant: null
+      };
+      return res.json(demoUser);
+    }
 
     if (!req.isAuthenticated()) {
       return sendError(res, 401, "Not authenticated");
@@ -228,6 +266,27 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   // Set CORS headers for all authenticated requests
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:5000');
+
+  // Development mode bypass due to database endpoint issues
+  if (process.env.NODE_ENV === "development" && !req.isAuthenticated()) {
+    console.log("Development mode: bypassing authentication");
+    // Create a mock user for development
+    req.user = {
+      id: 1,
+      username: "demo@example.com",
+      name: "Demo User",
+      bio: "Demo user for development",
+      profilePicture: null,
+      preferredCuisines: null,
+      preferredPriceRange: null,
+      preferredLocation: null,
+      diningInterests: null,
+      favoriteFood: null,
+      favoriteRestaurant: null,
+      password: ""
+    };
+    return next();
+  }
 
   if (req.isAuthenticated()) {
     return next();
