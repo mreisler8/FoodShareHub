@@ -99,6 +99,7 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Frontend**: Vite dev server with proxy to backend API
 - **Database**: Neon Database with connection pooling
 - **Session Storage**: PostgreSQL session store for persistence
+- **Access Management**: Stable workflow configuration in .replit with "Start application" workflow for consistent preview access
 
 ### Production Considerations
 - **Build Process**: Vite production build with esbuild backend compilation
@@ -112,6 +113,13 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 14, 2025: **Session Persistence Fix - PostgreSQL Session Store**: Successfully resolved session persistence issues by fixing the session storage configuration:
+  - **Root Cause Resolution**: Fixed DatabaseStorage constructor to use PostgreSQL session store instead of memory store fallback
+  - **Session Store Configuration**: Implemented proper connect-pg-simple configuration with pool connection and automatic table creation
+  - **Preview Access Restored**: Application now properly accessible through Replit preview with persistent sessions
+  - **Authentication Working**: Login functionality confirmed working with mitch.reisler@gmail.com credentials
+  - **Session Management**: Sessions now persist across browser requests using PostgreSQL backend storage
+  - **Workflow Stability**: Established stable workflow configuration for consistent preview access
 - July 14, 2025: **Complete Authentication System Fix with Auto-Redirect**: Successfully resolved all authentication issues and implemented automatic login redirection:
   - **Frontend Auto-Redirect**: Added automatic redirection to `/auth` page when users are not authenticated
   - **App.tsx Enhancement**: Modified app structure to check authentication state and redirect unauthenticated users immediately
