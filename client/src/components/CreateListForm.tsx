@@ -213,19 +213,19 @@ export function CreateListForm({ onClose, onSuccess }: CreateListFormProps) {
           </div>
 
           <div className="space-y-3">
-            <Label>Audience</Label>
+            <Label>Share With</Label>
             <RadioGroup value={audience} onValueChange={(value) => setAudience(value as "profile" | "circle" | "public")}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="profile" id="profile" />
                 <Label htmlFor="profile">Profile - Only you can see this</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="circle" id="circle" />
-                <Label htmlFor="circle">Circle - Share with your circles</Label>
-              </div>
-              <div className="flex items-center space-x-2">
                 <RadioGroupItem value="public" id="public" />
                 <Label htmlFor="public">Public - Anyone can see this</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="circle" id="circle" disabled />
+                <Label htmlFor="circle" className="text-gray-400">Circle - Share with your circles (coming soon)</Label>
               </div>
             </RadioGroup>
           </div>

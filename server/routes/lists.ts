@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { eq, and, desc, asc, sql, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists } from '../../shared/schema';
+import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists } from '../../shared/schema';
 import { tempSavedListStorage } from '../temp-storage';
 
 const router = Router();
@@ -266,24 +266,26 @@ router.post('/', authenticate, async (req, res) => {
       }
 
       // Handle the frontend's sharing model
-      const isPublic = data.makePublic || data.isPublic || false;
-      const shareWithCircle = data.shareWithCircle || false;
+      const isPublic = data.makePublic || data.isPublic || data.audience === 'public' || false;
+      const shareWithCircle = data.shareWithCircle || data.audience === 'circle' || false;
       const visibility = isPublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
+      const audience = data.audience || 'profile';
 
       const [list] = await db
-        .insert(restaurantLists)
-        .values({
-          name: data.name,
-          description: data.description || null,
-          createdById: userId,
-          circleId: data.circleId || null,
-          visibility: visibility,
-          isPublic: isPublic,
-          tags: data.tags || [],
-          shareWithCircle: shareWithCircle,
-          makePublic: isPublic,
-        })
-        .returning();
+          .insert(restaurantLists)
+          .values({
+            name: data.name,
+            description: data.description || null,
+            createdById: userId,
+            circleId: data.circleId || null,
+            visibility: visibility,
+            isPublic: isPublic,
+            tags: data.tags || [],
+            shareWithCircle: shareWithCircle,
+            makePublic: isPublic,
+            audience: audience,
+          })
+          .returning();
 
       res.json(list);
     } catch (dbError) {

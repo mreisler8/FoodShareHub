@@ -1,5 +1,5 @@
-
-import { SaveListButton } from "../SaveListButton";
+import { SaveListButton } from "./SaveListButton";
+import { ListAudienceBadge } from "./ListAudienceBadge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Star, Clock, Users } from "lucide-react";
@@ -26,8 +26,7 @@ interface ListDetailsProps {
     cuisine?: string;
     city?: string;
     cover_image?: string;
-    description?: string;
-    type?: string;
+    audience?: string;
     items: ListItem[];
     viewCount?: number;
     saveCount?: number;
@@ -51,8 +50,11 @@ export function ListDetails({ list, userId }: ListDetailsProps) {
       {/* Header Section */}
       <div className="flex justify-between items-start">
         <div className="space-y-3 flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">{list.title}</h1>
-          
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-3xl font-bold text-gray-900">{list.title}</h1>
+            <ListAudienceBadge audience={list.audience || 'profile'} />
+          </div>
+
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <span className="font-medium">By @{list.creator}</span>
             {list.cuisine && (
@@ -99,7 +101,7 @@ export function ListDetails({ list, userId }: ListDetailsProps) {
             </div>
           </div>
         </div>
-        
+
         <div className="ml-6">
           <SaveListButton listId={list.id} userId={userId} />
         </div>
@@ -128,7 +130,7 @@ export function ListDetails({ list, userId }: ListDetailsProps) {
             </Badge>
           )}
         </div>
-        
+
         <div className="grid gap-6">
           {list.items.map((item, i) => (
             <Card key={i} className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-blue-500">
@@ -145,7 +147,7 @@ export function ListDetails({ list, userId }: ListDetailsProps) {
                         )}
                         {item.name}
                       </h3>
-                      
+
                       {/* Rating and Price Assessment */}
                       <div className="flex items-center gap-4 mt-2">
                         {item.rating && (
@@ -161,7 +163,7 @@ export function ListDetails({ list, userId }: ListDetailsProps) {
                             <span className="text-sm text-gray-600 ml-1">({item.rating}/5)</span>
                           </div>
                         )}
-                        
+
                         {item.priceAssessment && (
                           <Badge 
                             variant={
@@ -175,7 +177,7 @@ export function ListDetails({ list, userId }: ListDetailsProps) {
                         )}
                       </div>
                     </div>
-                    
+
                     {item.city && (
                       <Badge variant="outline" className="text-xs flex items-center gap-1">
                         <MapPin className="w-3 h-3" />

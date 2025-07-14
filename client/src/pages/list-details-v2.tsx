@@ -112,6 +112,7 @@ export default function ListDetailsPage() {
     cuisine: list.primaryCuisine,
     city: list.primaryLocation,
     cover_image: list.coverImage,
+    audience: list.audience || 'profile',
     description: list.description,
     type: list.type,
     viewCount: list.viewCount,
