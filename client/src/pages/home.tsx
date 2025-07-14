@@ -196,7 +196,7 @@ export default function Home() {
                 </div>
               </Card>
 
-              <Link href="/create-list">
+              <Link href="/lists/create">
                 <Card className="quick-action-card card-hover">
                   <div className="p-6">
                     <div className="flex items-center space-x-4">
