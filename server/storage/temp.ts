@@ -4,7 +4,7 @@ import { SelectUser } from "@shared/schema";
 let tempUsers: SelectUser[] = [];
 let tempUserCounter = 1;
 
-export const tempStorage = {
+const tempStorage = {
   // User management
   async createUser(userData: any): Promise<SelectUser> {
     const user: SelectUser = {
@@ -93,3 +93,6 @@ export const tempStorage = {
 
 // Initialize on import
 tempStorage.init();
+
+// Export for use in other files
+export { tempStorage };

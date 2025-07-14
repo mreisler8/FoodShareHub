@@ -5,6 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
+import { tempStorage } from "./storage/temp";
 import { User as SelectUser } from "@shared/schema";
 import { Request, Response, NextFunction } from "express";
 import { sendError } from "./utils/sendError";
