@@ -182,13 +182,16 @@ export class DatabaseStorage implements IStorage {
   
   constructor() {
     try {
-      // Use memory store temporarily due to database endpoint issues
-      this.sessionStore = new MemorySessionStore({
-        checkPeriod: 86400000, // prune expired entries every 24h
-        max: 1000, // max number of sessions
-        ttl: 86400000, // 24 hours
+      // Use PostgreSQL session store for proper session persistence
+      const pgSession = connectPg(session);
+      this.sessionStore = new pgSession({
+        pool: pool,
+        tableName: 'session',
+        createTableIfMissing: true,
+        pruneSessionInterval: 60 * 15, // Clean up sessions every 15 minutes
+        errorLog: console.error
       });
-      console.log('Using memory session store (temporary fallback)');
+      console.log('Using PostgreSQL session store');
       
       // Initialize analytics table asynchronously to not block startup
       this.initializeAnalyticsTable().catch(err => {
