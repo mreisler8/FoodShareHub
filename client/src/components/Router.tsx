@@ -6,6 +6,7 @@ import { ProtectedRoute } from "../lib/protected-route";
 import NotFound from "../pages/not-found";
 import HomePage from "@/pages/home";
 import NewHomePage from "@/pages/home-new";
+import RestoredHomePage from "@/pages/home-restored";
 import CreatePost from "../pages/create-post";
 import FeedPage from "../pages/feed";
 import TopPicksPage from "../pages/top-picks";
@@ -36,7 +37,7 @@ function Router() {
 
   return (
     <Switch>
-      <ProtectedRoute path="/" component={NewHomePage} />
+      <ProtectedRoute path="/" component={RestoredHomePage} />
       <ProtectedRoute path="/feed" component={() => <FeedPage scope="feed" />} />
       <ProtectedRoute path="/feed/circle/:circleId" component={({ params }: any) => <FeedPage scope="circle" circleId={params?.circleId} />} />
       <ProtectedRoute path="/top-picks" component={TopPicksPage} />
