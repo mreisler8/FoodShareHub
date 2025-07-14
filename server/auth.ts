@@ -189,25 +189,6 @@ export function setupAuth(app: Express) {
     console.log("Session:", req.session);
     console.log("Is authenticated:", req.isAuthenticated());
 
-    // Development mode bypass due to database endpoint issues
-    if (process.env.NODE_ENV === "development" && !req.isAuthenticated()) {
-      console.log("Development mode: providing demo user");
-      const demoUser = {
-        id: 1,
-        username: "demo@example.com",
-        name: "Demo User",
-        bio: "Demo user for development",
-        profilePicture: null,
-        preferredCuisines: null,
-        preferredPriceRange: null,
-        preferredLocation: null,
-        diningInterests: null,
-        favoriteFood: null,
-        favoriteRestaurant: null
-      };
-      return res.json(demoUser);
-    }
-
     if (!req.isAuthenticated()) {
       return sendError(res, 401, "Not authenticated");
     }
@@ -224,26 +205,6 @@ export function setupAuth(app: Express) {
     console.log("Session ID:", req.sessionID);
     console.log("Is authenticated:", req.isAuthenticated());
     console.log("Session user:", req.user?.id);
-    console.log("Headers:", req.headers);
-
-    // Development mode bypass due to database endpoint issues
-    if (process.env.NODE_ENV === "development" && !req.isAuthenticated()) {
-      console.log("Development mode: providing demo user");
-      const demoUser = {
-        id: 1,
-        username: "demo@example.com",
-        name: "Demo User",
-        bio: "Demo user for development",
-        profilePicture: null,
-        preferredCuisines: null,
-        preferredPriceRange: null,
-        preferredLocation: null,
-        diningInterests: null,
-        favoriteFood: null,
-        favoriteRestaurant: null
-      };
-      return res.json(demoUser);
-    }
 
     if (!req.isAuthenticated()) {
       return sendError(res, 401, "Not authenticated");

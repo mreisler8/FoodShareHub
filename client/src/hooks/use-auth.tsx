@@ -86,7 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setError(null);
         } else {
           setUser(null);
-          setError('Authentication failed');
+          // Clear error on failed auth check - user just needs to log in
+          setError(null);
         }
       } catch (err: any) {
         setError('Network error: ' + err.message);
