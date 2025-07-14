@@ -15,7 +15,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
 import { useLocation } from "wouter";
-import { AlertTriangle, Eye } from "lucide-react";
+import { AlertTriangle, Eye, Utensils } from "lucide-react";
 
 // Form Schema based on Robust List Creation user story
 const formSchema = z.object({
@@ -210,10 +210,13 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Create New List</DialogTitle>
-          <DialogDescription>
-            Create a themed list of restaurant recommendations to share with your circles.
+        <DialogHeader className="text-center pb-6">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
+            <Utensils className="h-6 w-6 text-white" />
+          </div>
+          <DialogTitle className="text-2xl font-heading font-bold text-neutral-900">Create New List</DialogTitle>
+          <DialogDescription className="text-neutral-600 text-base leading-relaxed">
+            Create a themed list of restaurant recommendations to share with your circles and help others discover amazing places.
           </DialogDescription>
         </DialogHeader>
 
@@ -312,23 +315,24 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
               )}
             />
 
-            <div className="space-y-3">
-                  <FormLabel>Sharing Settings</FormLabel>
+            <div className="space-y-4 p-4 bg-neutral-50 rounded-xl border border-neutral-200">
+                  <FormLabel className="text-base font-medium text-neutral-900">Sharing Settings</FormLabel>
                   
                   <FormField
                     control={form.control}
                     name="shareWithCircle"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 bg-white rounded-lg border border-neutral-200 hover:border-blue-300 transition-colors">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            className="mt-1"
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>Share with Circle</FormLabel>
-                          <p className="text-xs text-muted-foreground">
+                          <FormLabel className="font-medium text-neutral-900">Share with Circle</FormLabel>
+                          <p className="text-sm text-neutral-600">
                             Allow members of your circles to view this list
                           </p>
                         </div>
@@ -340,16 +344,17 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                     control={form.control}
                     name="makePublic"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 bg-white rounded-lg border border-neutral-200 hover:border-blue-300 transition-colors">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            className="mt-1"
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>Make Public</FormLabel>
-                          <p className="text-xs text-muted-foreground">
+                          <FormLabel className="font-medium text-neutral-900">Make Public</FormLabel>
+                          <p className="text-sm text-neutral-600">
                             Anyone can view and share this list
                           </p>
                         </div>

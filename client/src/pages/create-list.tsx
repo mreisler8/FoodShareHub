@@ -8,6 +8,7 @@ import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Button } from "@/components/Button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Utensils } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -134,11 +135,18 @@ export default function CreateList() {
       <DesktopSidebar />
       
       {/* Main Content Area */}
-      <div className="flex-1 max-w-3xl mx-auto px-4 py-6 md:px-8">
-        <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-6">Create New Restaurant List</h1>
+      <div className="flex-1 max-w-4xl mx-auto px-4 py-8 md:px-8">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
+            <Utensils className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-heading font-bold text-neutral-900 mb-2">Create New Restaurant List</h1>
+          <p className="text-neutral-600 text-lg">Share your favorite spots and help others discover amazing places</p>
+        </div>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
+          <CardContent className="pt-8 px-8 pb-8">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
