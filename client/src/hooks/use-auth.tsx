@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Fall back to API check
-        const response = await fetch('/api/user');
+        const response = await fetch('/api/me');
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (userData: SelectUser) => {
       setUser(userData);
-      queryClient.setQueryData(["/api/user"], userData);
+      queryClient.setQueryData(["/api/me"], userData);
 
       // Store auth data for native app
       if (isNativeApp() && typeof window !== 'undefined') {
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (userData: SelectUser) => {
       setUser(userData);
-      queryClient.setQueryData(["/api/user"], userData);
+      queryClient.setQueryData(["/api/me"], userData);
 
       // Store auth data for native app
       if (isNativeApp() && typeof window !== 'undefined') {
@@ -240,12 +240,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       setUser(null);
-      queryClient.setQueryData(["/api/user"], null);
+      queryClient.setQueryData(["/api/me"], null);
+      queryClient.clear(); // Clear all query cache
 
-      // Clear auth data for native app
-      if (isNativeApp() && typeof window !== 'undefined') {
+      // Clear ALL auth data from localStorage - not just native app
+      if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+        // Clear any other auth-related localStorage items
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
 
       toast({
