@@ -15,6 +15,7 @@ import { TagCard } from "@/components/cards/TagCard";
 import { apiRequest } from "@/lib/queryClient";
 import { RestaurantList, User, Circle } from "@shared/schema";
 import { mockFeed } from "@/data/mockFeedData";
+import "./home-new.css";
 
 type TabType = "foryou" | "trending" | "nearby";
 
@@ -61,36 +62,99 @@ export default function Homepage() {
     return null; // Should be handled by auth routing
   }
 
+  // Get featured content for hero section
+  const getFeaturedContent = () => {
+    if (feedData?.lists && feedData.lists.length > 0) {
+      return feedData.lists[0];
+    }
+    return mockFeed.find(item => item.type === "list");
+  };
+
+  const featuredContent = getFeaturedContent();
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="enhanced-home-background">
       {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
 
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
         <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="bg-white border-b sticky top-0 z-10">
-            <div className="flex items-center justify-between p-4">
-              <h1 className="text-2xl font-bold">Circles</h1>
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
-                  {user.name?.charAt(0)?.toUpperCase()}
-                </span>
+          {/* Enhanced Dynamic Hero Section */}
+          <div className="enhanced-header sticky top-0 z-10">
+            <div className="px-4 py-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold gradient-title">
+                    Circles
+                  </h1>
+                  <p className="text-gray-600 text-sm mt-1">
+                    {tab === "foryou" ? "Your personalized feed" : 
+                     tab === "trending" ? "What's trending now" : 
+                     "Discover nearby"}
+                  </p>
+                </div>
+                <div className="enhanced-avatar w-10 h-10 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {user.name?.charAt(0)?.toUpperCase()}
+                  </span>
+                </div>
               </div>
+              
+              {/* Featured Content Preview */}
+              {featuredContent && (
+                <div className="featured-card mb-4 p-4 rounded-xl">
+                  <div className="flex items-start space-x-3">
+                    <div className="featured-icon w-16 h-16 rounded-lg flex items-center justify-center">
+                      <span className="text-2xl">🍽️</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 mb-1">
+                        Featured: {featuredContent.title || featuredContent.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {featuredContent.user?.name && `by ${featuredContent.user.name}`}
+                        {featuredContent.restaurantCount && ` • ${featuredContent.restaurantCount} restaurants`}
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span className="content-badge px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          Trending
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {tab === "foryou" ? "For You" : tab}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <TabNav currentTab={tab} setTab={setTab} />
+            
+            {/* Enhanced Tab Navigation */}
+            <div className="enhanced-tabs border-t">
+              <TabNav currentTab={tab} setTab={setTab} />
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="px-4 space-y-6 py-4">
+          {/* Enhanced Content Section */}
+          <div className="px-4 space-y-6 py-6">
             {isNewUser ? (
               <>
-                <Onboarding />
+                {/* Enhanced Onboarding */}
+                <div className="enhanced-card rounded-2xl p-6">
+                  <Onboarding />
+                </div>
+                
                 {feedData?.followSuggestions && feedData.followSuggestions.length > 0 ? (
-                  <FollowRow creators={feedData.followSuggestions} />
+                  <div className="enhanced-card rounded-2xl p-6">
+                    <FollowRow creators={feedData.followSuggestions} />
+                  </div>
                 ) : null}
+                
                 {feedData?.circles && feedData.circles.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Popular Circles</h3>
+                  <div className="enhanced-card rounded-2xl p-6">
+                    <div className="section-header flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-bold text-gray-900">Popular Circles</h3>
+                      <span className="text-sm text-blue-600 font-medium">Discover</span>
+                    </div>
                     <div className="grid grid-cols-1 gap-4">
                       {feedData.circles.slice(0, 3).map((circle) => (
                         <CircleCard key={circle.id} circle={circle} />
@@ -102,50 +166,127 @@ export default function Homepage() {
             ) : (
               <>
                 {isLoading ? (
-                  <div className="space-y-4">
+                  /* Enhanced Loading States */
+                  <div className="space-y-6">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
-                        <div className="bg-gray-200 h-36 rounded-md mb-4"></div>
-                        <div className="bg-gray-200 h-4 rounded mb-2"></div>
-                        <div className="bg-gray-200 h-3 rounded w-1/2"></div>
+                      <div key={i} className="enhanced-card rounded-2xl p-6">
+                        <div className="animate-pulse">
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className="enhanced-loading w-10 h-10 rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="enhanced-loading h-4 rounded mb-2"></div>
+                              <div className="enhanced-loading h-3 rounded w-1/2"></div>
+                            </div>
+                          </div>
+                          <div className="enhanced-loading h-48 rounded-xl mb-4"></div>
+                          <div className="enhanced-loading h-4 rounded mb-2"></div>
+                          <div className="enhanced-loading h-3 rounded w-3/4"></div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <>
-                    {/* Render real feed data if available, otherwise use mock data */}
+                    {/* Enhanced Feed Rendering */}
                     {feedData?.lists && feedData.lists.length > 0 ? (
-                      feedData.lists.map((list) => (
-                        <ListCard key={list.id} list={list} />
-                      ))
+                      <div className="space-y-6">
+                        {feedData.lists.map((list) => (
+                          <div key={list.id} className="enhanced-card rounded-2xl">
+                            <ListCard list={list} />
+                          </div>
+                        ))}
+                      </div>
                     ) : (
-                      /* Render mock feed data */
-                      <div className="space-y-4">
+                      /* Enhanced Mock Data Rendering */
+                      <div className="space-y-6">
                         {mockFeed.map((item) =>
                           item.type === "list" ? (
-                            <ListCard 
-                              key={item.id} 
-                              title={item.title}
-                              image={item.image}
-                              user={item.user}
-                              saved={item.saved}
-                              followed={item.followed}
-                              restaurantCount={item.restaurantCount}
-                            />
+                            <div key={item.id} className="enhanced-card rounded-2xl">
+                              <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="user-avatar-gradient w-10 h-10 rounded-full flex items-center justify-center">
+                                      <span className="text-white text-sm font-medium">
+                                        {item.user?.name?.charAt(0)?.toUpperCase()}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold text-gray-900">{item.user?.name}</p>
+                                      <p className="text-sm text-gray-600">{item.user?.handle}</p>
+                                    </div>
+                                  </div>
+                                  <span className="list-badge content-badge px-3 py-1 text-xs font-medium rounded-full">
+                                    List by @{item.user?.handle?.replace('@', '')}
+                                  </span>
+                                </div>
+                                <ListCard 
+                                  key={item.id} 
+                                  title={item.title}
+                                  image={item.image}
+                                  user={item.user}
+                                  saved={item.saved}
+                                  followed={item.followed}
+                                  restaurantCount={item.restaurantCount}
+                                />
+                              </div>
+                            </div>
                           ) : item.type === "circle" ? (
-                            <CircleCard 
-                              key={item.id} 
-                              name={item.name}
-                              members={item.members}
-                              icon={item.icon}
-                              description={item.description}
-                            />
+                            <div key={item.id} className="enhanced-card rounded-2xl">
+                              <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                  <span className="circle-badge content-badge px-3 py-1 text-xs font-medium rounded-full">
+                                    Circle
+                                  </span>
+                                </div>
+                                <CircleCard 
+                                  key={item.id} 
+                                  name={item.name}
+                                  members={item.members}
+                                  icon={item.icon}
+                                  description={item.description}
+                                />
+                              </div>
+                            </div>
                           ) : item.type === "tag" ? (
-                            <div key={item.id} className="flex justify-center">
-                              <TagCard tag={item.tag} />
+                            <div key={item.id} className="enhanced-card rounded-2xl">
+                              <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                  <span className="tag-badge content-badge px-3 py-1 text-xs font-medium rounded-full">
+                                    Trending Tag
+                                  </span>
+                                </div>
+                                <div className="flex justify-center">
+                                  <TagCard tag={item.tag} />
+                                </div>
+                              </div>
                             </div>
                           ) : null
                         )}
+                      </div>
+                    )}
+
+                    {/* Enhanced Follow Suggestions */}
+                    {feedData?.followSuggestions && feedData.followSuggestions.length > 0 && (
+                      <div className="enhanced-card rounded-2xl p-6 mt-8">
+                        <div className="section-header flex items-center justify-between mb-4">
+                          <h3 className="text-xl font-bold text-gray-900">Discover People</h3>
+                          <span className="text-sm text-blue-600 font-medium">View All</span>
+                        </div>
+                        <FollowRow creators={feedData.followSuggestions} />
+                      </div>
+                    )}
+
+                    {/* Enhanced Empty State */}
+                    {(!feedData?.lists || feedData.lists.length === 0) && 
+                     (!mockFeed || mockFeed.length === 0) && (
+                      <div className="enhanced-empty-state rounded-2xl p-12 text-center">
+                        <div className="empty-state-icon w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <span className="text-3xl">🍽️</span>
+                        </div>
+                        <EmptyState 
+                          title="Your feed is empty" 
+                          description="Start by creating your first restaurant list or joining a circle to see content here." 
+                        />
                       </div>
                     )}
                   </>
@@ -153,7 +294,13 @@ export default function Homepage() {
               </>
             )}
 
-            <SuggestedTags />
+            {/* Enhanced Suggested Tags */}
+            <div className="enhanced-card rounded-2xl p-6">
+              <div className="section-header mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Trending Topics</h3>
+              </div>
+              <SuggestedTags />
+            </div>
           </div>
         </div>
       </div>

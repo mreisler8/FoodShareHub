@@ -1,0 +1,71 @@
+Context: You're working on Circles, a food-focused social recommendation app. The current home page (client/src/pages/home-new.tsx) has basic functionality but needs a modern, competitive design inspired by Spotify, Resy, and Pinterest UX patterns.
+
+Objective: Enhance the homepage to create a dynamic, engaging feed experience while preserving ALL existing functionality and mock data rendering.
+
+🎯 Key Requirements - MUST PRESERVE:
+All Current Functionality:
+
+TabNav component with "foryou", "trending", "nearby" tabs
+Mock feed data rendering when real data fails
+New user onboarding flow detection
+Error handling and loading states
+Mobile/desktop responsive behavior
+Existing Components Integration:
+
+Keep ListCard, CircleCard, TagCard components working
+Maintain FollowRow, SuggestedTags, EmptyState functionality
+Preserve Onboarding component for new users
+🚀 Enhancement Goals:
+1. Dynamic Hero Section
+Transform the static header into a dynamic carousel
+Add visual previews for featured content
+Maintain the existing tab functionality but make it more engaging
+2. Modular Feed Layout
+Enhance the current feed rendering to be more card-based
+Add clear content type indicators ("List by @user", "Circle", "Trending Tag")
+Improve visual hierarchy between different content types
+3. Enhanced CTAs & Actions
+Make Save/Follow buttons more prominent and accessible
+Add micro-interactions and hover states
+Ensure all buttons are thumb-zone friendly (≥44px touch targets)
+4. Improved Empty States & Onboarding
+Enhance the new user experience with better visual cues
+Add more engaging placeholder content when data is loading
+Improve the transition between onboarding and populated feed
+🎨 Design Implementation:
+Update home-new.tsx to include:
+
+Enhanced header with featured content preview
+Better visual separation between content types
+Improved loading and error states
+Style Enhancements:
+
+Add hover effects and micro-interactions
+Improve card shadows and spacing
+Better typography hierarchy
+Enhanced mobile responsiveness
+Accessibility Improvements:
+
+Ensure proper ARIA labels
+Maintain keyboard navigation
+High contrast focus states
+Screen reader friendly content
+📱 Technical Requirements:
+Preserve all existing API calls and error handling
+Keep mock data fallback system intact
+Maintain mobile navigation and desktop sidebar
+Use existing Tailwind classes and design tokens
+Don't break any existing user flows
+🔧 Files to Update:
+client/src/pages/home-new.tsx - Main homepage enhancements
+Create/update CSS for micro-interactions if needed
+Enhance existing card components with better styling
+Improve loading states and animations
+✅ Success Criteria:
+All existing functionality works exactly as before
+Mock data still renders when API fails
+New users see improved onboarding experience
+Feed has modern, engaging visual design
+All interactions are smooth and accessible
+Mobile and desktop experiences are both enhanced
+Important: Do NOT break any existing functionality. This is an enhancement, not a replacement. The app must continue to work with mock data when the database is unavailable.
