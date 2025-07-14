@@ -1,0 +1,102 @@
+🧩 FILE 1: Update CreateListForm.tsx
+✅ Add audience selector to the form UI
+Insert this block in the form (before or after item list):
+
+tsx
+Copy
+Edit
+<div className="flex gap-2">
+  <label className="flex items-center gap-1">
+    <input
+      type="radio"
+      name="audience"
+      value="profile"
+      checked={audience === "profile"}
+      onChange={() => setAudience("profile")}
+    />
+    Profile
+  </label>
+  <label className="flex items-center gap-1">
+    <input
+      type="radio"
+      name="audience"
+      value="public"
+      checked={audience === "public"}
+      onChange={() => setAudience("public")}
+    />
+    Public
+  </label>
+  <label className="flex items-center gap-1 text-gray-400">
+    <input
+      type="radio"
+      name="audience"
+      value="circle"
+      disabled
+    />
+    Circle (coming soon)
+  </label>
+</div>
+✅ Update the saveList payload
+Make sure audience is included in the JSON sent to the backend:
+
+ts
+Copy
+Edit
+const payload = {
+  title,
+  type,
+  audience, // 👈 include this
+  items,
+  // TODO: handle cover image if applicable
+};
+🧩 FILE 2: Update /api/lists backend handler
+Ensure this field is stored in your database when creating a new list:
+
+ts
+Copy
+Edit
+const { title, type, audience, userId, items } = req.body;
+
+await db.query(
+  `INSERT INTO lists (title, type, audience, user_id)
+   VALUES ($1, $2, $3, $4) RETURNING id`,
+  [title, type, audience, userId]
+);
+🧩 FILE 3: Add ListAudienceBadge.tsx (optional but recommended)
+tsx
+Copy
+Edit
+export function ListAudienceBadge({ audience }: { audience: string }) {
+  const color = audience === "public" ? "bg-green-100 text-green-700" :
+                audience === "circle" ? "bg-blue-100 text-blue-700" : 
+                "bg-gray-100 text-gray-700";
+  return (
+    <span className={`px-2 py-1 text-xs rounded-full ${color}`}>
+      {audience.charAt(0).toUpperCase() + audience.slice(1)}
+    </span>
+  );
+}
+You can use this in ListCard, ListDetails, or SavedListsSection like this:
+
+tsx
+Copy
+Edit
+<ListAudienceBadge audience={list.audience} />
+🧩 FILE 4: Update SQL Schema (if not done yet)
+Ensure the lists table includes the audience column:
+
+sql
+Copy
+Edit
+alter table lists add column if not exists audience text check (audience in ('profile', 'circle', 'public'));
+✅ DEV COMPLETION CHECKLIST
+ Radio buttons for audience appear in create list form
+
+ Audience value saved to DB via /api/lists
+
+ UI badge shows audience on each list (optional but helpful)
+
+ “Circle” option is visible but disabled for now
+
+ Lists filtered by audience in public feed or profile if applicable
+
