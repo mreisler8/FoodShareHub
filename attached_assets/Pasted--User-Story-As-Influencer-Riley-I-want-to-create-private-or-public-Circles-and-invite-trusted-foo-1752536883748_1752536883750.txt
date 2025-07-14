@@ -1,0 +1,122 @@
+✅ User Story:
+As Influencer Riley, I want to create private or public Circles and invite trusted foodies, so we can share curated lists in a group space and discover from each other.
+
+🎯 Acceptance Criteria:
+🛠️ Circle Management
+User can create a new Circle:
+
+Name (required)
+
+Optional: description, cover image
+
+Visibility setting: Private (invite-only) or Public (anyone can join)
+
+User can invite members via:
+
+Username (auto-suggest)
+
+Copyable invite link or QR code
+
+Creator becomes the admin with ability to:
+
+Approve join requests (if private)
+
+Remove members
+
+📥 Sharing to a Circle
+When creating or editing a list, user can choose:
+
+Profile (followers)
+
+Public feed
+
+One of their Circles
+
+Lists shared to Circles appear in:
+
+Circle feed (e.g., “Shared in Toronto Bites”)
+
+Homepage feed for Circle members
+
+🔒 Permissions
+Only members can view private Circle content
+
+Public Circles are discoverable in search/explore
+
+Optional: Circles display member count + creator
+
+🧠 Edge Cases / Unknowns
+Can users belong to unlimited Circles?
+
+Can a list be shared in multiple Circles?
+
+Are Circles ranked/sorted (e.g., most active first)?
+
+📌 Priority: ⭐⭐ High
+Circles are core to the “trusted reco” loop—enabling a social layer that’s private, curated, and sticky.
+
+Scrum- 
+ Sprint 1: Circle Creation & List Sharing MVP
+🎯 Sprint Goal
+Allow users to create a Circle, invite members, and share lists to Circles, establishing the core group recommendation loop.
+
+📦 Stories & Points
+#	Story Slice	Description	Points
+1	Circle Creation UI	Form to create Circle with name, visibility, description, cover image	3
+2	Invite by Username	Autosuggest usernames to invite to Circle	2
+3	Copyable Invite Link	Generate shareable invite link (QR code optional)	1
+4	Share List to Circle	Share to Circle from list creation/edit screen	3
+5	Circle Feed View	Show lists shared to a Circle on its own page	3
+6	Circle Permissions (Basic)	Only members can view private Circle content	1
+
+Total: 13 points
+
+✅ Sprint 2: Member Management & Permissions
+🎯 Sprint Goal
+Build admin tools and access logic to manage Circle members and ensure privacy controls are respected.
+
+📦 Stories & Points
+#	Story Slice	Description	Points
+1	Admin: Approve Join Requests	If private, show and manage incoming join requests	3
+2	Admin: Remove Members	Allow Circle creator to remove members from the group	2
+3	Circle Member Permissions	Only members can post or share lists to a Circle	2
+4	Join via Invite Link	Accepting link request adds user to Circle if public, or requests if private	2
+5	Circle Metadata	Display member count, creator, and visibility on Circle page	2
+6	Error & Access Handling	Gracefully handle unauthorized access or removed users	2
+
+Total: 13 points
+
+✅ Sprint 3: Circle Discovery & Social Growth
+🎯 Sprint Goal
+Make public Circles discoverable and encourage growth through social interactions and tagging.
+
+📦 Stories & Points
+#	Story Slice	Description	Points
+1	Circle Discovery UI	Add explore page section for public Circles	3
+2	Searchable Circles	Allow users to search for Circles by name or tag	2
+3	Follow or Join Circle Button	One-tap join (if public) or request (if private)	2
+4	Suggested Circles Feed	Show relevant Circles on homepage or onboarding flow	2
+5	Circle Tag System	Allow creators to tag Circles for categorization (e.g., “Toronto”, “Sushi”)	2
+6	Share Circle Link	Users can copy or send Circle invite link externally	2
+
+Total: 13 points
+
+⏳ Velocity Assumptions
+2–3 person team (dev + UX)
+
+Average capacity: 13 points/week
+
+⚠️ Risks & Mitigations
+Risk	Mitigation
+Backend dependencies for permissions and invites	Frontend can mock/fake invite logic short-term
+Conflicts with existing list sharing logic	Use share_target abstraction to normalize
+QR code dependency delays	Make QR optional; prioritize copy link
+Complex access logic for private Circles	Isolate permission checks into a shared utility
+Circle growth requires strong UX polish	Prioritize onboarding and discovery UX in Sprint 3    
+
+
+UI / UX -  
+
+📦 Developer Handoff Summary: Sprint 1 & 2 ✅ Sprint 1: Circle Creation & List Sharing MVP Core Features:  CreateCircleForm.tsx: Create a Circle (name, description, visibility)  InviteMembersModal.tsx: Invite users (username autocomplete + copy link)  ShareToDestinationDropdown.tsx: Picker to share lists to Profile, Circle, or Public Feed  CircleFeed.tsx: Renders shared lists scoped to the Circle  Key Flows:  User creates Circle → sees invite modal  User shares list → selects “Circle” → list appears in CircleFeed  If private Circle, only members see content (basic permission gating)  Tailwind Layouts Provided:  Circle creation form  Invite modal  Circle Feed with list card layout  Dropdown for share destination  Accessibility Reminders:  Use aria-label on buttons  Maintain min-h-[48px] for tap targets  Toasts on sharing, invite copying  ✅ Sprint 2: Member Management & Permissions Core Features:  JoinRequestList.tsx: Admin view of pending join requests  JoinRequestCard.tsx: User row with Approve/Deny  MemberAdminPanel.tsx: Admin list of members with remove option  PermissionGuard.tsx: Wrapper for protecting content views  AccessDeniedView.tsx: Friendly fallback when access is denied  Key Flows:  Public Circle join → auto-join → redirect to feed  Private Circle join → show “Request Sent” screen → admin must approve  Circle creator can remove members with confirmation modal  Only members can view/post in private Circles (handled by PermissionGuard)  Circle feed shows 👤 42 members • Private Circle • Created by @riley  Tailwind Layouts Provided:  Join request list  Member admin panel  Join via link  Access denied state  Accessibility Reminders:  Use aria-live="assertive" for denied access or join confirmations  Modals must be keyboard-navigable and focus-trapped  Toast feedback on approve/deny/remove  📁 Suggested File Structure bash Copy Edit /components/   circles/     CreateCircleForm.tsx     CircleFeed.tsx     CircleMetadata.tsx     InviteMembersModal.tsx     ShareToDestinationDropdown.tsx     JoinRequestList.tsx     JoinRequestCard.tsx     MemberAdminPanel.tsx     MemberRow.tsx     PermissionGuard.tsx     AccessDeniedView.tsx 🧠 Dev Agent Next Steps Use mock data or API stubs for:  Circles  Join requests  Member data  Implement each flow behind feature flags if needed  Confirm routing to /circles/:circleId/feed and permission wrapping  Use Chakra, ShadCN, or Tailwind + Radix UI for accessible components  Add Cypress tests for:  Joining public and private circles  Approving requests  Sharing lists to Circle 
+
+

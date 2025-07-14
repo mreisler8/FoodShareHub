@@ -292,7 +292,7 @@ router.post('/', authenticate, async (req, res) => {
       if (data.items && data.items.length > 0) {
         const itemPromises = data.items.map(async (item, index) => {
           let restaurantId = item.restaurantId;
-          
+
           // If no restaurantId provided, create a placeholder restaurant
           if (!restaurantId) {
             const [restaurant] = await db

@@ -1,0 +1,153 @@
+✅ REPLIT DEV TASK PACKAGE
+Feature: Create Circle (Sprint 1 – Story Slice 1 of 6)
+Agent: Full-Stack Dev Agent for Circles
+Goal: Implement the UI and backend logic to allow users to create a Circle with a name, optional description and cover image, and visibility setting (private or public).
+
+🧩 FILE 1: components/circles/CreateCircleForm.tsx
+tsx
+Copy
+Edit
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+
+export function CreateCircleForm({ onCreated }: { onCreated: (circleId: string) => void }) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState<"private" | "public">("private");
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      toast({ title: "Circle name is required", variant: "destructive" });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", description);
+    formData.append("visibility", visibility);
+    if (coverImage) formData.append("coverImage", coverImage);
+
+    try {
+      const res = await fetch("/api/circles", {
+        method: "POST",
+        body: formData,
+      });
+
+      const { id } = await res.json();
+      toast({ title: "Circle created!" });
+      onCreated(id);
+    } catch (err) {
+      toast({ title: "Failed to create circle", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-4 p-4">
+      <Input placeholder="Circle Name" value={name} onChange={(e) => setName(e.target.value)} />
+      <Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+
+      <div className="flex gap-4">
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="visibility"
+            checked={visibility === "private"}
+            onChange={() => setVisibility("private")}
+          />
+          Private
+        </label>
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="visibility"
+            checked={visibility === "public"}
+            onChange={() => setVisibility("public")}
+          />
+          Public
+        </label>
+      </div>
+
+      <input type="file" accept="image/*" onChange={(e) => setCoverImage(e.target.files?.[0] || null)} />
+
+      <Button onClick={handleSubmit}>Create Circle</Button>
+    </div>
+  );
+}
+🧩 FILE 2: server/api/circles.ts (Express backend handler)
+ts
+Copy
+Edit
+import express from "express";
+import multer from "multer";
+import db from "../db";
+
+const router = express.Router();
+const upload = multer({ dest: "uploads/" }); // Adjust based on your image hosting
+
+router.post("/", upload.single("coverImage"), async (req, res) => {
+  const { name, description, visibility } = req.body;
+  const userId = req.user?.id; // Assuming auth middleware
+
+  if (!userId || !name) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const coverImageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const result = await db.query(
+      `INSERT INTO circles (name, description, owner_id, is_private, cover_image_url)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [name, description, userId, visibility === "private", coverImageUrl]
+    );
+
+    const circleId = result.rows[0].id;
+
+    await db.query(
+      `INSERT INTO circle_members (circle_id, user_id, role)
+       VALUES ($1, $2, 'admin')`,
+      [circleId, userId]
+    );
+
+    return res.json({ id: circleId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+export default router;
+🧱 POSTGRESQL TABLES (confirm exist)
+sql
+Copy
+Edit
+CREATE TABLE circles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  owner_id UUID REFERENCES users(id),
+  is_private BOOLEAN DEFAULT TRUE,
+  cover_image_url TEXT,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE circle_members (
+  circle_id UUID REFERENCES circles(id),
+  user_id UUID REFERENCES users(id),
+  role TEXT CHECK (role IN ('member', 'admin')) DEFAULT 'member',
+  joined_at TIMESTAMP DEFAULT now(),
+  PRIMARY KEY (circle_id, user_id)
+);
+✅ DEV COMPLETION CHECKLIST
+ Form supports name, description, visibility, image
+
+ Circle is created in DB with creator as admin
+
+ Image is optional and handled
+
+ Redirect or modal logic triggered via onCreated(circleId)
+
+ Protected via auth (ensure req.user.id available)
