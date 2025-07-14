@@ -19,5 +19,6 @@ export function useToast() {
     }
   };
 
-  return { toast };
+  // Return empty toasts array to satisfy the Toaster component
+  return { toast, toasts: [] };
 }
