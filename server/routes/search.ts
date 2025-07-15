@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import { requireAuth } from '../auth';
+import { authenticate } from '../auth';
 import { db } from '../db';
 import { users, restaurants, restaurantLists, posts } from '@shared/schema';
 import { eq, ilike, or, and, sql, desc, asc } from 'drizzle-orm';
@@ -10,7 +10,7 @@ import { SearchEngineService, EnhancedSearchEngine } from '../services/search-en
 const router = Router();
 
 // Enhanced search route with improved performance and result quality
-router.get('/unified', requireAuth, async (req, res) => {
+router.get('/unified', authenticate, async (req, res) => {
   try {
     const userId = req.session.userId;
     if (!userId) {
@@ -437,7 +437,7 @@ router.get('/unified', requireAuth, async (req, res) => {
 });
 
 // Enhanced trending endpoint with location awareness
-router.get('/trending', requireAuth, async (req, res) => {
+router.get('/trending', authenticate, async (req, res) => {
   try {
     const { lat, lng, radius = '25000' } = req.query;
     const searchLat = lat ? parseFloat(lat as string) : undefined;
