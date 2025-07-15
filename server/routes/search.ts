@@ -4,6 +4,7 @@ import { db } from "../db";
 import { restaurants, restaurantLists, posts, users, userFollowers, circleMembers } from "../../shared/schema";
 import { eq, and, or, like, desc, sql, ilike, ne, inArray } from "drizzle-orm";
 import { searchGooglePlaces, getPlaceDetails } from "../services/google-places";
+import { EnhancedSearchEngine } from "../services/search-engine";
 import { z } from "zod";
 
 const router = Router();
@@ -210,63 +211,107 @@ router.get("/", authenticate, async (req, res) => {
     });
 
     const { q: searchTerm, type, lat, lng, radius } = validatedQuery;
-    const searchPattern = `%${searchTerm}%`;
-    const results: any[] = [];
     const userId = req.user!.id;
+    
+    // Prepare search filters
+    const filters = {
+      location: req.query.location as string,
+      lat,
+      lng,
+      radius,
+      priceRange: req.query.priceRange as string,
+      cuisine: req.query.cuisine as string,
+      category: req.query.category as string
+    };
 
-    // Search restaurants with enhanced caching
-    if (type === "all" || type === "restaurants") {
-      try {
-        const restaurantResults = await db
-          .select({
-            id: restaurants.id,
-            name: restaurants.name,
-            location: restaurants.location,
-            category: restaurants.category,
-            priceRange: restaurants.priceRange,
-            imageUrl: restaurants.imageUrl,
-            cuisine: restaurants.cuisine,
-            address: restaurants.address,
-            googlePlaceId: restaurants.googlePlaceId,
-          })
-          .from(restaurants)
-          .where(
-            or(
-              ilike(restaurants.name, searchPattern),
-              ilike(restaurants.location, searchPattern),
-              ilike(restaurants.category, searchPattern),
-              ilike(restaurants.cuisine, searchPattern)
-            )
-          )
-          .limit(10);
+    // Use enhanced search engine for all content types
+    if (type === "all") {
+      const searchResults = await EnhancedSearchEngine.unifiedSearch(
+        searchTerm,
+        userId,
+        filters,
+        { restaurants: 10, lists: 5, users: 5, posts: 5 }
+      );
+      
+      // Format results for compatibility
+      const formattedResults = {
+        restaurants: searchResults.restaurants.map(r => ({
+          ...r,
+          avgRating: 4.2,
+          source: 'database' as const
+        })),
+        lists: searchResults.lists,
+        users: searchResults.users,
+        posts: searchResults.posts
+      };
 
-        const formattedRestaurants = await Promise.all(restaurantResults.map(async (r) => {
-          let location = r.location;
+      return res.json(formattedResults);
+    }
 
-          // Use cached location service
-          if ((!location || location === 'Unknown location') && r.googlePlaceId) {
-            const placeDetails = await LocationCacheService.getLocationDetails(r.googlePlaceId);
-            if (placeDetails?.address) {
-              location = placeDetails.address;
-            }
-          }
+    // Search restaurants with enhanced engine
+    if (type === "restaurants") {
+      const restaurantResults = await EnhancedSearchEngine.searchRestaurants(
+        searchTerm,
+        userId,
+        filters,
+        15
+      );
 
-          return {
-            id: r.id.toString(),
+      // Enhance with Google Places if needed
+      if (restaurantResults.length < 10) {
+        try {
+          const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
+          const googleResults = await searchGooglePlaces(searchTerm, locationData);
+
+          const filteredGoogleResults = googleResults.filter(
+            (gr) => !restaurantResults.some((dr) => dr.id === gr.googlePlaceId)
+          );
+
+          const formattedGoogleResults = filteredGoogleResults.slice(0, 10 - restaurantResults.length).map(r => ({
+            id: `google_${r.googlePlaceId}`,
             name: r.name,
             thumbnailUrl: r.imageUrl,
-            avgRating: 4.2,
-            location: location,
+            avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
+            location: r.location,
             category: r.category,
             priceRange: r.priceRange,
             cuisine: r.cuisine,
             address: r.address,
-            source: 'database' as const,
-            type: 'restaurant' as const
-          };
-        }));
+            source: 'google' as const,
+            type: 'restaurant' as const,
+            googlePlaceId: r.googlePlaceId,
+            relevanceScore: 50 // Lower than database results
+          }));
 
-        results.push(...formattedRestaurants);
+          restaurantResults.push(...formattedGoogleResults);
+        } catch (googleError) {
+          console.error("Google Places search error:", googleError);
+        }
+      }
+
+      return res.json(restaurantResults.map(r => ({
+        ...r,
+        avgRating: r.metadata?.avgRating || 4.2,
+        source: r.id.startsWith('google_') ? 'google' : 'database'
+      })));
+    }
+
+    // Search lists with enhanced engine
+    if (type === "lists") {
+      const listResults = await EnhancedSearchEngine.searchLists(searchTerm, userId, 10);
+      return res.json(listResults);
+    }
+
+    // Search users with enhanced engine
+    if (type === "users") {
+      const userResults = await EnhancedSearchEngine.searchUsers(searchTerm, userId, 10);
+      return res.json(userResults);
+    }
+
+    // Search posts with enhanced engine
+    if (type === "posts") {
+      const postResults = await EnhancedSearchEngine.searchPosts(searchTerm, userId, 10);
+      return res.json(postResults);
 
         // Enhanced Google Places integration with location support
         if (formattedRestaurants.length < 5) {

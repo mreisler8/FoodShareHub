@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -75,12 +74,12 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation }],
     queryFn: async () => {
       let searchUrl = `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`;
-      
+
       // Add location parameters if available
       if (userLocation) {
         searchUrl += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
       }
-      
+
       const response = await fetch(searchUrl, {
         method: 'GET',
         headers: {
@@ -88,13 +87,13 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         },
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
         throw new Error(errorData.error || 'Search failed');
       }
       const data = await response.json();
-      
+
       // Ensure avgRating is always a valid number
       const processResults = (results: SearchResult[]) => {
         return results.map(result => ({
@@ -102,7 +101,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
           avgRating: typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating : 4.0
         }));
       };
-      
+
       return {
         restaurants: processResults(data.restaurants || []),
         lists: data.lists || [],
@@ -121,12 +120,12 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     queryKey: ['/api/search/trending', { location: userLocation }],
     queryFn: async () => {
       let trendingUrl = '/api/search/trending';
-      
+
       // Add location parameters if available
       if (userLocation) {
         trendingUrl += `?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
       }
-      
+
       const response = await fetch(trendingUrl);
       if (!response.ok) {
         throw new Error('Failed to fetch trending content');
@@ -171,7 +170,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
           console.error('Unknown result type:', result.type);
           return;
       }
-      
+
       onOpenChange(false);
     } catch (error) {
       console.error('Error handling search result click:', error);
@@ -225,7 +224,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
               className="pl-10 h-11"
             />
           </div>
-          
+
           {/* Location Status */}
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center gap-2">
@@ -252,7 +251,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                 </div>
               )}
             </div>
-            
+
             {debouncedQuery && (
               <div className="text-xs text-muted-foreground">
                 {userLocation ? 'Searching nearby' : 'Searching everywhere'}
