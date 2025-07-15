@@ -217,20 +217,60 @@ export function setupAuth(app: Express) {
   });
 }
 
-// Authentication middleware
+// Enhanced authentication middleware with security hardening
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  console.log('Auth check - Method:', req.method, 'Path:', req.path);
-  console.log('Session ID:', req.sessionID);
-  console.log('Is authenticated:', req.isAuthenticated());
-  console.log('Session user:', req.session?.passport?.user);
-  console.log('Headers:', req.headers);
+  // Enhanced session validation
+  const sessionId = req.sessionID;
+  const isAuth = req.isAuthenticated();
+  const userId = req.user?.id;
 
-  // Set CORS headers for all authenticated requests
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:5000');
+  // Validate session integrity
+  if (!sessionId || typeof sessionId !== 'string') {
+    return sendError(res, 401, "Invalid session");
+  }
 
-  if (!req.isAuthenticated()) {
+  // Validate user authentication
+  if (!isAuth) {
     return sendError(res, 401, "Not authenticated");
+  }
+
+  // Validate user object and ID
+  if (!userId || typeof userId !== 'number' || userId <= 0 || !Number.isInteger(userId)) {
+    return sendError(res, 401, "Invalid user session");
+  }
+
+  // Enhanced CORS validation for security
+  const allowedOrigins = [
+    'http://localhost:5000',
+    'https://localhost:5000',
+    process.env.REPLIT_URL || '',
+    process.env.FRONTEND_URL || ''
+  ].filter(Boolean);
+
+  const origin = req.headers.origin;
+  if (origin && !allowedOrigins.includes(origin)) {
+    console.warn('Rejected request from unauthorized origin:', origin);
+    return sendError(res, 403, "Unauthorized origin");
+  }
+
+  // Set secure CORS headers
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Origin', origin || 'http://localhost:5000');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+
+  // Session hijacking protection
+  const userAgent = req.headers['user-agent'];
+  const sessionUserAgent = req.session?.userAgent;
+  
+  if (sessionUserAgent && sessionUserAgent !== userAgent) {
+    console.warn('Session user agent mismatch detected for user:', userId);
+    return sendError(res, 401, "Session security violation");
+  }
+
+  // Store user agent on first request
+  if (!sessionUserAgent) {
+    req.session.userAgent = userAgent;
   }
 
   next();

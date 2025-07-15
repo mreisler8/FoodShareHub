@@ -59,8 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
+        setError(null);
 
-        // Check if running in native app and has stored auth data
+        // Enhanced validation for native app auth
         if (isNativeApp() && typeof window !== 'undefined') {
           const storedToken = localStorage.getItem('authToken');
           const storedUserData = localStorage.getItem('userData');
@@ -68,29 +69,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedToken && storedUserData) {
             try {
               const userData = JSON.parse(storedUserData);
-              setUser(userData);
-              setError(null);
-              setIsLoading(false);
-              return;
+              
+              // Validate user data structure
+              if (userData && typeof userData === 'object' && 
+                  userData.id && typeof userData.id === 'number' &&
+                  userData.username && typeof userData.username === 'string' &&
+                  userData.name && typeof userData.name === 'string') {
+                
+                setUser(userData);
+                setError(null);
+                setIsLoading(false);
+                return;
+              } else {
+                console.warn('Invalid stored user data structure');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userData');
+              }
             } catch (e) {
               console.error('Error parsing stored user data:', e);
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('userData');
             }
           }
         }
 
-        // Fall back to API check
-        const response = await fetch('/api/me');
+        // Enhanced API authentication check
+        const response = await fetch('/api/me', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
         if (response.ok) {
           const userData = await response.json();
-          setUser(userData);
-          setError(null);
-        } else {
+          
+          // Validate API response structure
+          if (userData && typeof userData === 'object' && 
+              userData.id && typeof userData.id === 'number' &&
+              userData.username && typeof userData.username === 'string' &&
+              userData.name && typeof userData.name === 'string') {
+            
+            setUser(userData);
+            setError(null);
+          } else {
+            console.error('Invalid user data received from API');
+            setUser(null);
+            setError('Invalid authentication response');
+          }
+        } else if (response.status === 401) {
+          // Clear any invalid stored data
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+          }
           setUser(null);
-          setError('Authentication failed');
+          setError(null); // Don't show error for unauthenticated state
+        } else {
+          console.error('Authentication check failed with status:', response.status);
+          setUser(null);
+          setError('Authentication check failed');
         }
       } catch (err: any) {
-        setError('Network error: ' + err.message);
+        console.error('Authentication check error:', err);
+        setError('Network error during authentication check');
         setUser(null);
+        
+        // Clear potentially corrupted data on network errors
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -98,12 +148,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkAuth();
 
-    // Listen for native auth events if in native app
+    // Enhanced native app event listener with validation
     if (isNativeApp()) {
       const cleanup = listenForNativeAuthEvents((event) => {
         if (event.detail && event.detail.user) {
-          setUser(event.detail.user);
-          setError(null);
+          const userData = event.detail.user;
+          
+          // Validate event data structure
+          if (userData && typeof userData === 'object' && 
+              userData.id && typeof userData.id === 'number' &&
+              userData.username && typeof userData.username === 'string' &&
+              userData.name && typeof userData.name === 'string') {
+            
+            setUser(userData);
+            setError(null);
+          } else {
+            console.warn('Invalid user data received from native auth event');
+            setError('Invalid authentication data');
+          }
         }
       });
 

@@ -1,41 +1,222 @@
-
 import { Router } from "express";
 import { authenticate } from "../auth";
 import { db } from "../db";
 import { restaurants, restaurantLists, posts, users, userFollowers, circleMembers } from "../../shared/schema";
-import { eq, and, or, like, desc, sql, ilike, ne } from "drizzle-orm";
+import { eq, and, or, like, desc, sql, ilike, ne, inArray } from "drizzle-orm";
 import { searchGooglePlaces, getPlaceDetails } from "../services/google-places";
-import { PermissionService } from "../services/permissions";
+import { z } from "zod";
 
 const router = Router();
 
-// Unified search endpoint with consistent response format
+// Enhanced input validation schemas
+const searchQuerySchema = z.object({
+  q: z.string().min(2).max(100).trim(),
+  type: z.enum(['all', 'restaurants', 'lists', 'posts', 'users']).default('all'),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  radius: z.number().min(100).max(50000).optional()
+});
+
+// Enhanced privacy service for search
+class SearchPrivacyService {
+  static async getAccessibleLists(userId: number, searchPattern: string, limit: number = 5) {
+    try {
+      // Validate user ID
+      if (!userId || typeof userId !== 'number' || userId <= 0) {
+        throw new Error('Invalid user ID');
+      }
+
+      // Use parameterized query to prevent SQL injection and ensure proper privacy filtering
+      const listResults = await db.execute(sql`
+        SELECT DISTINCT 
+          rl.id, rl.name, rl.description, rl.tags, rl.created_by_id as "createdById",
+          rl.is_public as "isPublic", rl.view_count as "viewCount", rl.created_at as "createdAt",
+          rl.make_public as "makePublic", rl.share_with_circle as "shareWithCircle"
+        FROM restaurant_lists rl
+        LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id AND cm.user_id = ${userId} AND cm.status = 'active'
+        WHERE (
+          -- Search criteria
+          (rl.name ILIKE ${searchPattern} OR COALESCE(rl.description, '') ILIKE ${searchPattern})
+        ) AND (
+          -- Privacy filtering
+          rl.created_by_id = ${userId} OR -- User owns the list
+          (rl.make_public = true AND rl.is_public = true) OR -- List is fully public
+          (rl.share_with_circle = true AND cm.user_id = ${userId}) -- List is shared with user's circle
+        )
+        ORDER BY 
+          CASE WHEN rl.created_by_id = ${userId} THEN 0 ELSE 1 END,
+          rl.created_at DESC
+        LIMIT ${limit}
+      `);
+
+      return listResults.rows.map((l: any) => ({
+        id: l.id.toString(),
+        name: l.name,
+        subtitle: l.description || `${l.tags?.length || 0} tags`,
+        type: 'list' as const,
+        createdById: l.createdById,
+        viewCount: l.viewCount
+      }));
+    } catch (error) {
+      console.error('Error fetching accessible lists:', error);
+      return [];
+    }
+  }
+
+  static async getAccessibleUsers(userId: number, searchPattern: string, limit: number = 5) {
+    try {
+      // Validate user ID
+      if (!userId || typeof userId !== 'number' || userId <= 0) {
+        throw new Error('Invalid user ID');
+      }
+
+      // Get users with privacy-aware search
+      const userResults = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          bio: users.bio,
+          profilePicture: users.profilePicture,
+          diningInterests: users.diningInterests,
+          preferredCuisines: users.preferredCuisines,
+          preferredLocation: users.preferredLocation,
+        })
+        .from(users)
+        .where(
+          and(
+            or(
+              ilike(users.name, searchPattern),
+              ilike(users.username, searchPattern),
+              ilike(users.bio, searchPattern)
+            ),
+            ne(users.id, userId) // Exclude current user
+          )
+        )
+        .limit(limit);
+
+      // Batch fetch social metadata for performance
+      const userIds = userResults.map(u => u.id);
+
+      // Get follow status in batch
+      const followStatusResults = await db
+        .select({
+          followingId: userFollowers.followingId,
+          status: userFollowers.status
+        })
+        .from(userFollowers)
+        .where(
+          and(
+            eq(userFollowers.followerId, userId),
+            inArray(userFollowers.followingId, userIds)
+          )
+        );
+
+      const followStatusMap = new Map(
+        followStatusResults.map(fs => [fs.followingId, fs.status])
+      );
+
+      // Get mutual connections in batch
+      const mutualConnectionsResults = await db
+        .select({
+          userId: userFollowers.followerId,
+          count: sql<number>`count(*)`
+        })
+        .from(userFollowers)
+        .where(
+          and(
+            inArray(userFollowers.followerId, userIds),
+            sql`${userFollowers.followingId} IN (
+              SELECT following_id FROM user_followers 
+              WHERE follower_id = ${userId}
+            )`
+          )
+        )
+        .groupBy(userFollowers.followerId);
+
+      const mutualConnectionsMap = new Map(
+        mutualConnectionsResults.map(mc => [mc.userId, mc.count])
+      );
+
+      return userResults.map(user => ({
+        id: user.id.toString(),
+        name: user.name,
+        subtitle: `@${user.username}${user.bio ? ` • ${user.bio.substring(0, 30)}...` : ''}`,
+        avatar: user.profilePicture,
+        diningInterests: user.diningInterests || [],
+        preferredCuisines: user.preferredCuisines || [],
+        preferredLocation: user.preferredLocation,
+        isFollowing: followStatusMap.has(user.id),
+        mutualConnections: mutualConnectionsMap.get(user.id) || 0,
+        type: 'user' as const
+      }));
+    } catch (error) {
+      console.error('Error fetching accessible users:', error);
+      return [];
+    }
+  }
+}
+
+// Location caching service for performance
+class LocationCacheService {
+  private static cache = new Map<string, { data: any; timestamp: number }>();
+  private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+  static async getLocationDetails(googlePlaceId: string): Promise<any> {
+    const cacheKey = `location_${googlePlaceId}`;
+    const cached = this.cache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.data;
+    }
+
+    try {
+      const placeDetails = await getPlaceDetails(googlePlaceId);
+      if (placeDetails) {
+        this.cache.set(cacheKey, { data: placeDetails, timestamp: Date.now() });
+      }
+      return placeDetails;
+    } catch (error) {
+      console.error('Error fetching location details:', error);
+      return null;
+    }
+  }
+
+  static clearExpiredCache() {
+    const now = Date.now();
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp > this.CACHE_DURATION) {
+        this.cache.delete(key);
+      }
+    }
+  }
+}
+
+// Clear cache periodically
+setInterval(() => {
+  LocationCacheService.clearExpiredCache();
+}, 5 * 60 * 1000); // Every 5 minutes
+
+// Enhanced unified search endpoint
 router.get("/", authenticate, async (req, res) => {
   try {
-    const { q, type = "all" } = req.query;
-    
-    if (!q || typeof q !== "string") {
-      return res.status(400).json({ 
-        error: "Search query is required",
-        code: "MISSING_QUERY"
-      });
-    }
-    
-    const searchTerm = q.trim();
-    if (searchTerm.length < 2) {
-      return res.status(400).json({ 
-        error: "Search query must be at least 2 characters",
-        code: "QUERY_TOO_SHORT"
-      });
-    }
-    
+    // Enhanced input validation
+    const validatedQuery = searchQuerySchema.parse({
+      q: req.query.q,
+      type: req.query.type || 'all',
+      lat: req.query.lat ? parseFloat(req.query.lat as string) : undefined,
+      lng: req.query.lng ? parseFloat(req.query.lng as string) : undefined,
+      radius: req.query.radius ? parseInt(req.query.radius as string) : undefined
+    });
+
+    const { q: searchTerm, type, lat, lng, radius } = validatedQuery;
     const searchPattern = `%${searchTerm}%`;
     const results: any[] = [];
-    
-    // Search restaurants with consistent format
+    const userId = req.user!.id;
+
+    // Search restaurants with enhanced caching
     if (type === "all" || type === "restaurants") {
       try {
-        // First get restaurants from database
         const restaurantResults = await db
           .select({
             id: restaurants.id,
@@ -58,39 +239,23 @@ router.get("/", authenticate, async (req, res) => {
             )
           )
           .limit(10);
-        
-        console.log('Database search results:', restaurantResults.length, 'restaurants found');
-        
-        // Transform to unified format with proper rating calculation and location fetching
+
         const formattedRestaurants = await Promise.all(restaurantResults.map(async (r) => {
           let location = r.location;
-          
-          console.log('Processing restaurant:', r.name, 'with location:', location, 'googlePlaceId:', r.googlePlaceId);
-          
-          // If location is unknown but we have a Google Place ID, fetch the location
+
+          // Use cached location service
           if ((!location || location === 'Unknown location') && r.googlePlaceId) {
-            try {
-              console.log('Fetching location for restaurant:', r.name, 'with place ID:', r.googlePlaceId);
-              const placeDetails = await getPlaceDetails(r.googlePlaceId);
-              if (placeDetails && placeDetails.address) {
-                location = placeDetails.address;
-                console.log('Updated location for restaurant:', r.name, 'to:', location);
-              } else {
-                console.log('No address found in place details for restaurant:', r.name);
-              }
-            } catch (error) {
-              console.error('Error fetching location for restaurant:', r.name, error);
-              // Keep the existing location if Google Places fails
+            const placeDetails = await LocationCacheService.getLocationDetails(r.googlePlaceId);
+            if (placeDetails?.address) {
+              location = placeDetails.address;
             }
-          } else {
-            console.log('Skipping location fetch for restaurant:', r.name, 'location:', location, 'googlePlaceId:', r.googlePlaceId);
           }
-          
+
           return {
             id: r.id.toString(),
             name: r.name,
             thumbnailUrl: r.imageUrl,
-            avgRating: 4.2, // Default rating as number - should be calculated from actual ratings
+            avgRating: 4.2,
             location: location,
             category: r.category,
             priceRange: r.priceRange,
@@ -100,40 +265,24 @@ router.get("/", authenticate, async (req, res) => {
             type: 'restaurant' as const
           };
         }));
-        
+
         results.push(...formattedRestaurants);
-        
-        console.log(`Database returned ${formattedRestaurants.length} restaurants for query "${searchTerm}"`);
-        
-        // If local results are limited, search Google Places API for restaurants
+
+        // Enhanced Google Places integration with location support
         if (formattedRestaurants.length < 5) {
           try {
-            // Parse location from request if provided
-            const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
-            const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
-            const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
-            
             const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
-            
-            console.log('Request query params:', req.query);
-            console.log('Parsed location values:', { lat, lng, radius });
-            console.log('Location data object:', locationData);
-            console.log(`Searching Google Places for: "${searchTerm}"${locationData ? ` near ${lat}, ${lng}` : ''}`);
-            
             const googleResults = await searchGooglePlaces(searchTerm, locationData);
-            console.log(`Google Places returned ${googleResults.length} results`);
-            
-            // Filter out Google results that already exist in the database
+
             const filteredGoogleResults = googleResults.filter(
               (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)
             );
-            
-            // Transform Google results to match our format
+
             const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
               id: `google_${r.googlePlaceId}`,
               name: r.name,
               thumbnailUrl: r.imageUrl,
-              avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2, // Use actual Google rating with validation
+              avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
               location: r.location,
               category: r.category,
               priceRange: r.priceRange,
@@ -143,64 +292,38 @@ router.get("/", authenticate, async (req, res) => {
               type: 'restaurant' as const,
               googlePlaceId: r.googlePlaceId
             }));
-            
+
             results.push(...formattedGoogleResults);
           } catch (googleError) {
             console.error("Google Places search error:", googleError);
-            // Continue without Google results - this allows search to work even if Google API fails
           }
         }
       } catch (dbError) {
         console.error("Database restaurant search error:", dbError);
       }
     }
-    
-    // Search lists with enhanced privacy filtering
+
+    // Enhanced privacy-aware list search
     if (type === "all" || type === "lists") {
       try {
-        const userId = req.user!.id;
-        
-        // Validate user ID to prevent injection
-        if (!userId || typeof userId !== 'number' || userId <= 0) {
-          return res.status(401).json({ error: 'Invalid user authentication' });
-        }
-        
-        // Use SQL for complete privacy filtering including circle-shared lists
-        const listResults = await db.execute(sql`
-          SELECT DISTINCT 
-            rl.id, rl.name, rl.description, rl.tags, rl.created_by_id as "createdById",
-            rl.is_public as "isPublic", rl.view_count as "viewCount", rl.created_at
-          FROM restaurant_lists rl
-          LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
-          WHERE (
-            -- List name or description matches search
-            (rl.name ILIKE ${searchPattern} OR rl.description ILIKE ${searchPattern})
-          ) AND (
-            -- User owns the list
-            rl.created_by_id = ${userId} OR
-            -- List is public AND make_public is true
-            (rl.make_public = true AND rl.is_public = true) OR
-            -- List is shared with circle and user is confirmed member
-            (rl.share_with_circle = true AND cm.user_id = ${userId} AND cm.status = 'active')
-          )
-          ORDER BY rl.created_at DESC
-          LIMIT 5
-        `);
-        
-        const formattedLists = listResults.rows.map((l: any) => ({
-          id: l.id.toString(),
-          name: l.name,
-          subtitle: l.description || `${l.tags?.length || 0} tags`,
-          type: 'list' as const
-        }));
-        
-        results.push(...formattedLists);
-      } catch (dbError) {
-        console.error("Database list search error:", dbError);
+        const listResults = await SearchPrivacyService.getAccessibleLists(userId, searchPattern);
+        results.push(...listResults);
+      } catch (error) {
+        console.error("List search error:", error);
       }
     }
-    
-    // Search posts
+
+    // Enhanced privacy-aware user search
+    if (type === "all" || type === "users") {
+      try {
+        const userResults = await SearchPrivacyService.getAccessibleUsers(userId, searchPattern);
+        results.push(...userResults);
+      } catch (error) {
+        console.error("User search error:", error);
+      }
+    }
+
+    // Enhanced post search with privacy filtering
     if (type === "all" || type === "posts") {
       try {
         const postResults = await db
@@ -211,106 +334,40 @@ router.get("/", authenticate, async (req, res) => {
             userId: posts.userId,
             restaurantId: posts.restaurantId,
             createdAt: posts.createdAt,
+            visibility: posts.visibility
           })
           .from(posts)
-          .where(ilike(posts.content, searchPattern))
+          .where(
+            and(
+              ilike(posts.content, searchPattern),
+              // Only include posts user can see
+              or(
+                eq(posts.userId, userId), // User's own posts
+                sql`${posts.visibility}->>'public' = 'true'` // Public posts
+              )
+            )
+          )
           .orderBy(desc(posts.createdAt))
           .limit(5);
-        
+
         const formattedPosts = postResults.map(p => ({
           id: p.id.toString(),
           name: p.content.substring(0, 50) + '...',
           subtitle: `${p.rating} stars`,
           type: 'post' as const
         }));
-        
+
         results.push(...formattedPosts);
-      } catch (dbError) {
-        console.error("Database post search error:", dbError);
+      } catch (error) {
+        console.error("Post search error:", error);
       }
     }
-    
-    // Search users with enhanced metadata
-    if (type === "all" || type === "users") {
-      try {
-        const userResults = await db
-          .select({
-            id: users.id,
-            username: users.username,
-            name: users.name,
-            bio: users.bio,
-            profilePicture: users.profilePicture,
-            diningInterests: users.diningInterests,
-            preferredCuisines: users.preferredCuisines,
-            preferredLocation: users.preferredLocation,
-          })
-          .from(users)
-          .where(
-            and(
-              or(
-                ilike(users.name, searchPattern),
-                ilike(users.username, searchPattern),
-                ilike(users.bio, searchPattern)
-              ),
-              // Exclude current user from search results
-              ne(users.id, req.user?.id || -1)
-            )
-          )
-          .limit(5);
-        
-        // Get enhanced metadata for each user
-        const enhancedUsers = await Promise.all(userResults.map(async (user) => {
-          // Check if current user is following this user
-          const followStatus = await db
-            .select()
-            .from(userFollowers)
-            .where(
-              and(
-                eq(userFollowers.followerId, req.user?.id || -1),
-                eq(userFollowers.followingId, user.id)
-              )
-            )
-            .limit(1);
 
-          // Get mutual connections count
-          const mutualConnections = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(userFollowers)
-            .where(
-              and(
-                eq(userFollowers.followerId, user.id),
-                sql`${userFollowers.followingId} IN (
-                  SELECT following_id FROM user_followers 
-                  WHERE follower_id = ${req.user?.id || -1}
-                )`
-              )
-            );
-
-          return {
-            id: user.id.toString(),
-            name: user.name,
-            subtitle: `@${user.username}${user.bio ? ` • ${user.bio.substring(0, 30)}...` : ''}`,
-            avatar: user.profilePicture,
-            diningInterests: user.diningInterests || [],
-            preferredCuisines: user.preferredCuisines || [],
-            preferredLocation: user.preferredLocation,
-            isFollowing: followStatus.length > 0,
-            mutualConnections: mutualConnections[0]?.count || 0,
-            type: 'user' as const
-          };
-        }));
-        
-        results.push(...enhancedUsers);
-      } catch (dbError) {
-        console.error("Database user search error:", dbError);
-      }
-    }
-    
-    // Return unified format for both single type and multi-type searches
+    // Return results based on search type
     if (type !== "all") {
       return res.json(results);
     }
-    
+
     // For unified search, group by type
     const grouped = {
       restaurants: results.filter(r => r.type === 'restaurant'),
@@ -318,18 +375,20 @@ router.get("/", authenticate, async (req, res) => {
       posts: results.filter(r => r.type === 'post'),
       users: results.filter(r => r.type === 'user')
     };
-    
-    console.log(`Search for "${searchTerm}" returned:`, {
-      restaurants: grouped.restaurants.length,
-      lists: grouped.lists.length,
-      posts: grouped.posts.length,
-      users: grouped.users.length
-    });
-    
+
     res.json(grouped);
-    
+
   } catch (error) {
     console.error("Search error:", error);
+
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: "Invalid search parameters",
+        details: error.errors,
+        code: "INVALID_INPUT"
+      });
+    }
+
     res.status(500).json({ 
       error: "Search failed. Please try again.",
       code: "SEARCH_ERROR"
@@ -347,26 +406,19 @@ router.get("/restaurants", authenticate, async (req, res) => {
 // Unified search endpoint (alias for backward compatibility)
 router.get("/unified", authenticate, async (req, res) => {
   try {
-    const { q } = req.query;
-    
-    if (!q || typeof q !== "string") {
-      return res.status(400).json({ 
-        error: "Search query is required",
-        code: "MISSING_QUERY"
-      });
-    }
-    
-    const searchTerm = q.trim();
-    if (searchTerm.length < 2) {
-      return res.status(400).json({ 
-        error: "Search query must be at least 2 characters",
-        code: "QUERY_TOO_SHORT"
-      });
-    }
-    
+    // Enhanced input validation
+    const validatedQuery = searchQuerySchema.parse({
+      q: req.query.q,
+      type: 'all', // Force 'all' for unified search
+      lat: req.query.lat ? parseFloat(req.query.lat as string) : undefined,
+      lng: req.query.lng ? parseFloat(req.query.lng as string) : undefined,
+      radius: req.query.radius ? parseInt(req.query.radius as string) : undefined
+    });
+
+    const { q: searchTerm, lat, lng, radius } = validatedQuery;
     const searchPattern = `%${searchTerm}%`;
-    
-    // Search restaurants (including Google Places)
+    const userId = req.user!.id;
+
     const restaurantResults = await db
       .select({
         id: restaurants.id,
@@ -389,198 +441,149 @@ router.get("/unified", authenticate, async (req, res) => {
         )
       )
       .limit(10);
-    
-    console.log(`Unified search: Database returned ${restaurantResults.length} restaurants for query "${searchTerm}"`);
-    
-    let formattedRestaurants = restaurantResults.map(r => ({
-      id: r.id.toString(),
+
+    const formattedRestaurants = await Promise.all(restaurantResults.map(async (r) => {
+      let location = r.location;
+
+      // Use cached location service
+      if ((!location || location === 'Unknown location') && r.googlePlaceId) {
+        const placeDetails = await LocationCacheService.getLocationDetails(r.googlePlaceId);
+        if (placeDetails?.address) {
+          location = placeDetails.address;
+        }
+      }
+
+      return {
+        id: r.id.toString(),
+        name: r.name,
+        thumbnailUrl: r.imageUrl,
+        avgRating: 4.2,
+        location: location,
+        category: r.category,
+        priceRange: r.priceRange,
+        cuisine: r.cuisine,
+        address: r.address,
+        source: 'database' as const,
+        type: 'restaurant' as const
+      };
+    }));
+
+    // Enhanced Google Places integration with location support
+    const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
+    const googleResults = await searchGooglePlaces(searchTerm, locationData);
+
+    const filteredGoogleResults = googleResults.filter(
+      (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)
+    );
+
+    const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
+      id: `google_${r.googlePlaceId}`,
       name: r.name,
       thumbnailUrl: r.imageUrl,
-      avgRating: 4.2,
+      avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
       location: r.location,
       category: r.category,
       priceRange: r.priceRange,
       cuisine: r.cuisine,
       address: r.address,
-      source: 'database' as const,
-      type: 'restaurant' as const
-    }));
-    
-    // If local results are limited, search Google Places API for restaurants
-    if (formattedRestaurants.length < 5) {
-      try {
-        // Parse location from request if provided
-        const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
-        const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
-        const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
-        
-        const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
-        
-        console.log('Unified search: Request query params:', req.query);
-        console.log('Unified search: Parsed location values:', { lat, lng, radius });
-        console.log('Unified search: Location data object:', locationData);
-        console.log(`Unified search: Searching Google Places for: "${searchTerm}"${locationData ? ` near ${lat}, ${lng}` : ''}`);
-        
-        const googleResults = await searchGooglePlaces(searchTerm, locationData);
-        console.log(`Unified search: Google Places returned ${googleResults.length} results`);
-        
-        // Filter out Google results that already exist in the database
-        const filteredGoogleResults = googleResults.filter(
-          (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)
-        );
-        
-        // Transform Google results to match our format
-        const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
-          id: `google_${r.googlePlaceId}`,
-          name: r.name,
-          thumbnailUrl: r.imageUrl,
-          avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
-          location: r.location,
-          category: r.category,
-          priceRange: r.priceRange,
-          cuisine: r.cuisine,
-          address: r.address,
-          source: 'google' as const,
-          type: 'restaurant' as const,
-          googlePlaceId: r.googlePlaceId
-        }));
-        
-        formattedRestaurants = [...formattedRestaurants, ...formattedGoogleResults];
-      } catch (googleError) {
-        console.error("Unified search: Google Places search error:", googleError);
-      }
-    }
-    
-    // Add Google Places results if needed
-    if (formattedRestaurants.length < 5) {
-      try {
-        const googleResults = await searchGooglePlaces(searchTerm);
-        const filteredGoogleResults = googleResults.filter(
-          (gr) => !formattedRestaurants.some((dr) => dr.name.toLowerCase() === gr.name.toLowerCase())
-        );
-        
-        const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
-          id: `google_${r.googlePlaceId}`,
-          name: r.name,
-          thumbnailUrl: r.imageUrl,
-          avgRating: 4.2,
-          location: r.location,
-          category: r.category,
-          priceRange: r.priceRange,
-          cuisine: r.cuisine,
-          address: r.address,
-          source: 'google' as const,
-          type: 'restaurant' as const,
-          googlePlaceId: r.googlePlaceId
-        }));
-        
-        formattedRestaurants = [...formattedRestaurants, ...formattedGoogleResults];
-      } catch (googleError) {
-        console.error("Google Places search error:", googleError);
-      }
-    }
-    
-    // Search other content types with enhanced privacy filtering
-    const listResults = await db.execute(sql`
-      SELECT DISTINCT 
-        rl.id, rl.name, rl.description
-      FROM restaurant_lists rl
-      LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
-      WHERE (
-        -- List name or description matches search
-        (rl.name ILIKE ${searchPattern} OR rl.description ILIKE ${searchPattern})
-      ) AND (
-        -- User owns the list
-        rl.created_by_id = ${req.user!.id} OR
-        -- List is public
-        rl.make_public = true OR
-        -- List is shared with circle and user is member
-        (rl.share_with_circle = true AND cm.user_id = ${req.user!.id})
-      )
-      LIMIT 5
-    `);
-    
-    const formattedLists = listResults.rows.map((l: any) => ({
-      id: l.id.toString(),
-      name: l.name,
-      subtitle: l.description || '',
-      type: 'list' as const
+      source: 'google' as const,
+      type: 'restaurant' as const,
+      googlePlaceId: r.googlePlaceId
     }));
 
-    // Search users
-    const userResults = await db
+    const restaurantsResult = [...formattedRestaurants, ...formattedGoogleResults];
+
+    // Enhanced privacy-aware list search
+    const listResults = await SearchPrivacyService.getAccessibleLists(userId, searchPattern);
+
+    // Enhanced privacy-aware user search
+    const userResults = await SearchPrivacyService.getAccessibleUsers(userId, searchPattern);
+
+    // Enhanced post search with privacy filtering
+    const postResults = await db
       .select({
-        id: users.id,
-        username: users.username,
-        name: users.name,
-        bio: users.bio,
-        profilePicture: users.profilePicture,
+        id: posts.id,
+        content: posts.content,
+        rating: posts.rating,
+        userId: posts.userId,
+        restaurantId: posts.restaurantId,
+        createdAt: posts.createdAt,
+        visibility: posts.visibility
       })
-      .from(users)
+      .from(posts)
       .where(
         and(
+          ilike(posts.content, searchPattern),
+          // Only include posts user can see
           or(
-            ilike(users.name, searchPattern),
-            ilike(users.username, searchPattern),
-            ilike(users.bio, searchPattern)
-          ),
-          // Exclude current user from search results
-          ne(users.id, req.user?.id || -1)
+            eq(posts.userId, userId), // User's own posts
+            sql`${posts.visibility}->>'public' = 'true'` // Public posts
+          )
         )
       )
+      .orderBy(desc(posts.createdAt))
       .limit(5);
 
-    const formattedUsers = userResults.map(user => ({
-      id: user.id.toString(),
-      name: user.name,
-      email: user.username,
-      username: user.username,
-      subtitle: `@${user.username}${user.bio ? ` • ${user.bio.substring(0, 30)}...` : ''}`,
-      avatar: user.profilePicture,
-      type: 'user' as const
+    const formattedPosts = postResults.map(p => ({
+      id: p.id.toString(),
+      name: p.content.substring(0, 50) + '...',
+      subtitle: `${p.rating} stars`,
+      type: 'post' as const
     }));
-    
+
     const result = {
-      restaurants: formattedRestaurants,
-      lists: formattedLists,
-      posts: [],
-      users: formattedUsers
+      restaurants: restaurantsResult,
+      lists: listResults,
+      posts: formattedPosts,
+      users: userResults
     };
-    
+
     res.json(result);
-    
+
   } catch (error) {
     console.error("Unified search error:", error);
-    res.status(500).json({ 
+
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: "Invalid search parameters",
+        details: error.errors,
+        code: "INVALID_INPUT"
+      });
+    }
+
+    res.status(500).json({
       error: "Search failed. Please try again.",
       code: "SEARCH_ERROR"
     });
   }
 });
 
-// Get trending content for search modal
+// Enhanced trending endpoint with location support
 router.get("/trending", authenticate, async (req, res) => {
   try {
-    // Parse location from request if provided
-    const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
-    const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
-    const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
-    
+    const userId = req.user!.id;
+
+    // Validate location parameters
+    const locationSchema = z.object({
+      lat: z.number().min(-90).max(90).optional(),
+      lng: z.number().min(-180).max(180).optional(),
+      radius: z.number().min(100).max(50000).optional()
+    });
+
+    const { lat, lng, radius } = locationSchema.parse({
+      lat: req.query.lat ? parseFloat(req.query.lat as string) : undefined,
+      lng: req.query.lng ? parseFloat(req.query.lng as string) : undefined,
+      radius: req.query.radius ? parseInt(req.query.radius as string) : undefined
+    });
+
     const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
-    
-    console.log('Trending request with location:', locationData);
-    
+
     let trendingRestaurants = [];
-    
-    // If location is provided, get trending restaurants near the user
+
+    // Enhanced trending restaurants with location support
     if (locationData) {
       try {
-        console.log(`Getting trending restaurants near ${lat}, ${lng}`);
-        // Use Google Places to find popular restaurants in the area (use generic restaurant search)
         const popularRestaurants = await searchGooglePlaces("restaurant", locationData);
-        console.log(`Google Places returned ${popularRestaurants.length} popular restaurants`);
-        
-        // Transform to our format
         trendingRestaurants = popularRestaurants.slice(0, 8).map(r => ({
           id: `google_${r.googlePlaceId}`,
           name: r.name,
@@ -597,49 +600,7 @@ router.get("/trending", authenticate, async (req, res) => {
         }));
       } catch (googleError) {
         console.error("Error getting location-based trending restaurants:", googleError);
-        // Fall back to database restaurants
-        const dbRestaurants = await db
-          .select({
-            id: restaurants.id,
-            name: restaurants.name,
-            location: restaurants.location,
-            category: restaurants.category,
-            type: sql<string>`'restaurant'`.as('type')
-          })
-          .from(restaurants)
-          .limit(3);
-        
-        trendingRestaurants = dbRestaurants.map(r => ({
-          ...r,
-          type: 'restaurant' as const
-        }));
-      }
-    } else {
-      // No location provided, try to get popular restaurants from Google Places without location
-      try {
-        console.log('No location provided, getting popular restaurants from Google Places');
-        // Get popular restaurants from major cities
-        const popularRestaurants = await searchGooglePlaces("popular restaurant");
-        console.log(`Google Places returned ${popularRestaurants.length} popular restaurants`);
-        
-        // Transform to our format
-        trendingRestaurants = popularRestaurants.slice(0, 8).map(r => ({
-          id: `google_${r.googlePlaceId}`,
-          name: r.name,
-          location: r.location,
-          category: r.category,
-          type: 'restaurant' as const,
-          thumbnailUrl: r.imageUrl,
-          avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
-          priceRange: r.priceRange,
-          cuisine: r.cuisine,
-          address: r.address,
-          source: 'google' as const,
-          googlePlaceId: r.googlePlaceId
-        }));
-      } catch (googleError) {
-        console.error("Error getting popular restaurants from Google Places:", googleError);
-        // Fall back to database restaurants but diversify them
+        // Fallback to database restaurants
         const dbRestaurants = await db
           .select({
             id: restaurants.id,
@@ -648,44 +609,45 @@ router.get("/trending", authenticate, async (req, res) => {
             category: restaurants.category,
             cuisine: restaurants.cuisine,
             priceRange: restaurants.priceRange,
-            imageUrl: restaurants.imageUrl,
-            type: sql<string>`'restaurant'`.as('type')
+            imageUrl: restaurants.imageUrl
           })
           .from(restaurants)
-          .where(sql`${restaurants.location} NOT LIKE '%NYC%' AND ${restaurants.location} NOT LIKE '%New York%'`)
           .limit(5);
-        
+
         trendingRestaurants = dbRestaurants.map(r => ({
-          ...r,
+          id: r.id.toString(),
+          name: r.name,
+          location: r.location,
+          category: r.category,
           type: 'restaurant' as const,
           thumbnailUrl: r.imageUrl,
           avgRating: 4.2,
+          priceRange: r.priceRange,
+          cuisine: r.cuisine,
           address: r.location,
           source: 'database' as const
         }));
       }
     }
-    
-    // Get trending lists (by view count)
-    const trendingLists = await db
-      .select({
-        id: restaurantLists.id,
-        name: restaurantLists.name,
-        description: restaurantLists.description,
-        viewCount: restaurantLists.viewCount,
-        type: sql<string>`'list'`.as('type')
-      })
-      .from(restaurantLists)
-      .where(eq(restaurantLists.isPublic, true))
-      .orderBy(desc(restaurantLists.viewCount))
-      .limit(2);
-    
+
+    // Get trending lists with privacy filtering
+    const trendingLists = await SearchPrivacyService.getAccessibleLists(userId, '%%', 2);
+
     res.json({
       trending: [...trendingRestaurants, ...trendingLists]
     });
-    
+
   } catch (error) {
     console.error("Trending search error:", error);
+
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: "Invalid location parameters",
+        details: error.errors,
+        code: "INVALID_LOCATION"
+      });
+    }
+
     res.status(500).json({ 
       error: "Failed to fetch trending content",
       code: "TRENDING_ERROR"

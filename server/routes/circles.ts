@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { circles, circleMembers, circleInvites, users, circleSharedLists, restaurantLists } from '../../shared/schema';
 import { insertCircleInviteSchema, insertCircleSharedListSchema } from '../../shared/schema';
@@ -8,86 +8,171 @@ import { authenticate } from '../auth';
 
 const router = Router();
 
-// Get accessible circles (security-filtered endpoint)
-router.get('/', authenticate, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    
-    // Enterprise-grade user validation
-    if (!userId || typeof userId !== 'number' || userId <= 0) {
-      return res.status(401).json({ 
-        error: 'Invalid user authentication',
-        code: 'INVALID_USER_ID' 
+// Enhanced user ID validation middleware
+const validateUserId = (req: Request, res: Response, next: Function) => {
+  const userId = req.user?.id;
+  if (!userId || typeof userId !== 'number' || userId <= 0 || !Number.isInteger(userId)) {
+    return res.status(401).json({ 
+      error: 'Invalid user authentication',
+      code: 'INVALID_USER_ID' 
+    });
+  }
+  next();
+};
+
+// Enhanced circle ID validation
+const validateCircleId = (paramName: string = 'id') => {
+  return (req: Request, res: Response, next: Function) => {
+    const circleId = parseInt(req.params[paramName]);
+    if (!circleId || isNaN(circleId) || circleId <= 0 || !Number.isInteger(circleId)) {
+      return res.status(400).json({ 
+        error: 'Invalid circle ID',
+        code: 'INVALID_CIRCLE_ID' 
       });
     }
-    
+    req.params[paramName] = circleId.toString();
+    next();
+  };
+};
+
+// Enhanced access control service
+class CircleAccessService {
+  static async validateCircleAccess(userId: number, circleId: number, requiredRole?: string[]): Promise<{ allowed: boolean; role?: string; reason?: string }> {
+    try {
+      // Input validation
+      if (!userId || !circleId || typeof userId !== 'number' || typeof circleId !== 'number') {
+        return { allowed: false, reason: 'invalid_parameters' };
+      }
+
+      // Check if circle exists
+      const circle = await db
+        .select({ id: circles.id, isPrivate: circles.isPrivate })
+        .from(circles)
+        .where(eq(circles.id, circleId))
+        .limit(1);
+
+      if (!circle.length) {
+        return { allowed: false, reason: 'circle_not_found' };
+      }
+
+      // Check membership
+      const membership = await db
+        .select({ role: circleMembers.role, status: circleMembers.status })
+        .from(circleMembers)
+        .where(
+          and(
+            eq(circleMembers.circleId, circleId),
+            eq(circleMembers.userId, userId),
+            eq(circleMembers.status, 'active')
+          )
+        )
+        .limit(1);
+
+      if (!membership.length) {
+        // For public circles, allow read access
+        if (!circle[0].isPrivate) {
+          return { allowed: true, role: 'public' };
+        }
+        return { allowed: false, reason: 'not_member' };
+      }
+
+      const userRole = membership[0].role;
+
+      // Check required role
+      if (requiredRole && !requiredRole.includes(userRole)) {
+        return { allowed: false, reason: 'insufficient_permissions' };
+      }
+
+      return { allowed: true, role: userRole };
+    } catch (error) {
+      console.error('Circle access validation error:', error);
+      return { allowed: false, reason: 'validation_error' };
+    }
+  }
+
+  static async getAccessibleCircles(userId: number, limit: number = 20, offset: number = 0) {
+    try {
+      // Enhanced query with proper access control
+      const accessibleCircles = await db
+        .select({
+          id: circles.id,
+          name: circles.name,
+          description: circles.description,
+          isPrivate: circles.isPrivate,
+          createdAt: circles.createdAt,
+          creatorId: circles.creatorId,
+          // Only expose invite code to owners/admins
+          inviteCode: sql<string>`
+            CASE 
+              WHEN ${circleMembers.role} IN ('owner', 'admin') THEN ${circles.inviteCode}
+              ELSE NULL
+            END
+          `,
+          allowPublicJoin: circles.allowPublicJoin,
+          tags: circles.tags,
+          primaryCuisine: circles.primaryCuisine,
+          priceRange: circles.priceRange,
+          location: circles.location,
+          memberCount: circles.memberCount,
+          featured: circles.featured,
+          trending: circles.trending,
+          role: circleMembers.role,
+          joinedAt: circleMembers.joinedAt,
+          memberStatus: circleMembers.status,
+          coverImage: circles.coverImage
+        })
+        .from(circles)
+        .leftJoin(circleMembers, and(
+          eq(circleMembers.circleId, circles.id),
+          eq(circleMembers.userId, userId),
+          eq(circleMembers.status, 'active')
+        ))
+        .where(
+          or(
+            // User is an active member
+            and(
+              eq(circleMembers.userId, userId),
+              eq(circleMembers.status, 'active')
+            ),
+            // Circle is public and allows public joining
+            and(
+              eq(circles.allowPublicJoin, true),
+              eq(circles.isPrivate, false)
+            )
+          )
+        )
+        .limit(limit)
+        .offset(offset)
+        .orderBy(circles.createdAt);
+
+      return accessibleCircles.filter(circle => 
+        circle.role !== null || (!circle.isPrivate && circle.allowPublicJoin)
+      );
+    } catch (error) {
+      console.error('Error fetching accessible circles:', error);
+      throw error;
+    }
+  }
+}
+
+// Get accessible circles (security-hardened endpoint)
+router.get('/', authenticate, validateUserId, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+
     // Input validation and sanitization
     const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
     const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
 
-    // Only return circles user has CONFIRMED access to with proper member status
-    const accessibleCircles = await db
-      .select({
-        id: circles.id,
-        name: circles.name,
-        description: circles.description,
-        isPrivate: circles.isPrivate,
-        createdAt: circles.createdAt,
-        creatorId: circles.creatorId,
-        // Never expose invite codes unless user is owner/admin
-        inviteCode: sql<string>`
-          CASE 
-            WHEN ${circleMembers.role} IN ('owner', 'admin') THEN ${circles.inviteCode}
-            ELSE NULL
-          END
-        `,
-        allowPublicJoin: circles.allowPublicJoin,
-        tags: circles.tags,
-        primaryCuisine: circles.primaryCuisine,
-        priceRange: circles.priceRange,
-        location: circles.location,
-        memberCount: circles.memberCount,
-        featured: circles.featured,
-        trending: circles.trending,
-        role: circleMembers.role,
-        joinedAt: circleMembers.joinedAt,
-        memberStatus: circleMembers.status
-      })
-      .from(circles)
-      .leftJoin(circleMembers, and(
-        eq(circleMembers.circleId, circles.id),
-        eq(circleMembers.userId, userId)
-      ))
-      .where(
-        or(
-          // User is an ACTIVE member of the circle
-          and(
-            eq(circleMembers.userId, userId),
-            eq(circleMembers.status, 'active')
-          ),
-          // Circle allows public joining AND is not private
-          and(
-            eq(circles.allowPublicJoin, true),
-            eq(circles.isPrivate, false)
-          )
-        )
-      )
-      .limit(limit)
-      .offset(offset)
-      .orderBy(circles.createdAt);
-
-    // Filter out any circles where user doesn't have confirmed access
-    const filteredCircles = accessibleCircles.filter(circle => {
-      return circle.role !== null || (!circle.isPrivate && circle.allowPublicJoin);
-    });
+    const accessibleCircles = await CircleAccessService.getAccessibleCircles(userId, limit, offset);
 
     res.json({
-      circles: filteredCircles,
+      circles: accessibleCircles,
       pagination: {
         limit,
         offset,
-        total: filteredCircles.length,
-        hasMore: filteredCircles.length === limit
+        total: accessibleCircles.length,
+        hasMore: accessibleCircles.length === limit
       }
     });
   } catch (error) {
@@ -99,10 +184,11 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Get user's circles
-router.get('/me', authenticate, async (req, res) => {
+// Get user's circles with enhanced security
+router.get('/me', authenticate, validateUserId, async (req, res) => {
   try {
     const userId = req.user!.id;
+
     const userCircles = await db
       .select({
         id: circles.id,
@@ -115,11 +201,18 @@ router.get('/me', authenticate, async (req, res) => {
         featured: circles.featured,
         trending: circles.trending,
         role: circleMembers.role,
-        joinedAt: circleMembers.joinedAt
+        joinedAt: circleMembers.joinedAt,
+        coverImage: circles.coverImage
       })
       .from(circleMembers)
-      .leftJoin(circles, eq(circleMembers.circleId, circles.id))
-      .where(eq(circleMembers.userId, userId));
+      .innerJoin(circles, eq(circleMembers.circleId, circles.id))
+      .where(
+        and(
+          eq(circleMembers.userId, userId),
+          eq(circleMembers.status, 'active')
+        )
+      )
+      .orderBy(circleMembers.joinedAt);
 
     res.json(userCircles);
   } catch (error) {
@@ -128,28 +221,36 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
-// Create new circle
-router.post('/', authenticate, async (req, res) => {
+// Create circle with enhanced validation
+router.post('/', authenticate, validateUserId, async (req, res) => {
   try {
     const userId = req.user!.id;
-    const { name, description, primaryCuisine, priceRange, location, allowPublicJoin } = req.body;
 
-    // Validate input
-    if (!name || name.trim().length < 3) {
-      return res.status(400).json({ error: 'Circle name must be at least 3 characters' });
-    }
+    // Enhanced input validation
+    const createCircleSchema = z.object({
+      name: z.string().min(3).max(100).trim(),
+      description: z.string().max(500).optional(),
+      primaryCuisine: z.string().max(50).optional(),
+      priceRange: z.enum(['$', '$$', '$$$', '$$$$']).optional(),
+      location: z.string().max(100).optional(),
+      allowPublicJoin: z.boolean().default(false),
+      isPrivate: z.boolean().default(false)
+    });
 
-    // Create circle
+    const validatedData = createCircleSchema.parse(req.body);
+
+    // Create circle with transaction
     const [circle] = await db
       .insert(circles)
       .values({
-        name: name.trim(),
-        description: description?.trim() || null,
-        creatorId: userId, // Fix: Add missing creatorId
-        primaryCuisine: primaryCuisine || null,
-        priceRange: priceRange || null,
-        location: location || null,
-        allowPublicJoin: allowPublicJoin || false,
+        name: validatedData.name,
+        description: validatedData.description || null,
+        creatorId: userId,
+        primaryCuisine: validatedData.primaryCuisine || null,
+        priceRange: validatedData.priceRange || null,
+        location: validatedData.location || null,
+        allowPublicJoin: validatedData.allowPublicJoin,
+        isPrivate: validatedData.isPrivate,
         memberCount: 1,
         featured: false,
         trending: false,
@@ -164,40 +265,33 @@ router.post('/', authenticate, async (req, res) => {
         circleId: circle.id,
         userId: userId,
         role: 'owner',
+        status: 'active',
         joinedAt: new Date()
       });
 
     res.status(201).json(circle);
   } catch (error) {
     console.error('Error creating circle:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Invalid input data',
+        details: error.errors 
+      });
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Update circle details (PUT /api/circles/:id)
-router.put('/:id', authenticate, async (req, res) => {
+router.put('/:id', authenticate, validateUserId, validateCircleId(), async (req, res) => {
   try {
     const circleId = parseInt(req.params.id);
     const userId = req.user!.id;
     const { name, description, primaryCuisine, priceRange, location, isPrivate, allowPublicJoin } = req.body;
 
     // Check if user is owner or admin
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, circleId),
-          eq(circleMembers.userId, userId),
-          or(
-            eq(circleMembers.role, 'owner'),
-            eq(circleMembers.role, 'admin')
-          )
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId, ['owner', 'admin']);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: 'Only circle owners and admins can update circle details' });
     }
 
@@ -239,22 +333,8 @@ export async function createCircleInvite(req: Request, res: Response) {
     });
 
     // Check if user is circle owner/admin
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(circleId)),
-          eq(circleMembers.userId, inviterId),
-          or(
-            eq(circleMembers.role, 'owner'),
-            eq(circleMembers.role, 'admin')
-          )
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(inviterId, parseInt(circleId), ['owner', 'admin']);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: 'Only circle owners and admins can send invites' });
     }
 
@@ -295,22 +375,8 @@ export async function getCircleInvites(req: Request, res: Response) {
     const userId = req.user!.id;
 
     // Check if user is circle owner/admin
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(circleId)),
-          eq(circleMembers.userId, userId),
-          or(
-            eq(circleMembers.role, 'owner'),
-            eq(circleMembers.role, 'admin')
-          )
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, parseInt(circleId), ['owner', 'admin']);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: 'Only circle owners and admins can view invites' });
     }
 
@@ -410,6 +476,7 @@ export async function respondToCircleInvite(req: Request, res: Response) {
             circleId: invite[0].circleId,
             userId: userId,
             role: 'member',
+            status: 'active',
             invitedBy: invite[0].inviterId
           });
       }
@@ -464,7 +531,7 @@ export async function getUserPendingInvites(req: Request, res: Response) {
         and(
           or(
             eq(circleInvites.emailOrUsername, userInfo.username),
-            eq(circleInvites.emailOrUsername, userInfo.username) // Assuming email is stored in username field
+            eq(circleInvites.emailOrUsername, userInfo.email)
           ),
           eq(circleInvites.status, 'pending')
         )
@@ -495,22 +562,8 @@ export async function revokeCircleInvite(req: Request, res: Response) {
     }
 
     // Check if user is circle owner/admin
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, invite[0].circleId),
-          eq(circleMembers.userId, userId),
-          or(
-            eq(circleMembers.role, 'owner'),
-            eq(circleMembers.role, 'admin')
-          )
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, invite[0].circleId, ['owner', 'admin']);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: 'Only circle owners and admins can revoke invites' });
     }
 
@@ -539,22 +592,8 @@ export async function addUserToCircle(req: Request, res: Response) {
     }
 
     // Check if current user is circle owner/admin
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(circleId)),
-          eq(circleMembers.userId, currentUserId),
-          or(
-            eq(circleMembers.role, 'owner'),
-            eq(circleMembers.role, 'admin')
-          )
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(currentUserId, parseInt(circleId), ['owner', 'admin']);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: 'Only circle owners and admins can add users' });
     }
 
@@ -581,6 +620,7 @@ export async function addUserToCircle(req: Request, res: Response) {
         circleId: parseInt(circleId),
         userId: userId,
         role: 'member',
+        status: 'active',
         invitedBy: currentUserId
       })
       .returning();
@@ -609,18 +649,8 @@ export async function shareListWithCircle(req: Request, res: Response) {
     });
 
     // Check if user is a member of the circle
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(circleId)),
-          eq(circleMembers.userId, userId)
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, parseInt(circleId));
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: 'Only circle members can share lists' });
     }
 
@@ -734,18 +764,8 @@ export async function getCircleSharedLists(req: Request, res: Response) {
     const userId = req.user!.id;
 
     // Check if user is a member of the circle
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(circleId)),
-          eq(circleMembers.userId, userId)
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, parseInt(circleId));
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: 'Only circle members can view shared lists' });
     }
 
@@ -784,45 +804,85 @@ export async function getCircleSharedLists(req: Request, res: Response) {
   }
 }
 
-// Get circle members
-router.get('/:circleId/members', authenticate, async (req, res) => {
+// Get circle details with enhanced access control
+router.get('/:id', authenticate, validateUserId, validateCircleId(), async (req, res) => {
   try {
-    const { circleId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
+    const circleId = parseInt(req.params.id);
 
-    if (!userId || typeof userId !== 'number') {
-      return res.status(401).json({ error: 'Invalid user authentication' });
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId);
+
+    if (!accessCheck.allowed) {
+      return res.status(403).json({ 
+        error: 'Access denied',
+        code: accessCheck.reason 
+      });
     }
 
-    // Validate circle ID
-    const parsedCircleId = parseInt(circleId);
-    if (isNaN(parsedCircleId) || parsedCircleId <= 0) {
-      return res.status(400).json({ error: 'Invalid circle ID' });
-    }
-
-    // Check if user is a member of the circle
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parsedCircleId),
-          eq(circleMembers.userId, userId)
-        )
-      )
+    const circle = await db
+      .select({
+        id: circles.id,
+        name: circles.name,
+        description: circles.description,
+        isPrivate: circles.isPrivate,
+        createdAt: circles.createdAt,
+        creatorId: circles.creatorId,
+        primaryCuisine: circles.primaryCuisine,
+        priceRange: circles.priceRange,
+        location: circles.location,
+        memberCount: circles.memberCount,
+        featured: circles.featured,
+        trending: circles.trending,
+        allowPublicJoin: circles.allowPublicJoin,
+        coverImage: circles.coverImage,
+        // Only expose invite code to owners/admins
+        inviteCode: sql<string>`
+          CASE 
+            WHEN ${accessCheck.role} IN ('owner', 'admin') THEN ${circles.inviteCode}
+            ELSE NULL
+          END
+        `
+      })
+      .from(circles)
+      .where(eq(circles.id, circleId))
       .limit(1);
 
-    if (membership.length === 0) {
-      return res.status(403).json({ error: 'Only circle members can view members' });
+    if (!circle.length) {
+      return res.status(404).json({ error: 'Circle not found' });
     }
 
-    // Get all members for this circle
+    res.json({
+      ...circle[0],
+      role: accessCheck.role
+    });
+  } catch (error) {
+    console.error('Error fetching circle details:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get circle members with enhanced access control
+router.get('/:id/members', authenticate, validateUserId, validateCircleId(), async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const circleId = parseInt(req.params.id);
+
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId);
+
+    if (!accessCheck.allowed) {
+      return res.status(403).json({ 
+        error: 'Access denied',
+        code: accessCheck.reason 
+      });
+    }
+
     const members = await db
       .select({
         id: circleMembers.id,
         userId: circleMembers.userId,
         role: circleMembers.role,
         joinedAt: circleMembers.joinedAt,
+        status: circleMembers.status,
         user: {
           id: users.id,
           name: users.name,
@@ -832,8 +892,13 @@ router.get('/:circleId/members', authenticate, async (req, res) => {
         }
       })
       .from(circleMembers)
-      .leftJoin(users, eq(circleMembers.userId, users.id))
-      .where(eq(circleMembers.circleId, parseInt(circleId)))
+      .innerJoin(users, eq(circleMembers.userId, users.id))
+      .where(
+        and(
+          eq(circleMembers.circleId, circleId),
+          eq(circleMembers.status, 'active')
+        )
+      )
       .orderBy(circleMembers.joinedAt);
 
     res.json(members);
@@ -843,234 +908,92 @@ router.get('/:circleId/members', authenticate, async (req, res) => {
   }
 });
 
-// Get circle details
-router.get('/:circleId', authenticate, async (req, res) => {
+// Circle access check endpoint with enhanced security
+router.get('/:id/access', authenticate, validateUserId, validateCircleId(), async (req, res) => {
   try {
-    const { circleId } = req.params;
     const userId = req.user!.id;
+    const circleId = parseInt(req.params.id);
 
-    // Check if user is a member of the circle
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(circleId)),
-          eq(circleMembers.userId, userId)
-        )
-      )
-      .limit(1);
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId);
 
-    if (membership.length === 0) {
-      return res.status(403).json({ error: 'Only circle members can view circle details' });
-    }
-
-    // Get circle details
-    const circle = await db
-      .select()
-      .from(circles)
-      .where(eq(circles.id, parseInt(circleId)))
-      .limit(1);
-
-    if (circle.length === 0) {
-      return res.status(404).json({ error: 'Circle not found' });
-    }
-
-    // Add user's role to the circle data
-    const circleWithRole = {
-      ...circle[0],
-      role: membership[0].role
-    };
-
-    res.json(circleWithRole);
-  } catch (error) {
-    console.error('Error fetching circle details:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Route handlers
-router.post('/:circleId/invites', authenticate, createCircleInvite);
-router.get('/:circleId/invites', authenticate, getCircleInvites);
-router.post('/invites/:inviteId/respond', authenticate, respondToCircleInvite);
-router.get('/pending-invites', authenticate, getUserPendingInvites);
-router.delete('/invites/:inviteId', authenticate, revokeCircleInvite);
-router.post('/:circleId/members', authenticate, addUserToCircle);
-router.post('/:circleId/share-list', authenticate, shareListWithCircle);
-router.delete('/:circleId/shared-lists/:sharedListId', authenticate, removeSharedListFromCircle);
-router.get('/:circleId/shared-lists', authenticate, getCircleSharedLists);
-
-// Circle access check endpoint
-router.get("/:id/access", authenticate, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { id } = req.params;
-
-    if (!userId || typeof userId !== 'number') {
-      return res.status(401).json({ 
-        allowed: false, 
-        reason: "not_authenticated" 
-      });
-    }
-
-    // Validate circle ID
-    const circleId = parseInt(id);
-    if (isNaN(circleId) || circleId <= 0) {
-      return res.status(400).json({ 
-        allowed: false, 
-        reason: "invalid_circle_id" 
-      });
-    }
-
-    // Get circle details
     const circle = await db
       .select({
         id: circles.id,
         name: circles.name,
-        isPrivate: circles.isPrivate,
-        creatorId: circles.creatorId
-      })
-      .from(circles)
-      .where(eq(circles.id, parseInt(id)))
-      .limit(1);
-
-    if (!circle || circle.length === 0) {
-      return res.status(404).json({ 
-        allowed: false, 
-        reason: "circle_not_found" 
-      });
-    }
-
-    // If public circle, allow access
-    if (!circle[0].isPrivate) {
-      return res.json({ 
-        allowed: true,
-        circle: {
-          id: circle[0].id,
-          name: circle[0].name,
-          isPrivate: circle[0].isPrivate
-        }
-      });
-    }
-
-    // For private circles, check membership
-    const memberCheck = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(id)),
-          eq(circleMembers.userId, userId)
-        )
-      )
-      .limit(1);
-
-    const allowed = memberCheck.length > 0;
-
-    res.json({ 
-      allowed,
-      reason: allowed ? undefined : "not_member",
-      circle: {
-        id: circle[0].id,
-        name: circle[0].name,
-        isPrivate: circle[0].isPrivate
-      }
-    });
-
-  } catch (error) {
-    console.error("Error checking circle access:", error);
-    res.status(500).json({ 
-      allowed: false, 
-      error: "Failed to check access permissions" 
-    });
-  }
-});
-
-// Circle feed endpoint
-router.get("/:id/feed", authenticate, async (req, res) => {
-  try {
-    const userId = req.user!.id;
-    const { id } = req.params;
-
-    if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
-    // Check if user has access to this circle directly
-    const circle = await db
-      .select({
-        id: circles.id,
-        name: circles.name,
-        isPrivate: circles.isPrivate,
-        creatorId: circles.creatorId
+        isPrivate: circles.isPrivate
       })
       .from(circles)
       .where(eq(circles.id, circleId))
       .limit(1);
 
-    if (!circle || circle.length === 0) {
-      return res.status(404).json({ error: "Circle not found" });
+    if (!circle.length) {
+      return res.status(404).json({ 
+        allowed: false, 
+        reason: 'circle_not_found' 
+      });
     }
 
-    // For private circles, check membership
-    if (circle[0].isPrivate) {
-      const memberCheck = await db
-        .select()
-        .from(circleMembers)
-        .where(
-          and(
-            eq(circleMembers.circleId, circleId),
-            eq(circleMembers.userId, userId)
-          )
-        )
-        .limit(1);
+    res.json({ 
+      allowed: accessCheck.allowed,
+      reason: accessCheck.reason,
+      role: accessCheck.role,
+      circle: circle[0]
+    });
+  } catch (error) {
+    console.error('Error checking circle access:', error);
+    res.status(500).json.json({ 
+      allowed: false, 
+      error: 'Failed to check access permissions' 
+    });
+  }
+});
 
-      if (memberCheck.length === 0) {
-        return res.status(403).json({ error: "Access denied to this circle" });
-      }
-    }
+// Circle feed endpoint
+router.get("/:id/feed", authenticate, validateUserId, validateCircleId(), async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const circleId = parseInt(req.params.id);
 
-    // Validate circle ID
-    const circleId = parseInt(id);
-    if (isNaN(circleId) || circleId <= 0) {
-      return res.status(400).json({ error: "Invalid circle ID" });
-    }
+     // Check if user has access to this circle
+     const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId);
+     if (!accessCheck.allowed) {
+       return res.status(403).json({ error: "Access denied to this circle" });
+     }
 
     // Get lists shared to this circle with optimized query
     const feedItems = await db
-        .select({
-            id: restaurantLists.id,
-            name: restaurantLists.name,
-            description: restaurantLists.description,
-            type: restaurantLists.type,
-            createdById: restaurantLists.createdById,
-            visibility: restaurantLists.visibility,
-            tags: restaurantLists.tags,
-            coverImage: restaurantLists.coverImage,
-            createdAt: restaurantLists.createdAt,
-            creator: {
-                id: users.id,
-                username: users.username,
-                name: users.name,
-                profilePicture: users.profilePicture
-            },
-            sharedAt: circleSharedLists.sharedAt,
-            sharedBy: {
-                id: sharedByUser.id,
-                username: sharedByUser.username,
-                name: sharedByUser.name
-            }
-        })
-        .from(circleSharedLists)
-        .innerJoin(restaurantLists, eq(circleSharedLists.listId, restaurantLists.id))
-        .innerJoin(users, eq(restaurantLists.createdById, users.id))
-        .leftJoin(users.as('sharedByUser'), eq(circleSharedLists.sharedById, users.id))
-        .where(eq(circleSharedLists.circleId, circleId))
-        .orderBy(circleSharedLists.sharedAt)
-        .limit(50);
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        type: restaurantLists.type,
+        createdById: restaurantLists.createdById,
+        visibility: restaurantLists.visibility,
+        tags: restaurantLists.tags,
+        coverImage: restaurantLists.coverImage,
+        createdAt: restaurantLists.createdAt,
+        creator: {
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          profilePicture: users.profilePicture
+        },
+        sharedAt: circleSharedLists.sharedAt,
+        sharedBy: {
+          id: users.id,
+          username: users.username,
+          name: users.name
+        }
+      })
+      .from(circleSharedLists)
+      .innerJoin(restaurantLists, eq(circleSharedLists.listId, restaurantLists.id))
+      .innerJoin(users, eq(restaurantLists.createdById, users.id))
+      .leftJoin(users.as('sharedByUser'), eq(circleSharedLists.sharedById, users.id))
+      .where(eq(circleSharedLists.circleId, circleId))
+      .orderBy(circleSharedLists.sharedAt)
+      .limit(50);
 
     res.json(feedItems);
-
   } catch (error) {
     console.error("Error fetching circle feed:", error);
     res.status(500).json({ error: "Failed to fetch circle feed" });
@@ -1078,33 +1001,19 @@ router.get("/:id/feed", authenticate, async (req, res) => {
 });
 
 // Circle invites endpoint
-router.post("/:id/invites", authenticate, async (req, res) => {
+router.post("/:id/invites", authenticate, validateUserId, validateCircleId(), async (req, res) => {
   try {
     const userId = req.user!.id;
-    const { id: circleId } = req.params;
+    const circleId = parseInt(req.params.id);
     const { invites } = req.body;
-
-    if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
 
     if (!Array.isArray(invites) || invites.length === 0) {
       return res.status(400).json({ error: "Invalid invites data" });
     }
 
     // Check if user is a member of the circle (can invite others)
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(circleId)),
-          eq(circleMembers.userId, userId)
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: "You must be a member to invite others" });
     }
 
@@ -1126,7 +1035,7 @@ router.post("/:id/invites", authenticate, async (req, res) => {
           await db
             .insert(circleInvites)
             .values({
-              circleId: parseInt(circleId),
+              circleId: circleId,
               emailOrUsername: emailOrUsername,
               inviterId: userId,
               status: 'pending'
@@ -1148,7 +1057,7 @@ router.post("/:id/invites", authenticate, async (req, res) => {
               .from(circleMembers)
               .where(
                 and(
-                  eq(circleMembers.circleId, parseInt(circleId)),
+                  eq(circleMembers.circleId, circleId),
                   eq(circleMembers.userId, user[0].id)
                 )
               )
@@ -1158,7 +1067,7 @@ router.post("/:id/invites", authenticate, async (req, res) => {
               await db
                 .insert(circleInvites)
                 .values({
-                  circleId: parseInt(circleId),
+                  circleId: circleId,
                   emailOrUsername: emailOrUsername,
                   inviterId: userId,
                   status: 'pending'
@@ -1174,15 +1083,14 @@ router.post("/:id/invites", authenticate, async (req, res) => {
         }
       } catch (error) {
         console.error(`Error processing invite for ${invite.emailOrUsername}:`, error);
-        results.failed.push({ 
-          emailOrUsername: invite.emailOrUsername, 
-          reason: "Processing error" 
+        results.failed.push({
+          emailOrUsername: invite.emailOrUsername,
+          reason: "Processing error"
         });
       }
     }
 
     res.json(results);
-
   } catch (error) {
     console.error("Error sending circle invites:", error);
     res.status(500).json({ error: "Failed to send invitations" });
@@ -1190,28 +1098,14 @@ router.post("/:id/invites", authenticate, async (req, res) => {
 });
 
 // Get join requests for a circle
-router.get("/:id/requests", authenticate, async (req, res) => {
+router.get("/:id/requests", authenticate, validateUserId, validateCircleId(), async (req, res) => {
   try {
     const userId = req.user!.id;
-    const { id } = req.params;
+    const circleId = parseInt(req.params.id);
 
     // Check if user is admin or owner
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(id)),
-          eq(circleMembers.userId, userId),
-          or(
-            eq(circleMembers.role, 'owner'),
-            eq(circleMembers.role, 'admin')
-          )
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId, ['owner', 'admin']);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: "Only circle owners and admins can view join requests" });
     }
 
@@ -1233,10 +1127,9 @@ router.get("/:id/requests", authenticate, async (req, res) => {
       })
       .from(circleInvites)
       .leftJoin(users, eq(users.username, circleInvites.emailOrUsername))
-      .where(eq(circleInvites.circleId, parseInt(id)));
+      .where(eq(circleInvites.circleId, circleId));
 
     res.json(requests);
-
   } catch (error) {
     console.error("Error fetching join requests:", error);
     res.status(500).json({ error: "Failed to fetch join requests" });
@@ -1244,32 +1137,20 @@ router.get("/:id/requests", authenticate, async (req, res) => {
 });
 
 // Approve/deny join request
-router.post("/:id/requests/:requestId/:action", authenticate, async (req, res) => {
+router.post("/:id/requests/:requestId/:action", authenticate, validateUserId, validateCircleId('id'), validateCircleId('requestId'), async (req, res) => {
   try {
     const userId = req.user!.id;
-    const { id, requestId, action } = req.params;
+    const circleId = parseInt(req.params.id);
+    const requestId = parseInt(req.params.requestId);
+    const { action } = req.params;
 
     if (!['approve', 'deny'].includes(action)) {
       return res.status(400).json({ error: "Invalid action" });
     }
 
     // Check if user is admin or owner
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(id)),
-          eq(circleMembers.userId, userId),
-          or(
-            eq(circleMembers.role, 'owner'),
-            eq(circleMembers.role, 'admin')
-          )
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId, ['owner', 'admin']);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: "Only circle owners and admins can manage join requests" });
     }
 
@@ -1277,7 +1158,7 @@ router.post("/:id/requests/:requestId/:action", authenticate, async (req, res) =
     const request = await db
       .select()
       .from(circleInvites)
-      .where(eq(circleInvites.id, parseInt(requestId)))
+      .where(eq(circleInvites.id, requestId))
       .limit(1);
 
     if (request.length === 0) {
@@ -1288,7 +1169,7 @@ router.post("/:id/requests/:requestId/:action", authenticate, async (req, res) =
     await db
       .update(circleInvites)
       .set({ status: action === 'approve' ? 'accepted' : 'declined' })
-      .where(eq(circleInvites.id, parseInt(requestId)));
+      .where(eq(circleInvites.id, requestId));
 
     // If approved, add user to circle
     if (action === 'approve') {
@@ -1302,9 +1183,10 @@ router.post("/:id/requests/:requestId/:action", authenticate, async (req, res) =
         await db
           .insert(circleMembers)
           .values({
-            circleId: parseInt(id),
+            circleId: circleId,
             userId: user[0].id,
             role: 'member',
+            status: 'active',
             invitedBy: userId
           })
           .onConflictDoNothing();
@@ -1312,7 +1194,6 @@ router.post("/:id/requests/:requestId/:action", authenticate, async (req, res) =
     }
 
     res.json({ message: `Request ${action}d successfully` });
-
   } catch (error) {
     console.error("Error processing join request:", error);
     res.status(500).json({ error: "Failed to process join request" });
@@ -1320,28 +1201,15 @@ router.post("/:id/requests/:requestId/:action", authenticate, async (req, res) =
 });
 
 // Remove member from circle
-router.delete("/:id/members/:userId", authenticate, async (req, res) => {
+router.delete("/:id/members/:userId", authenticate, validateUserId, validateCircleId('id'), validateCircleId('userId'), async (req, res) => {
   try {
     const currentUserId = req.user!.id;
-    const { id, userId } = req.params;
+    const circleId = parseInt(req.params.id);
+    const userId = parseInt(req.params.userId);
 
     // Check if current user is admin or owner
-    const membership = await db
-      .select()
-      .from(circleMembers)
-      .where(
-        and(
-          eq(circleMembers.circleId, parseInt(id)),
-          eq(circleMembers.userId, currentUserId),
-          or(
-            eq(circleMembers.role, 'owner'),
-            eq(circleMembers.role, 'admin')
-          )
-        )
-      )
-      .limit(1);
-
-    if (membership.length === 0) {
+    const accessCheck = await CircleAccessService.validateCircleAccess(currentUserId, circleId, ['owner', 'admin']);
+    if (!accessCheck.allowed) {
       return res.status(403).json({ error: "Only circle owners and admins can remove members" });
     }
 
@@ -1351,8 +1219,8 @@ router.delete("/:id/members/:userId", authenticate, async (req, res) => {
       .from(circleMembers)
       .where(
         and(
-          eq(circleMembers.circleId, parseInt(id)),
-          eq(circleMembers.userId, parseInt(userId))
+          eq(circleMembers.circleId, circleId),
+          eq(circleMembers.userId, userId)
         )
       )
       .limit(1);
@@ -1362,12 +1230,12 @@ router.delete("/:id/members/:userId", authenticate, async (req, res) => {
     }
 
     // Check permissions (admin can't remove other admins or owners)
-    if (membership[0].role === 'admin' && targetMember[0].role !== 'member') {
+    if (accessCheck.role === 'admin' && targetMember[0].role !== 'member') {
       return res.status(403).json({ error: "Admins can only remove members" });
     }
 
     // Can't remove yourself
-    if (parseInt(userId) === currentUserId) {
+    if (userId === currentUserId) {
       return res.status(400).json({ error: "Cannot remove yourself" });
     }
 
@@ -1376,18 +1244,27 @@ router.delete("/:id/members/:userId", authenticate, async (req, res) => {
       .delete(circleMembers)
       .where(
         and(
-          eq(circleMembers.circleId, parseInt(id)),
-          eq(circleMembers.userId, parseInt(userId))
+          eq(circleMembers.circleId, circleId),
+          eq(circleMembers.userId, userId)
         )
       );
 
     res.json({ message: "Member removed successfully" });
-
   } catch (error) {
     console.error("Error removing member:", error);
     res.status(500).json({ error: "Failed to remove member" });
   }
 });
 
-// Export the router
+// Route handlers
+router.post('/:circleId/invites', authenticate, validateUserId, validateCircleId('circleId'), createCircleInvite);
+router.get('/:circleId/invites', authenticate, validateUserId, validateCircleId('circleId'), getCircleInvites);
+router.post('/invites/:inviteId/respond', authenticate, validateUserId, validateCircleId('inviteId'), respondToCircleInvite);
+router.get('/pending-invites', authenticate, validateUserId, getUserPendingInvites);
+router.delete('/invites/:inviteId', authenticate, validateUserId, validateCircleId('inviteId'), revokeCircleInvite);
+router.post('/:circleId/members', authenticate, validateUserId, validateCircleId('circleId'), addUserToCircle);
+router.post('/:circleId/share-list', authenticate, validateUserId, validateCircleId('circleId'), shareListWithCircle);
+router.delete('/:circleId/shared-lists/:sharedListId', authenticate, validateUserId, validateCircleId('circleId'), validateCircleId('sharedListId'), removeSharedListFromCircle);
+router.get('/:circleId/shared-lists', authenticate, validateUserId, validateCircleId('circleId'), getCircleSharedLists);
+
 export { router };
