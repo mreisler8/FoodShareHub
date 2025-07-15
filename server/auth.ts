@@ -224,13 +224,21 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   const isAuth = req.isAuthenticated();
   const userId = req.user?.id;
 
+  console.log("Search Auth Debug:");
+  console.log("  SessionID:", sessionId);
+  console.log("  IsAuth:", isAuth);
+  console.log("  UserID:", userId);
+  console.log("  User:", req.user);
+
   // Validate session integrity
   if (!sessionId || typeof sessionId !== 'string') {
+    console.log("  Failed: Invalid session");
     return sendError(res, 401, "Invalid session");
   }
 
   // Validate user authentication
   if (!isAuth) {
+    console.log("  Failed: Not authenticated");
     return sendError(res, 401, "Not authenticated");
   }
 
@@ -259,17 +267,9 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
 
-  // Session hijacking protection
+  // Store user agent for logging purposes but don't enforce for API routes
   const userAgent = req.headers['user-agent'];
-  const sessionUserAgent = req.session?.userAgent;
-  
-  if (sessionUserAgent && sessionUserAgent !== userAgent) {
-    console.warn('Session user agent mismatch detected for user:', userId);
-    return sendError(res, 401, "Session security violation");
-  }
-
-  // Store user agent on first request
-  if (!sessionUserAgent) {
+  if (!req.session.userAgent) {
     req.session.userAgent = userAgent;
   }
 

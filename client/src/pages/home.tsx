@@ -50,16 +50,21 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-primary">
-                Circles
+              <Link href="/" className="text-2xl font-bold text-primary flex items-center gap-2">
+                🍕 Circles
               </Link>
             </div>
-            <button 
-              onClick={() => setIsSearchOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <Search className="h-5 w-5 text-gray-600" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Search className="h-5 w-5 text-gray-600" />
+              </button>
+              <Link href="/profile" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <User className="h-5 w-5 text-gray-600" />
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -74,13 +79,28 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Pending Invites */}
-            {user && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FollowRequestCard />
-                <PendingInvites />
+            {/* Quick Actions */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Link href="/create-post" className="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                  <div className="text-3xl mb-2">🍕</div>
+                  <span className="text-sm font-medium">Post Experience</span>
+                </Link>
+                <Link href="/create-list" className="flex flex-col items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                  <div className="text-3xl mb-2">📝</div>
+                  <span className="text-sm font-medium">Create List</span>
+                </Link>
+                <Link href="/create-circle" className="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                  <div className="text-3xl mb-2">👥</div>
+                  <span className="text-sm font-medium">Create Circle</span>
+                </Link>
+                <Link href="/circles" className="flex flex-col items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+                  <div className="text-3xl mb-2">🔗</div>
+                  <span className="text-sm font-medium">Your Circles</span>
+                </Link>
               </div>
-            )}
+            </div>
 
             {/* Lists Feed */}
             {listsLoading ? (
@@ -106,8 +126,16 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Right Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Pending Invites & Requests */}
+            {user && (
+              <div className="space-y-4">
+                <PendingInvites />
+                <FollowRequestCard />
+              </div>
+            )}
+            
             <SuggestedUsersCard />
             <TagExploreCard />
           </div>
