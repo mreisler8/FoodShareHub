@@ -157,3 +157,55 @@ export function AccessDeniedView({ reason = "not_member", circle }: AccessDenied
     </div>
   );
 }
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Shield, Home, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
+
+export function AccessDeniedView() {
+  const [, navigate] = useLocation();
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+            <Shield className="h-8 w-8 text-red-600" />
+          </div>
+          <CardTitle className="text-xl">Access Denied</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-4">
+          <p className="text-muted-foreground">
+            You don't have permission to access this circle. This may be because:
+          </p>
+          
+          <ul className="text-sm text-muted-foreground space-y-1 text-left">
+            <li>• You're not a member of this private circle</li>
+            <li>• You've been removed from the circle</li>
+            <li>• The circle has been deleted</li>
+            <li>• Your access permissions have changed</li>
+          </ul>
+          
+          <div className="flex flex-col space-y-2 pt-4">
+            <Button 
+              onClick={() => navigate("/")}
+              className="w-full"
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Go to Home
+            </Button>
+            
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/circles")}
+              className="w-full"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              View My Circles
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

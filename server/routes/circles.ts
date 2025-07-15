@@ -1114,5 +1114,205 @@ router.post("/:id/invites", authenticate, async (req, res) => {
   }
 });
 
+// Get join requests for a circle
+router.get("/:id/requests", authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+
+    // Check if user is admin or owner
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(id)),
+          eq(circleMembers.userId, userId),
+          or(
+            eq(circleMembers.role, 'owner'),
+            eq(circleMembers.role, 'admin')
+          )
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: "Only circle owners and admins can view join requests" });
+    }
+
+    // Get pending join requests
+    const requests = await db
+      .select({
+        id: circleInvites.id,
+        userId: circleInvites.emailOrUsername,
+        circleId: circleInvites.circleId,
+        status: circleInvites.status,
+        createdAt: circleInvites.createdAt,
+        user: {
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          profilePicture: users.profilePicture,
+          bio: users.bio
+        }
+      })
+      .from(circleInvites)
+      .leftJoin(users, eq(users.username, circleInvites.emailOrUsername))
+      .where(eq(circleInvites.circleId, parseInt(id)));
+
+    res.json(requests);
+
+  } catch (error) {
+    console.error("Error fetching join requests:", error);
+    res.status(500).json({ error: "Failed to fetch join requests" });
+  }
+});
+
+// Approve/deny join request
+router.post("/:id/requests/:requestId/:action", authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { id, requestId, action } = req.params;
+
+    if (!['approve', 'deny'].includes(action)) {
+      return res.status(400).json({ error: "Invalid action" });
+    }
+
+    // Check if user is admin or owner
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(id)),
+          eq(circleMembers.userId, userId),
+          or(
+            eq(circleMembers.role, 'owner'),
+            eq(circleMembers.role, 'admin')
+          )
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: "Only circle owners and admins can manage join requests" });
+    }
+
+    // Get the request
+    const request = await db
+      .select()
+      .from(circleInvites)
+      .where(eq(circleInvites.id, parseInt(requestId)))
+      .limit(1);
+
+    if (request.length === 0) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+
+    // Update request status
+    await db
+      .update(circleInvites)
+      .set({ status: action === 'approve' ? 'accepted' : 'declined' })
+      .where(eq(circleInvites.id, parseInt(requestId)));
+
+    // If approved, add user to circle
+    if (action === 'approve') {
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, request[0].emailOrUsername))
+        .limit(1);
+
+      if (user.length > 0) {
+        await db
+          .insert(circleMembers)
+          .values({
+            circleId: parseInt(id),
+            userId: user[0].id,
+            role: 'member',
+            invitedBy: userId
+          })
+          .onConflictDoNothing();
+      }
+    }
+
+    res.json({ message: `Request ${action}d successfully` });
+
+  } catch (error) {
+    console.error("Error processing join request:", error);
+    res.status(500).json({ error: "Failed to process join request" });
+  }
+});
+
+// Remove member from circle
+router.delete("/:id/members/:userId", authenticate, async (req, res) => {
+  try {
+    const currentUserId = req.user!.id;
+    const { id, userId } = req.params;
+
+    // Check if current user is admin or owner
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(id)),
+          eq(circleMembers.userId, currentUserId),
+          or(
+            eq(circleMembers.role, 'owner'),
+            eq(circleMembers.role, 'admin')
+          )
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: "Only circle owners and admins can remove members" });
+    }
+
+    // Get target member
+    const targetMember = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(id)),
+          eq(circleMembers.userId, parseInt(userId))
+        )
+      )
+      .limit(1);
+
+    if (targetMember.length === 0) {
+      return res.status(404).json({ error: "Member not found" });
+    }
+
+    // Check permissions (admin can't remove other admins or owners)
+    if (membership[0].role === 'admin' && targetMember[0].role !== 'member') {
+      return res.status(403).json({ error: "Admins can only remove members" });
+    }
+
+    // Can't remove yourself
+    if (parseInt(userId) === currentUserId) {
+      return res.status(400).json({ error: "Cannot remove yourself" });
+    }
+
+    // Remove member
+    await db
+      .delete(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(id)),
+          eq(circleMembers.userId, parseInt(userId))
+        )
+      );
+
+    res.json({ message: "Member removed successfully" });
+
+  } catch (error) {
+    console.error("Error removing member:", error);
+    res.status(500).json({ error: "Failed to remove member" });
+  }
+});
+
 // Export the router
 export { router };

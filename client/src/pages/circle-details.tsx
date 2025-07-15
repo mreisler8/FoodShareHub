@@ -6,7 +6,6 @@ import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Users, 
@@ -30,6 +29,10 @@ import { CircleFeed } from "@/components/circles/CircleFeed";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { CircleMetadata } from "@/components/circles/CircleMetadata";
+import { JoinRequestList } from "@/components/circles/JoinRequestList";
+import { MemberAdminPanel } from "@/components/circles/MemberAdminPanel";
+import { PermissionGuard } from "@/components/circles/PermissionGuard";
 
 interface Circle {
   id: number;
@@ -81,7 +84,7 @@ export default function CircleDetailsPage() {
 
   const handleCopyInvite = async () => {
     if (!circle?.inviteCode) return;
-    
+
     try {
       const inviteLink = `${window.location.origin}/join/${circle.inviteCode}`;
       await navigator.clipboard.writeText(inviteLink);
@@ -158,10 +161,16 @@ export default function CircleDetailsPage() {
     );
   }
 
+  const { data: currentUser } = useQuery({
+    queryKey: ["/api/me"],
+  });
+
+  const isAdmin = circle.role === 'admin' || circle.role === 'owner';
+
   return (
     <div className="min-h-screen bg-gray-50">
       {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
-      
+
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* Header */}

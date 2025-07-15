@@ -114,3 +114,72 @@ export function PermissionGuard({ children, fallback }: PermissionGuardProps) {
   // Access granted
   return <>{children}</>;
 }
+import { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AccessDeniedView } from "./AccessDeniedView";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface PermissionGuardProps {
+  circleId: number;
+  children: ReactNode;
+  requiredPermission?: "view" | "post" | "admin";
+  fallback?: ReactNode;
+}
+
+export function PermissionGuard({ 
+  circleId, 
+  children, 
+  requiredPermission = "view", 
+  fallback 
+}: PermissionGuardProps) {
+  const { data: accessCheck, isLoading, error } = useQuery({
+    queryKey: [`/api/circles/${circleId}/access`],
+    queryFn: async () => {
+      const response = await fetch(`/api/circles/${circleId}/access`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to check access");
+      }
+
+      return response.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  if (error || !accessCheck?.allowed) {
+    return fallback || <AccessDeniedView />;
+  }
+
+  // Check specific permissions based on user's role
+  const userRole = accessCheck.role;
+  const hasPermission = checkPermission(userRole, requiredPermission);
+
+  if (!hasPermission) {
+    return fallback || <AccessDeniedView />;
+  }
+
+  return <>{children}</>;
+}
+
+function checkPermission(userRole: string, requiredPermission: string): boolean {
+  switch (requiredPermission) {
+    case "view":
+      return ["member", "admin", "owner"].includes(userRole);
+    case "post":
+      return ["member", "admin", "owner"].includes(userRole);
+    case "admin":
+      return ["admin", "owner"].includes(userRole);
+    default:
+      return false;
+  }
+}

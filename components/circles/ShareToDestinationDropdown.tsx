@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -56,7 +55,7 @@ export function ShareToDestinationDropdown({ value, onChange, disabled = false }
 
   const handleValueChange = (selectedValue: string) => {
     setError(null);
-    
+
     if (selectedValue === "profile") {
       onChange({ visibility: "profile" });
     } else if (selectedValue === "public") {
@@ -115,6 +114,16 @@ export function ShareToDestinationDropdown({ value, onChange, disabled = false }
     }
   };
 
+  const { data: circles, isLoading } = useQuery({
+    queryKey: ["/api/circles"],
+  });
+
+  // Filter circles to only show ones where user can post
+  const availableCircles = circles?.filter((circle: any) => {
+    // User must be a member to share to private circles
+    return circle.role && ['member', 'admin', 'owner'].includes(circle.role);
+  }) || [];
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium">
@@ -143,7 +152,7 @@ export function ShareToDestinationDropdown({ value, onChange, disabled = false }
               <Badge variant="outline" className="text-xs">Private</Badge>
             </div>
           </SelectItem>
-          
+
           <SelectItem value="public">
             <div className="flex items-center gap-2 w-full">
               <Globe className="h-4 w-4 text-muted-foreground" />
@@ -162,7 +171,7 @@ export function ShareToDestinationDropdown({ value, onChange, disabled = false }
             </div>
           )}
 
-          {circles.map((circle) => (
+          {availableCircles.map((circle: any) => (
             <SelectItem key={circle.id} value={circle.id}>
               <div className="flex items-center gap-2 w-full">
                 <Users className="h-4 w-4 text-muted-foreground" />
