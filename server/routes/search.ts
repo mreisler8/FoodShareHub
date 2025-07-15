@@ -312,100 +312,6 @@ router.get("/", authenticate, async (req, res) => {
     if (type === "posts") {
       const postResults = await EnhancedSearchEngine.searchPosts(searchTerm, userId, 10);
       return res.json(postResults);
-
-        // Enhanced Google Places integration with location support
-        if (formattedRestaurants.length < 5) {
-          try {
-            const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
-            const googleResults = await searchGooglePlaces(searchTerm, locationData);
-
-            const filteredGoogleResults = googleResults.filter(
-              (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)
-            );
-
-            const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
-              id: `google_${r.googlePlaceId}`,
-              name: r.name,
-              thumbnailUrl: r.imageUrl,
-              avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
-              location: r.location,
-              category: r.category,
-              priceRange: r.priceRange,
-              cuisine: r.cuisine,
-              address: r.address,
-              source: 'google' as const,
-              type: 'restaurant' as const,
-              googlePlaceId: r.googlePlaceId
-            }));
-
-            results.push(...formattedGoogleResults);
-          } catch (googleError) {
-            console.error("Google Places search error:", googleError);
-          }
-        }
-      } catch (dbError) {
-        console.error("Database restaurant search error:", dbError);
-      }
-    }
-
-    // Enhanced privacy-aware list search
-    if (type === "all" || type === "lists") {
-      try {
-        const listResults = await SearchPrivacyService.getAccessibleLists(userId, searchPattern);
-        results.push(...listResults);
-      } catch (error) {
-        console.error("List search error:", error);
-      }
-    }
-
-    // Enhanced privacy-aware user search
-    if (type === "all" || type === "users") {
-      try {
-        const userResults = await SearchPrivacyService.getAccessibleUsers(userId, searchPattern);
-        results.push(...userResults);
-      } catch (error) {
-        console.error("User search error:", error);
-      }
-    }
-
-    // Enhanced post search with privacy filtering
-    if (type === "all" || type === "posts") {
-      try {
-        const postResults = await db
-          .select({
-            id: posts.id,
-            content: posts.content,
-            rating: posts.rating,
-            userId: posts.userId,
-            restaurantId: posts.restaurantId,
-            createdAt: posts.createdAt,
-            visibility: posts.visibility
-          })
-          .from(posts)
-          .where(
-            and(
-              ilike(posts.content, searchPattern),
-              // Only include posts user can see
-              or(
-                eq(posts.userId, userId), // User's own posts
-                sql`${posts.visibility}->>'public' = 'true'` // Public posts
-              )
-            )
-          )
-          .orderBy(desc(posts.createdAt))
-          .limit(5);
-
-        const formattedPosts = postResults.map(p => ({
-          id: p.id.toString(),
-          name: p.content.substring(0, 50) + '...',
-          subtitle: `${p.rating} stars`,
-          type: 'post' as const
-        }));
-
-        results.push(...formattedPosts);
-      } catch (error) {
-        console.error("Post search error:", error);
-      }
     }
 
     // Return results based on search type
@@ -450,72 +356,10 @@ router.get("/restaurants", authenticate, async (req, res) => {
 
 // Unified search endpoint (alias for backward compatibility)
 router.get("/unified", authenticate, async (req, res) => {
-  try {
-    // Enhanced input validation
-    const validatedQuery = searchQuerySchema.parse({
-      q: req.query.q,
-      type: 'all', // Force 'all' for unified search
-      lat: req.query.lat ? parseFloat(req.query.lat as string) : undefined,
-      lng: req.query.lng ? parseFloat(req.query.lng as string) : undefined,
-      radius: req.query.radius ? parseInt(req.query.radius as string) : undefined
-    });
-
-    const { q: searchTerm, lat, lng, radius } = validatedQuery;
-    const searchPattern = `%${searchTerm}%`;
-    const userId = req.user!.id;
-
-    const restaurantResults = await db
-      .select({
-        id: restaurants.id,
-        name: restaurants.name,
-        location: restaurants.location,
-        category: restaurants.category,
-        priceRange: restaurants.priceRange,
-        imageUrl: restaurants.imageUrl,
-        cuisine: restaurants.cuisine,
-        address: restaurants.address,
-        googlePlaceId: restaurants.googlePlaceId,
-      })
-      .from(restaurants)
-      .where(
-        or(
-          ilike(restaurants.name, searchPattern),
-          ilike(restaurants.location, searchPattern),
-          ilike(restaurants.category, searchPattern),
-          ilike(restaurants.cuisine, searchPattern)
-        )
-      )
-      .limit(10);
-
-    const formattedRestaurants = await Promise.all(restaurantResults.map(async (r) => {
-      let location = r.location;
-
-      // Use cached location service
-      if ((!location || location === 'Unknown location') && r.googlePlaceId) {
-        const placeDetails = await LocationCacheService.getLocationDetails(r.googlePlaceId);
-        if (placeDetails?.address) {
-          location = placeDetails.address;
-        }
-      }
-
-      return {
-        id: r.id.toString(),
-        name: r.name,
-        thumbnailUrl: r.imageUrl,
-        avgRating: 4.2,
-        location: location,
-        category: r.category,
-        priceRange: r.priceRange,
-        cuisine: r.cuisine,
-        address: r.address,
-        source: 'database' as const,
-        type: 'restaurant' as const
-      };
-    }));
-
-    // Enhanced Google Places integration with location support
-    const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
-    const googleResults = await searchGooglePlaces(searchTerm, locationData);
+  // Forward to main search with type='all'
+  req.query.type = 'all';
+  return router.handle(req, res);
+});
 
     const filteredGoogleResults = googleResults.filter(
       (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)

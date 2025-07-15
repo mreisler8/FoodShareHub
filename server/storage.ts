@@ -852,8 +852,7 @@ export class DatabaseStorage implements IStorage {
         id: users.id,
         name: users.name,
         username: users.username,
-        ```tool_code
-profilePicture: users.profilePicture
+        profilePicture: users.profilePicture
       }
     })
     .from(savedLists)
