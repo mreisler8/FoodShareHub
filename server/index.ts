@@ -92,6 +92,8 @@ app.use((req, res, next) => {
     app.use('/api/uploads', uploadsRouter);
     app.use('/api/geocode', geocodeRouter);
     console.log('Routes registered successfully');
+    app.use('/api/search', searchRoutes);
+    app.use('/api/search-analytics', require('./routes/search-analytics').default);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;

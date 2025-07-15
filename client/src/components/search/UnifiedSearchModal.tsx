@@ -177,24 +177,26 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         return;
       }
 
-      // Navigate based on result type
+      console.log('Navigating to result:', result.type, result.id);
+
+      // Navigate based on result type with enhanced routing
       switch (result.type) {
         case 'restaurant':
           // Handle both database and Google Places results
           if (result.id.startsWith('google_')) {
             const googlePlaceId = result.id.replace('google_', '');
             if (googlePlaceId) {
-              setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
+              setLocation(`/restaurants?googlePlaceId=${encodeURIComponent(googlePlaceId)}`);
             }
           } else {
             setLocation(`/restaurants/${encodeURIComponent(result.id)}`);
           }
           break;
         case 'list':
-          setLocation(`/lists/${encodeURIComponent(result.id)}`);
+          setLocation(`/list-details/${encodeURIComponent(result.id)}`);
           break;
         case 'post':
-          setLocation(`/posts/${encodeURIComponent(result.id)}`);
+          setLocation(`/post-details/${encodeURIComponent(result.id)}`);
           break;
         case 'user':
           setLocation(`/profile/${encodeURIComponent(result.id)}`);

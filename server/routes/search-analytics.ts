@@ -1,3 +1,39 @@
+
+import { Router } from 'express';
+import { authenticate } from '../auth';
+import { db } from '../db';
+
+const router = Router();
+
+// Basic search analytics endpoint (foundation for future enhancement)
+router.post('/track', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { query, resultType, resultId, clicked } = req.body;
+    
+    if (!userId || !query) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // For now, just log the analytics (can be enhanced with proper table later)
+    console.log('Search Analytics:', {
+      userId,
+      query,
+      resultType,
+      resultId,
+      clicked,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Search analytics error:', error);
+    res.status(500).json({ error: 'Failed to track search' });
+  }
+});
+
+export default router;
+
 import { Router } from 'express';
 import { storage } from '../storage.js';
 import { z } from 'zod';

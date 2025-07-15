@@ -155,7 +155,7 @@ const getCuisineType = (types?: string[]): string => {
   return 'Restaurant';
 };
 
-// Enhanced semantic query mapping for Google Places
+// Enhanced semantic query mapping for Google Places with typo tolerance
 const SEMANTIC_QUERY_MAPPINGS = {
   'late night': 'restaurants open late night after hours',
   'brunch': 'brunch restaurants breakfast lunch weekend dining',
@@ -177,32 +177,95 @@ const SEMANTIC_QUERY_MAPPINGS = {
   'dessert': 'dessert restaurants bakery ice cream sweets',
   'delivery': 'restaurants delivery takeout food delivery service',
   'takeout': 'takeout restaurants pickup fast food quick service',
+  
+  // Typo tolerance mappings
+  'tacoronto': 'tacos toronto',
+  'pizzza': 'pizza',
+  'resturant': 'restaurant',
+  'restaurent': 'restaurant',
+  'caffee': 'coffee',
+  'brekfast': 'breakfast',
+  'diner': 'dinner restaurant',
+  'suchi': 'sushi',
+  'borger': 'burger',
+  'chinease': 'chinese',
+  'itallian': 'italian',
+  'japaneese': 'japanese',
+  'mexcan': 'mexican',
+  'indain': 'indian',
+  'frech': 'french',
 } as const;
 
 // Enhanced location-based query optimization
 function enhanceQueryForGoogle(query: string, location?: { lat: number; lng: number }): string {
   const lowerQuery = query.toLowerCase().trim();
   
-  // Remove redundant words
+  // Remove redundant words but preserve important location terms
   let enhancedQuery = lowerQuery
     .replace(/\b(near me|nearby|around here|close to me)\b/gi, '')
-    .replace(/\b(restaurant|restaurants)\b/gi, '')
     .trim();
   
-  // Apply semantic mappings
+  // Apply semantic mappings with fuzzy matching
   for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
-    if (lowerQuery.includes(key)) {
+    if (lowerQuery.includes(key) || 
+        lowerQuery.replace(/\s+/g, '').includes(key.replace(/\s+/g, '')) ||
+        calculateSimilarity(lowerQuery, key) > 0.8) {
       enhancedQuery = enhancement;
       break;
     }
   }
   
-  // Ensure we're searching for restaurants
-  if (!enhancedQuery.includes('restaurant') && !enhancedQuery.includes('bar') && !enhancedQuery.includes('cafe')) {
+  // Handle natural language phrases
+  if (lowerQuery.includes('best') && lowerQuery.includes('in')) {
+    // "best dinner in Toronto" -> keep original structure
+    enhancedQuery = lowerQuery;
+  }
+  
+  // Preserve specific restaurant names in quotes
+  if (lowerQuery.includes('"') || lowerQuery.match(/^[A-Z][a-z]+\s[A-Z][a-z]+/)) {
+    enhancedQuery = lowerQuery;
+  }
+  
+  // Add restaurant context only if not already implied
+  const restaurantTerms = ['restaurant', 'bar', 'cafe', 'bistro', 'eatery', 'diner', 'grill', 'kitchen'];
+  const hasRestaurantContext = restaurantTerms.some(term => enhancedQuery.includes(term));
+  
+  if (!hasRestaurantContext && !enhancedQuery.match(/^[A-Z][a-z]+/)) {
     enhancedQuery += ' restaurant';
   }
   
   return enhancedQuery;
+}
+
+// Helper function for fuzzy string matching
+function calculateSimilarity(str1: string, str2: string): number {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  const editDistance = levenshteinDistance(longer, shorter);
+  return (longer.length - editDistance) / longer.length;
+}
+
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+  
+  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+  
+  for (let j = 1; j <= str2.length; j++) {
+    for (let i = 1; i <= str1.length; i++) {
+      const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+      matrix[j][i] = Math.min(
+        matrix[j][i - 1] + 1,     // deletion
+        matrix[j - 1][i] + 1,     // insertion
+        matrix[j - 1][i - 1] + indicator   // substitution
+      );
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
 }
 
 function determineSearchStrategy(query: string, location?: { lat: number; lng: number; radius?: number }) {
