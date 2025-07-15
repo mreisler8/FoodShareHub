@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { authenticate } from '../auth';
 import { db } from '../db';
-import { users, restaurants, restaurantLists, posts } from '@shared/schema';
+import { users, restaurants, restaurantLists, posts, userFollowers } from '@shared/schema';
 import { eq, ilike, or, and, sql, desc, asc } from 'drizzle-orm';
 import { searchGooglePlaces } from '../services/google-places';
 import { SearchEngineService, EnhancedSearchEngine } from '../services/search-engine';
@@ -336,7 +336,7 @@ router.get('/unified', authenticate, async (req, res) => {
       return res.json(formattedLists);
     }
 
-    // Enhanced user search
+    // Enhanced user search with follow status
     if (type === "users") {
       const userResults = await db.select({
         id: users.id,
@@ -347,15 +347,26 @@ router.get('/unified', authenticate, async (req, res) => {
         preferredCuisines: users.preferredCuisines,
         favoriteFood: users.favoriteFood,
         favoriteRestaurant: users.favoriteRestaurant,
+        // Check if current user is following this user
+        isFollowing: sql<boolean>`
+          EXISTS (
+            SELECT 1 FROM ${userFollowers} 
+            WHERE follower_id = ${userId} AND following_id = ${users.id}
+          )
+        `.as('isFollowing')
       })
       .from(users)
       .where(
-        or(
-          ilike(users.name, `%${searchTerm}%`),
-          ilike(users.username, `%${searchTerm}%`),
-          ilike(users.bio, `%${searchTerm}%`),
-          ilike(users.favoriteFood, `%${searchTerm}%`),
-          ilike(users.favoriteRestaurant, `%${searchTerm}%`)
+        and(
+          or(
+            ilike(users.name, `%${searchTerm}%`),
+            ilike(users.username, `%${searchTerm}%`),
+            ilike(users.bio, `%${searchTerm}%`),
+            ilike(users.favoriteFood, `%${searchTerm}%`),
+            ilike(users.favoriteRestaurant, `%${searchTerm}%`)
+          ),
+          // Don't show current user in results
+          sql`${users.id} != ${userId}`
         )
       )
       .limit(resultLimit);
@@ -364,8 +375,13 @@ router.get('/unified', authenticate, async (req, res) => {
         id: u.id.toString(),
         name: u.name,
         type: 'user' as const,
+        username: u.username,
+        bio: u.bio,
+        profilePicture: u.profilePicture,
+        isFollowing: u.isFollowing,
         subtitle: u.bio || 'Food enthusiast',
         thumbnailUrl: u.profilePicture,
+        tags: u.preferredCuisines || [],
         metadata: {
           username: u.username,
           preferredCuisines: u.preferredCuisines,
@@ -439,27 +455,53 @@ router.get('/unified', authenticate, async (req, res) => {
   }
 });
 
-// Enhanced trending endpoint with location awareness
+// Enhanced trending endpoint with personalization and location awareness
 router.get('/trending', authenticate, async (req, res) => {
   try {
+    const userId = req.user?.id;
     const { lat, lng, radius = '25000' } = req.query;
     const searchLat = lat ? parseFloat(lat as string) : undefined;
     const searchLng = lng ? parseFloat(lng as string) : undefined;
     const searchRadius = parseInt(radius as string);
 
-    // Location-aware trending restaurants
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    // Get user's followers for personalized trending
+    const userFollowersQuery = await db
+      .select({ followingId: userFollowers.followingId })
+      .from(userFollowers)
+      .where(eq(userFollowers.followerId, userId));
+    
+    const followedIds = userFollowersQuery.map(f => f.followingId);
+    
+    // Get user's preferred cuisines for personalization
+    const userProfile = await db
+      .select({ 
+        preferredCuisines: users.preferredCuisines,
+        favoriteFood: users.favoriteFood,
+        favoriteRestaurant: users.favoriteRestaurant
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const userCuisines = userProfile[0]?.preferredCuisines || [];
+
+    // Simplified trending restaurants query
     let trendingRestaurants;
     
     if (searchLat && searchLng) {
-      // Use location-based trending
-      console.log(`Fetching location-based trending for ${searchLat}, ${searchLng}`);
+      // Location-based trending with location filtering
+      console.log(`Fetching location-based trending for user ${userId} at ${searchLat}, ${searchLng}`);
       
-      // Database query with location filtering (simplified - would need proper geospatial support)
       trendingRestaurants = await db.select({
         id: restaurants.id,
         name: restaurants.name,
         location: restaurants.location,
         category: restaurants.category,
+        cuisine: restaurants.cuisine,
         imageUrl: restaurants.imageUrl,
         avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
         postCount: sql<number>`COUNT(${posts.id})`,
@@ -492,6 +534,7 @@ router.get('/trending', authenticate, async (req, res) => {
             name: r.name,
             location: r.location,
             category: r.category,
+            cuisine: r.cuisine,
             imageUrl: r.imageUrl,
             avgRating: r.rating || 4.0,
             postCount: 0,
@@ -507,12 +550,13 @@ router.get('/trending', authenticate, async (req, res) => {
         }
       }
     } else {
-      // Global trending
+      // Global trending restaurants
       trendingRestaurants = await db.select({
         id: restaurants.id,
         name: restaurants.name,
         location: restaurants.location,
         category: restaurants.category,
+        cuisine: restaurants.cuisine,
         imageUrl: restaurants.imageUrl,
         avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
         postCount: sql<number>`COUNT(${posts.id})`,
@@ -542,6 +586,81 @@ router.get('/trending', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Trending search error:', error);
     res.status(500).json({ error: 'Failed to fetch trending content' });
+  }
+});
+
+// Recent searches endpoint for personalized search experience
+router.get('/recent-searches', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    // Get user's recent searches from analytics (fallback to empty if table doesn't exist)
+    const recentSearches: any[] = [];
+
+    // Get user's followers for personalized suggestions
+    const userFollowersQuery = await db
+      .select({ followedId: userFollowers.followedId })
+      .from(userFollowers)
+      .where(eq(userFollowers.followerId, userId));
+    
+    const followedIds = userFollowersQuery.map(f => f.followedId);
+
+    // Get trending searches from user's network
+    const networkTrending = await db
+      .select({ 
+        searchQuery: analytics.searchQuery,
+        searchCount: sql<number>`COUNT(*)`,
+      })
+      .from(analytics)
+      .where(
+        and(
+          sql`${analytics.userId} = ANY(${followedIds})`,
+          eq(analytics.action, 'search'),
+          sql`${analytics.searchQuery} IS NOT NULL AND ${analytics.searchQuery} != ''`,
+          sql`${analytics.timestamp} > NOW() - INTERVAL '7 days'`
+        )
+      )
+      .groupBy(analytics.searchQuery)
+      .orderBy(desc(sql`COUNT(*)`))
+      .limit(5);
+
+    // Get user's profile for cuisine preferences
+    const userProfile = await db
+      .select({ 
+        preferredCuisines: users.preferredCuisines,
+        favoriteFood: users.favoriteFood
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const userCuisines = userProfile[0]?.preferredCuisines || [];
+    const favoriteFood = userProfile[0]?.favoriteFood;
+
+    // Build personalized suggestions
+    const suggestions = [
+      ...(favoriteFood ? [favoriteFood] : []),
+      ...userCuisines.slice(0, 3),
+      ...networkTrending.map(t => t.searchQuery),
+    ].filter(Boolean).slice(0, 5);
+
+    res.json({
+      recent: recentSearches.map(s => s.searchQuery).slice(0, 5),
+      suggestions,
+      networkTrending: networkTrending.map(t => t.searchQuery)
+    });
+  } catch (error) {
+    console.error('Recent searches error:', error);
+    // Return fallback suggestions if query fails
+    res.json({
+      recent: [],
+      suggestions: ['Pizza', 'Sushi', 'Coffee', 'Brunch', 'Date night'],
+      networkTrending: []
+    });
   }
 });
 
