@@ -11,9 +11,13 @@ const router = Router();
 // Get accessible circles (security-filtered endpoint)
 router.get('/', authenticate, async (req, res) => {
   try {
-    const userId = req.user!.id;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const userId = req.user?.id;
+    if (!userId || typeof userId !== 'number') {
+      return res.status(401).json({ error: 'Invalid user authentication' });
+    }
+    
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100); // Prevent excessive queries
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
 
     // Only return circles user has access to - either they're members or circle allows public joining
     const accessibleCircles = await db
@@ -757,7 +761,17 @@ export async function getCircleSharedLists(req: Request, res: Response) {
 router.get('/:circleId/members', authenticate, async (req, res) => {
   try {
     const { circleId } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+
+    if (!userId || typeof userId !== 'number') {
+      return res.status(401).json({ error: 'Invalid user authentication' });
+    }
+
+    // Validate circle ID
+    const parsedCircleId = parseInt(circleId);
+    if (isNaN(parsedCircleId) || parsedCircleId <= 0) {
+      return res.status(400).json({ error: 'Invalid circle ID' });
+    }
 
     // Check if user is a member of the circle
     const membership = await db
@@ -765,7 +779,7 @@ router.get('/:circleId/members', authenticate, async (req, res) => {
       .from(circleMembers)
       .where(
         and(
-          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.circleId, parsedCircleId),
           eq(circleMembers.userId, userId)
         )
       )
@@ -860,15 +874,24 @@ router.delete('/:circleId/shared-lists/:sharedListId', authenticate, removeShare
 router.get('/:circleId/shared-lists', authenticate, getCircleSharedLists);
 
 // Circle access check endpoint
-router.get("/:id/access", async (req, res) => {
+router.get("/:id/access", authenticate, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
     const { id } = req.params;
 
-    if (!userId) {
+    if (!userId || typeof userId !== 'number') {
       return res.status(401).json({ 
         allowed: false, 
         reason: "not_authenticated" 
+      });
+    }
+
+    // Validate circle ID
+    const circleId = parseInt(id);
+    if (isNaN(circleId) || circleId <= 0) {
+      return res.status(400).json({ 
+        allowed: false, 
+        reason: "invalid_circle_id" 
       });
     }
 
@@ -960,7 +983,13 @@ router.get("/:id/feed", authenticate, async (req, res) => {
         return res.status(403).json({ error: "Access denied to this circle" });
     }
 
-    // Get lists shared to this circle
+    // Validate circle ID
+    const circleId = parseInt(id);
+    if (isNaN(circleId) || circleId <= 0) {
+      return res.status(400).json({ error: "Invalid circle ID" });
+    }
+
+    // Get lists shared to this circle with proper joins
     const feedItems = await db
         .select({
             id: restaurantLists.id,
@@ -972,7 +1001,6 @@ router.get("/:id/feed", authenticate, async (req, res) => {
             tags: restaurantLists.tags,
             coverImage: restaurantLists.coverImage,
             createdAt: restaurantLists.createdAt,
-            restaurantCount: db.select().from('restaurant_list_items').where(eq('restaurant_list_items.listId', restaurantLists.id)).as('restaurantCount'),
             creator: {
                 id: users.id,
                 username: users.username,
@@ -987,10 +1015,10 @@ router.get("/:id/feed", authenticate, async (req, res) => {
             }
         })
         .from(restaurantLists)
-        .innerJoin(users, eq(restaurantLists.createdById,users.id))
+        .innerJoin(users, eq(restaurantLists.createdById, users.id))
         .innerJoin(circleSharedLists, eq(restaurantLists.id, circleSharedLists.listId))
         .leftJoin(users, eq(circleSharedLists.sharedById, users.id))
-        .where(eq(circleSharedLists.circleId, parseInt(id)))
+        .where(eq(circleSharedLists.circleId, circleId))
         .orderBy(circleSharedLists.sharedAt)
         .limit(50);
 

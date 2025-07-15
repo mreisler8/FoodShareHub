@@ -13,18 +13,37 @@ interface MemberAdminPanelProps {
 }
 
 export function MemberAdminPanel({ circleId, currentUserId, currentUserRole }: MemberAdminPanelProps) {
-  const { data: members, isLoading, error } = useQuery({
+  const { data: members, isLoading, error, refetch } = useQuery({
     queryKey: [`/api/circles/${circleId}/members`],
     queryFn: async () => {
+      // Validate circleId
+      if (!circleId || isNaN(circleId) || circleId <= 0) {
+        throw new Error("Invalid circle ID");
+      }
+
       const response = await fetch(`/api/circles/${circleId}/members`, {
         credentials: "include",
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("You don't have permission to view members");
+        }
+        if (response.status === 404) {
+          throw new Error("Circle not found");
+        }
         throw new Error("Failed to fetch members");
       }
 
       return response.json();
+    },
+    enabled: !!circleId && circleId > 0,
+    retry: (failureCount, error) => {
+      // Don't retry on permission errors
+      if (error?.message?.includes("permission") || error?.message?.includes("not found")) {
+        return false;
+      }
+      return failureCount < 2;
     },
   });
 

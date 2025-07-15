@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { eq, and, desc, asc, sql, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, inArray, ne } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
 import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists } from '../../shared/schema';
@@ -122,52 +122,89 @@ router.get('/', authenticate, async (req, res) => {
         // This gets all lists the user can access in one optimized query
 
         try {
-          // Single optimized query to get all accessible lists using UNION
-          // This is much more efficient than multiple separate queries
-          const accessibleLists = await db.execute(sql`
-            -- User's own lists
-            SELECT DISTINCT 
-              rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
-              rl.circle_id as "circleId", rl.is_public as "isPublic",
-              rl.visibility, rl.share_with_circle as "shareWithCircle",
-              rl.make_public as "makePublic", rl.created_at as "createdAt",
-              rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
-            FROM restaurant_lists rl
-            WHERE rl.created_by_id = ${userId}
+          // Validate user ID
+          if (!userId || typeof userId !== 'number') {
+            return res.status(401).json({ error: 'Invalid user authentication' });
+          }
 
-            UNION
+          // Use proper ORM queries instead of raw SQL
+          const ownLists = await db
+            .select({
+              id: restaurantLists.id,
+              name: restaurantLists.name,
+              description: restaurantLists.description,
+              createdById: restaurantLists.createdById,
+              circleId: restaurantLists.circleId,
+              isPublic: restaurantLists.isPublic,
+              visibility: restaurantLists.visibility,
+              shareWithCircle: restaurantLists.shareWithCircle,
+              makePublic: restaurantLists.makePublic,
+              createdAt: restaurantLists.createdAt,
+              updatedAt: restaurantLists.updatedAt,
+              tags: restaurantLists.tags,
+              primaryLocation: restaurantLists.primaryLocation
+            })
+            .from(restaurantLists)
+            .where(eq(restaurantLists.createdById, userId))
+            .orderBy(restaurantLists.createdAt);
 
-            -- Public lists (not owned by user)
-            SELECT DISTINCT 
-              rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
-              rl.circle_id as "circleId", rl.is_public as "isPublic",
-              rl.visibility, rl.share_with_circle as "shareWithCircle",
-              rl.make_public as "makePublic", rl.created_at as "createdAt",
-              rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
-            FROM restaurant_lists rl
-            WHERE rl.make_public = true 
-            AND rl.created_by_id != ${userId}
+          const publicLists = await db
+            .select({
+              id: restaurantLists.id,
+              name: restaurantLists.name,
+              description: restaurantLists.description,
+              createdById: restaurantLists.createdById,
+              circleId: restaurantLists.circleId,
+              isPublic: restaurantLists.isPublic,
+              visibility: restaurantLists.visibility,
+              shareWithCircle: restaurantLists.shareWithCircle,
+              makePublic: restaurantLists.makePublic,
+              createdAt: restaurantLists.createdAt,
+              updatedAt: restaurantLists.updatedAt,
+              tags: restaurantLists.tags,
+              primaryLocation: restaurantLists.primaryLocation
+            })
+            .from(restaurantLists)
+            .where(
+              and(
+                eq(restaurantLists.makePublic, true),
+                ne(restaurantLists.createdById, userId)
+              )
+            )
+            .orderBy(restaurantLists.createdAt);
 
-            UNION
+          const circleSharedLists = await db
+            .select({
+              id: restaurantLists.id,
+              name: restaurantLists.name,
+              description: restaurantLists.description,
+              createdById: restaurantLists.createdById,
+              circleId: restaurantLists.circleId,
+              isPublic: restaurantLists.isPublic,
+              visibility: restaurantLists.visibility,
+              shareWithCircle: restaurantLists.shareWithCircle,
+              makePublic: restaurantLists.makePublic,
+              createdAt: restaurantLists.createdAt,
+              updatedAt: restaurantLists.updatedAt,
+              tags: restaurantLists.tags,
+              primaryLocation: restaurantLists.primaryLocation
+            })
+            .from(restaurantLists)
+            .innerJoin(circleMembers, eq(restaurantLists.circleId, circleMembers.circleId))
+            .where(
+              and(
+                eq(restaurantLists.shareWithCircle, true),
+                eq(circleMembers.userId, userId),
+                ne(restaurantLists.createdById, userId),
+                eq(restaurantLists.makePublic, false)
+              )
+            )
+            .orderBy(restaurantLists.createdAt);
 
-            -- Circle-shared lists (user is member, not owner, not public)
-            SELECT DISTINCT 
-              rl.id, rl.name, rl.description, rl.created_by_id as "createdById",
-              rl.circle_id as "circleId", rl.is_public as "isPublic",
-              rl.visibility, rl.share_with_circle as "shareWithCircle",
-              rl.make_public as "makePublic", rl.created_at as "createdAt",
-              rl.updated_at as "updatedAt", rl.tags, rl.primary_location as "primaryLocation"
-            FROM restaurant_lists rl
-            INNER JOIN circle_members cm ON rl.circle_id = cm.circle_id
-            WHERE rl.share_with_circle = true
-            AND cm.user_id = ${userId}
-            AND rl.created_by_id != ${userId}
-            AND rl.make_public = false
+          // Combine results
+          const allLists = [...ownLists, ...publicLists, ...circleSharedLists];
 
-            ORDER BY "createdAt" DESC
-          `);
-
-          res.json(accessibleLists.rows || []);
+          res.json(allLists);
         } catch (dbError) {
           console.error('Database error fetching accessible lists, using temp storage:', dbError);
           // Fallback to temp storage
@@ -834,7 +871,7 @@ router.get('/:id/items', authenticate, async (req, res) => {
     // Calculate aggregated stats
     const stats = {
       totalItems: items.length,
-      avgRating: items.length > 0 ? items.reduce((sum, item) => sum + (item.rating || 0), 0) / items.filter(item => item.rating).length : 0,
+      avgRating: items.length > 0 ? items.reduce((sum, item) => sum + (item.rating ||0), 0) / items.filter(item => item.rating).length : 0,
       cuisines: [...new Set(items.map(item => item.restaurant.cuisine).filter(Boolean))],
       cities: [...new Set(items.map(item => item.restaurant.city).filter(Boolean))],
     };
