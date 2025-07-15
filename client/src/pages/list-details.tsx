@@ -23,6 +23,8 @@ import { FilterSortControls } from "@/components/lists/FilterSortControls";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useLocation } from "wouter";
 
 // Extended interface for optimistic list items
 interface OptimisticListItem extends RestaurantListItemWithDetails {
@@ -34,6 +36,7 @@ export default function ListDetails() {
   const listId = parseInt(id || "0");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -43,6 +46,7 @@ export default function ListDetails() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   
   // Edit item handler
   const handleEdit = (itemId: number) => {
@@ -110,6 +114,31 @@ export default function ListDetails() {
         variant: "destructive",
       });
     }
+  };
+
+  // Delete list handler
+  const deleteListMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", `/api/lists/${listId}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "List deleted",
+        description: "Your list has been permanently deleted.",
+      });
+      navigate("/lists");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteList = () => {
+    deleteListMutation.mutate();
   };
   
   const { data: list, isLoading, error } = useQuery<RestaurantList>({
@@ -436,17 +465,41 @@ export default function ListDetails() {
                     </Button>
                   )}
                   
-                  {/* Edit button - only show for list owner */}
+                  {/* Edit/Delete buttons - only show for list owner */}
                   {user && list.createdById === user.id && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setIsEditModalOpen(true)}
-                      className="flex items-center gap-1"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit List
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="flex items-center gap-1"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit List
+                      </Button>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex items-center gap-1">
+                            <MoreVertical className="h-4 w-4" />
+                            More
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setIsShareModalOpen(true)}>
+                            <Share2 className="h-4 w-4 mr-2" />
+                            Share with Circle
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setIsDeleteModalOpen(true)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete List
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   )}
                 </div>
               </div>
@@ -671,6 +724,29 @@ export default function ListDetails() {
           list={list}
         />
       )}
+      
+      {/* Delete List Confirmation Dialog */}
+      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete List</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this list? This action cannot be undone.
+              All restaurants in this list will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteList}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteListMutation.isPending}
+            >
+              {deleteListMutation.isPending ? 'Deleting...' : 'Delete List'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

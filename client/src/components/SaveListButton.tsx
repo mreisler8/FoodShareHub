@@ -52,7 +52,9 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
     },
   });
 
-  const handleSaveClick = () => {
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     const action = isListSaved ? 'unsave' : 'save';
     saveListMutation.mutate(action);
   };

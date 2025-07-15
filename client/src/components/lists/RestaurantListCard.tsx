@@ -46,7 +46,7 @@ export function RestaurantListCard({ list }: RestaurantListCardProps) {
           {/* Save Button */}
           <div className="absolute top-3 right-3">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <SaveListButton listId={list.id} />
+              <SaveListButton listId={list.id.toString()} userId={list.createdById.toString()} />
             </div>
           </div>
         </div>
