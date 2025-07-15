@@ -62,7 +62,10 @@ export function DesktopSidebar() {
             <path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"></path>
           </svg>
         </div>
-        <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">Circles</h1>
+        <div className="ml-3">
+          <h1 className="text-2xl font-heading font-bold text-neutral-900">Circles</h1>
+          <p className="text-xs text-neutral-600 mt-0.5">Trusted restaurant recommendations from your inner circle</p>
+        </div>
       </Link>
       
       <nav className="flex-1" role="navigation" aria-label="Main navigation">

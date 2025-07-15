@@ -50,9 +50,12 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-primary flex items-center gap-2">
-                🍕 Circles
+              <Link href="/" className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-primary">🍕 Circles</span>
               </Link>
+              <div className="ml-4 text-sm text-neutral-600">
+                Trusted restaurant recommendations from your inner circle
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button 
