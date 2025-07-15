@@ -4,7 +4,7 @@ import { db } from "../db";
 import { restaurants, restaurantLists, posts, users, userFollowers, circleMembers } from "../../shared/schema";
 import { eq, and, or, like, desc, sql, ilike, ne, inArray } from "drizzle-orm";
 import { searchGooglePlaces, getPlaceDetails } from "../services/google-places";
-import { EnhancedSearchEngine } from "../services/search-engine";
+import { SearchEngineService } from "../services/search-engine";
 import { z } from "zod";
 
 const router = Router();
@@ -250,7 +250,8 @@ router.get("/", authenticate, async (req, res) => {
 
     // Search restaurants with enhanced engine
     if (type === "restaurants") {
-      const restaurantResults = await EnhancedSearchEngine.searchRestaurants(
+      const searchEngine = SearchEngineService.getInstance();
+      const restaurantResults = await searchEngine.searchRestaurants(
         searchTerm,
         userId,
         filters,
@@ -298,19 +299,22 @@ router.get("/", authenticate, async (req, res) => {
 
     // Search lists with enhanced engine
     if (type === "lists") {
-      const listResults = await EnhancedSearchEngine.searchLists(searchTerm, userId, 10);
+      const searchEngine = SearchEngineService.getInstance();
+      const listResults = await searchEngine.searchLists(searchTerm, userId, 10);
       return res.json(listResults);
     }
 
     // Search users with enhanced engine
     if (type === "users") {
-      const userResults = await EnhancedSearchEngine.searchUsers(searchTerm, userId, 10);
+      const searchEngine = SearchEngineService.getInstance();
+      const userResults = await searchEngine.searchUsers(searchTerm, userId, 10);
       return res.json(userResults);
     }
 
     // Search posts with enhanced engine
     if (type === "posts") {
-      const postResults = await EnhancedSearchEngine.searchPosts(searchTerm, userId, 10);
+      const searchEngine = SearchEngineService.getInstance();
+      const postResults = await searchEngine.searchPosts(searchTerm, userId, 10);
       return res.json(postResults);
     }
 
@@ -359,92 +363,6 @@ router.get("/unified", authenticate, async (req, res) => {
   // Forward to main search with type='all'
   req.query.type = 'all';
   return router.handle(req, res);
-});
-
-    const filteredGoogleResults = googleResults.filter(
-      (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)
-    );
-
-    const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
-      id: `google_${r.googlePlaceId}`,
-      name: r.name,
-      thumbnailUrl: r.imageUrl,
-      avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
-      location: r.location,
-      category: r.category,
-      priceRange: r.priceRange,
-      cuisine: r.cuisine,
-      address: r.address,
-      source: 'google' as const,
-      type: 'restaurant' as const,
-      googlePlaceId: r.googlePlaceId
-    }));
-
-    const restaurantsResult = [...formattedRestaurants, ...formattedGoogleResults];
-
-    // Enhanced privacy-aware list search
-    const listResults = await SearchPrivacyService.getAccessibleLists(userId, searchPattern);
-
-    // Enhanced privacy-aware user search
-    const userResults = await SearchPrivacyService.getAccessibleUsers(userId, searchPattern);
-
-    // Enhanced post search with privacy filtering
-    const postResults = await db
-      .select({
-        id: posts.id,
-        content: posts.content,
-        rating: posts.rating,
-        userId: posts.userId,
-        restaurantId: posts.restaurantId,
-        createdAt: posts.createdAt,
-        visibility: posts.visibility
-      })
-      .from(posts)
-      .where(
-        and(
-          ilike(posts.content, searchPattern),
-          // Only include posts user can see
-          or(
-            eq(posts.userId, userId), // User's own posts
-            sql`${posts.visibility}->>'public' = 'true'` // Public posts
-          )
-        )
-      )
-      .orderBy(desc(posts.createdAt))
-      .limit(5);
-
-    const formattedPosts = postResults.map(p => ({
-      id: p.id.toString(),
-      name: p.content.substring(0, 50) + '...',
-      subtitle: `${p.rating} stars`,
-      type: 'post' as const
-    }));
-
-    const result = {
-      restaurants: restaurantsResult,
-      lists: listResults,
-      posts: formattedPosts,
-      users: userResults
-    };
-
-    res.json(result);
-
-  } catch (error) {
-    console.error("Unified search error:", error);
-
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        error: "Invalid search parameters",
-        details: error.errors,
-        code: "INVALID_INPUT"
-      });
-    }
-
-    res.status(500).json({
-      error: "Search failed. Please try again.",
-      code: "SEARCH_ERROR"
-    });
-  }
 });
 
 // Enhanced trending endpoint with location support
