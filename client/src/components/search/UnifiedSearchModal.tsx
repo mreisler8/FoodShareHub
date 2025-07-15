@@ -384,7 +384,37 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                               key={result.id}
                               variant="ghost"
                               className="w-full h-auto p-3 justify-start"
-                              onClick={() => handleResultClick(result)}
+                              onClick={() => {
+                                try {
+                                  if (result.type === 'restaurant') {
+                                    setLocation(`/restaurants/${encodeURIComponent(result.id)}`);
+                                  } else if (result.type === 'list') {
+                                    setLocation(`/lists/${encodeURIComponent(result.id)}`);
+                                  } else if (result.type === 'post') {
+                                    setLocation(`/posts/${encodeURIComponent(result.id)}`);
+                                  } else if (result.type === 'user') {
+                                    setLocation(`/profile/${encodeURIComponent(result.id)}`);
+                                  }
+                                  onOpenChange(false);
+
+                                  // Track search analytics
+                                  if (typeof result.id === 'string' || typeof result.id === 'number') {
+                                    fetch('/api/search/analytics', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        query: searchQuery,
+                                        clicked: true,
+                                        clickedResultId: result.id.toString(),
+                                        clickedResultType: result.type,
+                                        //category: selectedCategory,
+                                      }),
+                                    }).catch(console.error);
+                                  }
+                                } catch (error) {
+                                  console.error('Navigation error:', error);
+                                }
+                              }}
                             >
                               <div className="flex items-center gap-3 w-full">
                                 <div className="flex-shrink-0">

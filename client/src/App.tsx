@@ -39,3 +39,20 @@ function App() {
 }
 
 export default App;
+
+// Development button validation
+if (import.meta.env.DEV) {
+  import('./utils/buttonValidation').then(({ ButtonValidator }) => {
+    // Add global validation function for development
+    (window as any).validateButtons = () => {
+      const results = ButtonValidator.validateAllButtons();
+      ButtonValidator.logValidationResults(results);
+      return results;
+    };
+
+    // Run validation on page load after a delay
+    setTimeout(() => {
+      console.log('🔧 Development Mode: Run validateButtons() in console to check button integrity');
+    }, 2000);
+  });
+}

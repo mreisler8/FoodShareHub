@@ -127,7 +127,7 @@ export function FollowButton({
           </>
         )}
       </Button>
-      
+
       {showTrustIndicator && (mutualCircles || mutualConnections) && (
         <div className="text-xs text-muted-foreground text-center">
           {mutualCircles > 0 && (

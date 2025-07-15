@@ -6,9 +6,14 @@ interface LocationData {
   address?: string;
 }
 
-interface LocationError {
+class LocationError extends Error {
   code: string;
-  message: string;
+  
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+    this.name = 'LocationError';
+  }
 }
 
 export class LocationService {
@@ -42,16 +47,16 @@ export class LocationService {
           let locationError: LocationError;
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              locationError = new LocationError('PERMISSION_DENIED', 'Location access denied by user');
+              locationError = new LocationError('PERMISSION_DENIED', 'Location access denied by user. Please enable location in your browser settings.');
               break;
             case error.POSITION_UNAVAILABLE:
-              locationError = new LocationError('POSITION_UNAVAILABLE', 'Location information is unavailable');
+              locationError = new LocationError('POSITION_UNAVAILABLE', 'Location information is unavailable. Please check your GPS or internet connection.');
               break;
             case error.TIMEOUT:
-              locationError = new LocationError('TIMEOUT', 'Location request timed out');
+              locationError = new LocationError('TIMEOUT', 'Location request timed out. Please try again.');
               break;
             default:
-              locationError = new LocationError('UNKNOWN_ERROR', 'An unknown error occurred');
+              locationError = new LocationError('UNKNOWN_ERROR', 'An unknown error occurred while getting your location.');
               break;
           }
           reject(locationError);

@@ -206,24 +206,3 @@ export function SimpleCircleWizard({ isOpen, onClose }: SimpleCircleWizardProps)
           >
             {step === 1 ? 'Cancel' : <><ArrowLeft className="h-4 w-4 mr-1" /> Back</>}
           </Button>
-
-          {step === 1 ? (
-            <Button
-              onClick={() => setStep(2)}
-              disabled={!circleName.trim() || isCreating}
-            >
-              Next <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleCreateCircle}
-              disabled={isCreating}
-            >
-              {isCreating ? "Creating..." : "Create Circle"}
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}

@@ -21,9 +21,16 @@ export function HeroSection() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           console.log('Location obtained for search:', position.coords);
+          // Store in session storage for quick access
+          sessionStorage.setItem('lastKnownLocation', JSON.stringify({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            timestamp: Date.now()
+          }));
         },
         (error) => {
-          console.log('Location access denied or failed:', error);
+          console.log('Location access failed:', error.message);
+          // Don't block the search modal from opening
         },
         {
           enableHighAccuracy: false,

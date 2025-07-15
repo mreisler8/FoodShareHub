@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { MapPin, Navigation, Search, X, Loader2 } from 'lucide-react';
-import { locationService, type LocationData } from '@/services/locationService';
+import { LocationService, type LocationData } from '@/services/locationService';
+
+const locationService = LocationService.getInstance();
 
 interface CityData {
   name: string;
@@ -136,9 +138,16 @@ export function LocationSearchInput({
         setSearchQuery(`${location.lat.toFixed(2)}, ${location.lng.toFixed(2)}`);
       }
       setShowSuggestions(false);
-    } catch (error) {
+      setError(null); // Clear any previous errors
+    } catch (error: any) {
       console.error('GPS location failed:', error);
-      setError(error instanceof Error ? error.message : 'Location access failed');
+      const errorMessage = error?.message || error?.code || 'Location access failed. Please try again or search manually.';
+      setError(errorMessage);
+      
+      // If permission denied, provide helpful guidance
+      if (error?.code === 'PERMISSION_DENIED') {
+        setError('Location access blocked. Please click the location icon in your browser address bar to enable location access, then try again.');
+      }
     } finally {
       setIsGettingLocation(false);
     }
