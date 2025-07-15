@@ -369,4 +369,88 @@ export class SearchEngineService {
   }
 }
 
+// Enhanced search engine with semantic search capabilities
+export class EnhancedSearchEngine {
+  private static instance: EnhancedSearchEngine;
+
+  public static getInstance(): EnhancedSearchEngine {
+    if (!EnhancedSearchEngine.instance) {
+      EnhancedSearchEngine.instance = new EnhancedSearchEngine();
+    }
+    return EnhancedSearchEngine.instance;
+  }
+
+  async unifiedSearch(
+    query: string, 
+    userId: number, 
+    filters: any = {}, 
+    limits: { restaurants: number, lists: number, users: number, posts: number } = { restaurants: 10, lists: 5, users: 5, posts: 5 }
+  ) {
+    const searchEngineService = SearchEngineService.getInstance();
+    
+    // Use the existing search functionality with enhanced capabilities
+    const results = await searchEngineService.search({
+      query,
+      userId,
+      filters,
+      lat: filters.lat,
+      lng: filters.lng,
+      radius: filters.radius
+    });
+
+    // Group results by type and apply limits
+    const restaurants = results.filter(r => r.type === 'restaurant').slice(0, limits.restaurants);
+    const lists = results.filter(r => r.type === 'list').slice(0, limits.lists);
+    const users = results.filter(r => r.type === 'user').slice(0, limits.users);
+    const posts = results.filter(r => r.type === 'post').slice(0, limits.posts);
+
+    return { restaurants, lists, users, posts };
+  }
+
+  async searchRestaurants(query: string, userId: number, filters: any = {}, limit: number = 10) {
+    const searchEngineService = SearchEngineService.getInstance();
+    const results = await searchEngineService.search({
+      query,
+      userId,
+      filters,
+      lat: filters.lat,
+      lng: filters.lng,
+      radius: filters.radius
+    });
+
+    return results.filter(r => r.type === 'restaurant').slice(0, limit);
+  }
+
+  async searchLists(query: string, userId: number, limit: number = 5) {
+    const searchEngineService = SearchEngineService.getInstance();
+    const results = await searchEngineService.search({
+      query,
+      userId
+    });
+
+    return results.filter(r => r.type === 'list').slice(0, limit);
+  }
+
+  async searchUsers(query: string, userId: number, limit: number = 5) {
+    const searchEngineService = SearchEngineService.getInstance();
+    const results = await searchEngineService.search({
+      query,
+      userId
+    });
+
+    return results.filter(r => r.type === 'user').slice(0, limit);
+  }
+
+  async searchPosts(query: string, userId: number, limit: number = 5) {
+    const searchEngineService = SearchEngineService.getInstance();
+    const results = await searchEngineService.search({
+      query,
+      userId
+    });
+
+    return results.filter(r => r.type === 'post').slice(0, limit);
+  }
+}
+
 export const searchEngine = SearchEngineService.getInstance();
+export const enhancedSearchEngine = EnhancedSearchEngine.getInstance();

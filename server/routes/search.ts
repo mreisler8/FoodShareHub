@@ -4,7 +4,7 @@ import { db } from "../db";
 import { restaurants, restaurantLists, posts, users, userFollowers, circleMembers } from "../../shared/schema";
 import { eq, and, or, like, desc, sql, ilike, ne, inArray } from "drizzle-orm";
 import { searchGooglePlaces, getPlaceDetails } from "../services/google-places";
-import { SearchEngineService } from "../services/search-engine";
+import { SearchEngineService, EnhancedSearchEngine } from "../services/search-engine";
 import { z } from "zod";
 
 const router = Router();
