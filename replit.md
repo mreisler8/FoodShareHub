@@ -113,6 +113,14 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 15, 2025: **Critical Search Engine SQL Syntax Fix - COMPLETE**: Successfully resolved critical SQL syntax errors in SearchEngineService that were preventing user search functionality:
+  - **Root Cause Resolution**: Fixed missing 'rating' field reference in restaurants table causing PostgreSQL syntax errors
+  - **Database Schema Alignment**: Corrected field name mismatches between snake_case database columns and camelCase Drizzle schema references
+  - **Simplified Query Structure**: Replaced complex field selection with simplified `db.select()` calls to avoid schema conflicts
+  - **User Search Functionality Restored**: Jason Bloom and other users now properly appear in search results instead of returning empty arrays
+  - **Fallback Search Working**: Database fallback search now functions correctly when Typesense service is unavailable
+  - **Performance Validation**: Search results confirmed working with "Search results: 1 restaurants, 0 lists, 0 posts, 1 users" for "jason" query
+  - **Status**: Search functionality completely operational with proper user discovery and database integration
 - July 15, 2025: **Personalized Search Experience with Location Services - COMPLETE**: Successfully implemented comprehensive personalized search functionality with enterprise-grade location services:
   - **Location Services Fixed**: Resolved location button functionality with proper async state management and error handling
   - **Personalized Recent Searches**: Created `/api/search/recent-searches` endpoint that returns user's actual search history from analytics table
