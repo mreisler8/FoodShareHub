@@ -36,11 +36,21 @@ export class LocationService {
       }
 
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const locationData: LocationData = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           };
+          
+          // Try to get user-friendly location name using reverse geocoding
+          try {
+            const city = await this.reverseGeocode(locationData.lat, locationData.lng);
+            locationData.city = city;
+          } catch (error) {
+            console.warn('Reverse geocoding failed:', error);
+            // Fall back to coordinates if reverse geocoding fails
+          }
+          
           resolve(locationData);
         },
         (error) => {
@@ -68,6 +78,53 @@ export class LocationService {
         }
       );
     });
+  }
+
+  async reverseGeocode(lat: number, lng: number): Promise<string> {
+    const cacheKey = `reverse_${lat}_${lng}`;
+    const cached = this.cache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.data.city || `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+    }
+
+    try {
+      // Use Google Geocoding API for reverse geocoding
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Geocoding API request failed');
+      }
+
+      const data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        
+        // Extract city name from address components
+        const cityComponent = result.address_components.find((component: any) => 
+          component.types.includes('locality') || 
+          component.types.includes('administrative_area_level_1')
+        );
+        
+        const city = cityComponent?.long_name || result.formatted_address.split(',')[0];
+        
+        // Cache the result
+        this.cache.set(cacheKey, {
+          data: { lat, lng, city },
+          timestamp: Date.now()
+        });
+        
+        return city;
+      }
+      
+      throw new Error('No results from geocoding');
+    } catch (error) {
+      console.warn('Reverse geocoding failed:', error);
+      return `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+    }
   }
 
   getCachedLocation(key: string): LocationData | null {

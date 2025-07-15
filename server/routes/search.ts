@@ -165,7 +165,166 @@ router.get('/unified', authenticate, async (req, res) => {
         return res.json(formattedResults);
       } catch (searchError) {
         console.error("Enhanced search error:", searchError);
-        // Fallback to basic search
+        // Fallback to basic search - implement proper fallback with all content types
+        
+        // Get restaurants from database
+        const dbRestaurants = await db.select({
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          category: restaurants.category,
+          priceRange: restaurants.priceRange,
+          cuisine: restaurants.cuisine,
+          address: restaurants.address,
+          imageUrl: restaurants.imageUrl,
+          avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
+          postCount: sql<number>`COUNT(${posts.id})`,
+          googlePlaceId: restaurants.googlePlaceId,
+        })
+        .from(restaurants)
+        .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
+        .where(
+          or(
+            ilike(restaurants.name, `%${searchTerm}%`),
+            ilike(restaurants.location, `%${searchTerm}%`),
+            ilike(restaurants.category, `%${searchTerm}%`),
+            ilike(restaurants.cuisine, `%${searchTerm}%`),
+            ilike(restaurants.address, `%${searchTerm}%`)
+          )
+        )
+        .groupBy(restaurants.id)
+        .orderBy(desc(sql`AVG(${posts.rating})`), desc(sql`COUNT(${posts.id})`))
+        .limit(10);
+
+        // Get users from database
+        const dbUsers = await db.select({
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          bio: users.bio,
+          profilePicture: users.profilePicture,
+          preferredCuisines: users.preferredCuisines,
+          favoriteFood: users.favoriteFood,
+          favoriteRestaurant: users.favoriteRestaurant,
+          isFollowing: sql<boolean>`
+            EXISTS (
+              SELECT 1 FROM ${userFollowers} 
+              WHERE follower_id = ${userId} AND following_id = ${users.id}
+            )
+          `.as('isFollowing')
+        })
+        .from(users)
+        .where(
+          and(
+            or(
+              ilike(users.name, `%${searchTerm}%`),
+              ilike(users.username, `%${searchTerm}%`),
+              ilike(users.bio, `%${searchTerm}%`),
+              ilike(users.favoriteFood, `%${searchTerm}%`),
+              ilike(users.favoriteRestaurant, `%${searchTerm}%`)
+            ),
+            sql`${users.id} != ${userId}`
+          )
+        )
+        .limit(5);
+
+        // Get lists from database
+        const dbLists = await db.select({
+          id: restaurantLists.id,
+          name: restaurantLists.name,
+          description: restaurantLists.description,
+          type: restaurantLists.type,
+          tags: restaurantLists.tags,
+          coverImage: restaurantLists.coverImage,
+          viewCount: restaurantLists.viewCount,
+          saveCount: restaurantLists.saveCount,
+          createdAt: restaurantLists.createdAt,
+          primaryLocation: restaurantLists.primaryLocation,
+        })
+        .from(restaurantLists)
+        .where(
+          and(
+            or(
+              ilike(restaurantLists.name, `%${searchTerm}%`),
+              ilike(restaurantLists.description, `%${searchTerm}%`),
+              sql`${restaurantLists.tags}::text ILIKE ${'%' + searchTerm + '%'}`
+            ),
+            eq(restaurantLists.makePublic, true)
+          )
+        )
+        .orderBy(desc(restaurantLists.viewCount), desc(restaurantLists.saveCount))
+        .limit(5);
+
+        // Get posts from database
+        const dbPosts = await db.select({
+          id: posts.id,
+          content: posts.content,
+          rating: posts.rating,
+          images: posts.images,
+          dishesTried: posts.dishesTried,
+          createdAt: posts.createdAt,
+          userId: posts.userId,
+          restaurantId: posts.restaurantId,
+          authorName: users.name,
+          restaurantName: restaurants.name,
+          restaurantLocation: restaurants.location,
+        })
+        .from(posts)
+        .leftJoin(users, eq(posts.userId, users.id))
+        .leftJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+        .where(
+          or(
+            ilike(posts.content, `%${searchTerm}%`),
+            sql`${posts.dishesTried}::text ILIKE ${'%' + searchTerm + '%'}`
+          )
+        )
+        .orderBy(desc(posts.createdAt))
+        .limit(5);
+
+        // Format results
+        const fallbackResults = {
+          restaurants: dbRestaurants.map(r => ({
+            id: r.id.toString(),
+            name: r.name,
+            type: 'restaurant' as const,
+            location: r.location,
+            avgRating: r.avgRating,
+            thumbnailUrl: r.imageUrl,
+            subtitle: r.category || r.cuisine,
+            metadata: r
+          })),
+          lists: dbLists.map(l => ({
+            id: l.id.toString(),
+            name: l.name,
+            type: 'list' as const,
+            subtitle: l.description || `${l.type} list`,
+            thumbnailUrl: l.coverImage,
+            metadata: l
+          })),
+          posts: dbPosts.map(p => ({
+            id: p.id.toString(),
+            name: p.content.slice(0, 50) + (p.content.length > 50 ? '...' : ''),
+            type: 'post' as const,
+            subtitle: `${p.authorName} at ${p.restaurantName}`,
+            thumbnailUrl: p.images?.[0],
+            metadata: p
+          })),
+          users: dbUsers.map(u => ({
+            id: u.id.toString(),
+            name: u.name,
+            type: 'user' as const,
+            username: u.username,
+            bio: u.bio,
+            profilePicture: u.profilePicture,
+            isFollowing: u.isFollowing,
+            subtitle: u.bio || 'Food enthusiast',
+            thumbnailUrl: u.profilePicture,
+            metadata: u
+          }))
+        };
+
+        console.log(`Fallback search returned: ${fallbackResults.users.length} users, ${fallbackResults.restaurants.length} restaurants`);
+        return res.json(fallbackResults);
       }
     }
 
