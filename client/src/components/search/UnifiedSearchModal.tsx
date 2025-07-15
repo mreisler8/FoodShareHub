@@ -7,7 +7,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2, Navigation } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { locationService, type LocationData } from '@/services/locationService';
+import { LocationService, type LocationData } from '@/services/locationService';
 import './UnifiedSearchModal.css';
 
 interface SearchResult {
@@ -59,7 +59,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   const requestLocation = async () => {
     try {
-      const location = await locationService.getCurrentLocation();
+      const location = await LocationService.getCurrentLocation();
       setUserLocation(location);
       setLocationPermission('granted');
       console.log('Location obtained:', location);
