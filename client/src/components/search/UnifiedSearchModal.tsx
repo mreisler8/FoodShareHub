@@ -138,30 +138,43 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   });
 
   const handleResultClick = (result: SearchResult) => {
-    // Navigate based on result type
-    switch (result.type) {
-      case 'restaurant':
-        // Handle both database and Google Places results
-        if (result.id.startsWith('google_')) {
-          const googlePlaceId = result.id.replace('google_', '');
-          setLocation(`/restaurants/google/${googlePlaceId}`);
-        } else {
-          setLocation(`/restaurants/${result.id}`);
-        }
-        onOpenChange(false);
-        break;
-      case 'list':
-        setLocation(`/lists/${result.id}`);
-        onOpenChange(false);
-        break;
-      case 'post':
-        setLocation(`/posts/${result.id}`);
-        onOpenChange(false);
-        break;
-      case 'user':
-        setLocation(`/profile/${result.id}`);
-        onOpenChange(false);
-        break;
+    try {
+      // Validate result before navigation
+      if (!result || !result.id || !result.type) {
+        console.error('Invalid search result:', result);
+        return;
+      }
+
+      // Navigate based on result type
+      switch (result.type) {
+        case 'restaurant':
+          // Handle both database and Google Places results
+          if (result.id.startsWith('google_')) {
+            const googlePlaceId = result.id.replace('google_', '');
+            if (googlePlaceId) {
+              setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
+            }
+          } else {
+            setLocation(`/restaurants/${encodeURIComponent(result.id)}`);
+          }
+          break;
+        case 'list':
+          setLocation(`/lists/${encodeURIComponent(result.id)}`);
+          break;
+        case 'post':
+          setLocation(`/posts/${encodeURIComponent(result.id)}`);
+          break;
+        case 'user':
+          setLocation(`/profile/${encodeURIComponent(result.id)}`);
+          break;
+        default:
+          console.error('Unknown result type:', result.type);
+          return;
+      }
+      
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error handling search result click:', error);
     }
   };
 

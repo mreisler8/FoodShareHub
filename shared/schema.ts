@@ -199,7 +199,25 @@ export const insertCircleSchema = createInsertSchema(circles).pick({
   trending: true,
   inviteCode: true,
   coverImage: true,
-});
+}).refine(
+  (data) => data.name && data.name.trim().length >= 3,
+  {
+    message: "Circle name must be at least 3 characters",
+    path: ["name"]
+  }
+).refine(
+  (data) => typeof data.creatorId === 'number' && data.creatorId > 0,
+  {
+    message: "Valid creator ID is required",
+    path: ["creatorId"]
+  }
+).refine(
+  (data) => !data.inviteCode || /^[A-Z0-9]{6,12}$/.test(data.inviteCode),
+  {
+    message: "Invite code must be 6-12 uppercase alphanumeric characters",
+    path: ["inviteCode"]
+  }
+);
 
 // CircleMember model
 export const circleMembers = pgTable("circle_members", {

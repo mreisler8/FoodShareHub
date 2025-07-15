@@ -55,33 +55,53 @@ router.get("/", authenticate, async (req, res) => {
       .orderBy(desc(users.name))
       .limit(20);
 
+    // Get user IDs for batch queries
+    const userIds = userResults.map(user => user.id);
+    
+    // Batch query for follow status
+    const followStatusResults = await db
+      .select({
+        followingId: userFollowers.followingId,
+        status: userFollowers.status
+      })
+      .from(userFollowers)
+      .where(
+        and(
+          eq(userFollowers.followerId, currentUserId),
+          inArray(userFollowers.followingId, userIds)
+        )
+      );
+    
+    const followStatusMap = new Map(
+      followStatusResults.map(fs => [fs.followingId, fs.status])
+    );
+
+    // Batch query for mutual connections
+    const mutualConnectionsResults = await db
+      .select({
+        userId: userFollowers.followerId,
+        count: sql<number>`count(*)`
+      })
+      .from(userFollowers)
+      .where(
+        and(
+          inArray(userFollowers.followerId, userIds),
+          sql`${userFollowers.followingId} IN (
+            SELECT following_id FROM user_followers 
+            WHERE follower_id = ${currentUserId}
+          )`
+        )
+      )
+      .groupBy(userFollowers.followerId);
+    
+    const mutualConnectionsMap = new Map(
+      mutualConnectionsResults.map(mc => [mc.userId, mc.count])
+    );
+
     // Get enhanced metadata for each user
     const enhancedUsers = await Promise.all(userResults.map(async (user) => {
-      // Check if current user is following this user
-      const followStatus = await db
-        .select()
-        .from(userFollowers)
-        .where(
-          and(
-            eq(userFollowers.followerId, currentUserId),
-            eq(userFollowers.followingId, user.id)
-          )
-        )
-        .limit(1);
-
-      // Get mutual connections count
-      const mutualConnections = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(userFollowers)
-        .where(
-          and(
-            eq(userFollowers.followerId, user.id),
-            sql`${userFollowers.followingId} IN (
-              SELECT following_id FROM user_followers 
-              WHERE follower_id = ${currentUserId}
-            )`
-          )
-        );
+      const isFollowing = followStatusMap.has(user.id);
+      const mutualCount = mutualConnectionsMap.get(user.id) || 0;
 
       // Get follower count
       const followerCount = await db

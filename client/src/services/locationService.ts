@@ -28,7 +28,7 @@ class LocationService {
 
     // Start new location fetch
     this.locationPromise = this.fetchLocation();
-    
+
     try {
       const location = await this.locationPromise;
       this.currentLocation = { ...location, timestamp: Date.now() } as LocationData & { timestamp: number };
@@ -56,7 +56,7 @@ class LocationService {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude, accuracy } = position.coords;
-          
+
           try {
             // Try to get city/country from reverse geocoding
             const locationData: LocationData = {
@@ -100,11 +100,11 @@ class LocationService {
       const response = await fetch(
         `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
       );
-      
+
       if (!response.ok) {
         throw new Error('Reverse geocoding failed');
       }
-      
+
       const data = await response.json();
       return {
         city: data.city || data.locality || data.principalSubdivision,
@@ -120,7 +120,7 @@ class LocationService {
     if (!this.currentLocation) return false;
     const location = this.currentLocation as LocationData & { timestamp?: number };
     if (!location.timestamp) return false;
-    
+
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     return location.timestamp > fiveMinutesAgo;
   }
@@ -155,5 +155,68 @@ class LocationService {
   }
 }
 
-export const locationService = new LocationService();
+// Cache for location data
+let cachedLocation: LocationData | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+export const locationService = {
+  async getCurrentLocation(): Promise<LocationData> {
+    // Return cached location if still valid
+    if (cachedLocation && Date.now() - cacheTimestamp < CACHE_DURATION) {
+      return cachedLocation;
+    }
+
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by this browser'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location: LocationData = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: Date.now()
+          };
+
+          // Cache the location
+          cachedLocation = location;
+          cacheTimestamp = Date.now();
+
+          resolve(location);
+        },
+        (error) => {
+          // Handle specific error types
+          let errorMessage = 'Unknown location error';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location access denied by user';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information unavailable';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out';
+              break;
+          }
+          reject(new Error(errorMessage));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        }
+      );
+    });
+  },
+
+  // Clear cached location
+  clearCache(): void {
+    cachedLocation = null;
+    cacheTimestamp = 0;
+  }
+};
 export type { LocationData, LocationError };

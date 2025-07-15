@@ -160,6 +160,11 @@ router.get("/", authenticate, async (req, res) => {
       try {
         const userId = req.user!.id;
         
+        // Validate user ID to prevent injection
+        if (!userId || typeof userId !== 'number' || userId <= 0) {
+          return res.status(401).json({ error: 'Invalid user authentication' });
+        }
+        
         // Use SQL for complete privacy filtering including circle-shared lists
         const listResults = await db.execute(sql`
           SELECT DISTINCT 
@@ -173,10 +178,10 @@ router.get("/", authenticate, async (req, res) => {
           ) AND (
             -- User owns the list
             rl.created_by_id = ${userId} OR
-            -- List is public
-            rl.make_public = true OR
-            -- List is shared with circle and user is member
-            (rl.share_with_circle = true AND cm.user_id = ${userId})
+            -- List is public AND make_public is true
+            (rl.make_public = true AND rl.is_public = true) OR
+            -- List is shared with circle and user is confirmed member
+            (rl.share_with_circle = true AND cm.user_id = ${userId} AND cm.status = 'active')
           )
           ORDER BY rl.created_at DESC
           LIMIT 5

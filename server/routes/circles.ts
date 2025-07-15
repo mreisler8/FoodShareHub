@@ -12,14 +12,20 @@ const router = Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user?.id;
-    if (!userId || typeof userId !== 'number') {
-      return res.status(401).json({ error: 'Invalid user authentication' });
+    
+    // Enterprise-grade user validation
+    if (!userId || typeof userId !== 'number' || userId <= 0) {
+      return res.status(401).json({ 
+        error: 'Invalid user authentication',
+        code: 'INVALID_USER_ID' 
+      });
     }
     
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100); // Prevent excessive queries
+    // Input validation and sanitization
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
     const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
 
-    // Only return circles user has access to - either they're members or circle allows public joining
+    // Only return circles user has CONFIRMED access to with proper member status
     const accessibleCircles = await db
       .select({
         id: circles.id,
@@ -28,7 +34,13 @@ router.get('/', authenticate, async (req, res) => {
         isPrivate: circles.isPrivate,
         createdAt: circles.createdAt,
         creatorId: circles.creatorId,
-        inviteCode: circles.inviteCode,
+        // Never expose invite codes unless user is owner/admin
+        inviteCode: sql<string>`
+          CASE 
+            WHEN ${circleMembers.role} IN ('owner', 'admin') THEN ${circles.inviteCode}
+            ELSE NULL
+          END
+        `,
         allowPublicJoin: circles.allowPublicJoin,
         tags: circles.tags,
         primaryCuisine: circles.primaryCuisine,
@@ -38,7 +50,8 @@ router.get('/', authenticate, async (req, res) => {
         featured: circles.featured,
         trending: circles.trending,
         role: circleMembers.role,
-        joinedAt: circleMembers.joinedAt
+        joinedAt: circleMembers.joinedAt,
+        memberStatus: circleMembers.status
       })
       .from(circles)
       .leftJoin(circleMembers, and(
@@ -47,28 +60,42 @@ router.get('/', authenticate, async (req, res) => {
       ))
       .where(
         or(
-          // User is a member of the circle
-          eq(circleMembers.userId, userId),
-          // Circle allows public joining
-          eq(circles.allowPublicJoin, true)
+          // User is an ACTIVE member of the circle
+          and(
+            eq(circleMembers.userId, userId),
+            eq(circleMembers.status, 'active')
+          ),
+          // Circle allows public joining AND is not private
+          and(
+            eq(circles.allowPublicJoin, true),
+            eq(circles.isPrivate, false)
+          )
         )
       )
       .limit(limit)
       .offset(offset)
       .orderBy(circles.createdAt);
 
+    // Filter out any circles where user doesn't have confirmed access
+    const filteredCircles = accessibleCircles.filter(circle => {
+      return circle.role !== null || (!circle.isPrivate && circle.allowPublicJoin);
+    });
+
     res.json({
-      circles: accessibleCircles,
+      circles: filteredCircles,
       pagination: {
         limit,
         offset,
-        total: accessibleCircles.length,
-        hasMore: accessibleCircles.length === limit
+        total: filteredCircles.length,
+        hasMore: filteredCircles.length === limit
       }
     });
   } catch (error) {
     console.error('Error fetching accessible circles:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      code: 'CIRCLES_FETCH_ERROR' 
+    });
   }
 });
 
