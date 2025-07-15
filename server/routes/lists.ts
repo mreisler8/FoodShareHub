@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { eq, and, desc, asc, sql, inArray, ne } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists } from '../../shared/schema';
+import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists, sharedLists, postListItems } from '../../shared/schema';
 import { tempSavedListStorage } from '../temp-storage';
 
 const router = Router();
@@ -685,12 +685,33 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'List not found or unauthorized' });
     }
 
+    // ENTERPRISE-GRADE CASCADING DELETE
     // Delete all list items first
     await db
       .delete(restaurantListItems)
       .where(eq(restaurantListItems.listId, listId));
 
-    // Delete the list
+    // Delete all saved list references (users who saved this list)
+    await db
+      .delete(savedLists)
+      .where(eq(savedLists.listId, listId));
+
+    // Delete all circle shared list references (circles this list was shared with)
+    await db
+      .delete(circleSharedLists)
+      .where(eq(circleSharedLists.listId, listId));
+
+    // Delete all shared list references (legacy shared lists table)
+    await db
+      .delete(sharedLists)
+      .where(eq(sharedLists.listId, listId));
+
+    // Delete post-list associations (posts that reference this list)
+    await db
+      .delete(postListItems)
+      .where(eq(postListItems.listId, listId));
+
+    // Finally delete the list itself
     await db
       .delete(restaurantLists)
       .where(eq(restaurantLists.id, listId));

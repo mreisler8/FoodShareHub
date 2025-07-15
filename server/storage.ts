@@ -5,6 +5,7 @@ import {
   comments, type Comment, type InsertComment,
   circles, type Circle, type InsertCircle,
   circleMembers, type CircleMember, type InsertCircleMember,
+  circleSharedLists, type CircleSharedList, type InsertCircleSharedList,
   likes, type Like, type InsertLike,
   savedRestaurants, type SavedRestaurant, type InsertSavedRestaurant,
   savedLists, type SavedList, type InsertSavedList,
@@ -965,11 +966,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteRestaurantList(id: number): Promise<void> {
+    // ENTERPRISE-GRADE CASCADING DELETE
     // First delete all items in the list
     await db.delete(restaurantListItems).where(eq(restaurantListItems.listId, id));
 
-    // Delete any shared list records
+    // Delete all saved list references (users who saved this list)
+    await db.delete(savedLists).where(eq(savedLists.listId, id));
+
+    // Delete all circle shared list references (circles this list was shared with)
+    await db.delete(circleSharedLists).where(eq(circleSharedLists.listId, id));
+
+    // Delete all shared list references (legacy shared lists table)
     await db.delete(sharedLists).where(eq(sharedLists.listId, id));
+
+    // Delete post-list associations (posts that reference this list)
+    await db.delete(postListItems).where(eq(postListItems.listId, id));
 
     // Finally delete the list itself
     await db.delete(restaurantLists).where(eq(restaurantLists.id, id));
