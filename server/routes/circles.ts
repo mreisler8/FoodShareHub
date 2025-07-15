@@ -969,18 +969,38 @@ router.get("/:id/feed", authenticate, async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    // First check if user has access to this circle
-    // Using server-side redirect to call the access check endpoint
-    const accessCheckResponse = await fetch(`${req.protocol}://${req.get('host')}/api/circles/${id}/access`, {
-        headers: {
-            'Cookie': req.headers.cookie || '' // Forward cookies for authentication
-        }
-    });
+    // Check if user has access to this circle directly
+    const circle = await db
+      .select({
+        id: circles.id,
+        name: circles.name,
+        isPrivate: circles.isPrivate,
+        creatorId: circles.creatorId
+      })
+      .from(circles)
+      .where(eq(circles.id, circleId))
+      .limit(1);
 
-    const accessCheck = await accessCheckResponse.json();
+    if (!circle || circle.length === 0) {
+      return res.status(404).json({ error: "Circle not found" });
+    }
 
-    if (!accessCheck.allowed) {
+    // For private circles, check membership
+    if (circle[0].isPrivate) {
+      const memberCheck = await db
+        .select()
+        .from(circleMembers)
+        .where(
+          and(
+            eq(circleMembers.circleId, circleId),
+            eq(circleMembers.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (memberCheck.length === 0) {
         return res.status(403).json({ error: "Access denied to this circle" });
+      }
     }
 
     // Validate circle ID
@@ -989,7 +1009,7 @@ router.get("/:id/feed", authenticate, async (req, res) => {
       return res.status(400).json({ error: "Invalid circle ID" });
     }
 
-    // Get lists shared to this circle with proper joins
+    // Get lists shared to this circle with optimized query
     const feedItems = await db
         .select({
             id: restaurantLists.id,
@@ -1009,15 +1029,15 @@ router.get("/:id/feed", authenticate, async (req, res) => {
             },
             sharedAt: circleSharedLists.sharedAt,
             sharedBy: {
-                id: users.id,
-                username: users.username,
-                name: users.name
+                id: sharedByUser.id,
+                username: sharedByUser.username,
+                name: sharedByUser.name
             }
         })
-        .from(restaurantLists)
+        .from(circleSharedLists)
+        .innerJoin(restaurantLists, eq(circleSharedLists.listId, restaurantLists.id))
         .innerJoin(users, eq(restaurantLists.createdById, users.id))
-        .innerJoin(circleSharedLists, eq(restaurantLists.id, circleSharedLists.listId))
-        .leftJoin(users, eq(circleSharedLists.sharedById, users.id))
+        .leftJoin(users.as('sharedByUser'), eq(circleSharedLists.sharedById, users.id))
         .where(eq(circleSharedLists.circleId, circleId))
         .orderBy(circleSharedLists.sharedAt)
         .limit(50);

@@ -13,29 +13,24 @@ export class PermissionService {
         return false;
       }
 
-      const result = await db
-        .select({ exists: sql`1` })
-        .from(restaurantLists)
-        .leftJoin(circleMembers, eq(restaurantLists.circleId, circleMembers.circleId))
-        .where(
-          and(
-            eq(restaurantLists.id, listId),
-            or(
-              // User owns the list
-              eq(restaurantLists.createdById, userId),
-              // List is public
-              eq(restaurantLists.makePublic, true),
-              // List is shared with circle and user is member
-              and(
-                eq(restaurantLists.shareWithCircle, true),
-                eq(circleMembers.userId, userId)
-              )
-            )
-          )
+      // Use optimized raw SQL for better performance
+      const result = await db.execute(sql`
+        SELECT 1 FROM restaurant_lists rl
+        WHERE rl.id = ${listId} AND (
+          -- User owns the list
+          rl.created_by_id = ${userId} OR
+          -- List is public
+          rl.make_public = true OR
+          -- List is shared with circle and user is member
+          (rl.share_with_circle = true AND EXISTS (
+            SELECT 1 FROM circle_members cm 
+            WHERE cm.circle_id = rl.circle_id AND cm.user_id = ${userId}
+          ))
         )
-        .limit(1);
+        LIMIT 1
+      `);
 
-      return result.length > 0;
+      return result.rows.length > 0;
     } catch (error) {
       console.error('Error checking list access:', error);
       return false;

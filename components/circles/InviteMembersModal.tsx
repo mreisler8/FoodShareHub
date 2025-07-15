@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
@@ -64,7 +63,7 @@ export function InviteMembersModal({
   const [inputValue, setInputValue] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  
+
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -73,7 +72,7 @@ export function InviteMembersModal({
     queryKey: ["/api/users/search", searchQuery],
     queryFn: async () => {
       if (!searchQuery.trim() || searchQuery.length < 2) return [];
-      
+
       const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
       if (!response.ok) {
         throw new Error("Failed to search users");
@@ -119,7 +118,7 @@ export function InviteMembersModal({
     },
     onSuccess: (data) => {
       const { successful, failed } = data;
-      
+
       if (successful > 0) {
         toast({
           title: "Invitations sent",
@@ -140,11 +139,17 @@ export function InviteMembersModal({
       setInputValue("");
       setSearchQuery("");
       setValidationErrors([]);
-      
-      // Refresh relevant queries
-      queryClient.invalidateQueries({ queryKey: [`/api/circles/${circleId}/invites/pending`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/circles/${circleId}/members`] });
-      
+
+      // Optimized query invalidation - only invalidate what changed
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/circles/${circleId}/members`],
+        exact: true 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/circles/${circleId}/invites`],
+        exact: true 
+      });
+
       if (successful > 0) {
         onOpenChange(false);
       }
@@ -163,7 +168,7 @@ export function InviteMembersModal({
     setSearchQuery("");
     setInputValue("");
     setIsSearchOpen(false);
-    
+
     // Focus back to input
     setTimeout(() => inputRef.current?.focus(), 100);
   };

@@ -48,43 +48,56 @@ export function PermissionGuard({ children, fallback }: PermissionGuardProps) {
         };
       }
 
-      const response = await fetch(`/api/circles/${circleId}/access`, {
-        credentials: 'include' // Ensure cookies are sent
-      });
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          return { 
-            allowed: false, 
-            reason: "circle_not_found" as const 
-          };
+      try {
+        const response = await fetch(`/api/circles/${circleId}/access`, {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            return { 
+              allowed: false, 
+              reason: "circle_not_found" as const 
+            };
+          }
+          if (response.status === 401) {
+            return { 
+              allowed: false, 
+              reason: "not_authenticated" as const 
+            };
+          }
+          if (response.status === 403) {
+            return { 
+              allowed: false, 
+              reason: "not_member" as const 
+            };
+          }
+          throw new Error(`HTTP ${response.status}: Failed to check access permissions`);
         }
-        if (response.status === 401) {
-          return { 
-            allowed: false, 
-            reason: "not_authenticated" as const 
-          };
-        }
-        if (response.status === 403) {
-          return { 
-            allowed: false, 
-            reason: "not_member" as const 
-          };
-        }
-        throw new Error("Failed to check access permissions");
-      }
 
-      return response.json();
+        return response.json();
+      } catch (fetchError) {
+        console.error('Permission check failed:', fetchError);
+        throw new Error("Network error while checking access permissions");
+      }
     },
     enabled: !!circleId,
     retry: (failureCount, error: any) => {
       // Don't retry on expected auth/not found errors
-      if (error?.message?.includes("not found") || error?.message?.includes("not authenticated")) {
+      if (error?.message?.includes("not found") || 
+          error?.message?.includes("not authenticated") ||
+          error?.message?.includes("HTTP 403") ||
+          error?.message?.includes("HTTP 404")) {
         return false;
       }
       return failureCount < 2;
     },
-    staleTime: 60000, // Cache access check for 1 minute
+    staleTime: 30000, // Cache access check for 30 seconds (reduced for better UX)
+    gcTime: 60000, // Keep in cache for 1 minute
   });
 
   const handleRetry = () => {
