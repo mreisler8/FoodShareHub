@@ -91,7 +91,7 @@ export class LocationService {
     try {
       // Use Google Geocoding API for reverse geocoding
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+        `/api/geocode/reverse?lat=${lat}&lng=${lng}`
       );
 
       if (!response.ok) {
@@ -100,24 +100,14 @@ export class LocationService {
 
       const data = await response.json();
       
-      if (data.results && data.results.length > 0) {
-        const result = data.results[0];
-        
-        // Extract city name from address components
-        const cityComponent = result.address_components.find((component: any) => 
-          component.types.includes('locality') || 
-          component.types.includes('administrative_area_level_1')
-        );
-        
-        const city = cityComponent?.long_name || result.formatted_address.split(',')[0];
-        
+      if (data.city) {
         // Cache the result
         this.cache.set(cacheKey, {
-          data: { lat, lng, city },
+          data: { lat, lng, city: data.city },
           timestamp: Date.now()
         });
         
-        return city;
+        return data.city;
       }
       
       throw new Error('No results from geocoding');

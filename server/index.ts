@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import uploadsRouter from "./routes/uploads";
 import { performanceMiddleware } from "./middleware/performance.js";
+import geocodeRouter from "./routes/geocode";
 
 const app = express();
 
@@ -89,6 +90,7 @@ app.use((req, res, next) => {
 
     const server = await registerRoutes(app);
     app.use('/api/uploads', uploadsRouter);
+    app.use('/api/geocode', geocodeRouter);
     console.log('Routes registered successfully');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
