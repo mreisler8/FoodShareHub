@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Users, UserPlus, Plus, Settings, MapPin, DollarSign, Globe, Lock, Crown, Shield } from "lucide-react";
+import EmptyState from "@/components/ui/EmptyState";
+import ContentCard from "@/components/ui/ContentCard";
 import { apiRequest } from "@/lib/queryClient";
 import { PendingInvites } from "@/components/circles/PendingInvites";
 import { InviteModal } from "@/components/circles/InviteModal";
@@ -81,88 +83,86 @@ export default function CirclesPage() {
   };
 
   const CircleCard = ({ circle, showJoinButton = false }: { circle: Circle; showJoinButton?: boolean }) => (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <Users className="h-6 w-6 text-white" />
+    <ContentCard hover={true} className="cursor-pointer">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <Users className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold">{circle.name}</h3>
+              {circle.allowPublicJoin ? (
+                <Globe className="h-4 w-4 text-green-600" />
+              ) : (
+                <Lock className="h-4 w-4 text-orange-600" />
+              )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg">{circle.name}</CardTitle>
-                {circle.isPrivate === false ? (
-                  <Globe className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Lock className="h-4 w-4 text-orange-600" />
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs">
-                  {circle.memberCount || 0} members
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                {circle.memberCount || 0} members
+              </Badge>
+              {circle.role && (
+                <Badge variant="secondary" className={`text-xs ${getRoleColor(circle.role)}`}>
+                  <div className="flex items-center gap-1">
+                    {getRoleIcon(circle.role)}
+                    {circle.role}
+                  </div>
                 </Badge>
-                {circle.role && (
-                  <Badge variant="secondary" className={`text-xs ${getRoleColor(circle.role)}`}>
-                    <div className="flex items-center gap-1">
-                      {getRoleIcon(circle.role)}
-                      {circle.role}
-                    </div>
-                  </Badge>
-                )}
-              </div>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {showJoinButton ? (
+        </div>
+        <div className="flex items-center gap-2">
+          {showJoinButton ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+            >
+              <UserPlus className="h-4 w-4" />
+              Join
+            </Button>
+          ) : (
+            (circle.role === 'owner' || circle.role === 'admin') && (
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => handleInvite(circle)}
                 className="gap-1"
               >
                 <UserPlus className="h-4 w-4" />
-                Join
+                Invite
               </Button>
-            ) : (
-              (circle.role === 'owner' || circle.role === 'admin') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleInvite(circle)}
-                  className="gap-1"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Invite
-                </Button>
-              )
-            )}
-          </div>
+            )
+          )}
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {circle.description && (
-          <p className="text-sm text-gray-600 mb-3">{circle.description}</p>
+      </div>
+      
+      {circle.description && (
+        <p className="text-sm text-gray-600">{circle.description}</p>
+      )}
+      
+      <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+        {circle.primaryCuisine && (
+          <span className="flex items-center gap-1">
+            🍽️ {circle.primaryCuisine}
+          </span>
         )}
-        <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-          {circle.primaryCuisine && (
-            <span className="flex items-center gap-1">
-              🍽️ {circle.primaryCuisine}
-            </span>
-          )}
-          {circle.location && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {circle.location}
-            </span>
-          )}
-          {circle.priceRange && (
-            <span className="flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              {circle.priceRange}
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        {circle.location && (
+          <span className="flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {circle.location}
+          </span>
+        )}
+        {circle.priceRange && (
+          <span className="flex items-center gap-1">
+            <DollarSign className="h-3 w-3" />
+            {circle.priceRange}
+          </span>
+        )}
+      </div>
+    </ContentCard>
   );
 
   const LoadingCard = () => (
@@ -215,19 +215,15 @@ export default function CirclesPage() {
                   ))}
                 </div>
               ) : circles.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Users className="h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No circles yet</h3>
-                    <p className="text-gray-500 text-center mb-4">
-                      Create your first circle to start connecting with other food enthusiasts
-                    </p>
-                    <Button onClick={() => setCreateFormOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Your First Circle
-                    </Button>
-                  </CardContent>
-                </Card>
+                <EmptyState
+                  icon={Users}
+                  title="No circles yet"
+                  description="Create your first circle to start connecting with other food enthusiasts"
+                  action={{
+                    label: "Create Your First Circle",
+                    onClick: () => setCreateFormOpen(true)
+                  }}
+                />
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                   {circles.map((circle) => (
@@ -248,19 +244,15 @@ export default function CirclesPage() {
                   </Badge>
                 </div>
                 {publicCircles.length === 0 ? (
-                  <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Globe className="h-16 w-16 text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No public circles found</h3>
-                      <p className="text-gray-500 text-center mb-4">
-                        Be the first to create a public circle for others to discover
-                      </p>
-                      <Button onClick={() => setCreateFormOpen(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Public Circle
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    icon={Globe}
+                    title="No public circles found"
+                    description="Be the first to create a public circle for others to discover"
+                    action={{
+                      label: "Create Public Circle",
+                      onClick: () => setCreateFormOpen(true)
+                    }}
+                  />
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
                     {publicCircles.map((circle) => (

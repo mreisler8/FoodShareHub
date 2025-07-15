@@ -5,6 +5,7 @@ import { Toaster as SonnerToaster } from "sonner";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import Router from "./components/Router";
+import BottomNavigation from "./components/navigation/BottomNavigation";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 
@@ -19,9 +20,15 @@ function AppContent() {
     }
   }, [user, isLoading, location, navigate]);
 
+  // Show bottom navigation on authenticated pages (not on auth page)
+  const showBottomNav = user && location !== "/auth";
+
   return (
     <ErrorBoundary>
-      <Router />
+      <div className={showBottomNav ? "pb-20" : ""}>
+        <Router />
+      </div>
+      {showBottomNav && <BottomNavigation />}
       <Toaster />
       <SonnerToaster />
     </ErrorBoundary>
