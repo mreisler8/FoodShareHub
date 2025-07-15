@@ -1134,6 +1134,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send circle invitations
+  app.post("/api/circles/:circleId/invites", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const circleId = parseInt(req.params.circleId);
+      const { userIds, emails } = req.body;
+      const inviterId = req.user!.id;
+
+      if (isNaN(circleId)) {
+        return res.status(400).json({ error: "Invalid circle ID" });
+      }
+
+      // Check if user has permission to invite to this circle
+      const isMember = await storage.isUserMemberOfCircle(inviterId, circleId);
+      if (!isMember) {
+        return res.status(403).json({ error: "Only circle members can send invitations" });
+      }
+
+      const circle = await storage.getCircle(circleId);
+      if (!circle) {
+        return res.status(404).json({ error: "Circle not found" });
+      }
+
+      let inviteCount = 0;
+      const errors: string[] = [];
+
+      // Handle username-based invites
+      if (userIds && Array.isArray(userIds)) {
+        for (const userId of userIds) {
+          try {
+            // Check if user exists
+            const user = await storage.getUser(userId);
+            if (!user) {
+              errors.push(`User with ID ${userId} not found`);
+              continue;
+            }
+
+            // Check if already a member
+            const isAlreadyMember = await storage.isUserMemberOfCircle(userId, circleId);
+            if (isAlreadyMember) {
+              errors.push(`${user.username} is already a member`);
+              continue;
+            }
+
+            // Create invite
+            await storage.createCircleInvite({
+              circleId,
+              emailOrUsername: user.username,
+              inviterId,
+              status: "pending"
+            });
+
+            inviteCount++;
+          } catch (error) {
+            console.error(`Error inviting user ${userId}:`, error);
+            errors.push(`Failed to invite user ${userId}`);
+          }
+        }
+      }
+
+      // Handle email-based invites
+      if (emails && Array.isArray(emails)) {
+        for (const email of emails) {
+          try {
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+              errors.push(`Invalid email format: ${email}`);
+              continue;
+            }
+
+            // Check if user with this email already exists
+            const existingUser = await storage.getUserByUsername(email);
+            if (existingUser) {
+              const isAlreadyMember = await storage.isUserMemberOfCircle(existingUser.id, circleId);
+              if (isAlreadyMember) {
+                errors.push(`${email} is already a member`);
+                continue;
+              }
+            }
+
+            // Create email invite
+            await storage.createCircleInvite({
+              circleId,
+              emailOrUsername: email,
+              inviterId,
+              status: "pending"
+            });
+
+            inviteCount++;
+          } catch (error) {
+            console.error(`Error inviting email ${email}:`, error);
+            errors.push(`Failed to invite ${email}`);
+          }
+        }
+      }
+
+      if (inviteCount === 0 && errors.length > 0) {
+        return res.status(400).json({ 
+          error: "No invitations were sent", 
+          details: errors 
+        });
+      }
+
+      res.status(201).json({
+        message: `Successfully sent ${inviteCount} invitation(s)`,
+        inviteCount,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error('Error sending circle invitations:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Get circle invitations
+  app.get("/api/circles/:circleId/invites", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const circleId = parseInt(req.params.circleId);
+      const userId = req.user!.id;
+
+      if (isNaN(circleId)) {
+        return res.status(400).json({ error: "Invalid circle ID" });
+      }
+
+      // Check if user has permission to view invites for this circle
+      const isMember = await storage.isUserMemberOfCircle(userId, circleId);
+      if (!isMember) {
+        return res.status(403).json({ error: "Only circle members can view invitations" });
+      }
+
+      // Get pending invites for this circle
+      const invites = await db.select().from(circleInvites)
+        .where(eq(circleInvites.circleId, circleId))
+        .orderBy(desc(circleInvites.createdAt));
+
+      res.json(invites);
+    } catch (error) {
+      console.error('Error fetching circle invitations:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // User search endpoint
+  app.get("/api/users/search", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { q, limit = 10 } = req.query;
+      
+      if (!q || typeof q !== 'string' || q.trim().length < 2) {
+        return res.json([]);
+      }
+
+      const searchLimit = Math.min(parseInt(limit as string) || 10, 50);
+      
+      const searchResults = await db.select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        profilePicture: users.profilePicture,
+        bio: users.bio
+      })
+      .from(users)
+      .where(
+        or(
+          ilike(users.username, `%${q.trim()}%`),
+          ilike(users.name, `%${q.trim()}%`)
+        )
+      )
+      .limit(searchLimit);
+
+      res.json(searchResults);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Mount routers
   app.use("/api/search", searchRouter);
   

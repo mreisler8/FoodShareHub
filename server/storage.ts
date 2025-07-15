@@ -697,6 +697,14 @@ export class DatabaseStorage implements IStorage {
     return member;
   }
 
+  async createCircleInvite(insertCircleInvite: InsertCircleInvite): Promise<CircleInvite> {
+    const [invite] = await db.insert(circleInvites).values({
+      ...insertCircleInvite,
+      createdAt: new Date()
+    }).returning();
+    return invite;
+  }
+
   async getCircleMembers(circleId: number): Promise<CircleMember[]> {
     return await db.select().from(circleMembers).where(eq(circleMembers.circleId, circleId));
   }
