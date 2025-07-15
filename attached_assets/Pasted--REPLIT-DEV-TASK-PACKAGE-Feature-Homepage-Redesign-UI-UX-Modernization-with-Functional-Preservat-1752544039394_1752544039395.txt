@@ -1,0 +1,115 @@
+✅ REPLIT DEV TASK PACKAGE
+Feature: Homepage Redesign – UI/UX Modernization with Functional Preservation
+Agent: Full-Stack Dev Agent for Circles
+Goal: Rebuild the homepage to align with modern UX/UI expectations without removing or regressing any existing functionality or NFRs (e.g., list visibility rules, list saving logic, data persistence, authentication states, etc.).
+
+🧑‍💻 USER STORY
+As a Circles user, I want a modern, scrollable homepage that clearly shows relevant lists, people, and tags—with actionable CTAs and clean visual hierarchy—so that I can quickly discover, save, and share trusted food recommendations.
+
+🔨 HOME PAGE STRUCTURE & INSTRUCTIONS
+🧱 REPLACE the current homepage layout with the following structure (top to bottom):
+1. Header Section (fixed at top)
+Logo (left)
+
+Search icon/button (right)
+
+Do not remove user auth state (e.g., if user is logged in/out)
+
+2. Hero Tabs Section
+Add just below header (visible on all first loads)
+
+Toggleable tabs:
+
+For You (lists from followed users or Circles)
+
+Trending (lists with high save counts)
+
+Near You (lists tagged with current location)
+
+Show as segmented control or tab row
+
+Each tab controls what appears in the main feed (below)
+
+3. Main Feed Section (modular + scrollable)
+Render the following card types:
+
+📋 ListCard – must include:
+
+Cover image (if available)
+
+List title
+
+Creator handle
+
+List tags (e.g., “Toronto, Pizza”)
+
+Inline CTAs: Save, View, Follow creator
+
+Optional: “Shared to: [Circle Name]”
+
+👥 SuggestedUsersCard – show recommended people to follow
+
+🏷️ TagExploreCard – show popular tags (“Brunch”, “Late Night”, “Michelin”)
+
+Ensure spacing, padding, and consistent visual hierarchy using Tailwind classes:
+
+space-y-4, shadow-md, rounded-xl, px-4, py-3
+
+4. Empty Feed State (fallback)
+If feed is empty, show:
+
+Prompt: “Follow some foodie travelers to get started”
+
+Suggested Circles or lists (preview cards with Save/Follow)
+
+Action buttons: “Explore”, “Join Circle”, “Create First List”
+
+5. Bottom Navigation Bar (mobile view)
+Sticky bar with 4 icons:
+
+Home (active)
+
+Explore (tag/map feed)
+
+Circles (user’s Circles)
+
+Profile
+
+Use fixed bottom-0 w-full and proper mobile spacing (py-2, gap-4)
+
+🎯 FUNCTIONALITY TO RETAIN
+Do not remove or regress any of the following:
+
+Save List functionality (backend + frontend handler)
+
+Share destination logic (Profile, Circle, Public)
+
+Authenticated user state (follow/save actions must persist per user)
+
+Responsive layout (mobile-first priority)
+
+Data persistence and indexing
+
+Backend handlers for saved lists, shared lists, feed curation
+
+⚠️ NON-FUNCTIONAL REQUIREMENTS TO RESPECT
+Page should render in < 500ms in Replit preview mode
+
+Do not increase bundle size by more than 5%
+
+Must remain keyboard and screen-reader accessible:
+
+aria-labels on buttons
+
+All clickable items ≥ 48px
+
+Location services must continue to function on feed (Near You tab)
+
+📁 Suggested File Changes
+File	Action
+/pages/Home.tsx	Replace layout with structured sections above
+/components/ListCard.tsx	Refactor to include creator, tags, actions
+/components/TagExploreCard.tsx	New – tag preview cards with "Explore" CTA
+/components/SuggestedUsers.tsx	New – compact followable user previews
+/components/EmptyFeed.tsx	New – onboarding prompt layout if feed is empty
+/components/HeroTabs.tsx	New – segmented tab control to toggle feed sections
