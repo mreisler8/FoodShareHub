@@ -1,0 +1,115 @@
+✅ REPLIT DEV TASK PACKAGE
+Epic: Circle Creation & List Sharing
+Sprint 2: Member Management & Permissions
+Agent: Full-Stack Dev Agent for Circles
+Goal: Enable Circle admins to manage members and join requests, and ensure only authorized users can interact with private Circle content.
+
+👤 USER STORY
+As Influencer Riley, I want to approve or remove Circle members, control who can access and post in private Circles, and share invite links — so that my group remains trusted and relevant.
+
+📦 STORY SLICES (6 total – 13 pts)
+Each should be implemented in order. Use mock data only when backend isn’t available. Test each slice before moving on.
+
+🧩 1. Admin: Approve Join Requests (3 pts)
+📁 File to Create:
+/components/circles/JoinRequestList.tsx
+/components/circles/JoinRequestCard.tsx
+
+📁 Backend Endpoint:
+GET /api/circles/:id/requests
+POST /api/circles/:id/approve
+
+✅ Acceptance Criteria
+Admin sees list of join requests
+
+Can Approve or Deny users
+
+JoinRequestCard shows username + buttons
+
+🧩 2. Admin: Remove Members (2 pts)
+📁 File to Create:
+/components/circles/MemberAdminPanel.tsx
+/components/circles/MemberRow.tsx
+
+📁 Backend Endpoint:
+GET /api/circles/:id/members
+DELETE /api/circles/:id/members/:userId
+
+✅ Acceptance Criteria
+Show all current members (role: admin or member)
+
+Admin can click “Remove” next to any user (except self)
+
+Show confirm dialog before remove
+
+🧩 3. Member Permissions Logic (2 pts)
+📁 File to Extend:
+/components/circles/PermissionGuard.tsx
+/components/CreateListForm.tsx or list editor
+
+✅ Acceptance Criteria
+Only members of a Circle can post to it (enforced in UI + backend)
+
+Non-members can’t see share-to-circle option in dropdown
+
+Backend blocks POST /api/lists with circle_id unless user is a member
+
+🧩 4. Join via Invite Link (2 pts)
+📁 File to Update:
+/pages/join/[inviteCode].tsx
+Backend route already created in Sprint 1
+
+✅ Acceptance Criteria
+Public Circles: link joins user directly
+
+Private Circles: link requests access
+
+UI shows success ("You're in!") or "Request sent!" page
+
+🧩 5. Circle Metadata Display (2 pts)
+📁 File to Update:
+/components/circles/CircleMetadata.tsx
+
+✅ Acceptance Criteria
+Show creator username, member count, visibility (“Private” or “Public”)
+
+Layout already exists — confirm live values are shown
+
+🧩 6. Error & Access Handling (2 pts)
+📁 Files to Add or Extend:
+/components/circles/AccessDeniedView.tsx
+/components/ui/Toast.tsx
+Route wrappers as needed
+
+✅ Acceptance Criteria
+If user is removed → show “Access Denied” page
+
+If user tries to post/share without access → show toast or redirect
+
+Backend endpoints return proper 403/401 as needed
+
+🧱 REQUIRED TABLE UPDATES
+circle_join_requests
+sql
+Copy
+Edit
+CREATE TABLE circle_join_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  circle_id UUID REFERENCES circles(id),
+  user_id UUID REFERENCES users(id),
+  status TEXT CHECK (status IN ('pending', 'approved', 'denied')) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT now()
+);
+✅ DEV COMPLETION CHECKLIST
+ Admin can approve or deny join requests
+
+ Admin can remove members from Circle
+
+ Join via invite works for both public and private
+
+ Member permissions enforced for posting and access
+
+ Circle metadata shown properly
+
+ Unauthorized access is gracefully handled
+
