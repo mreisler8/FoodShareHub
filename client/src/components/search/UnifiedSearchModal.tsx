@@ -59,6 +59,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   const requestLocation = async () => {
     try {
+      setLocationPermission('prompt'); // Set loading state
       const location = await LocationService.getCurrentLocation();
       setUserLocation(location);
       setLocationPermission('granted');
@@ -248,6 +249,12 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                   >
                     Enable Location
                   </Button>
+                </div>
+              )}
+              {locationPermission === 'prompt' && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Navigation className="h-3 w-3 animate-pulse" />
+                  <span>Requesting location access...</span>
                 </div>
               )}
             </div>

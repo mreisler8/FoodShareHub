@@ -145,11 +145,11 @@ export default function RestaurantDetailPage() {
   const { id, placeId } = useParams();
   const [, setLocation] = useLocation();
 
-  const restaurantId = placeId || id;
+  const restaurantId = placeId ? `google_${placeId}` : id;
   const isGooglePlace = !!placeId;
 
   const { data: restaurant, isLoading, error } = useQuery<RestaurantDetails>({
-    queryKey: isGooglePlace ? [`/api/google/places/${restaurantId}`] : [`/api/restaurants/${restaurantId}`],
+    queryKey: [`/api/restaurants/${restaurantId}`],
     enabled: !!restaurantId,
   });
 
