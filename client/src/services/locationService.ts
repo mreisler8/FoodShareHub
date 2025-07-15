@@ -220,3 +220,179 @@ export const locationService = {
   }
 };
 export type { LocationData, LocationError };
+export interface LocationData {
+  lat: number;
+  lng: number;
+  address?: string;
+  city?: string;
+  country?: string;
+}
+
+export interface LocationError {
+  code: 'PERMISSION_DENIED' | 'POSITION_UNAVAILABLE' | 'TIMEOUT' | 'NOT_SUPPORTED';
+  message: string;
+}
+
+export class LocationService {
+  private static readonly TIMEOUT = 10000; // 10 seconds
+  private static readonly MAX_AGE = 300000; // 5 minutes
+  private static cachedLocation: LocationData | null = null;
+  private static lastLocationUpdate: number = 0;
+
+  // Get current location with graceful permission handling
+  static async getCurrentLocation(): Promise<LocationData | LocationError> {
+    // Check if geolocation is supported
+    if (!navigator.geolocation) {
+      return {
+        code: 'NOT_SUPPORTED',
+        message: 'Geolocation is not supported by this browser'
+      };
+    }
+
+    // Return cached location if recent
+    const now = Date.now();
+    if (this.cachedLocation && (now - this.lastLocationUpdate) < this.MAX_AGE) {
+      return this.cachedLocation;
+    }
+
+    return new Promise((resolve) => {
+      const options: PositionOptions = {
+        enableHighAccuracy: true,
+        timeout: this.TIMEOUT,
+        maximumAge: this.MAX_AGE
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const locationData: LocationData = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+
+          // Try to get address from reverse geocoding
+          try {
+            const addressData = await this.reverseGeocode(locationData.lat, locationData.lng);
+            Object.assign(locationData, addressData);
+          } catch (error) {
+            console.warn('Reverse geocoding failed:', error);
+          }
+
+          this.cachedLocation = locationData;
+          this.lastLocationUpdate = now;
+          resolve(locationData);
+        },
+        (error) => {
+          let errorCode: LocationError['code'];
+          let errorMessage: string;
+
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorCode = 'PERMISSION_DENIED';
+              errorMessage = 'Location access denied by user';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorCode = 'POSITION_UNAVAILABLE';
+              errorMessage = 'Location information unavailable';
+              break;
+            case error.TIMEOUT:
+              errorCode = 'TIMEOUT';
+              errorMessage = 'Location request timed out';
+              break;
+            default:
+              errorCode = 'POSITION_UNAVAILABLE';
+              errorMessage = 'Unknown location error';
+          }
+
+          resolve({ code: errorCode, message: errorMessage });
+        },
+        options
+      );
+    });
+  }
+
+  // Request location permission gracefully
+  static async requestLocationPermission(): Promise<'granted' | 'denied' | 'prompt'> {
+    if (!navigator.permissions) {
+      // Fallback: try to get location directly
+      const result = await this.getCurrentLocation();
+      return 'code' in result ? 'denied' : 'granted';
+    }
+
+    try {
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      return permission.state;
+    } catch (error) {
+      console.warn('Permission query failed:', error);
+      return 'prompt';
+    }
+  }
+
+  // Reverse geocode coordinates to address
+  private static async reverseGeocode(lat: number, lng: number): Promise<Partial<LocationData>> {
+    try {
+      const response = await fetch(
+        `/api/location/reverse?lat=${lat}&lng=${lng}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          address: data.address,
+          city: data.city,
+          country: data.country
+        };
+      }
+    } catch (error) {
+      console.error('Reverse geocoding API error:', error);
+    }
+    
+    return {};
+  }
+
+  // Get city suggestions for manual input
+  static async getCitySuggestions(query: string): Promise<string[]> {
+    if (query.length < 2) return [];
+
+    try {
+      const response = await fetch(
+        `/api/location/cities?q=${encodeURIComponent(query)}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.cities || [];
+      }
+    } catch (error) {
+      console.error('City suggestions API error:', error);
+    }
+    
+    return [];
+  }
+
+  // Calculate distance between two points
+  static calculateDistance(
+    lat1: number, lng1: number,
+    lat2: number, lng2: number
+  ): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLng = this.toRadians(lng2 - lng1);
+    
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  private static toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
+  }
+
+  // Clear cached location
+  static clearCache(): void {
+    this.cachedLocation = null;
+    this.lastLocationUpdate = 0;
+  }
+}

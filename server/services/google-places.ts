@@ -115,6 +115,52 @@ const getCuisineType = (types?: string[]): string => {
   return 'Restaurant';
 };
 
+// Enhanced semantic query mapping for Google Places
+const SEMANTIC_QUERY_MAPPINGS = {
+  'late night': 'restaurants open late night',
+  'brunch': 'brunch restaurants breakfast lunch',
+  'date night': 'romantic restaurants fine dining',
+  'family friendly': 'family restaurants kids children',
+  'quick bite': 'fast food takeout quick service',
+  'healthy': 'healthy restaurants salad organic vegetarian',
+  'comfort food': 'comfort food home style restaurants',
+  'michelin': 'michelin starred fine dining restaurants',
+  'trending': 'popular highly rated trending restaurants',
+  'cheap eats': 'affordable budget restaurants',
+  'outdoor dining': 'restaurants with patio outdoor seating',
+} as const;
+
+function enhanceQueryForGoogle(query: string): string {
+  const lowerQuery = query.toLowerCase();
+  
+  // Check for semantic mappings
+  for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
+    if (lowerQuery.includes(key)) {
+      return enhancement;
+    }
+  }
+  
+  // Default enhancement
+  return query.includes('restaurant') ? query : `${query} restaurant`;
+}
+
+function determineSearchStrategy(query: string, location?: { lat: number; lng: number; radius?: number }) {
+  const lowerQuery = query.toLowerCase();
+  
+  // Use Nearby Search for location-specific queries
+  if (location && (
+    lowerQuery.includes('near me') ||
+    lowerQuery.includes('nearby') ||
+    lowerQuery.includes('around here') ||
+    lowerQuery.length < 10 // Short queries work better with nearby search
+  )) {
+    return 'nearby';
+  }
+  
+  // Use Text Search for complex semantic queries
+  return 'text';
+}
+
 export const searchGooglePlaces = async (query: string, location?: { lat: number; lng: number; radius?: number }): Promise<Restaurant[]> => {
   if (!GOOGLE_MAPS_API_KEY) {
     console.error('Google Maps API key is not set');
@@ -126,19 +172,30 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
   }
 
   try {
+    const enhancedQuery = enhanceQueryForGoogle(query);
+    const searchStrategy = determineSearchStrategy(query, location);
     let response: any;
     
-    if (location) {
+    if (searchStrategy === 'nearby' && location) {
       // Use Nearby Search API for location-based searches
       console.log(`Using Nearby Search API for location: ${location.lat}, ${location.lng} with radius ${location.radius || 10000}m`);
       
       const nearbyParams = {
         location: `${location.lat},${location.lng}`,
-        radius: location.radius || 10000, // 10km default radius
+        radius: Math.min(location.radius || 10000, 50000), // Max 50km radius
         type: 'restaurant',
-        keyword: query.trim(),
+        keyword: enhancedQuery,
         key: GOOGLE_MAPS_API_KEY,
+        // Enhanced parameters for better results
+        opennow: query.toLowerCase().includes('open now'),
+        minprice: query.toLowerCase().includes('cheap') ? 1 : undefined,
+        maxprice: query.toLowerCase().includes('fine dining') || query.toLowerCase().includes('michelin') ? 4 : undefined,
       };
+
+      // Remove undefined parameters
+      Object.keys(nearbyParams).forEach(key => 
+        nearbyParams[key as keyof typeof nearbyParams] === undefined && delete nearbyParams[key as keyof typeof nearbyParams]
+      );
 
       console.log('Nearby Search API request params:', nearbyParams);
 
@@ -146,7 +203,7 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
         'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
         {
           params: nearbyParams,
-          timeout: 5000, // 5 second timeout
+          timeout: 8000, // Increased timeout for better reliability
         }
       );
       
@@ -157,24 +214,24 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
       }
     } else {
       // Use Text Search API for general searches
-      console.log(`Using Text Search API for query: ${query}`);
-      
-      // For popular restaurant searches, use a broader query to get diverse results
-      const searchQuery = query.includes('popular') ? 
-        'highly rated restaurants' : 
-        `${query.trim()} restaurant`;
+      console.log(`Using Text Search API for query: ${enhancedQuery}`);
       
       const textParams = {
-        query: searchQuery,
+        query: enhancedQuery,
         type: 'restaurant',
         key: GOOGLE_MAPS_API_KEY,
+        // Add location bias if available
+        ...(location && {
+          location: `${location.lat},${location.lng}`,
+          radius: location.radius || 10000,
+        }),
       };
 
       response = await axios.get<PlacesSearchResponse>(
         'https://maps.googleapis.com/maps/api/place/textsearch/json',
         {
           params: textParams,
-          timeout: 5000, // 5 second timeout
+          timeout: 8000, // Increased timeout
         }
       );
     }

@@ -47,6 +47,35 @@ router.get('/trending', async (req, res) => {
   }
 });
 
+// Get personalized search suggestions
+router.get('/suggestions', async (req, res) => {
+  try {
+    const userId = req.isAuthenticated() ? req.user!.id : null;
+    
+    // Get user's recent searches
+    const recentSearches = userId ? await storage.getUserRecentSearches(userId, 10) : [];
+    
+    // Get trending searches
+    const trending = await storage.getTrendingSearches(5, '24h');
+    
+    // Get personalized suggestions based on user's interests
+    const personalized = userId ? await storage.getPersonalizedSuggestions(userId, 5) : [];
+    
+    res.json({
+      recent: recentSearches,
+      trending: trending,
+      personalized: personalized,
+      popular: [
+        'pizza', 'sushi', 'brunch', 'date night', 'late night',
+        'healthy options', 'family friendly', 'takeout'
+      ]
+    });
+  } catch (error: any) {
+    console.error('Error getting search suggestions:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get recent searches for authenticated user
 router.get('/recent', async (req, res) => {
   if (!req.isAuthenticated()) {

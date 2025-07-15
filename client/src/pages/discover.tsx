@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { LocationService } from "@/services/locationService";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { DesktopRightSidebar } from "@/components/navigation/DesktopRightSidebar";
@@ -20,6 +21,13 @@ import { RecentRecommendations } from "@/components/recommendations/RecentRecomm
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("restaurants");
+  const [useLocation, setUseLocation] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [filters, setFilters] = useState({
+    priceRange: '',
+    cuisine: '',
+    radius: 5000
+  });
   
   // Fetch restaurants
   const { data: restaurants, isLoading: isRestaurantsLoading } = useQuery<Restaurant[]>({

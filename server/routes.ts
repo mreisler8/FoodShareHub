@@ -38,6 +38,7 @@ import savedListsRouter from './routes/saved-lists';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
 import { getPlaceDetails } from './services/google-places';
+import locationRoutes from "./routes/location";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -81,12 +82,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const updates = req.body;
-      
+
       // Remove fields that shouldn't be updated directly
       const { id, createdAt, updatedAt, password, ...allowedUpdates } = updates;
-      
+
       const updatedUser = await storage.updateUser(userId, allowedUpdates);
-      
+
       // Remove password from response
       const { password: _, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
@@ -922,8 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the authenticated user is the author of the post
       if (post.userId !== req.user!.id) {
         return res
-          .status(403)
-          .json({ error: "Not authorized to delete this post" });
+          .status(403).json({ error: "Not authorized to delete this post" });
       }
 
       // Delete the post
@@ -981,7 +981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const allCircles = await storage.getAllCircles();
       res.json(allCircles);
@@ -995,7 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const userId = req.user!.id;
       const userCircles = await storage.getCirclesByUser(userId);
@@ -1010,7 +1010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const userId = req.user!.id;
       const { name, description, primaryCuisine, priceRange, location, allowPublicJoin } = req.body;
@@ -1046,7 +1046,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const circleId = parseInt(req.params.circleId);
       const { listId, canEdit, canReshare } = req.body;
@@ -1075,7 +1075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const circleId = parseInt(req.params.circleId);
       const userId = req.user!.id;
@@ -1099,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const circleId = parseInt(req.params.circleId);
       const listId = parseInt(req.params.listId);
@@ -1125,7 +1125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       await circleRoutes.addUserToCircle(req, res);
     } catch (error) {
@@ -1292,13 +1292,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { q, limit = 10 } = req.query;
-      
+
       if (!q || typeof q !== 'string' || q.trim().length < 2) {
         return res.json([]);
       }
 
       const searchLimit = Math.min(parseInt(limit as string) || 10, 50);
-      
+
       const searchResults = await db.select({
         id: users.id,
         username: users.username,
@@ -1324,11 +1324,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount routers
   app.use("/api/search", searchRouter);
-  
+  app.use("/api/search-analytics", searchAnalyticsRouter);
+  app.use("/api/location", locationRoutes);
+
   // Mount restaurant router
   const restaurantRouter = await import("./routes/restaurants");
   app.use("/api/restaurants", restaurantRouter.default);
-  
+
   app.use("/api/lists", listsRouter);
   app.use("/api/saved-lists", savedListsRouter);
   app.use("/api/recommendations", recommendationsRouter);

@@ -39,14 +39,14 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<User>): Promise<User>;
   deleteUser(id: number): Promise<void>;
   getAllUsers(): Promise<User[]>;
-  
+
   // User Following operations
   followUser(followerId: number, followingId: number): Promise<UserFollower>;
   unfollowUser(followerId: number, followingId: number): Promise<void>;
   isUserFollowing(followerId: number, followingId: number): Promise<boolean>;
   getFollowers(userId: number): Promise<User[]>;
   getFollowing(userId: number): Promise<User[]>;
-  
+
   // Restaurant operations
   getRestaurant(id: number): Promise<Restaurant | undefined>;
   createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
@@ -55,7 +55,7 @@ export interface IStorage {
   searchRestaurantsByLocation(location: string): Promise<Restaurant[]>;
   getRestaurantsByLocation(location: string): Promise<Restaurant[]>;
   getNearbyRestaurants(lat: string, lng: string, radius: number): Promise<Restaurant[]>;
-  
+
   // Post operations
   getPost(id: number): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
@@ -67,64 +67,64 @@ export interface IStorage {
   getPostsByRestaurant(restaurantId: number): Promise<Post[]>;
   getPostDetails(postId: number): Promise<any>;
   getFeedPosts(options?: { offset?: number; limit?: number; userId?: number; scope?: 'feed' | 'circle'; circleId?: number }): Promise<any[]>;
-  
+
   // Comment operations
   getComment(id: number): Promise<Comment | undefined>;
   createComment(comment: InsertComment): Promise<Comment>;
   deleteComment(id: number): Promise<void>;
   getCommentsByPost(postId: number): Promise<Comment[]>;
-  
+
   // Post List Item operations
   createPostListItem(postListItem: InsertPostListItem): Promise<PostListItem>;
   deletePostListItem(postId: number, listId: number): Promise<void>;
   getPostListItems(postId: number): Promise<PostListItem[]>;
   getListsByPost(postId: number): Promise<RestaurantList[]>;
-  
+
   // Circle operations
   getCircle(id: number): Promise<Hub | undefined>;
   createCircle(circle: InsertHub): Promise<Hub>;
   getAllCircles(): Promise<Hub[]>;
   getFeaturedCircles(): Promise<Hub[]>;
-  
+
   // Circle Member operations
   createCircleMember(circleMember: InsertHubMember): Promise<HubMember>;
   getCircleMembers(circleId: number): Promise<HubMember[]>;
   getCirclesByUser(userId: number): Promise<Hub[]>;
   isUserMemberOfCircle(userId: number, circleId: number): Promise<boolean>;
-  
+
   // Legacy Hub operations (for backward compatibility)
   getHub(id: number): Promise<Hub | undefined>;
   createHub(hub: InsertHub): Promise<Hub>;
   getAllHubs(): Promise<Hub[]>;
   getFeaturedHubs(): Promise<Hub[]>;
-  
+
   // Legacy Hub Member operations (for backward compatibility)
   createHubMember(hubMember: InsertHubMember): Promise<HubMember>;
   getHubMembers(hubId: number): Promise<HubMember[]>;
   getHubsByUser(userId: number): Promise<Hub[]>;
   isUserMemberOfHub(userId: number, hubId: number): Promise<boolean>;
-  
+
   // Like operations
   createLike(like: InsertLike): Promise<Like>;
   deleteLike(postId: number, userId: number): Promise<void>;
   getLikesByPost(postId: number): Promise<Like[]>;
   isPostLikedByUser(postId: number, userId: number): Promise<boolean>;
-  
+
   // Saved Restaurant operations
   createSavedRestaurant(savedRestaurant: InsertSavedRestaurant): Promise<SavedRestaurant>;
   getSavedRestaurantsByUser(userId: number): Promise<SavedRestaurant[]>;
-  
+
   // Saved List operations
   createSavedList(savedList: InsertSavedList): Promise<SavedList>;
   deleteSavedList(listId: number, userId: number): Promise<void>;
   getSavedListsByUser(userId: number): Promise<any[]>; // with list details
   isListSavedByUser(listId: number, userId: number): Promise<boolean>;
-  
+
   // Story operations
   createStory(story: InsertStory): Promise<Story>;
   getActiveStories(): Promise<Story[]>;
   getStoriesByUser(userId: number): Promise<Story[]>;
-  
+
   // Restaurant List operations
   createRestaurantList(list: InsertRestaurantList): Promise<RestaurantList>;
   getRestaurantList(id: number): Promise<RestaurantList | undefined>;
@@ -134,7 +134,7 @@ export interface IStorage {
   getRestaurantListsByCircle(circleId: number): Promise<RestaurantList[]>;
   getRestaurantListsByUser(userId: number): Promise<RestaurantList[]>;
   getPublicRestaurantLists(): Promise<RestaurantList[]>;
-  
+
   // Restaurant List Item operations
   addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem>;
   removeRestaurantFromList(listId: number, restaurantId: number): Promise<void>;
@@ -142,21 +142,21 @@ export interface IStorage {
   updateRestaurantListItem(itemId: number, updates: Partial<RestaurantListItem>): Promise<RestaurantListItem>;
   getRestaurantsInList(listId: number): Promise<RestaurantListItem[]>;
   getDetailedRestaurantsInList(listId: number): Promise<any[]>; // with restaurant details
-  
+
   // Shared List operations
   shareListWithCircle(listId: number, circleId: number, sharedById: number, permissions?: { canEdit?: boolean; canReshare?: boolean }): Promise<SharedList>;
   unshareListFromCircle(listId: number, circleId: number): Promise<void>;
   getListsSharedWithCircle(circleId: number): Promise<any[]>; // Lists with details
   getCirclesListIsSharedWith(listId: number): Promise<any[]>; // Circles with permissions
-  
+
   // Session store for authentication
   sessionStore: any; // Using any for session store
-  
+
   // Analytics operations
   logUserAction(userId: number, action: string, metadata: Record<string, any>): Promise<void>;
   getActionsByUser(userId: number): Promise<any[]>;
   getPopularContent(): Promise<any[]>;
-  
+
   // Content Moderation operations
   createContentReport(report: InsertContentReport): Promise<ContentReport>;
   getContentReports(options?: { status?: string; contentType?: string; limit?: number }): Promise<ContentReport[]>;
@@ -166,7 +166,7 @@ export interface IStorage {
   getCircleByInviteCode(inviteCode: string): Promise<Circle | undefined>;
   getPersonalizedCircleSuggestions(userId: number): Promise<Circle[]>;
   joinCircleByInviteCode(inviteCode: string, userId: number): Promise<{ success: boolean; circle?: Circle; error?: string }>;
-  
+
   // Search Analytics operations
   trackSearchAnalytics(data: InsertSearchAnalytics & { timestamp: Date }): Promise<SearchAnalytics>;
   getTrendingSearches(limit: number, timeframe: string): Promise<any[]>;
@@ -179,7 +179,7 @@ export interface IStorage {
 // Implementation using PostgreSQL Database via Drizzle ORM
 export class DatabaseStorage implements IStorage {
   sessionStore: any; // Using any for session store type
-  
+
   constructor() {
     try {
       // Use PostgreSQL session store for proper session persistence
@@ -192,7 +192,7 @@ export class DatabaseStorage implements IStorage {
         errorLog: console.error
       });
       console.log('Using PostgreSQL session store');
-      
+
       // Initialize analytics table asynchronously to not block startup
       this.initializeAnalyticsTable().catch(err => {
         console.error('Failed to initialize analytics table:', err);
@@ -202,7 +202,7 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
-  
+
   private async initializeAnalyticsTable() {
     try {
       // We'll use this for analytics tracking
@@ -250,7 +250,7 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(id: number): Promise<void> {
     await db.delete(users).where(eq(users.id, id));
   }
-  
+
   // Restaurant operations
   async getRestaurant(id: number): Promise<Restaurant | undefined> {
     const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, id));
@@ -277,7 +277,7 @@ export class DatabaseStorage implements IStorage {
           like(restaurants.cuisine, `%${query}%`)
         )
       );
-      
+
       console.log(`Search results for "${query}":`, results);
       return results;
     } catch (error) {
@@ -285,7 +285,7 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
-  
+
   async searchRestaurantsByLocation(location: string): Promise<Restaurant[]> {
     try {
       const results = await db.select().from(restaurants).where(
@@ -298,11 +298,11 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
-  
+
   async getRestaurantsByLocation(location: string): Promise<Restaurant[]> {
     return this.searchRestaurantsByLocation(location);
   }
-  
+
   async getNearbyRestaurants(lat: string, lng: string, radius: number): Promise<Restaurant[]> {
     try {
       // For now, this is a simple implementation since we don't have GPS coordinates in our data
@@ -311,7 +311,7 @@ export class DatabaseStorage implements IStorage {
       const results = await db.select().from(restaurants).where(
         like(restaurants.location, '%NYC%')
       ).limit(10);
-      
+
       console.log(`Getting nearby restaurants for coordinates (${lat}, ${lng}):`, results);
       return results;
     } catch (error) {
@@ -319,7 +319,7 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
-  
+
   // Post operations
   async getPost(id: number): Promise<Post | undefined> {
     const [post] = await db.select().from(posts).where(eq(posts.id, id));
@@ -339,43 +339,43 @@ export class DatabaseStorage implements IStorage {
       ...insertPost,
       createdAt: new Date()
     }).returning();
-    
+
     // If listIds are provided, create post list items
     if (listIds && listIds.length > 0) {
       const postListItems = listIds.map(listId => ({
         postId: post.id,
         listId: listId
       }));
-      
+
       await Promise.all(
         postListItems.map(item => this.createPostListItem(item))
       );
     }
-    
+
     return post;
   }
-  
+
   async updatePost(id: number, postUpdates: Partial<InsertPost>): Promise<Post> {
     const [updatedPost] = await db
       .update(posts)
       .set(postUpdates)
       .where(eq(posts.id, id))
       .returning();
-    
+
     if (!updatedPost) {
       throw new Error("Post not found");
     }
-    
+
     return updatedPost;
   }
-  
+
   async deletePost(id: number): Promise<void> {
     // First, delete all likes related to this post
     await db.delete(likes).where(eq(likes.postId, id));
-    
+
     // Then, delete all comments related to this post
     await db.delete(comments).where(eq(comments.postId, id));
-    
+
     // Finally, delete the post itself
     await db.delete(posts).where(eq(posts.id, id));
   }
@@ -395,11 +395,11 @@ export class DatabaseStorage implements IStorage {
   async getPostDetails(postId: number): Promise<any> {
     const [post] = await db.select().from(posts).where(eq(posts.id, postId));
     if (!post) return undefined;
-    
+
     const [author] = await db.select().from(users).where(eq(users.id, post.userId));
     const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, post.restaurantId));
     const commentList = await this.getCommentsByPost(postId);
-    
+
     const commentWithAuthors = await Promise.all(
       commentList.map(async (comment) => {
         const [commentAuthor] = await db.select().from(users).where(eq(users.id, comment.userId));
@@ -409,9 +409,9 @@ export class DatabaseStorage implements IStorage {
         };
       })
     );
-    
+
     const likeCount = await this.getLikesByPost(postId).then(likes => likes.length);
-    
+
     return {
       ...post,
       author,
@@ -424,7 +424,7 @@ export class DatabaseStorage implements IStorage {
   // Optimized getFeedPosts method with pagination support
   async getFeedPosts(options?: { offset?: number; limit?: number; userId?: number; scope?: 'feed' | 'circle'; circleId?: number }): Promise<any[]> {
     let allPosts;
-    
+
     if (options?.scope === 'circle' && options?.circleId) {
       // Get posts shared to the specific circle
       // For now, get all posts and filter by visibility (simplified)
@@ -438,15 +438,15 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(posts.createdAt))
         .where(eq(posts.visibility, 'public'));
     }
-    
+
     // Apply offset and limit if options are provided
     const offset = options?.offset || 0;
     const limit = options?.limit || allPosts.length;
     const userId = options?.userId;
-    
+
     // Get paginated posts
     const paginatedPosts = allPosts.slice(offset, offset + limit);
-    
+
     // Process posts with details efficiently
     const postsWithDetails = await Promise.all(
       paginatedPosts.map(async (post) => {
@@ -454,10 +454,10 @@ export class DatabaseStorage implements IStorage {
         const [author] = await db.select().from(users).where(eq(users.id, post.userId));
         const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, post.restaurantId));
         const likeCount = await this.getLikesByPost(post.id).then(likes => likes.length);
-        
+
         // Get comment count for display
         const comments = await this.getCommentsByPost(post.id);
-        
+
         // Create the post with details
         const postWithDetails: any = {
           ...post,
@@ -468,11 +468,11 @@ export class DatabaseStorage implements IStorage {
           totalPosts: allPosts.length,
           comments: [] // Empty array to be populated if needed
         };
-        
+
         return postWithDetails;
       })
     );
-    
+
     // Add pagination metadata directly as an object
     // rather than trying to modify the posts
     const paginationMeta = {
@@ -481,20 +481,20 @@ export class DatabaseStorage implements IStorage {
       limit,
       hasMore: offset + limit < allPosts.length
     };
-    
+
     // Create a paginated result
     const result: any[] = [...postsWithDetails];
-    
+
     // Add pagination info as a special field on the array
     Object.defineProperty(result, 'pagination', {
       value: paginationMeta,
       enumerable: false // Makes it not show up in JSON.stringify
     });
-    
+
     // Return the result with the pagination property
     return result;
   }
-  
+
   // Comment operations
   async getComment(id: number): Promise<Comment | undefined> {
     const [comment] = await db.select().from(comments).where(eq(comments.id, id));
@@ -516,7 +516,7 @@ export class DatabaseStorage implements IStorage {
   async getCommentsByPost(postId: number): Promise<Comment[]> {
     return await db.select().from(comments).where(eq(comments.postId, postId));
   }
-  
+
   // Post List Item operations
   async createPostListItem(insertPostListItem: InsertPostListItem): Promise<PostListItem> {
     const [item] = await db.insert(postListItems).values({
@@ -544,10 +544,10 @@ export class DatabaseStorage implements IStorage {
     .from(postListItems)
     .innerJoin(restaurantLists, eq(postListItems.listId, restaurantLists.id))
     .where(eq(postListItems.postId, postId));
-    
+
     return result.map(item => item.list);
   }
-  
+
   // Circle operations
   async getCircle(id: number): Promise<Circle | undefined> {
     const [circle] = await db.select().from(circles).where(eq(circles.id, id));
@@ -557,7 +557,7 @@ export class DatabaseStorage implements IStorage {
   async createCircle(insertCircle: InsertCircle): Promise<Circle> {
     // Generate unique invite code
     const inviteCode = this.generateInviteCode();
-    
+
     const [circle] = await db.insert(circles).values({
       ...insertCircle,
       inviteCode,
@@ -590,7 +590,7 @@ export class DatabaseStorage implements IStorage {
     const userCircleIds = await db.select({ circleId: circleMembers.circleId })
       .from(circleMembers)
       .where(eq(circleMembers.userId, userId));
-    
+
     const excludeIds = userCircleIds.map(m => m.circleId);
 
     // Base query for available circles
@@ -606,21 +606,21 @@ export class DatabaseStorage implements IStorage {
     // Score circles based on user preferences
     const scoredCircles = allCircles.map(circle => {
       let score = 0;
-      
+
       // Match by cuisine preference
       if (user.preferredCuisines && circle.primaryCuisine) {
         if (user.preferredCuisines.includes(circle.primaryCuisine)) {
           score += 10;
         }
       }
-      
+
       // Match by price range
       if (user.preferredPriceRange && circle.priceRange) {
         if (user.preferredPriceRange === circle.priceRange) {
           score += 8;
         }
       }
-      
+
       // Match by location
       if (user.preferredLocation && circle.location) {
         if (user.preferredLocation.toLowerCase().includes(circle.location.toLowerCase()) ||
@@ -628,16 +628,16 @@ export class DatabaseStorage implements IStorage {
           score += 6;
         }
       }
-      
+
       // Boost featured and trending circles
       if (circle.featured) score += 5;
       if (circle.trending) score += 3;
-      
+
       // Boost circles with more members (popularity)
       if (circle.memberCount) {
         score += Math.min(circle.memberCount / 10, 5);
       }
-      
+
       return { ...circle, score };
     });
 
@@ -649,7 +649,7 @@ export class DatabaseStorage implements IStorage {
 
   async joinCircleByInviteCode(inviteCode: string, userId: number): Promise<{ success: boolean; circle?: Circle; error?: string }> {
     const circle = await this.getCircleByInviteCode(inviteCode);
-    
+
     if (!circle) {
       return { success: false, error: "Invalid invite code" };
     }
@@ -687,7 +687,7 @@ export class DatabaseStorage implements IStorage {
     // In a real app, you'd have criteria for featuring circles
     return await db.select().from(circles).limit(5);
   }
-  
+
   // Circle Member operations
   async createCircleMember(insertCircleMember: InsertCircleMember): Promise<CircleMember> {
     const [member] = await db.insert(circleMembers).values({
@@ -711,18 +711,18 @@ export class DatabaseStorage implements IStorage {
 
   async getCirclesByUser(userId: number): Promise<Circle[]> {
     const memberships = await db.select().from(circleMembers).where(eq(circleMembers.userId, userId));
-    
+
     const circleIds = memberships.map(m => m.circleId);
-    
+
     if (circleIds.length === 0) return [];
-    
+
     const userCircles = await Promise.all(
       circleIds.map(async (id) => {
         const [circle] = await db.select().from(circles).where(eq(circles.id, id));
         return circle;
       })
     );
-    
+
     return userCircles.filter(Boolean) as Circle[];
   }
 
@@ -735,7 +735,7 @@ export class DatabaseStorage implements IStorage {
     );
     return !!membership;
   }
-  
+
   // Legacy Hub operations (for backward compatibility)
   async getHub(id: number): Promise<Hub | undefined> {
     return this.getCircle(id);
@@ -752,7 +752,7 @@ export class DatabaseStorage implements IStorage {
   async getFeaturedHubs(): Promise<Hub[]> {
     return this.getFeaturedCircles();
   }
-  
+
   // Legacy Hub Member operations (for backward compatibility)
   async createHubMember(hubMember: InsertHubMember): Promise<HubMember> {
     return this.createCircleMember(hubMember);
@@ -769,7 +769,7 @@ export class DatabaseStorage implements IStorage {
   async isUserMemberOfHub(userId: number, hubId: number): Promise<boolean> {
     return this.isUserMemberOfCircle(userId, hubId);
   }
-  
+
   // Like operations
   async createLike(insertLike: InsertLike): Promise<Like> {
     const [like] = await db.insert(likes).values({
@@ -801,7 +801,7 @@ export class DatabaseStorage implements IStorage {
     );
     return !!like;
   }
-  
+
   // Saved Restaurant operations
   async createSavedRestaurant(insertSavedRestaurant: InsertSavedRestaurant): Promise<SavedRestaurant> {
     const [savedRestaurant] = await db.insert(savedRestaurants).values({
@@ -814,7 +814,7 @@ export class DatabaseStorage implements IStorage {
   async getSavedRestaurantsByUser(userId: number): Promise<SavedRestaurant[]> {
     return await db.select().from(savedRestaurants).where(eq(savedRestaurants.userId, userId));
   }
-  
+
   // Saved List operations
   async createSavedList(insertSavedList: InsertSavedList): Promise<SavedList> {
     const [savedList] = await db.insert(savedLists).values({
@@ -852,7 +852,8 @@ export class DatabaseStorage implements IStorage {
         id: users.id,
         name: users.name,
         username: users.username,
-        profilePicture: users.profilePicture
+        ```tool_code
+profilePicture: users.profilePicture
       }
     })
     .from(savedLists)
@@ -871,7 +872,7 @@ export class DatabaseStorage implements IStorage {
     );
     return !!savedList;
   }
-  
+
   // Story operations
   async createStory(insertStory: InsertStory): Promise<Story> {
     const [story] = await db.insert(stories).values({
@@ -885,7 +886,7 @@ export class DatabaseStorage implements IStorage {
     // Stories are active for 24 hours
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-    
+
     // Using gt() function instead of sql template literal
     return await db.select().from(stories).where(gt(stories.createdAt, oneDayAgo));
   }
@@ -893,7 +894,7 @@ export class DatabaseStorage implements IStorage {
   async getStoriesByUser(userId: number): Promise<Story[]> {
     return await db.select().from(stories).where(eq(stories.userId, userId));
   }
-  
+
   // Restaurant List operations
   async createRestaurantList(insertList: InsertRestaurantList): Promise<RestaurantList> {
     const now = new Date();
@@ -933,44 +934,44 @@ export class DatabaseStorage implements IStorage {
   async getPublicRestaurantLists(): Promise<RestaurantList[]> {
     return await db.select().from(restaurantLists).where(eq(restaurantLists.visibility, 'public'));
   }
-  
+
   async updateRestaurantList(id: number, updates: Partial<RestaurantList>): Promise<RestaurantList> {
     const now = new Date();
     const updatedData = {
       ...updates,
       updatedAt: now
     };
-    
+
     const [updatedList] = await db
       .update(restaurantLists)
       .set(updatedData)
       .where(eq(restaurantLists.id, id))
       .returning();
-    
+
     return updatedList;
   }
-  
+
   async incrementListViewCount(id: number): Promise<RestaurantList> {
     const [list] = await db.select().from(restaurantLists).where(eq(restaurantLists.id, id));
     const currentViews = list.viewCount || 0;
-    
+
     return this.updateRestaurantList(id, { viewCount: currentViews + 1 });
   }
-  
+
   async incrementListSaveCount(id: number): Promise<RestaurantList> {
     const [list] = await db.select().from(restaurantLists).where(eq(restaurantLists.id, id));
     const currentSaves = list.saveCount || 0;
-    
+
     return this.updateRestaurantList(id, { saveCount: currentSaves + 1 });
   }
 
   async deleteRestaurantList(id: number): Promise<void> {
     // First delete all items in the list
     await db.delete(restaurantListItems).where(eq(restaurantListItems.listId, id));
-    
+
     // Delete any shared list records
     await db.delete(sharedLists).where(eq(sharedLists.listId, id));
-    
+
     // Finally delete the list itself
     await db.delete(restaurantLists).where(eq(restaurantLists.id, id));
   }
@@ -1003,12 +1004,12 @@ export class DatabaseStorage implements IStorage {
 
   async getDetailedRestaurantsInList(listId: number): Promise<any[]> {
     const items = await this.getRestaurantsInList(listId);
-    
+
     const itemsWithDetails = await Promise.all(
       items.map(async (item) => {
         const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, item.restaurantId));
         const [addedBy] = await db.select().from(users).where(eq(users.id, item.addedById));
-        
+
         return {
           ...item,
           restaurant,
@@ -1016,7 +1017,7 @@ export class DatabaseStorage implements IStorage {
         };
       })
     );
-    
+
     return itemsWithDetails;
   }
 
@@ -1050,21 +1051,21 @@ export class DatabaseStorage implements IStorage {
     if (existing) {
       throw new Error("Already following this user");
     }
-    
+
     // Prevent users from following themselves
     if (followerId === followingId) {
       throw new Error("Users cannot follow themselves");
     }
-    
+
     // Create the follow relationship
     const [userFollower] = await db.insert(userFollowers).values({
       followerId,
       followingId,
     }).returning();
-    
+
     return userFollower;
   }
-  
+
   async unfollowUser(followerId: number, followingId: number): Promise<void> {
     await db.delete(userFollowers).where(
       and(
@@ -1073,7 +1074,7 @@ export class DatabaseStorage implements IStorage {
       )
     );
   }
-  
+
   async isUserFollowing(followerId: number, followingId: number): Promise<boolean> {
     const [follow] = await db.select().from(userFollowers).where(
       and(
@@ -1083,12 +1084,12 @@ export class DatabaseStorage implements IStorage {
     );
     return !!follow;
   }
-  
+
   async getFollowers(userId: number): Promise<User[]> {
     // Get all users who follow the specified user
     const follows = await db.select().from(userFollowers)
       .where(eq(userFollowers.followingId, userId));
-    
+
     // Get user details for each follower
     const followers = await Promise.all(
       follows.map(async (follow) => {
@@ -1097,15 +1098,15 @@ export class DatabaseStorage implements IStorage {
         return user;
       })
     );
-    
+
     return followers.filter(Boolean) as User[];
   }
-  
+
   async getFollowing(userId: number): Promise<User[]> {
     // Get all users who the specified user follows
     const follows = await db.select().from(userFollowers)
       .where(eq(userFollowers.followerId, userId));
-    
+
     // Get user details for each followed user
     const following = await Promise.all(
       follows.map(async (follow) => {
@@ -1114,7 +1115,7 @@ export class DatabaseStorage implements IStorage {
         return user;
       })
     );
-    
+
     return following.filter(Boolean) as User[];
   }
 
@@ -1181,7 +1182,7 @@ export class DatabaseStorage implements IStorage {
 
   async getContentReports(options?: { status?: string; contentType?: string; limit?: number }): Promise<ContentReport[]> {
     let query = db.select().from(contentReports);
-    
+
     const conditions = [];
     if (options?.status) {
       conditions.push(eq(contentReports.status, options.status));
@@ -1189,17 +1190,17 @@ export class DatabaseStorage implements IStorage {
     if (options?.contentType) {
       conditions.push(eq(contentReports.contentType, options.contentType));
     }
-    
+
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }
-    
+
     query = query.orderBy(desc(contentReports.createdAt));
-    
+
     if (options?.limit) {
       query = query.limit(options.limit);
     }
-    
+
     return await query;
   }
 
@@ -1209,17 +1210,17 @@ export class DatabaseStorage implements IStorage {
       reviewedById,
       reviewedAt: new Date(),
     };
-    
+
     if (resolution) {
       updateData.resolution = resolution;
     }
-    
+
     const [updatedReport] = await db
       .update(contentReports)
       .set(updateData)
       .where(eq(contentReports.id, reportId))
       .returning();
-    
+
     return updatedReport;
   }
 
@@ -1295,7 +1296,7 @@ export class DatabaseStorage implements IStorage {
         clickedResultType: data.clickedResultType,
         timestamp: data.timestamp
       }).returning();
-      
+
       return analytics;
     } catch (error) {
       console.error('Error tracking search analytics:', error);
@@ -1306,7 +1307,7 @@ export class DatabaseStorage implements IStorage {
   async getTrendingSearches(limit: number = 10, timeframe: string = '7d'): Promise<any[]> {
     try {
       const days = timeframe === '30d' ? 30 : timeframe === 'all' ? 365 : 7;
-      
+
       const trending = await db.execute(`
         SELECT 
           query,
@@ -1321,7 +1322,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY COUNT(*) DESC
         LIMIT $1
       `, [limit]);
-      
+
       return trending.rows;
     } catch (error) {
       console.error('Error getting trending searches:', error);
@@ -1343,7 +1344,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY COUNT(*) DESC
         LIMIT $2
       `, [category, limit]);
-      
+
       return popular.rows;
     } catch (error) {
       console.error('Error getting popular searches by category:', error);
@@ -1363,7 +1364,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY COUNT(*) DESC
         LIMIT $2
       `, [`${query}%`, limit]);
-      
+
       return suggestions.rows.map((row: any) => row.query);
     } catch (error) {
       console.error('Error getting search suggestions:', error);
@@ -1381,7 +1382,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY MAX(timestamp) DESC
         LIMIT $2
       `, [userId, limit]);
-      
+
       return recent.rows.map((row: any) => row.query);
     } catch (error) {
       console.error('Error getting user recent searches:', error);
