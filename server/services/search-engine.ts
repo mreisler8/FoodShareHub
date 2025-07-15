@@ -277,7 +277,11 @@ export class SearchEngineService {
 
     } catch (error) {
       console.error('Typesense search error:', error);
-      return [];
+      console.log('Falling back to basic search with userId:', userId);
+      // Fallback to basic PostgreSQL search when Typesense fails
+      const fallbackResults = await this.basicSearch(query, { lat, lng, radius, userId });
+      console.log('Basic search returned:', fallbackResults.length, 'results');
+      return fallbackResults;
     }
   }
 
@@ -344,6 +348,110 @@ export class SearchEngineService {
     if (restaurant.googlePlaceId) score += 25;
     
     return score;
+  }
+
+  private async basicSearch(query: string, options: { lat?: number; lng?: number; radius?: number; userId?: number }): Promise<EnhancedSearchResult[]> {
+    const { lat, lng, radius, userId } = options;
+    const results: EnhancedSearchResult[] = [];
+    
+    try {
+      const { db } = await import('../db');
+      const { restaurants, users, restaurantLists, posts } = await import('../../shared/schema');
+      const { eq, or, ilike, sql, desc, and } = await import('drizzle-orm');
+      
+      // Search restaurants
+      const restaurantResults = await db.select()
+        .from(restaurants)
+        .where(
+          or(
+            ilike(restaurants.name, `%${query}%`),
+            ilike(restaurants.location, `%${query}%`),
+            ilike(restaurants.category, `%${query}%`),
+            ilike(restaurants.cuisine, `%${query}%`),
+            ilike(restaurants.address, `%${query}%`)
+          )
+        )
+        .limit(10);
+      
+      // Search users (if userId provided)
+      if (userId) {
+        const userResults = await db.select()
+          .from(users)
+          .where(
+            and(
+              or(
+                ilike(users.name, `%${query}%`),
+                ilike(users.username, `%${query}%`),
+                ilike(users.bio, `%${query}%`),
+                ilike(users.favoriteFood, `%${query}%`),
+                ilike(users.favoriteRestaurant, `%${query}%`)
+              ),
+              sql`${users.id} != ${userId}`
+            )
+          )
+          .limit(5);
+        
+        // Add user results
+        userResults.forEach(user => {
+          results.push({
+            id: user.id.toString(),
+            name: user.name,
+            type: 'user',
+            relevanceScore: 50,
+            metadata: user,
+          });
+        });
+      }
+      
+      // Search lists  
+      const listResults = await db.select()
+        .from(restaurantLists)
+        .where(
+          and(
+            or(
+              ilike(restaurantLists.name, `%${query}%`),
+              ilike(restaurantLists.description, `%${query}%`),
+              sql`${restaurantLists.tags}::text ILIKE ${'%' + query + '%'}`
+            ),
+            eq(restaurantLists.makePublic, true)
+          )
+        )
+        .limit(5);
+      
+      // Add restaurant results
+      restaurantResults.forEach(restaurant => {
+        results.push({
+          id: restaurant.id.toString(),
+          name: restaurant.name,
+          type: 'restaurant',
+          relevanceScore: 60,
+          location: {
+            city: restaurant.location,
+            address: restaurant.address,
+          },
+          metadata: restaurant,
+        });
+      });
+      
+      // Add list results
+      listResults.forEach(list => {
+        results.push({
+          id: list.id.toString(),
+          name: list.name,
+          type: 'list',
+          relevanceScore: 40,
+          location: {
+            city: list.primaryLocation,
+          },
+          metadata: list,
+        });
+      });
+      
+      return results.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    } catch (error) {
+      console.error('Basic search error:', error);
+      return [];
+    }
   }
 
   private calculateDistance(lat1?: number, lng1?: number, geopoint?: [number, number]): number | undefined {
