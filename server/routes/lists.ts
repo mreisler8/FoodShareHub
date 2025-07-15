@@ -242,10 +242,56 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // POST /api/lists - Create a new list
-router.post('/', authenticate, async (req, res) => {
+router.post("/", authenticate, async (req, res) => {
   try {
-    const data = createListSchema.parse(req.body);
     const userId = req.user!.id;
+    const { 
+      name, 
+      description, 
+      type, 
+      audience, 
+      visibility, 
+      circleId, 
+      shareWithCircle, 
+      makePublic 
+    } = req.body;
+
+    // Enterprise validation
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ 
+        error: "List name is required",
+        code: "VALIDATION_ERROR"
+      });
+    }
+
+    if (name.length > 100) {
+      return res.status(400).json({
+        error: "List name must be 100 characters or less",
+        code: "VALIDATION_ERROR"
+      });
+    }
+
+    // Validate circle permissions if sharing to circle
+    if (circleId && shareWithCircle) {
+      const circleAccess = await db
+        .select()
+        .from(circleMembers)
+        .where(
+          and(
+            eq(circleMembers.circleId, circleId),
+            eq(circleMembers.userId, userId),
+            eq(circleMembers.status, "active")
+          )
+        )
+        .limit(1);
+
+      if (circleAccess.length === 0) {
+        return res.status(403).json({
+          error: "You don't have permission to share to this circle",
+          code: "PERMISSION_DENIED"
+        });
+      }
+    }
 
     try {
       // Check for duplicate name before creating
@@ -253,7 +299,7 @@ router.post('/', authenticate, async (req, res) => {
         .select()
         .from(restaurantLists)
         .where(and(
-          eq(restaurantLists.name, data.name),
+          eq(restaurantLists.name, name),
           eq(restaurantLists.createdById, userId)
       ))
       .limit(1);
@@ -266,27 +312,37 @@ router.post('/', authenticate, async (req, res) => {
       }
 
       // Handle the frontend's sharing model
-      const isPublic = data.makePublic || data.isPublic || false;
-      const shareWithCircle = data.shareWithCircle || false;
+      const isPublic = makePublic || false;
+      const shareWithCircle = shareWithCircle || false;
       const visibility = isPublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
 
-      const [list] = await db
-        .insert(restaurantLists)
-        .values({
-          name: data.name,
-          description: data.description || null,
-          createdById: userId,
-          circleId: data.circleId || null,
-          visibility: visibility,
-          isPublic: isPublic,
-          tags: data.tags || [],
-          shareWithCircle: shareWithCircle,
-          makePublic: isPublic,
-          type: data.type || 'restaurant',
-          audience: data.audience || 'profile',
-          coverImage: data.coverImage || null,
-        })
-        .returning();
+      const newList = await db.insert(restaurantLists).values({
+        name: name.trim(),
+        description: description?.trim() || null,
+        createdById: userId,
+        type: type || "restaurant",
+        audience: audience || "profile",
+        visibility: visibility || { public: false, followers: false, circleIds: [] },
+        circleId: circleId || null,
+        shareWithCircle: shareWithCircle || false,
+        makePublic: makePublic || false,
+        allowSharing: true, // Enterprise default
+        isPublic: isPublic || false, // Backward compatibility
+      }).returning();
+
+      // If sharing to circle, create shared list relationship
+      if (circleId && shareWithCircle && newList[0]) {
+        await db.insert(circleSharedLists).values({
+          circleId: circleId,
+          listId: newList[0].id,
+          sharedById: userId,
+          canEdit: false,
+          canReshare: false,
+        });
+
+        // Update circle activity (for enterprise analytics)
+        console.log(`List "${name}" shared to circle ${circleId} by user ${userId}`);
+      }
 
       // Handle items array - store each item in restaurant_list_items table
       if (data.items && data.items.length > 0) {
