@@ -4,6 +4,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import uploadsRouter from "./routes/uploads";
 import { performanceMiddleware } from "./middleware/performance.js";
 import geocodeRouter from "./routes/geocode";
+import searchRoutes from "./routes/search";
+import searchAnalyticsRoutes from "./routes/search-analytics";
 
 const app = express();
 
@@ -91,9 +93,9 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     app.use('/api/uploads', uploadsRouter);
     app.use('/api/geocode', geocodeRouter);
-    console.log('Routes registered successfully');
     app.use('/api/search', searchRoutes);
-    app.use('/api/search-analytics', require('./routes/search-analytics').default);
+    app.use('/api/search-analytics', searchAnalyticsRoutes);
+    console.log('Routes registered successfully');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;

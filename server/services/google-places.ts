@@ -3,8 +3,8 @@ import axios from 'axios';
 import { Restaurant } from '@shared/schema';
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
-const API_TIMEOUT = 12000; // Increased timeout for better reliability
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
+const API_TIMEOUT = 8000; // Optimized timeout for better performance
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache for fresher results
 
 if (!GOOGLE_MAPS_API_KEY) {
   console.warn('GOOGLE_MAPS_API_KEY is not set. Google Places API will not work.');

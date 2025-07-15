@@ -7,7 +7,7 @@ import { searchGooglePlaces } from '../services/google-places';
 
 const router = Router();
 
-// Enhanced unified search with improved database fallback
+// Optimized unified search with database and Google Places integration
 router.get('/unified', authenticate, async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -300,6 +300,9 @@ router.get('/unified', authenticate, async (req, res) => {
         };
 
         console.log(`Search results: ${formattedResults.restaurants.length} restaurants, ${formattedResults.lists.length} lists, ${formattedResults.posts.length} posts, ${formattedResults.users.length} users`);
+        
+        // Add caching headers for better performance
+        res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
         return res.json(formattedResults);
 
       } catch (searchError) {

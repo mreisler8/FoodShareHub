@@ -118,13 +118,22 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        signal: AbortSignal.timeout(8000) // Optimized timeout
       });
 
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Search service unavailable');
+        }
         const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
         throw new Error(errorData.error || 'Search failed');
       }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format');
+      }
+      
       const data = await response.json();
 
       // Ensure avgRating is always a valid number
@@ -286,7 +295,9 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                 <div className="flex items-center gap-1 text-xs text-green-600">
                   <Navigation className="h-3 w-3" />
                   <span>
-                    Searching near {userLocation.city || `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}`}
+                    Searching near {userLocation.city && userLocation.city !== `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}` 
+                      ? userLocation.city 
+                      : 'your location'}
                   </span>
                 </div>
               )}
