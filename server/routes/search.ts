@@ -11,13 +11,12 @@ const router = Router();
 
 // Enhanced search route with improved performance and result quality
 router.get('/unified', authenticate, async (req, res) => {
-  console.log("Search route called - user:", req.user?.id);
   
   try {
     // Fix: Use req.user.id instead of req.session.userId
     const userId = req.user?.id;
     if (!userId) {
-      console.log("No user ID found, returning 401");
+      // User not authenticated
       return res.status(401).json({ error: 'Not authenticated' });
     }
 

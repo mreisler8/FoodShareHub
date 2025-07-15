@@ -224,21 +224,15 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   const isAuth = req.isAuthenticated();
   const userId = req.user?.id;
 
-  console.log("Search Auth Debug:");
-  console.log("  SessionID:", sessionId);
-  console.log("  IsAuth:", isAuth);
-  console.log("  UserID:", userId);
-  console.log("  User:", req.user);
+  // Authentication successful - remove debug logs for production
 
   // Validate session integrity
   if (!sessionId || typeof sessionId !== 'string') {
-    console.log("  Failed: Invalid session");
     return sendError(res, 401, "Invalid session");
   }
 
   // Validate user authentication
   if (!isAuth) {
-    console.log("  Failed: Not authenticated");
     return sendError(res, 401, "Not authenticated");
   }
 
