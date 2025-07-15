@@ -9,10 +9,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { X, ArrowLeft, ArrowRight } from "lucide-react";
 
 interface SimpleCircleWizardProps {
+  isOpen: boolean;
   onClose: () => void;
 }
 
-export function SimpleCircleWizard({ onClose }: SimpleCircleWizardProps) {
+export function SimpleCircleWizard({ isOpen, onClose }: SimpleCircleWizardProps) {
   const [step, setStep] = useState(1);
   const [allowPublicJoin, setAllowPublicJoin] = useState(false);
   const [coverImage, setCoverImage] = useState<File | null>(null);
@@ -70,6 +71,8 @@ export function SimpleCircleWizard({ onClose }: SimpleCircleWizardProps) {
       setIsCreating(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">

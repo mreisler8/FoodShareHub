@@ -1,0 +1,122 @@
+🟢 NEXT TASK: STORY SLICE 2
+✅ REPLIT DEV TASK PACKAGE
+Feature: Invite Members by Username
+Sprint: 1 — Circle Creation & List Sharing
+Story Slice: 2 of 6
+Goal: Allow Circle creators to invite other users by typing their usernames and sending invitations.
+
+🧩 TASK OVERVIEW
+📁 File to Create:
+/components/circles/InviteMembersModal.tsx
+
+🎯 Acceptance Criteria
+Modal shows after Circle is created
+
+Autocomplete username input with suggestions
+
+"Invite" button adds member to Circle (role = member)
+
+Users are added via backend POST
+
+🧩 FILE: InviteMembersModal.tsx
+tsx
+Copy
+Edit
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+
+export function InviteMembersModal({ circleId }: { circleId: string }) {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<{ id: string; username: string }[]>([]);
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!query.trim()) return;
+      const res = await fetch(`/api/users/search?q=${query}`);
+      const data = await res.json();
+      setSuggestions(data);
+    };
+
+    const delay = setTimeout(fetchSuggestions, 300); // debounce
+    return () => clearTimeout(delay);
+  }, [query]);
+
+  const inviteUser = async (userId: string) => {
+    try {
+      await fetch(`/api/circles/${circleId}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      toast({ title: "Invitation sent" });
+    } catch (err) {
+      toast({ title: "Error inviting user", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-4 p-4">
+      <Input
+        placeholder="Search by username"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+
+      {suggestions.map((user) => (
+        <div
+          key={user.id}
+          className="flex justify-between items-center border p-2 rounded-md"
+        >
+          <span>@{user.username}</span>
+          <Button size="sm" onClick={() => inviteUser(user.id)}>
+            Invite
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+🧩 FILE: server/api/circles/:id/invite.ts
+ts
+Copy
+Edit
+import express from "express";
+import db from "../../db";
+
+const router = express.Router();
+
+router.post("/api/circles/:id/invite", async (req, res) => {
+  const circleId = req.params.id;
+  const { userId } = req.body;
+  const requesterId = req.user?.id;
+
+  // Optional: check that requester is admin of the circle
+
+  try {
+    await db.query(
+      `INSERT INTO circle_members (circle_id, user_id, role)
+       VALUES ($1, $2, 'member')
+       ON CONFLICT DO NOTHING`,
+      [circleId, userId]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to invite user" });
+  }
+});
+
+export default router;
+✅ DEV COMPLETION CHECKLIST
+ Modal displays after Circle creation
+
+ Users can be invited by searching usernames
+
+ Autocomplete fetches from backend
+
+ Clicking “Invite” sends POST request
+
+ Users added to circle_members table as member
+
