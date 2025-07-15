@@ -1,219 +1,205 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Globe, Lock, Users, Shield } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Circle } from "@shared/schema";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Globe, Users, Lock, AlertCircle } from "lucide-react";
+
+interface Circle {
+  id: string;
+  name: string;
+  memberCount: number;
+  isPrivate: boolean;
+}
 
 interface ShareDestination {
-  visibility: 'private' | 'public' | 'circle';
-  circleId?: number;
-  circleIds?: number[];
+  visibility: "profile" | "public" | "circle";
+  circleId?: string;
 }
 
 interface Props {
   value: ShareDestination;
-  onChange: (destination: ShareDestination) => void;
+  onChange: (val: ShareDestination) => void;
   disabled?: boolean;
-  className?: string;
 }
 
-export function ShareToDestinationDropdown({ value, onChange, disabled = false, className }: Props) {
-  const [validationError, setValidationError] = useState<string | null>(null);
+export function ShareToDestinationDropdown({ value, onChange, disabled = false }: Props) {
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch user's circles with proper error handling
-  const { 
-    data: circles = [], 
-    isLoading, 
-    error,
-    refetch 
-  } = useQuery({
-    queryKey: ['/api/circles'],
+  const { data: circles = [], isLoading, error: queryError } = useQuery<Circle[]>({
+    queryKey: ["/api/circles/mine"],
     queryFn: async () => {
-      const response = await fetch('/api/circles');
+      const response = await fetch("/api/circles/mine");
       if (!response.ok) {
-        throw new Error(`Failed to load circles: ${response.status}`);
+        throw new Error("Failed to fetch your circles");
       }
       return response.json();
     },
+    staleTime: 60000, // Cache for 1 minute
     retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Validate selection
   useEffect(() => {
-    setValidationError(null);
-    
-    if (value.visibility === 'circle' && value.circleId) {
-      const selectedCircle = circles.find((c: Circle) => c.id === value.circleId);
-      if (!selectedCircle) {
-        setValidationError('Selected circle is no longer available');
-      } else if (selectedCircle.isPrivate && !selectedCircle.creatorId) {
-        setValidationError('You do not have permission to share to this circle');
-      }
-    }
-  }, [value, circles]);
-
-  const handleDestinationChange = (destination: string) => {
-    // Analytics tracking
-    if (typeof window !== 'undefined' && (window as any).analytics) {
-      (window as any).analytics.track('List Share Destination Changed', {
-        from: value.visibility,
-        to: destination,
-        hasCircles: circles.length > 0,
-      });
-    }
-
-    if (destination === 'private') {
-      onChange({ visibility: 'private' });
-    } else if (destination === 'public') {
-      onChange({ visibility: 'public' });
+    if (queryError) {
+      setError("Unable to load your circles. You can still share to your profile or publicly.");
     } else {
-      // Handle circle selection
-      const circleId = parseInt(destination);
-      if (!isNaN(circleId)) {
-        onChange({ 
-          visibility: 'circle', 
-          circleId: circleId 
-        });
+      setError(null);
+    }
+  }, [queryError]);
+
+  const handleValueChange = (selectedValue: string) => {
+    setError(null);
+    
+    if (selectedValue === "profile") {
+      onChange({ visibility: "profile" });
+    } else if (selectedValue === "public") {
+      onChange({ visibility: "public" });
+    } else {
+      // It's a circle ID
+      const selectedCircle = circles.find(c => c.id === selectedValue);
+      if (selectedCircle) {
+        onChange({ visibility: "circle", circleId: selectedValue });
       }
     }
   };
 
-  const getVisibilityIcon = (visibility: string) => {
-    switch (visibility) {
-      case 'private': return <Lock className="h-4 w-4" />;
-      case 'public': return <Globe className="h-4 w-4" />;
-      case 'circle': return <Users className="h-4 w-4" />;
-      default: return <Shield className="h-4 w-4" />;
+  const getCurrentValue = (): string => {
+    if (value.visibility === "circle" && value.circleId) {
+      return value.circleId;
     }
+    return value.visibility;
   };
 
-  const getVisibilityDescription = () => {
-    switch (value.visibility) {
-      case 'private':
-        return 'Only you can see this list on your profile';
-      case 'public':
-        return 'Anyone can discover this list in public feeds';
-      case 'circle':
-        const circle = circles.find((c: Circle) => c.id === value.circleId);
-        return circle 
-          ? `Only members of "${circle.name}" can see this list`
-          : 'Shared with selected circle members only';
+  const getDisplayText = (option: string): React.ReactNode => {
+    switch (option) {
+      case "profile":
+        return (
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            <span>Your Profile</span>
+            <Badge variant="outline" className="text-xs">Private</Badge>
+          </div>
+        );
+      case "public":
+        return (
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <span>Public Feed</span>
+            <Badge variant="outline" className="text-xs">Everyone</Badge>
+          </div>
+        );
       default:
-        return '';
+        const circle = circles.find(c => c.id === option);
+        if (circle) {
+          return (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span>{circle.name}</span>
+              <Badge variant="outline" className="text-xs">
+                {circle.memberCount} members
+              </Badge>
+              {circle.isPrivate && (
+                <Badge variant="secondary" className="text-xs">Private</Badge>
+              )}
+            </div>
+          );
+        }
+        return option;
     }
   };
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Failed to load your circles. 
-          <button 
-            onClick={() => refetch()} 
-            className="ml-2 underline hover:no-underline"
-          >
-            Try again
-          </button>
-        </AlertDescription>
-      </Alert>
-    );
-  }
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      <Label className="text-sm font-medium text-gray-900">
+    <div className="space-y-2">
+      <label className="block text-sm font-medium">
         Share this list to:
-      </Label>
-      
+        <span className="text-muted-foreground ml-1">(Choose your audience)</span>
+      </label>
+
       <Select
-        value={value.circleId?.toString() || value.visibility}
-        onValueChange={handleDestinationChange}
-        disabled={disabled || isLoading}
+        value={getCurrentValue()}
+        onValueChange={handleValueChange}
+        disabled={disabled}
       >
         <SelectTrigger className="w-full">
-          <div className="flex items-center gap-2">
-            {getVisibilityIcon(value.visibility)}
-            <SelectValue placeholder="Choose where to share..." />
-          </div>
+          <SelectValue>
+            {getDisplayText(getCurrentValue())}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="private">
-            <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4" />
-              <span>Your Profile</span>
-              <Badge variant="secondary" className="ml-auto">Private</Badge>
+          <SelectItem value="profile">
+            <div className="flex items-center gap-2 w-full">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <div className="flex-1">
+                <div className="font-medium">Your Profile</div>
+                <div className="text-xs text-muted-foreground">Only visible to you</div>
+              </div>
+              <Badge variant="outline" className="text-xs">Private</Badge>
             </div>
           </SelectItem>
           
           <SelectItem value="public">
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              <span>Public Feed</span>
-              <Badge variant="outline" className="ml-auto">Public</Badge>
+            <div className="flex items-center gap-2 w-full">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <div className="flex-1">
+                <div className="font-medium">Public Feed</div>
+                <div className="text-xs text-muted-foreground">Visible to everyone</div>
+              </div>
+              <Badge variant="outline" className="text-xs">Everyone</Badge>
             </div>
           </SelectItem>
-          
-          {circles.length > 0 && (
-            <>
-              <div className="px-2 py-1 text-xs text-gray-500 border-t mt-1 pt-2">
-                Your Circles
-              </div>
-              {circles.map((circle: Circle) => (
-                <SelectItem key={circle.id} value={circle.id.toString()}>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>{circle.name}</span>
-                    <div className="ml-auto flex items-center gap-1">
-                      {circle.isPrivate && <Lock className="h-3 w-3" />}
-                      <Badge variant="secondary" className="text-xs">
-                        {circle.memberCount} members
-                      </Badge>
-                    </div>
-                  </div>
-                </SelectItem>
-              ))}
-            </>
-          )}
-          
+
           {isLoading && (
-            <div className="px-2 py-2 text-xs text-gray-500">
-              Loading your circles...
+            <div className="flex items-center justify-center p-2">
+              <LoadingSpinner className="h-4 w-4 mr-2" />
+              <span className="text-sm text-muted-foreground">Loading circles...</span>
+            </div>
+          )}
+
+          {circles.map((circle) => (
+            <SelectItem key={circle.id} value={circle.id}>
+              <div className="flex items-center gap-2 w-full">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <div className="font-medium">{circle.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {circle.memberCount} member{circle.memberCount !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                {circle.isPrivate && (
+                  <Badge variant="secondary" className="text-xs">Private</Badge>
+                )}
+              </div>
+            </SelectItem>
+          ))}
+
+          {circles.length === 0 && !isLoading && !error && (
+            <div className="p-2 text-center text-sm text-muted-foreground">
+              No circles yet. Create one to share with specific groups!
             </div>
           )}
         </SelectContent>
       </Select>
 
-      {/* Visibility description */}
-      <p className="text-xs text-gray-600 flex items-start gap-2">
-        {getVisibilityIcon(value.visibility)}
-        {getVisibilityDescription()}
-      </p>
-
-      {/* Validation error */}
-      {validationError && (
-        <Alert variant="destructive" className="py-2">
+      {error && (
+        <div className="flex items-center gap-2 text-sm text-amber-600">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            {validationError}
-          </AlertDescription>
-        </Alert>
+          {error}
+        </div>
       )}
 
-      {/* Privacy notice for enterprise compliance */}
-      {value.visibility === 'public' && (
-        <Alert className="py-2">
-          <Globe className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            This list will be discoverable by anyone and may appear in search results.
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Help text */}
+      <div className="text-xs text-muted-foreground space-y-1">
+        <p><strong>Profile:</strong> Only you can see this list</p>
+        <p><strong>Public:</strong> Anyone can discover and view this list</p>
+        <p><strong>Circle:</strong> Only members of the selected circle can see this list</p>
+      </div>
     </div>
   );
 }

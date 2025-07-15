@@ -14,7 +14,7 @@ router.get('/', authenticate, async (req, res) => {
     const userId = req.user!.id;
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
-    
+
     // Only return circles user has access to - either they're members or circle allows public joining
     const accessibleCircles = await db
       .select({
@@ -52,7 +52,7 @@ router.get('/', authenticate, async (req, res) => {
       .limit(limit)
       .offset(offset)
       .orderBy(circles.createdAt);
-    
+
     res.json({
       circles: accessibleCircles,
       pagination: {
@@ -89,7 +89,7 @@ router.get('/me', authenticate, async (req, res) => {
       .from(circleMembers)
       .leftJoin(circles, eq(circleMembers.circleId, circles.id))
       .where(eq(circleMembers.userId, userId));
-    
+
     res.json(userCircles);
   } catch (error) {
     console.error('Error fetching user circles:', error);
@@ -859,4 +859,260 @@ router.post('/:circleId/share-list', authenticate, shareListWithCircle);
 router.delete('/:circleId/shared-lists/:sharedListId', authenticate, removeSharedListFromCircle);
 router.get('/:circleId/shared-lists', authenticate, getCircleSharedLists);
 
+// Circle access check endpoint
+router.get("/:id/access", async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ 
+        allowed: false, 
+        reason: "not_authenticated" 
+      });
+    }
+
+    // Get circle details
+    const circle = await db
+      .select({
+        id: circles.id,
+        name: circles.name,
+        isPrivate: circles.isPrivate,
+        creatorId: circles.creatorId
+      })
+      .from(circles)
+      .where(eq(circles.id, parseInt(id)))
+      .limit(1);
+
+    if (!circle || circle.length === 0) {
+      return res.status(404).json({ 
+        allowed: false, 
+        reason: "circle_not_found" 
+      });
+    }
+
+    // If public circle, allow access
+    if (!circle[0].isPrivate) {
+      return res.json({ 
+        allowed: true,
+        circle: {
+          id: circle[0].id,
+          name: circle[0].name,
+          isPrivate: circle[0].isPrivate
+        }
+      });
+    }
+
+    // For private circles, check membership
+    const memberCheck = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(id)),
+          eq(circleMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    const allowed = memberCheck.length > 0;
+
+    res.json({ 
+      allowed,
+      reason: allowed ? undefined : "not_member",
+      circle: {
+        id: circle[0].id,
+        name: circle[0].name,
+        isPrivate: circle[0].isPrivate
+      }
+    });
+
+  } catch (error) {
+    console.error("Error checking circle access:", error);
+    res.status(500).json({ 
+      allowed: false, 
+      error: "Failed to check access permissions" 
+    });
+  }
+});
+
+// Circle feed endpoint
+router.get("/:id/feed", authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // First check if user has access to this circle
+    // Using server-side redirect to call the access check endpoint
+    const accessCheckResponse = await fetch(`${req.protocol}://${req.get('host')}/api/circles/${id}/access`, {
+        headers: {
+            'Cookie': req.headers.cookie || '' // Forward cookies for authentication
+        }
+    });
+
+    const accessCheck = await accessCheckResponse.json();
+
+    if (!accessCheck.allowed) {
+        return res.status(403).json({ error: "Access denied to this circle" });
+    }
+
+    // Get lists shared to this circle
+    const feedItems = await db
+        .select({
+            id: restaurantLists.id,
+            name: restaurantLists.name,
+            description: restaurantLists.description,
+            type: restaurantLists.type,
+            createdById: restaurantLists.createdById,
+            visibility: restaurantLists.visibility,
+            tags: restaurantLists.tags,
+            coverImage: restaurantLists.coverImage,
+            createdAt: restaurantLists.createdAt,
+            restaurantCount: db.select().from('restaurant_list_items').where(eq('restaurant_list_items.listId', restaurantLists.id)).as('restaurantCount'),
+            creator: {
+                id: users.id,
+                username: users.username,
+                name: users.name,
+                profilePicture: users.profilePicture
+            },
+            sharedAt: circleSharedLists.sharedAt,
+            sharedBy: {
+                id: users.id,
+                username: users.username,
+                name: users.name
+            }
+        })
+        .from(restaurantLists)
+        .innerJoin(users, eq(restaurantLists.createdById,users.id))
+        .innerJoin(circleSharedLists, eq(restaurantLists.id, circleSharedLists.listId))
+        .leftJoin(users, eq(circleSharedLists.sharedById, users.id))
+        .where(eq(circleSharedLists.circleId, parseInt(id)))
+        .orderBy(circleSharedLists.sharedAt)
+        .limit(50);
+
+    res.json(feedItems);
+
+  } catch (error) {
+    console.error("Error fetching circle feed:", error);
+    res.status(500).json({ error: "Failed to fetch circle feed" });
+  }
+});
+
+// Circle invites endpoint
+router.post("/:id/invites", authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { id: circleId } = req.params;
+    const { invites } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    if (!Array.isArray(invites) || invites.length === 0) {
+      return res.status(400).json({ error: "Invalid invites data" });
+    }
+
+    // Check if user is a member of the circle (can invite others)
+    const membership = await db
+      .select()
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, parseInt(circleId)),
+          eq(circleMembers.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (membership.length === 0) {
+      return res.status(403).json({ error: "You must be a member to invite others" });
+    }
+
+    const results = {
+      successful: 0,
+      failed: []
+    };
+
+    // Process each invite
+    for (const invite of invites) {
+      try {
+        const { emailOrUsername } = invite;
+
+        // Check if it's an email or username
+        const isEmail = emailOrUsername.includes('@');
+
+        if (isEmail) {
+          // Handle email invites (create pending invite)
+          await db
+            .insert(circleInvites)
+            .values({
+              circleId: parseInt(circleId),
+              emailOrUsername: emailOrUsername,
+              inviterId: userId,
+              status: 'pending'
+            })
+            .onConflictDoNothing();
+          results.successful++;
+        } else {
+          // Handle username invites (find user and create invite)
+          const user = await db
+            .select()
+            .from(users)
+            .where(eq(users.username, emailOrUsername))
+            .limit(1);
+
+          if (user.length > 0) {
+            // Check if already a member
+            const existingMember = await db
+              .select()
+              .from(circleMembers)
+              .where(
+                and(
+                  eq(circleMembers.circleId, parseInt(circleId)),
+                  eq(circleMembers.userId, user[0].id)
+                )
+              )
+              .limit(1);
+
+            if (existingMember.length === 0) {
+              await db
+                .insert(circleInvites)
+                .values({
+                  circleId: parseInt(circleId),
+                  emailOrUsername: emailOrUsername,
+                  inviterId: userId,
+                  status: 'pending'
+                })
+                .onConflictDoNothing();
+              results.successful++;
+            } else {
+              results.failed.push({ emailOrUsername, reason: "Already a member" });
+            }
+          } else {
+            results.failed.push({ emailOrUsername, reason: "User not found" });
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing invite for ${invite.emailOrUsername}:`, error);
+        results.failed.push({ 
+          emailOrUsername: invite.emailOrUsername, 
+          reason: "Processing error" 
+        });
+      }
+    }
+
+    res.json(results);
+
+  } catch (error) {
+    console.error("Error sending circle invites:", error);
+    res.status(500).json({ error: "Failed to send invitations" });
+  }
+});
+
+// Export the router
 export { router };
