@@ -175,7 +175,7 @@ export default function CreatePost() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => navigate(-1)}
+            onClick={() => window.history.back()}
             className="h-10 w-10 p-0"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -276,7 +276,7 @@ export default function CreatePost() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate(-1)}
+              onClick={() => window.history.back()}
               className="flex-1"
             >
               Cancel
