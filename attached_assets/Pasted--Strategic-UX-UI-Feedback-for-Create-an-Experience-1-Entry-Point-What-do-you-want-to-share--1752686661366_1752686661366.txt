@@ -1,0 +1,87 @@
+✅ Strategic UX/UI Feedback for “Create an Experience”
+🔹 1. Entry Point: “What do you want to share?”
+Current: Generic “Post an Experience” with no preview or visual differentiation
+Feedback: Needs clearer, visual selection
+
+✅ Recommendation:
+Use a card-based launcher grid with icons + descriptions (inspired by Instagram’s “Reel / Post / Story” sheet)
+
+tsx
+Copy
+Edit
+<div className="grid grid-cols-1 gap-4">
+  <PostTypeCard icon="🍽️" title="Food Moment" description="Snap and share a quick food pic" />
+  <PostTypeCard icon="📍" title="Restaurant Rec" description="Recommend a spot you love" />
+  <PostTypeCard icon="📝" title="Dish Review" description="Share thoughts on a specific dish" />
+</div>
+🔹 2. Tailored Post Creation Forms
+Feedback: All post types currently use the same layout, which causes confusion.
+
+✅ Recommendation:
+Load contextual form elements per type:
+
+Food Moment: Image + caption + tags + share destination
+
+Dish Review: Dish name + rating + notes + restaurant + image
+
+Restaurant Rec: Restaurant name + type + tags + save to list option
+
+Use a progressive form layout:
+
+Section 1: Content
+
+Section 2: Metadata (tags, location)
+
+Section 3: Visibility & sharing
+
+🔹 3. Tag UX
+Current: No clear tag guidance or tag-as-navigation
+
+✅ Recommendation:
+
+Add suggested tags via chips (#spicy, #hiddenGem, #noodles)
+
+Use real-time tag suggestions
+
+Allow one-tap tag creation from free text
+
+Tag layout example:
+
+tsx
+Copy
+Edit
+<div className="flex flex-wrap gap-2">
+  {suggestedTags.map(tag => (
+    <button className="bg-gray-100 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
+      #{tag}
+    </button>
+  ))}
+</div>
+🔹 4. Preview Your Post
+Feedback: Users can’t preview the result before sharing
+
+✅ Recommendation:
+Add a “Preview Post” toggle with a full-screen card that matches how it will appear in-feed (like Instagram’s post preview).
+
+Use your existing ListCard or PostCard style to render the preview.
+
+🔹 5. Save / Share / Draft UX
+Feedback: Users don’t know where their post will go or how to save it
+
+✅ Recommendation:
+Final step before post = “Where do you want to share this?”
+
+Options: Profile, One of your Circles, Public Feed
+
+Include a toggle to “Save as Draft” or “Post Now”
+
+🧩 Component Breakdown to Build This Flow
+Component Name	Purpose
+PostTypeSelector.tsx	3-card launch grid for Food Moment, Dish, Rec
+CreateFoodMoment.tsx	Quick image + caption form
+CreateDishPost.tsx	Form for dish-specific review
+CreateRestaurantRec.tsx	Restaurant name + tags + save to list
+TagSelector.tsx	Searchable/suggested tag chips
+ShareDestinationPicker.tsx	Choose Circle / Public / Profile
+PostPreviewModal.tsx	Feed-style card preview of post
+
