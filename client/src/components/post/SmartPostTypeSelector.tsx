@@ -128,6 +128,9 @@ export function SmartPostTypeSelector({
     onTypeSelect(type);
   };
 
+  // If API failed or no recommendations, show regular selector
+  const shouldShowRecommendations = showRecommendations && recommendations.length > 0;
+
   if (selectedType) {
     return (
       <PostTypeSelector
@@ -142,7 +145,7 @@ export function SmartPostTypeSelector({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Smart Recommendations */}
-      {showRecommendations && recommendations.length > 0 && (
+      {shouldShowRecommendations && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -197,7 +200,7 @@ export function SmartPostTypeSelector({
       )}
 
       {/* Default Post Type Selector */}
-      {!showRecommendations && (
+      {!shouldShowRecommendations && (
         <PostTypeSelector
           selectedType={selectedType}
           onTypeSelect={onTypeSelect}
