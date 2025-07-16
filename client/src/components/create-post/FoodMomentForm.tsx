@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,19 +73,10 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
       return;
     }
 
-    if (!content.trim()) {
+    if (!content.trim() && selectedImages.length === 0) {
       toast({
-        title: 'Tell us about your experience',
-        description: 'Please share some details about your dining experience.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (selectedImages.length === 0) {
-      toast({
-        title: 'Photo required',
-        description: 'Food moments require at least one photo.',
+        title: 'Add a quick note or photo',
+        description: 'Add a quick note or photo before sharing',
         variant: 'destructive',
       });
       return;

@@ -16,6 +16,10 @@ interface PostPreviewModalProps {
 export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPreviewModalProps) {
   if (!data) return null;
 
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
   const renderPreviewContent = () => {
     switch (data.postType) {
       case 'list':
@@ -216,8 +220,8 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
@@ -267,7 +271,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
         </div>
         
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleClose}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Edit Post
           </Button>

@@ -23,6 +23,12 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
   const [formData, setFormData] = useState<any>({});
   const [showPreview, setShowPreview] = useState(false);
 
+  const handleModalClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   // Get user data and circles
   const { data: userData } = useQuery({
     queryKey: ['/api/me'],
@@ -84,10 +90,8 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
 
       if (!response.ok) throw new Error('Failed to create post');
 
-      // Success! Close modal or redirect
-      if (onClose) {
-        onClose();
-      }
+      // Success! Close modal and return to previous state
+      handleModalClose();
     } catch (error) {
       console.error('Error creating post:', error);
       // Handle error (show toast, etc.)
@@ -251,14 +255,20 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
       {/* Preview Modal */}
       {showPreview && userData && (
         <PostPreviewModal
-          isOpen={showPreview}
-          onClose={() => setShowPreview(false)}
-          postData={{
-            type: selectedType!,
-            ...formData
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          data={{
+            postType: selectedType!,
+            ...formData,
+            user: userData
           }}
-          userName={userData.name}
-          userAvatar={userData.profilePicture}
+          onConfirm={() => {
+            setShowPreview(false);
+            if (currentStep === 'sharing') {
+              // Continue to final submission
+              handleFinalSubmit(formData);
+            }
+          }}
         />
       )}
     </div>

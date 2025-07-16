@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -152,27 +151,62 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: ListOfSpotsFormProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-6">
           <div>
-            <Label htmlFor="listName">List Name *</Label>
+            <Label htmlFor="list-name">List Name *</Label>
             <Input
-              id="listName"
+              id="list-name"
               value={listName}
               onChange={(e) => setListName(e.target.value)}
-              placeholder="e.g., Best Pizza in NYC, Weekend Brunch Spots"
-              className="mt-1"
+              placeholder="e.g., Best Pizza in NYC, Date Night Spots"
+              required
             />
           </div>
-          
+
           <div>
             <Label htmlFor="description">Description (optional)</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Tell people what makes this list special..."
-              className="mt-1"
+              placeholder="Tell others what this list is about..."
+              rows={2}
             />
           </div>
+
+          <div>
+            <Label>Add Restaurants *</Label>
+            <div className="space-y-4">
+              {/*<RestaurantSearch
+                onRestaurantSelect={handleAddRestaurant}
+                placeholder="Search and add restaurants to your list..."
+              />*/}
+
+              {/*restaurants.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">
+                    {restaurants.length} restaurant(s) added. Drag to reorder:
+                  </p>
+                  <DraggableRestaurantList
+                    restaurants={restaurants}
+                    onReorder={setRestaurants}
+                    onRemove={handleRemoveRestaurant}
+                  />
+                </div>
+              )}*/}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="location">City/Location (optional)</Label>
+            <Input
+              id="location"
+              value={""}
+              onChange={(e) => console.log('location')}
+              placeholder="e.g., Toronto, Manhattan"
+            />
+          </div>
+        </div>
         </CardContent>
       </Card>
 
@@ -214,7 +248,7 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: ListOfSpotsFormProps) {
                                 >
                                   <GripVertical className="h-5 w-5" />
                                 </div>
-                                
+
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between">
                                     <div>
@@ -233,7 +267,7 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: ListOfSpotsFormProps) {
                                       <X className="h-4 w-4" />
                                     </Button>
                                   </div>
-                                  
+
                                   <div className="text-sm text-gray-600 mt-1">
                                     {item.restaurant.location} • {item.restaurant.category}
                                   </div>
@@ -248,7 +282,7 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: ListOfSpotsFormProps) {
                   )}
                 </Droppable>
               </DragDropContext>
-              
+
               <Button 
                 variant="outline" 
                 onClick={() => setShowRestaurantSearch(true)}
