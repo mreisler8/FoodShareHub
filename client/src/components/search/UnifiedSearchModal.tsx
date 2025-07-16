@@ -504,108 +504,13 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                   <div className="overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
                     {Object.entries(searchResults || {}).map(([type, items]) => (
                       <TabsContent key={type} value={type} className="m-0 p-6">
-                        <div className="space-y-2">
-                          {items.map((result: SearchResult) => (
-                            <div key={result.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                              {/* Avatar/Icon */}
-                              <div className="flex-shrink-0">
-                                {result.type === 'user' ? (
-                                  <Avatar className="w-12 h-12">
-                                    <AvatarImage src={result.profilePicture || result.avatar} alt={result.name} />
-                                    <AvatarFallback className="bg-primary/10 text-primary">
-                                      {result.name?.charAt(0)?.toUpperCase() || '?'}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                ) : result.thumbnailUrl ? (
-                                  <img 
-                                    src={result.thumbnailUrl} 
-                                    alt={result.name}
-                                    className="w-10 h-10 object-cover rounded"
-                                  />
-                                ) : (
-                                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                                      {getResultIcon(result.type)}
-                                    </div>
-                                  )}
-                              </div>
-
-                              {/* Content */}
-                              <div 
-                                className="flex-1 cursor-pointer"
-                                onClick={() => handleResultClick(result)}
-                              >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-medium text-sm">{result.name}</span>
-                                      {result.type === 'user' && result.username && (
-                                        <span className="text-xs text-muted-foreground">@{result.username}</span>
-                                      )}
-                                      {result.avgRating && (
-                                        <div className="flex items-center gap-1">
-                                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                          <span className="text-xs text-muted-foreground">
-                                            {typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating.toFixed(1) : '4.0'}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    
-                                    {/* Type-specific content */}
-                                    {result.type === 'user' && result.bio && (
-                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{result.bio}</p>
-                                    )}
-                                    {result.type === 'list' && result.description && (
-                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{result.description}</p>
-                                    )}
-                                    {result.type === 'restaurant' && result.cuisine && (
-                                      <p className="text-xs text-muted-foreground">{result.cuisine} • {result.location}</p>
-                                    )}
-                                    {result.subtitle && result.type !== 'user' && result.type !== 'list' && result.type !== 'restaurant' && (
-                                      <p className="text-xs text-muted-foreground">{result.subtitle}</p>
-                                    )}
-                                    
-                                    {/* Tags */}
-                                    {result.tags && result.tags.length > 0 && (
-                                      <div className="flex flex-wrap gap-1 mt-2">
-                                        {result.tags.slice(0, 3).map((tag, tagIndex) => (
-                                          <Badge key={tagIndex} variant="secondary" className="text-xs px-2 py-0.5">
-                                            {tag}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Follow button for users */}
-                                  {result.type === 'user' && (
-                                    <Button
-                                      variant={result.isFollowing ? "outline" : "default"}
-                                      size="sm"
-                                      className="ml-2 h-8 px-3"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleFollowToggle(result.id, result.isFollowing);
-                                      }}
-                                    >
-                                      {result.isFollowing ? (
-                                        <>
-                                          <UserCheck className="h-3 w-3 mr-1" />
-                                          Following
-                                        </>
-                                      ) : (
-                                        <>
-                                          <UserPlus className="h-3 w-3 mr-1" />
-                                          Follow
-                                        </>
-                                      )}
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <SearchResultsList
+                          results={items}
+                          onResultClick={handleResultClick}
+                          onFollowToggle={handleFollowToggle}
+                          showFollowButton={type === 'users'}
+                          className="space-y-2"
+                        />
                       </TabsContent>
                     ))}
                   </div>

@@ -199,9 +199,15 @@ export function SearchResultsList({
                         }}
                       >
                         {result.isFollowing ? (
-                          <UserCheck className="h-3 w-3" />
+                          <>
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Following
+                          </>
                         ) : (
-                          <UserPlus className="h-3 w-3" />
+                          <>
+                            <UserPlus className="h-3 w-3 mr-1" />
+                            Follow
+                          </>
                         )}
                       </Button>
                     )}
