@@ -166,10 +166,10 @@ export function SearchResultsList({
                     {result.avgRating && (
                       <div className="flex items-center gap-1 mt-1">
                         <div className="flex">
-                          {renderStars(Math.round(result.avgRating))}
+                          {renderStars(Math.round(typeof result.avgRating === 'number' ? result.avgRating : 4.0))}
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {result.avgRating.toFixed(1)}
+                          {typeof result.avgRating === 'number' ? result.avgRating.toFixed(1) : '4.0'}
                         </span>
                       </div>
                     )}

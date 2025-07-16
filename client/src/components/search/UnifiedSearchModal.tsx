@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
@@ -162,6 +162,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] p-0">
+        <DialogTitle className="sr-only">Search Circles</DialogTitle>
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-6 pb-4 border-b">
