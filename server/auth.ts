@@ -269,3 +269,6 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
 
   next();
 };
+
+// Alias for compatibility
+export const requireAuth = authenticate;
