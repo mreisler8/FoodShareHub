@@ -184,11 +184,16 @@ router.get('/unified', authenticate, async (req, res) => {
         let restaurantResults = dbRestaurants;
         
         // Check if search term is likely a person's name to avoid restaurant enhancement
+        // Updated to exclude known restaurant terms like "odds" (OddSeoul)
+        const restaurantTerms = ['odds', 'oddseoul', 'pizza', 'burger', 'sushi', 'taco', 'cafe', 'bar', 'grill', 'kitchen', 'house', 'spot', 'place'];
         const isPersonNameSearch = /^[a-zA-Z]+(\s[a-zA-Z]+)?$/.test(searchTerm) && 
                                   searchTerm.length <= 20 && 
                                   !searchTerm.toLowerCase().includes('restaurant') &&
                                   !searchTerm.toLowerCase().includes('food') &&
-                                  !searchTerm.toLowerCase().includes('cuisine');
+                                  !searchTerm.toLowerCase().includes('cuisine') &&
+                                  !restaurantTerms.some(term => searchTerm.toLowerCase().includes(term));
+        
+        console.log(`DEBUG: Search term "${searchTerm}" - isPersonNameSearch: ${isPersonNameSearch}, dbRestaurants.length: ${dbRestaurants.length}`);
         
         if (dbRestaurants.length < 8 && !isPersonNameSearch) {
           try {
