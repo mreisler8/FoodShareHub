@@ -10,6 +10,7 @@ import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Sta
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { LocationService, type LocationData } from '@/services/locationService';
+import { SearchResultsList } from './SearchResultsList';
 import './UnifiedSearchModal.css';
 
 interface SearchResult {
