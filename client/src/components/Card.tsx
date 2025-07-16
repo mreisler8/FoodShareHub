@@ -42,3 +42,14 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 );
 
 Card.displayName = 'Card';
+
+// Simple CardContent component for compatibility
+export const CardContent = forwardRef<HTMLDivElement, { children: React.ReactNode; className?: string }>(
+  ({ children, className = '' }, ref) => (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  )
+);
+
+CardContent.displayName = 'CardContent';

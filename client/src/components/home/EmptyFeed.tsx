@@ -1,4 +1,4 @@
-import { Card } from "@/components/Card";
+import { Card, CardContent } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Users, List, Search, Plus, Heart } from "lucide-react";
 import { Link } from "wouter";
