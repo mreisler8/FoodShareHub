@@ -83,7 +83,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       // Set restaurant info
       if (post.restaurant) {
         setSelectedRestaurant({
-          id: post.restaurantId.toString(),
+          id: post.restaurantId?.toString() || '',
           name: post.restaurant.name,
           location: post.restaurant.location,
           source: 'database'
@@ -102,7 +102,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       let dislikedText = '';
       let notesText = '';
 
-      lines.forEach(line => {
+      lines.forEach((line: string) => {
         if (line.startsWith('What I liked:')) {
           likedText = line.replace('What I liked:', '').trim();
         } else if (line.startsWith('What I didn\'t like:')) {
@@ -127,20 +127,30 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       // Set existing media for uploader
       const existingMedia = [];
       if (post.images && Array.isArray(post.images)) {
-        existingMedia.push(...post.images.map(url => ({ url, thumbnailUrl: url, type: 'image' as const })));
+        existingMedia.push(...post.images.map((url: string) => ({ url, thumbnailUrl: url, type: 'image' as const })));
       }
       if (post.videos && Array.isArray(post.videos)) {
-        existingMedia.push(...post.videos.map(url => ({ url, thumbnailUrl: url, type: 'video' as const })));
+        existingMedia.push(...post.videos.map((url: string) => ({ url, thumbnailUrl: url, type: 'video' as const })));
       }
       setMedia(existingMedia);
     }
   }, [isEditMode, post, open]);
 
-  // Search restaurants
-  const { data: searchResults = [], isLoading: isSearching } = useQuery<RestaurantSearchResult[]>({
-    queryKey: ['/api/restaurants', debouncedQuery],
+  // Search restaurants using unified search API
+  const { data: searchData, isLoading: isSearching } = useQuery({
+    queryKey: ['/api/search/unified', debouncedQuery],
+    queryFn: async () => {
+      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!response.ok) {
+        throw new Error('Failed to search restaurants');
+      }
+      return response.json();
+    },
     enabled: debouncedQuery.length >= 1 && showSearchResults,
+    staleTime: 300000, // 5 minutes
   });
+
+  const searchResults = searchData?.restaurants || [];
 
   // Fetch user lists for tagging
   const { data: userLists = [] } = useQuery<RestaurantList[]>({
@@ -155,16 +165,20 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       
       if (isEditMode && post) {
         // Update existing post
-        const response = await apiRequest('PUT', `/api/posts/${post.id}`, postData);
-        return response.json();
+        return apiRequest(`/api/posts/${post.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(postData),
+        });
       } else {
         // Create new post
-        const response = await apiRequest('POST', '/api/posts', {
-          ...postData,
-          userId: user.id,
-          listIds: taggedListIds,
+        return apiRequest('/api/posts', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...postData,
+            userId: user.id,
+            listIds: taggedListIds,
+          }),
         });
-        return response.json();
       }
     },
     onSuccess: () => {
@@ -221,7 +235,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     }
   };
 
-  const handleRestaurantSelect = (restaurant: RestaurantSearchResult) => {
+  const handleRestaurantSelect = (restaurant: any) => {
     setSelectedRestaurant({
       id: restaurant.id,
       name: restaurant.name,
@@ -268,6 +282,15 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     }
 
     const restaurantId = parseInt(selectedRestaurant.id);
+
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to create posts.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     savePostMutation.mutate({
       userId: user.id,
@@ -531,7 +554,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
         onOpenChange={setIsCreateListOpen}
         onSuccess={(newList) => {
           queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
-          setTaggedListIds([...taggedListIds, newList.id]);
+          setTaggedListIds([...taggedListIds, (newList as any).id]);
         }}
       />
     </Dialog>

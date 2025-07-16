@@ -171,14 +171,25 @@ export function ListOfSpotsForm({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Restaurant search query
+  // Restaurant search query - using standardized homepage search infrastructure
   const { data: searchResults = [], isLoading: isSearching } = useQuery({
     queryKey: ['/api/search/unified', debouncedQuery],
     enabled: debouncedQuery.length >= 2,
     queryFn: async () => {
       const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
       const data = await response.json();
-      return data.restaurants || [];
+      
+      // Standardize restaurant results to match PostModal interface
+      const restaurants = (data.restaurants || []).map((restaurant: any) => ({
+        id: restaurant.id?.toString() || '',
+        name: restaurant.name || '',
+        location: restaurant.location || restaurant.address || '',
+        cuisine: restaurant.cuisine || restaurant.category || '',
+        rating: restaurant.avgRating || 0,
+        source: restaurant.source || 'database'
+      }));
+      
+      return restaurants;
     },
   });
 

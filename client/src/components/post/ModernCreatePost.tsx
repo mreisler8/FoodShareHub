@@ -52,14 +52,24 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch restaurant search results
+  // Fetch restaurant search results - using standardized homepage search infrastructure
   const { data: restaurants, isLoading: isSearchLoading } = useQuery({
     queryKey: ['/api/search/unified', { q: debouncedQuery }],
     queryFn: async () => {
       const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
-      return data.restaurants || [];
+      
+      // Standardize restaurant results to match PostModal interface
+      const restaurants = (data.restaurants || []).map((restaurant: any) => ({
+        id: restaurant.id?.toString() || '',
+        name: restaurant.name || '',
+        location: restaurant.location || restaurant.address || '',
+        avgRating: restaurant.avgRating || 0,
+        source: restaurant.source || 'database'
+      }));
+      
+      return restaurants;
     },
     enabled: debouncedQuery.length >= 2,
     staleTime: 30000,

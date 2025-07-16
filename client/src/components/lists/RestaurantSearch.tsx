@@ -1,33 +1,14 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Search, Plus, Star, MapPin } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect, useRef } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Search, Plus, Star, MapPin, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ListItemForm } from "@/components/ListItemForm";
 
-// Create apiFetch function for GET requests with authentication
-async function apiFetch(url: string): Promise<any> {
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-// Updated search result interface to match new API
 interface SearchResult {
   id: string;
   name: string;
@@ -35,16 +16,6 @@ interface SearchResult {
   avgRating: number;
   location?: string;
   source: 'database' | 'google';
-}
-
-// Type for list items in state management
-interface ListItem {
-  id: number;
-  restaurantId: number;
-  rating: number;
-  liked: string | null;
-  disliked: string | null;
-  notes: string | null;
 }
 
 interface RestaurantSearchProps {
@@ -56,95 +27,125 @@ interface RestaurantSearchProps {
     liked: string;
     disliked: string;
     notes: string;
-  }) => Promise<void>;
+  }) => void;
   onAddCompleted?: () => void;
 }
 
-export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: RestaurantSearchProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [addingId, setAddingId] = useState<string | null>(null);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: RestaurantSearchProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRestaurant, setSelectedRestaurant] = useState<SearchResult | null>(null);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const { toast } = useToast();
+  const searchRef = useRef<HTMLDivElement>(null);
 
-  // Debounce search query by 300ms
+  // Debounced search
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-      setHighlightedIndex(-1); // Reset highlight when query changes
     }, 300);
-
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Search using apiFetch when debounced term changes
-  useEffect(() => {
-    const searchRestaurants = async () => {
-      if (debouncedQuery.trim().length < 2) {
-        setSearchResults([]);
-        setShowDropdown(false);
-        return;
+  // Restaurant search query
+  const { data: searchResults, isLoading: searchLoading } = useQuery({
+    queryKey: ['/api/search/unified', debouncedQuery],
+    queryFn: async () => {
+      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!response.ok) {
+        throw new Error('Failed to search restaurants');
       }
+      const data = await response.json();
+      return data.restaurants || [];
+    },
+    enabled: debouncedQuery.length > 2,
+    staleTime: 300000, // 5 minutes
+  });
 
-      setIsSearching(true);
-      setShowDropdown(true);
+  // Handle restaurant selection
+  const handleRestaurantSelect = (result: SearchResult) => {
+    setSelectedRestaurant(result);
+    setSearchQuery('');
+    setShowSearchResults(false);
+    setShowAddForm(true);
+  };
 
-      try {
-        const results = await apiFetch(`/api/search?q=${encodeURIComponent(debouncedQuery.trim())}`);
-        // Limit results to 5 maximum as per user story
-        setSearchResults(results.slice(0, 5));
-      } catch (error) {
-        console.error('Search failed:', error);
-        setSearchResults([]);
-        toast({
-          title: "Search Error",
-          description: "Failed to search restaurants. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsSearching(false);
+  // Handle search input changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setShowSearchResults(value.length > 2);
+  };
+
+  // Handle adding restaurant to list
+  const addToListMutation = useMutation({
+    mutationFn: async (data: { restaurantId: string; rating: number; liked: string; disliked: string; notes: string }) => {
+      return apiRequest(`/api/lists/${listId}/items`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Restaurant added!",
+        description: `${selectedRestaurant?.name} has been added to your list`,
+      });
+      
+      // Invalidate list queries
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}/items`] });
+      
+      // Reset form
+      setSelectedRestaurant(null);
+      setShowAddForm(false);
+      setIsAdding(false);
+      
+      if (onAddCompleted) {
+        onAddCompleted();
       }
-    };
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error adding restaurant",
+        description: error.message || "Failed to add restaurant. Please try again.",
+        variant: "destructive",
+      });
+      setIsAdding(false);
+    },
+  });
 
-    searchRestaurants();
-  }, [debouncedQuery, toast]);
+  const handleAddToList = (formData: { rating: number; liked: string; disliked: string; notes: string }) => {
+    if (!selectedRestaurant) return;
+    
+    setIsAdding(true);
+    addToListMutation.mutate({
+      restaurantId: selectedRestaurant.id,
+      rating: formData.rating,
+      liked: formData.liked,
+      disliked: formData.disliked,
+      notes: formData.notes
+    });
+  };
 
-  // Keyboard navigation handler
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!showDropdown || !searchResults.length) return;
+  const handleCancel = () => {
+    setSelectedRestaurant(null);
+    setShowAddForm(false);
+    setIsAdding(false);
+  };
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev < searchResults.length - 1 ? prev + 1 : 0
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev > 0 ? prev - 1 : searchResults.length - 1
-        );
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setShowDropdown(false);
-        setHighlightedIndex(-1);
-        break;
-    }
-  }, [showDropdown, searchResults, highlightedIndex]);
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setShowSearchResults(false);
+  };
 
-  // Close dropdown when clicking outside
+  // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-        setHighlightedIndex(-1);
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
       }
     };
 
@@ -152,244 +153,137 @@ export function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle adding restaurant using the inline form approach
-  const addToListMutation = useMutation({
-    mutationFn: async (data: { restaurantId: string; rating: number; liked: string; disliked: string; notes: string }) => {
-      // Find the restaurant being added
-      const restaurant = searchResults.find(r => r.id === data.restaurantId);
-      if (!restaurant) throw new Error("Restaurant not found");
-
-      // Handle both database and Google Places results
-      let restaurantId: number;
-
-      if (restaurant.source === 'database') {
-        restaurantId = parseInt(restaurant.id);
-      } else {
-        // For Google Places results, we need to create a restaurant first
-        const response = await apiRequest("/api/restaurants", {
-          method: "POST",
-          body: JSON.stringify({
-            name: restaurant.name,
-            location: restaurant.location || "Unknown location",
-            category: "Restaurant",
-            priceRange: "$$",
-            cuisine: "Restaurant",
-            imageUrl: restaurant.thumbnailUrl,
-            googlePlaceId: restaurant.id.replace('google_', ''),
-          }),
-        });
-        const newRestaurant = await response.json() as { id: number };
-        restaurantId = newRestaurant.id;
-      }
-
-      const payload = {
-        restaurantId: restaurantId,
-        rating: data.rating,
-        liked: data.liked || null,
-        disliked: data.disliked || null,
-        notes: data.notes || null,
-      };
-
-      return await apiRequest(`/api/lists/${listId}/items`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-    },
-    onSuccess: (_, variables) => {
-      // Invalidate list details to refresh items
-      queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
-
-      const restaurant = searchResults.find(r => r.id === variables.restaurantId);
-      toast({
-        title: "Restaurant added!",
-        description: `${restaurant?.name} has been added to your list.`,
-      });
-
-      // Reset state
-      setAddingId(null);
-      setSearchQuery("");
-      setDebouncedQuery("");
-      setSearchResults([]);
-      setShowDropdown(false);
-
-      // Call completion callback if provided (only for legacy non-optimistic usage)
-      if (onAddCompleted) {
-        onAddCompleted();
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add restaurant to list.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Handle saving from inline form
-  const handleSave = async (data: { rating: number; liked: string; disliked: string; notes: string }) => {
-    if (!addingId) return;
-
-    // Find the restaurant name for the optimistic callback
-    const restaurant = searchResults.find(r => r.id === addingId);
-    const restaurantName = restaurant?.name || "Unknown Restaurant";
-
-    // If we have an optimistic callback, use it
-    if (onRestaurantAdded) {
-      try {
-        await onRestaurantAdded({
-          restaurantId: addingId,
-          restaurantName: restaurantName,
-          rating: data.rating,
-          liked: data.liked,
-          disliked: data.disliked,
-          notes: data.notes
-        });
-
-        // Reset state on success
-        setAddingId(null);
-        setSearchQuery("");
-        setDebouncedQuery("");
-        setSearchResults([]);
-        setShowDropdown(false);
-
-        // Call completion callback
-        if (onAddCompleted) {
-          onAddCompleted();
-        }
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to add restaurant to list.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      // Fallback to old mutation pattern
-      addToListMutation.mutate({
-        restaurantId: addingId,
-        ...data
-      });
-    }
-  };
-
-  // Handle canceling inline form
-  const handleCancel = () => {
-    setAddingId(null);
-  };
-
-  const renderStars = (rating: number) => {
-    return Array(5).fill(0).map((_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-      />
-    ));
-  };
-
-  const formatRating = (rating: number) => {
-    return `★ ${rating.toFixed(1)}`;
-  };
-
   return (
-    <div className="space-y-4" ref={dropdownRef}>
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          ref={inputRef}
-          placeholder="Search restaurants…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="pl-10"
-          autoComplete="off"
-        />
+    <div className="space-y-4">
+      {/* Search Input */}
+      <div className="relative" ref={searchRef}>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search restaurants..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="pl-10 pr-10"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+              onClick={handleClearSearch}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
-        {/* Dropdown Results */}
-        {showDropdown && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
-            {isSearching ? (
-              <div className="p-4 space-y-2">
-                {Array(3).fill(0).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : searchResults && searchResults.length > 0 ? (
-              <div className="py-2">
-                {searchResults.map((restaurant: SearchResult, index: number) => (
-                  <div key={restaurant.id}>
-                    {addingId === restaurant.id ? (
-                      // Show inline form when this restaurant is being added
-                      <div className="px-4 py-3">
-                        <ListItemForm
-                          restaurantId={restaurant.id}
-                          restaurantName={restaurant.name}
-                          onSave={handleSave}
-                          onCancel={handleCancel}
-                        />
-                      </div>
-                    ) : (
-                      // Show normal restaurant result with Add button
-                      <div
-                        className={`px-4 py-3 flex items-center space-x-3 transition-colors ${
-                          index === highlightedIndex 
-                            ? 'bg-blue-50 border-l-2 border-blue-500' 
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        {/* Thumbnail Image */}
-                        {restaurant.thumbnailUrl ? (
+        {/* Search Results */}
+        {showSearchResults && (
+          <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-96 overflow-y-auto">
+            <CardContent className="p-0">
+              {searchLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="ml-2">Searching...</span>
+                </div>
+              ) : searchResults && searchResults.length > 0 ? (
+                <div className="divide-y">
+                  {searchResults.map((result: SearchResult) => (
+                    <div
+                      key={result.id}
+                      className="p-3 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleRestaurantSelect(result)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {result.thumbnailUrl && (
                           <img 
-                            src={restaurant.thumbnailUrl} 
-                            alt={restaurant.name}
-                            className="w-12 h-12 rounded object-cover flex-shrink-0"
+                            src={result.thumbnailUrl} 
+                            alt={result.name}
+                            className="w-10 h-10 rounded object-cover"
                           />
-                        ) : (
-                          <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
-                            <span className="text-gray-500 text-xs">No img</span>
-                          </div>
                         )}
-
-                        <div className="flex-1 min-w-0">
-                          {/* Restaurant Name */}
-                          <h3 className="font-medium text-gray-900 truncate">{restaurant.name}</h3>
-                          {/* Average Rating */}
-                          <div className="flex items-center space-x-2 mt-1">
-                            <span className="text-sm text-gray-600">{formatRating(restaurant.avgRating)}</span>
-                            {restaurant.location && (
-                              <>
-                                <span className="text-gray-400">•</span>
-                                <span className="text-sm text-gray-500 truncate">{restaurant.location}</span>
-                              </>
+                        <div className="flex-1">
+                          <h4 className="font-medium">{result.name}</h4>
+                          {result.location && (
+                            <p className="text-sm text-gray-500 flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {result.location}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {result.avgRating > 0 && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span>{result.avgRating.toFixed(1)}</span>
+                              </div>
                             )}
+                            <Badge variant="outline" className="text-xs">
+                              {result.source === 'database' ? 'Database' : 'Google'}
+                            </Badge>
                           </div>
                         </div>
-
-                        {/* Add Button */}
-                        <Button
-                          className="add-btn flex-shrink-0"
-                          size="sm"
-                          onClick={() => setAddingId(restaurant.id)}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add
-                        </Button>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : debouncedQuery.trim().length >= 2 ? (
-              <div className="p-4 text-center text-gray-500">
-                <p>No restaurants found.</p>
-              </div>
-            ) : null}
-          </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  <Search className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p>No restaurants found</p>
+                  <p className="text-sm mt-1">Try a different search term</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
       </div>
 
-      {/* Inline forms are now rendered within the dropdown results */}
+      {/* Selected Restaurant Form */}
+      {showAddForm && selectedRestaurant && (
+        <Card className="p-4">
+          <CardContent className="p-0">
+            <div className="space-y-4">
+              {/* Restaurant Info */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                {selectedRestaurant.thumbnailUrl && (
+                  <img 
+                    src={selectedRestaurant.thumbnailUrl} 
+                    alt={selectedRestaurant.name}
+                    className="w-12 h-12 rounded object-cover"
+                  />
+                )}
+                <div className="flex-1">
+                  <h3 className="font-medium">{selectedRestaurant.name}</h3>
+                  {selectedRestaurant.location && (
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {selectedRestaurant.location}
+                    </p>
+                  )}
+                  {selectedRestaurant.avgRating && (
+                    <div className="flex items-center gap-1 text-sm">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <span>{selectedRestaurant.avgRating.toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Add to List Form */}
+              <ListItemForm
+                restaurantId={selectedRestaurant.id}
+                restaurantName={selectedRestaurant.name}
+                onSave={handleAddToList}
+                onCancel={handleCancel}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+
+export { RestaurantSearch };
+export default RestaurantSearch;
