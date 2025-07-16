@@ -245,6 +245,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   const allowedOrigins = [
     'http://localhost:5000',
     'https://localhost:5000',
+    'https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev',
     process.env.REPLIT_URL || '',
     process.env.FRONTEND_URL || ''
   ].filter(Boolean);
