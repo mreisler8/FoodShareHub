@@ -1,345 +1,208 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { RestaurantSearch } from '@/components/restaurant/RestaurantSearch';
-import { VisibilitySelector } from '@/components/VisibilitySelector';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { GripVertical, X, MapPin, Star, Plus } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { MediaUploader } from '../MediaUploader';
+import { RestaurantSearch } from '../restaurant/RestaurantSearch';
+import { TagSelector } from '../post/TagSelector';
+import { MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
 
-interface Restaurant {
-  id: string;
-  name: string;
-  location?: string;
-  category?: string;
-  priceRange?: string;
-  source?: 'database' | 'google';
-  googlePlaceId?: string;
-}
-
-interface ListItem {
-  id: string;
-  restaurant: Restaurant;
-  notes?: string;
-  rank: number;
-}
-
-interface ListOfSpotsFormProps {
+interface RestaurantRecFormProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
-export function ListOfSpotsForm({ onSubmit, onCancel }: ListOfSpotsFormProps) {
+export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) {
+  const [restaurant, setRestaurant] = useState<any>(null);
+  const [restaurantName, setRestaurantName] = useState('');
+  const [cuisineType, setCuisineType] = useState('');
+  const [city, setCity] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [saveToList, setSaveToList] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const [listName, setListName] = useState('');
-  const [description, setDescription] = useState('');
-  const [listItems, setListItems] = useState<ListItem[]>([]);
-  const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
-  const [visibilitySettings, setVisibilitySettings] = useState({
-    public: true,
-    followers: false,
-    circleIds: [] as number[]
-  });
 
-  const createListMutation = useMutation({
-    mutationFn: async (listData: any) => {
-      const response = await fetch('/api/lists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(listData),
-      });
-      if (!response.ok) throw new Error('Failed to create list');
-      return response.json();
-    },
-    onSuccess: (data) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const finalRestaurantName = restaurant?.name || restaurantName;
+
+    if (!finalRestaurantName.trim()) {
       toast({
-        title: 'List created successfully!',
-        description: `"${listName}" has been created and shared.`,
-      });
-      onSubmit(data);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error creating list',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const handleAddRestaurant = (restaurant: Restaurant) => {
-    const newItem: ListItem = {
-      id: `${restaurant.id}-${Date.now()}`,
-      restaurant,
-      notes: '',
-      rank: listItems.length + 1,
-    };
-    setListItems([...listItems, newItem]);
-    setShowRestaurantSearch(false);
-  };
-
-  const handleRemoveItem = (itemId: string) => {
-    setListItems(listItems.filter(item => item.id !== itemId));
-  };
-
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-
-    const reorderedItems = Array.from(listItems);
-    const [reorderedItem] = reorderedItems.splice(result.source.index, 1);
-    reorderedItems.splice(result.destination.index, 0, reorderedItem);
-
-    // Update ranks
-    const updatedItems = reorderedItems.map((item, index) => ({
-      ...item,
-      rank: index + 1,
-    }));
-
-    setListItems(updatedItems);
-  };
-
-  const handleSubmit = () => {
-    if (!listName.trim()) {
-      toast({
-        title: 'List name required',
-        description: 'Please enter a name for your list.',
-        variant: 'destructive',
+        title: "Restaurant name required",
+        description: "Please enter or select a restaurant name.",
+        variant: "destructive",
       });
       return;
     }
 
-    if (listItems.length === 0) {
+    setIsSubmitting(true);
+
+    try {
+      const formData = {
+        postType: 'restaurant',
+        restaurant: restaurant || {
+          name: restaurantName,
+          cuisine: cuisineType,
+          location: city,
+        },
+        content: notes,
+        tags,
+        images,
+        saveToList,
+        metadata: {
+          cuisineType,
+          city,
+          saveToList
+        }
+      };
+
+      await onSubmit(formData);
+    } catch (error) {
+      console.error('Error submitting restaurant recommendation:', error);
       toast({
-        title: 'Add some restaurants',
-        description: 'Please add at least one restaurant to your list.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to create restaurant recommendation. Please try again.",
+        variant: "destructive",
       });
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const listData = {
-      name: listName,
-      description,
-      type: 'restaurant',
-      visibility: visibilitySettings,
-      items: listItems.map(item => ({
-        restaurantId: item.restaurant.source === 'database' ? parseInt(item.restaurant.id) : null,
-        googlePlaceId: item.restaurant.source === 'google' ? item.restaurant.googlePlaceId : null,
-        name: item.restaurant.name,
-        notes: item.notes,
-        rank: item.rank,
-      })),
-    };
-
-    createListMutation.mutate(listData);
   };
 
   return (
-    <div className="space-y-6">
-      {/* List Details */}
+    <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Star className="h-5 w-5 text-blue-600" />
-            </div>
-            List Details
+            <MapPin className="h-5 w-5" />
+            Restaurant Rec
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Shoutout a restaurant you love
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-6">
+          {/* Restaurant Search or Manual Entry */}
           <div>
-            <Label htmlFor="list-name">List Name *</Label>
+            <Label>Restaurant name *</Label>
+            <RestaurantSearch
+              onSelect={(selectedRestaurant) => {
+                setRestaurant(selectedRestaurant);
+                setRestaurantName('');
+              }}
+              placeholder="Search for a restaurant..."
+              value={restaurant}
+            />
+
+            {!restaurant && (
+              <div className="mt-2">
+                <Input
+                  placeholder="Or type restaurant name manually..."
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Type / Cuisine */}
+          <div>
+            <Label htmlFor="cuisineType">Type / cuisine (optional)</Label>
             <Input
-              id="list-name"
-              value={listName}
-              onChange={(e) => setListName(e.target.value)}
-              placeholder="e.g., Best Pizza in NYC, Date Night Spots"
-              required
+              id="cuisineType"
+              placeholder="e.g., Italian, Thai, Burger Joint"
+              value={cuisineType}
+              onChange={(e) => setCuisineType(e.target.value)}
             />
           </div>
 
+          {/* City */}
           <div>
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="city">City (optional)</Label>
+            <Input
+              id="city"
+              placeholder="e.g., New York, Toronto, Los Angeles"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <Label>Tags</Label>
+            <TagSelector
+              selectedTags={tags}
+              onTagsChange={setTags}
+              suggestedTags={[
+                'must-try', 'hidden-gem', 'date-night', 'family-friendly',
+                'affordable', 'upscale', 'casual', 'authentic', 'trendy', 'cozy'
+              ]}
+              placeholder="Tag this restaurant..."
+            />
+          </div>
+
+          {/* Notes / Why recommend */}
+          <div>
+            <Label htmlFor="notes">Notes / why you recommend it</Label>
             <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Tell others what this list is about..."
-              rows={2}
+              id="notes"
+              placeholder="Tell others why they should try this place..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-[100px]"
             />
           </div>
 
+          {/* Image */}
           <div>
-            <Label>Add Restaurants *</Label>
-            <div className="space-y-4">
-              {/*<RestaurantSearch
-                onRestaurantSelect={handleAddRestaurant}
-                placeholder="Search and add restaurants to your list..."
-              />*/}
-
-              {/*restaurants.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">
-                    {restaurants.length} restaurant(s) added. Drag to reorder:
-                  </p>
-                  <DraggableRestaurantList
-                    restaurants={restaurants}
-                    onReorder={setRestaurants}
-                    onRemove={handleRemoveRestaurant}
-                  />
-                </div>
-              )}*/}
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="location">City/Location (optional)</Label>
-            <Input
-              id="location"
-              value={""}
-              onChange={(e) => console.log('location')}
-              placeholder="e.g., Toronto, Manhattan"
+            <Label>Image (optional)</Label>
+            <MediaUploader
+              onImagesChange={setImages}
+              maxImages={1}
+              acceptedTypes={['image/*']}
             />
           </div>
-        </div>
+
+          {/* Save to List Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="saveToList">Save to List</Label>
+              <p className="text-sm text-muted-foreground">
+                Add this restaurant to your saved lists
+              </p>
+            </div>
+            <Switch
+              id="saveToList"
+              checked={saveToList}
+              onCheckedChange={setSaveToList}
+            />
+          </div>
         </CardContent>
       </Card>
 
-      {/* Restaurant List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Restaurants ({listItems.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {listItems.length === 0 ? (
-            <div className="text-center py-8">
-              <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No restaurants added yet</p>
-              <Button onClick={() => setShowRestaurantSearch(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Restaurant
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="restaurant-list">
-                  {(provided) => (
-                    <div {...provided.droppableProps} ref={provided.innerRef}>
-                      {listItems.map((item, index) => (
-                        <Draggable key={item.id} draggableId={item.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`p-4 border rounded-lg mb-2 bg-white ${
-                                snapshot.isDragging ? 'shadow-lg' : ''
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="text-gray-400 hover:text-gray-600"
-                                >
-                                  <GripVertical className="h-5 w-5" />
-                                </div>
-
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <span className="font-medium text-sm text-gray-500 mr-2">
-                                        #{item.rank}
-                                      </span>
-                                      <span className="font-medium">
-                                        {item.restaurant.name}
-                                      </span>
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRemoveItem(item.id)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-
-                                  <div className="text-sm text-gray-600 mt-1">
-                                    {item.restaurant.location} • {item.restaurant.category}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-
-              <Button 
-                variant="outline" 
-                onClick={() => setShowRestaurantSearch(true)}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Another Restaurant
-              </Button>
-            </div>
-          )}
-
-          {showRestaurantSearch && (
-            <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-              <RestaurantSearch
-                onSelectRestaurant={handleAddRestaurant}
-                placeholder="Search restaurants to add to your list..."
-                buttonLabel="Search restaurants"
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowRestaurantSearch(false)}
-                className="mt-2"
-              >
-                Cancel
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Visibility Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Share Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VisibilitySelector
-            value={visibilitySettings}
-            onChange={setVisibilitySettings}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onCancel} className="flex-1">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          className="flex-1"
-          disabled={createListMutation.isPending}
+        <Button
+          type="submit"
+          disabled={isSubmitting || (!restaurant && !restaurantName.trim())}
         >
-          {createListMutation.isPending ? 'Creating...' : 'Create List'}
+          {isSubmitting ? 'Creating...' : 'Continue'}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

@@ -1,25 +1,14 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { RestaurantSearch } from '@/components/restaurant/RestaurantSearch';
-import { MediaUploader } from '@/components/MediaUploader';
-import { VisibilitySelector } from '@/components/VisibilitySelector';
-import { Utensils, MapPin, Star, Image } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { MediaUploader } from '../MediaUploader';
+import { RestaurantSearch } from '../restaurant/RestaurantSearch';
+import { TagSelector } from '../post/TagSelector';
+import { UtensilsCrossed, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
-
-interface Restaurant {
-  id: string;
-  name: string;
-  location?: string;
-  category?: string;
-  priceRange?: string;
-  source?: 'database' | 'google';
-  googlePlaceId?: string;
-}
 
 interface RecommendDishFormProps {
   onSubmit: (data: any) => void;
@@ -27,230 +16,205 @@ interface RecommendDishFormProps {
 }
 
 export function RecommendDishForm({ onSubmit, onCancel }: RecommendDishFormProps) {
-  const { toast } = useToast();
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [restaurant, setRestaurant] = useState<any>(null);
   const [dishName, setDishName] = useState('');
-  const [recommendation, setRecommendation] = useState('');
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [visibilitySettings, setVisibilitySettings] = useState({
-    public: true,
-    followers: false,
-    circleIds: [] as number[]
-  });
+  const [rating, setRating] = useState(0);
+  const [whatILiked, setWhatILiked] = useState('');
+  const [whatIDidntLike, setWhatIDidntLike] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const createRecommendationMutation = useMutation({
-    mutationFn: async (recommendationData: FormData) => {
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        body: recommendationData,
-      });
-      if (!response.ok) throw new Error('Failed to create recommendation');
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: 'Dish recommendation shared!',
-        description: 'Your dish recommendation has been shared with your circles.',
-      });
-      onSubmit(data);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error sharing recommendation',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const handleSubmit = async () => {
-    if (!selectedRestaurant) {
-      toast({
-        title: 'Restaurant required',
-        description: 'Please select the restaurant where you tried this dish.',
-        variant: 'destructive',
-      });
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     if (!dishName.trim()) {
       toast({
-        title: 'Dish name required',
-        description: 'Please enter the name of the dish you\'re recommending.',
-        variant: 'destructive',
+        title: "Dish name required",
+        description: "Please enter the name of the dish you're reviewing.",
+        variant: "destructive",
       });
       return;
     }
 
-    if (!recommendation.trim()) {
+    if (!restaurant) {
       toast({
-        title: 'Tell us why you recommend it',
-        description: 'Please share why others should try this dish.',
-        variant: 'destructive',
+        title: "Restaurant required",
+        description: "Please select the restaurant where you had this dish.",
+        variant: "destructive",
       });
       return;
     }
 
-    const formData = new FormData();
-    formData.append('content', `${dishName} at ${selectedRestaurant.name} - ${recommendation}`);
-    formData.append('rating', '5'); // Default high rating for recommendations
-    formData.append('visibility', JSON.stringify(visibilitySettings));
-    formData.append('postType', 'dish');
-    formData.append('dishName', dishName);
-
-    // Add restaurant data
-    if (selectedRestaurant.source === 'database') {
-      formData.append('restaurantId', selectedRestaurant.id);
-    } else {
-      formData.append('googlePlaceId', selectedRestaurant.googlePlaceId || '');
+    if (rating === 0) {
+      toast({
+        title: "Rating required",
+        description: "Please rate this dish (1-5 stars).",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Add images (optional for dish recommendations)
-    selectedImages.forEach((file) => {
-      formData.append('media', file);
-    });
+    setIsSubmitting(true);
 
-    createRecommendationMutation.mutate(formData);
+    try {
+      const formData = {
+        postType: 'dish',
+        restaurant,
+        dish: {
+          name: dishName,
+          rating: rating,
+          whatILiked: whatILiked,
+          whatIDidntLike: whatIDidntLike
+        },
+        content: `${whatILiked ? `What I liked: ${whatILiked}` : ''}${whatILiked && whatIDidntLike ? '\n\n' : ''}${whatIDidntLike ? `What I didn't like: ${whatIDidntLike}` : ''}`,
+        images,
+        rating,
+        tags,
+      };
+
+      await onSubmit(formData);
+    } catch (error) {
+      console.error('Error submitting dish review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create dish review. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Dish Recommendation Header */}
+return (
+    <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div className="p-2 bg-orange-50 rounded-lg">
-              <Utensils className="h-5 w-5 text-orange-600" />
-            </div>
-            Recommend a Dish
+            <UtensilsCrossed className="h-5 w-5" />
+            Dish Review
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Thoughtful opinion on a specific dish
+          </p>
         </CardHeader>
-      </Card>
-
-      {/* Dish Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>What dish are you recommending? *</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Dish Name */}
           <div>
-            <Label htmlFor="dishName">Dish Name *</Label>
+            <Label htmlFor="dishName">Dish name *</Label>
             <Input
               id="dishName"
+              placeholder="e.g., Margherita Pizza, Spicy Ramen"
               value={dishName}
               onChange={(e) => setDishName(e.target.value)}
-              placeholder="e.g., Truffle Pasta, Spicy Tuna Roll, Chocolate Lava Cake"
-              className="mt-1"
             />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Restaurant Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Where can people find this dish? *</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedRestaurant ? (
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <div className="font-medium">{selectedRestaurant.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {selectedRestaurant.location}
-                  </div>
-                  {selectedRestaurant.category && (
-                    <div className="text-xs text-muted-foreground">
-                      {selectedRestaurant.category} • {selectedRestaurant.priceRange}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedRestaurant(null)}
-              >
-                Change
-              </Button>
-            </div>
-          ) : (
-            <RestaurantSearch
-              onSelectRestaurant={setSelectedRestaurant}
-              placeholder="Search for the restaurant..."
-              buttonLabel="Find restaurant"
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recommendation Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Why do you recommend this dish? *</CardTitle>
-        </CardHeader>
-        <CardContent>
+          {/* Rating */}
           <div>
-            <Label htmlFor="recommendation">Your Recommendation *</Label>
+            <Label>Rating (1–5 stars) *</Label>
+            <div className="flex items-center gap-1 mt-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <Star
+                    className={`h-6 w-6 ${
+                      star <= rating
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                </button>
+              ))}
+              {rating > 0 && (
+                <span className="ml-2 text-sm text-gray-600">
+                  {rating}/5 stars
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* What I liked */}
+          <div>
+            <Label htmlFor="whatILiked">What I liked (optional)</Label>
             <Textarea
-              id="recommendation"
-              value={recommendation}
-              onChange={(e) => setRecommendation(e.target.value)}
-              placeholder="What makes this dish special? How does it taste? What should people expect?"
-              className="mt-1 min-h-24"
+              id="whatILiked"
+              placeholder="What was great about this dish..."
+              value={whatILiked}
+              onChange={(e) => setWhatILiked(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </div>
+
+          {/* What I didn't like */}
+          <div>
+            <Label htmlFor="whatIDidntLike">What I didn't like (optional)</Label>
+            <Textarea
+              id="whatIDidntLike"
+              placeholder="Any issues or things that could be better..."
+              value={whatIDidntLike}
+              onChange={(e) => setWhatIDidntLike(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </div>
+
+          {/* Photo Upload */}
+          <div>
+            <Label>Image (optional)</Label>
+            <MediaUploader
+              onImagesChange={setImages}
+              maxImages={1}
+              acceptedTypes={['image/*']}
+            />
+          </div>
+
+          {/* Restaurant Selection */}
+          <div>
+            <Label htmlFor="restaurant">Restaurant *</Label>
+            <RestaurantSearch
+              onSelect={setRestaurant}
+              placeholder="Which restaurant?"
+              value={restaurant}
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <Label>Tags</Label>
+            <TagSelector
+              selectedTags={tags}
+              onTagsChange={setTags}
+              suggestedTags={[
+                'must-try', 'overrated', 'amazing', 'disappointing', 
+                'worth-it', 'spicy', 'sweet', 'savory', 'vegetarian', 'authentic'
+              ]}
+              placeholder="Tag this dish review..."
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Photo Upload (Optional) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5" />
-            Photos (optional)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MediaUploader
-            onFilesSelected={setSelectedImages}
-            maxFiles={3}
-            acceptedFileTypes="image/*"
-          />
-          <p className="text-sm text-muted-foreground mt-2">
-            Add photos of the dish to help others know what to expect
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Visibility Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Share With</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VisibilitySelector
-            value={visibilitySettings}
-            onChange={setVisibilitySettings}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onCancel} className="flex-1">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          className="flex-1"
-          disabled={createRecommendationMutation.isPending}
+        <Button
+          type="submit"
+          disabled={isSubmitting || !dishName.trim() || !restaurant || rating === 0}
         >
-          {createRecommendationMutation.isPending ? 'Sharing...' : 'Share Recommendation'}
+          {isSubmitting ? 'Creating...' : 'Continue'}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

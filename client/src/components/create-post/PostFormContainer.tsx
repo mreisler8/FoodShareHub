@@ -15,7 +15,7 @@ interface PostFormContainerProps {
   onClose?: () => void;
 }
 
-type FormStep = 'type' | 'content' | 'metadata' | 'sharing';
+type FormStep = 'type' | 'content' | 'sharing';
 
 export function PostFormContainer({ onClose }: PostFormContainerProps) {
   const [currentStep, setCurrentStep] = useState<FormStep>('type');
@@ -70,11 +70,6 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
 
   const handleContentSubmit = (data: any) => {
     setFormData({ ...formData, ...data });
-    setCurrentStep('metadata');
-  };
-
-  const handleMetadataSubmit = (metadata: any) => {
-    setFormData({ ...formData, ...metadata });
     setCurrentStep('sharing');
   };
 
@@ -110,11 +105,8 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
         setCurrentStep('type');
         setSelectedType(null);
         break;
-      case 'metadata':
-        setCurrentStep('content');
-        break;
       case 'sharing':
-        setCurrentStep('metadata');
+        setCurrentStep('content');
         break;
     }
   };
@@ -124,9 +116,7 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
       case 'type':
         return 'What do you want to share?';
       case 'content':
-        return `Create ${selectedType === 'list' ? 'List of Spots' : selectedType === 'moment' ? 'Food Moment' : 'Dish Recommendation'}`;
-      case 'metadata':
-        return 'Add tags and details';
+        return `Create ${selectedType === 'list' ? 'Restaurant Rec' : selectedType === 'moment' ? 'Food Moment' : 'Dish Review'}`;
       case 'sharing':
         return 'Share your post';
       default:
@@ -160,7 +150,7 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
           
           <h1 className="text-2xl font-bold">{getStepTitle()}</h1>
 
-          {(currentStep === 'metadata' || currentStep === 'sharing') && (
+          {currentStep === 'sharing' && (
             <Button
               variant="outline"
               onClick={() => setShowPreview(true)}
@@ -174,20 +164,20 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
 
         {/* Progress indicator */}
         <div className="flex items-center gap-2 mb-8">
-          {['content', 'metadata', 'sharing'].map((step, index) => (
+          {['content', 'sharing'].map((step, index) => (
             <React.Fragment key={step}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                 currentStep === step
                   ? 'bg-primary text-white'
-                  : ['content', 'metadata', 'sharing'].indexOf(currentStep) > index
+                  : ['content', 'sharing'].indexOf(currentStep) > index
                   ? 'bg-green-500 text-white'
                   : 'bg-gray-200 text-gray-500'
               }`}>
                 {index + 1}
               </div>
-              {index < 2 && (
+              {index < 1 && (
                 <div className={`h-1 w-12 ${
-                  ['content', 'metadata', 'sharing'].indexOf(currentStep) > index
+                  ['content', 'sharing'].indexOf(currentStep) > index
                     ? 'bg-green-500'
                     : 'bg-gray-200'
                 }`} />
@@ -222,36 +212,7 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
           </div>
         )}
 
-        {/* Step 3: Metadata (Tags) */}
-        {currentStep === 'metadata' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Add tags to help others discover your post</h3>
-              <p className="text-gray-600 mb-4">Tags make your post more discoverable and help categorize your content.</p>
-              
-              <TagSelector
-                selectedTags={formData.tags || []}
-                onTagsChange={(tags) => setFormData({ ...formData, tags })}
-                suggestedTags={[
-                  'spicy', 'hiddenGem', 'noodles', 'pizza', 'brunch', 'dateNight',
-                  'familyFriendly', 'vegan', 'glutenFree', 'affordable', 'upscale',
-                  'quickBite', 'musttry', 'newOpening', 'localFavorite', 'authentic'
-                ]}
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={handleBack}>
-                Back
-              </Button>
-              <Button onClick={() => handleMetadataSubmit({ tags: formData.tags || [] })}>
-                Continue to Sharing
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Sharing */}
+        {/* Step 3: Sharing */}
         {currentStep === 'sharing' && (
           <ShareDestinationPicker
             circles={circles || []}

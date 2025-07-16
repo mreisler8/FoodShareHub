@@ -23,25 +23,25 @@ const postTypeOptions: PostTypeOption[] = [
     type: PostType.MOMENT,
     icon: <Camera className="h-5 w-5" />,
     title: 'Food Moment',
-    description: 'Snap and share a quick food pic',
+    description: 'Quick snapshot of what you\'re eating now',
     emoji: '🍽️',
-    quickInfo: 'Quick & easy'
+    quickInfo: 'Instagram Story style'
   },
   {
     type: PostType.DISH,
     icon: <Star className="h-5 w-5" />,
     title: 'Dish Review',
-    description: 'Share thoughts on a specific dish',
+    description: 'Thoughtful opinion on a specific dish',
     emoji: '📝',
     quickInfo: 'Detailed review'
   },
   {
     type: PostType.LIST,
-    icon: <List className="h-5 w-5" />,
+    icon: <MapPin className="h-5 w-5" />,
     title: 'Restaurant Rec',
-    description: 'Recommend a spot you love',
+    description: 'Shoutout a restaurant you love',
     emoji: '📍',
-    quickInfo: 'Share favorites'
+    quickInfo: 'Quick rec'
   }
 ];
 
