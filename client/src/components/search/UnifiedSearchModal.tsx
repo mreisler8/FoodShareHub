@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2, Navigation, UserPlus, UserCheck } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { LocationService, type LocationData } from '@/services/locationService';
 import { SearchResultsList } from './SearchResultsList';
@@ -71,6 +71,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(searchQuery, 300);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -274,11 +275,26 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         } catch (e) {
           // Keep original error message if JSON parsing fails
         }
+        
+        // If already following/unfollowing, just refresh to sync state
+        if (errorMessage.includes('Already following') || errorMessage.includes('Not following')) {
+          refetch();
+          return;
+        }
+        
         throw new Error(errorMessage);
       }
       
       // Refresh search results to update follow status
       refetch();
+      
+      // Also invalidate all user-related queries to ensure consistency
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/search/unified'] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/users'] 
+      });
     } catch (error) {
       console.error('Error toggling follow:', error);
       // Show user-friendly error message

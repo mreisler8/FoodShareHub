@@ -302,7 +302,7 @@ router.get('/unified', authenticate, async (req, res) => {
               username: u.username,
               bio: u.bio,
               profilePicture: u.profilePicture,
-              isFollowing: u.isFollowing,
+              isFollowing: Boolean(u.isFollowing), // Ensure it's always a boolean
               metadata: {
                 username: u.username,
                 preferredCuisines: u.preferredCuisines,
