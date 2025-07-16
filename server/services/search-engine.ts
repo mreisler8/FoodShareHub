@@ -15,6 +15,19 @@ const typesense = new Client({
   connectionTimeoutSeconds: 10,
 });
 
+// Centralized person name detection to ensure consistency across all search functions
+function isPersonNameQuery(searchTerm: string): boolean {
+  // Updated to exclude known restaurant terms like "odds" (OddSeoul)
+  const restaurantTerms = ['odds', 'oddseoul', 'pizza', 'burger', 'sushi', 'taco', 'cafe', 'bar', 'grill', 'kitchen', 'house', 'spot', 'place', 'bistro', 'eatery', 'diner', 'restaurant', 'food', 'cuisine', 'dining', 'menu', 'eat', 'taste', 'flavor', 'spicy', 'sweet', 'meal', 'lunch', 'dinner', 'breakfast', 'brunch'];
+  
+  return /^[a-zA-Z]+(\s[a-zA-Z]+)?$/.test(searchTerm) && 
+         searchTerm.length <= 20 && 
+         !searchTerm.toLowerCase().includes('restaurant') &&
+         !searchTerm.toLowerCase().includes('food') &&
+         !searchTerm.toLowerCase().includes('cuisine') &&
+         !restaurantTerms.some(term => searchTerm.toLowerCase().includes(term));
+}
+
 // Semantic search mappings
 const SEMANTIC_MAPPINGS = {
   'late night': ['open late', 'nightlife', 'after hours', 'late dining'],

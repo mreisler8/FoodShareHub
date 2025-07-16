@@ -113,6 +113,14 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 16, 2025: **Consistent Search Fix Across All Components - COMPLETE**: Successfully ensured the OddSeoul search fix is applied consistently across all search functionality:
+  - **Centralized Person Name Detection**: Created centralized `isPersonNameQuery()` function in both server/routes/search.ts and server/services/search-engine.ts
+  - **Comprehensive Restaurant Terms List**: Updated restaurant terms to include "odds", "oddseoul", "pizza", "burger", "sushi", "taco", "cafe", "bar", "grill", "kitchen", "house", "spot", "place", "bistro", "eatery", "diner", "dining", "menu", "eat", "taste", "flavor", "spicy", "sweet", "meal", "lunch", "dinner", "breakfast", "brunch"
+  - **Unified Search Endpoint**: All client-side search components (RestaurantSearch.tsx, PostModal.tsx, FoodMomentForm.tsx, RecommendDishForm.tsx, ListOfSpotsForm.tsx, ModernCreatePost.tsx) use `/api/search/unified` endpoint and automatically benefit from the fix
+  - **Search Enhancement Logic**: Restaurant searches like "odds" and "pizza" now correctly trigger Google Places enhancement while person name searches like "jason" skip restaurant enhancement
+  - **Fallback Search**: Updated searchRestaurants() function to use same person name detection logic to avoid unwanted Google Places calls
+  - **Search Engine Service**: Applied same centralized logic to search-engine.ts for consistent behavior across all search implementations
+  - **Status**: All search components now have consistent person name detection and restaurant enhancement logic
 - July 16, 2025: **Comprehensive Search Standardization - COMPLETE**: Successfully standardized search functionality across all platform features using homepage search infrastructure:
   - **Components Standardized**: RestaurantSearch.tsx, PostModal.tsx, FoodMomentForm.tsx, RecommendDishForm.tsx, ListOfSpotsForm.tsx, and ModernCreatePost.tsx
   - **Interface Compatibility**: Fixed multiple export statements, API request method calls, and type compatibility issues through iterative debugging

@@ -7,6 +7,19 @@ import { searchGooglePlaces } from '../services/google-places';
 
 const router = Router();
 
+// Centralized person name detection to ensure consistency across all search functions
+function isPersonNameQuery(searchTerm: string): boolean {
+  // Updated to exclude known restaurant terms like "odds" (OddSeoul)
+  const restaurantTerms = ['odds', 'oddseoul', 'pizza', 'burger', 'sushi', 'taco', 'cafe', 'bar', 'grill', 'kitchen', 'house', 'spot', 'place', 'bistro', 'eatery', 'diner', 'restaurant', 'food', 'cuisine', 'dining', 'menu', 'eat', 'taste', 'flavor', 'spicy', 'sweet', 'meal', 'lunch', 'dinner', 'breakfast', 'brunch'];
+  
+  return /^[a-zA-Z]+(\s[a-zA-Z]+)?$/.test(searchTerm) && 
+         searchTerm.length <= 20 && 
+         !searchTerm.toLowerCase().includes('restaurant') &&
+         !searchTerm.toLowerCase().includes('food') &&
+         !searchTerm.toLowerCase().includes('cuisine') &&
+         !restaurantTerms.some(term => searchTerm.toLowerCase().includes(term));
+}
+
 // Optimized unified search with database and Google Places integration
 router.get('/unified', authenticate, async (req, res) => {
   try {
@@ -184,14 +197,7 @@ router.get('/unified', authenticate, async (req, res) => {
         let restaurantResults = dbRestaurants;
         
         // Check if search term is likely a person's name to avoid restaurant enhancement
-        // Updated to exclude known restaurant terms like "odds" (OddSeoul)
-        const restaurantTerms = ['odds', 'oddseoul', 'pizza', 'burger', 'sushi', 'taco', 'cafe', 'bar', 'grill', 'kitchen', 'house', 'spot', 'place'];
-        const isPersonNameSearch = /^[a-zA-Z]+(\s[a-zA-Z]+)?$/.test(searchTerm) && 
-                                  searchTerm.length <= 20 && 
-                                  !searchTerm.toLowerCase().includes('restaurant') &&
-                                  !searchTerm.toLowerCase().includes('food') &&
-                                  !searchTerm.toLowerCase().includes('cuisine') &&
-                                  !restaurantTerms.some(term => searchTerm.toLowerCase().includes(term));
+        const isPersonNameSearch = isPersonNameQuery(searchTerm);
         
         console.log(`DEBUG: Search term "${searchTerm}" - isPersonNameSearch: ${isPersonNameSearch}, dbRestaurants.length: ${dbRestaurants.length}`);
         
@@ -389,9 +395,9 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
   .orderBy(desc(sql`AVG(${posts.rating})`), desc(sql`COUNT(${posts.id})`))
   .limit(limit);
 
-  // Enhanced with Google Places if needed
+  // Enhanced with Google Places if needed (avoid for person name searches)
   let allResults = [...dbResults];
-  if (dbResults.length < 10) {
+  if (dbResults.length < 10 && !isPersonNameQuery(searchTerm)) {
     try {
       const locationData = (lat && lng) ? { lat, lng, radius: radius || 15000 } : undefined;
       const googleResults = await searchGooglePlaces(searchTerm, locationData);
