@@ -34,6 +34,9 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
     
     if (onClose) {
       onClose();
+    } else {
+      // Navigate to homepage if no onClose handler
+      window.location.href = '/';
     }
   };
 
@@ -72,7 +75,8 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
 
   const handleContentSubmit = (data: any) => {
     setFormData({ ...formData, ...data });
-    setCurrentStep('sharing');
+    // Skip sharing step and submit directly
+    handleFinalSubmit(data);
   };
 
   const handleFinalSubmit = async (shareData: any) => {
@@ -127,6 +131,11 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
     }
   };
 
+  const handleCancel = () => {
+    // Navigate back to homepage on cancel
+    handleModalClose();
+  };
+
   const getStepTitle = () => {
     switch (currentStep) {
       case 'type':
@@ -166,41 +175,18 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
           
           <h1 className="text-2xl font-bold">{getStepTitle()}</h1>
 
-          {currentStep === 'sharing' && (
-            <Button
-              variant="outline"
-              onClick={() => setShowPreview(true)}
-              className="gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              Preview
-            </Button>
-          )}
+          {/* Removed preview button since forms handle submission directly */}
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex items-center gap-2 mb-8">
-          {['content', 'sharing'].map((step, index) => (
-            <React.Fragment key={step}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                currentStep === step
-                  ? 'bg-primary text-white'
-                  : ['content', 'sharing'].indexOf(currentStep) > index
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-200 text-gray-500'
-              }`}>
-                {index + 1}
-              </div>
-              {index < 1 && (
-                <div className={`h-1 w-12 ${
-                  ['content', 'sharing'].indexOf(currentStep) > index
-                    ? 'bg-green-500'
-                    : 'bg-gray-200'
-                }`} />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
+        {/* Progress indicator - Simplified since we removed sharing step */}
+        {currentStep === 'content' && (
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-primary text-white">
+              1
+            </div>
+            <span className="text-sm text-gray-600">Fill out your post details</span>
+          </div>
+        )}
 
         {/* Step 2: Content Form */}
         {currentStep === 'content' && selectedType && (
@@ -208,33 +194,27 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
             {selectedType === PostType.LIST && (
               <ListOfSpotsForm 
                 onSubmit={handleContentSubmit}
-                onCancel={handleBack}
+                onCancel={handleCancel}
               />
             )}
 
             {selectedType === PostType.MOMENT && (
               <FoodMomentForm 
                 onSubmit={handleContentSubmit}
-                onCancel={handleBack}
+                onCancel={handleCancel}
               />
             )}
 
             {selectedType === PostType.DISH && (
               <RecommendDishForm 
                 onSubmit={handleContentSubmit}
-                onCancel={handleBack}
+                onCancel={handleCancel}
               />
             )}
           </div>
         )}
 
-        {/* Step 3: Sharing */}
-        {currentStep === 'sharing' && (
-          <ShareDestinationPicker
-            circles={circles || []}
-            onShareDestinationChange={handleFinalSubmit}
-          />
-        )}
+        {/* Step 3: Sharing - Removed since forms handle their own sharing */}
       </div>
 
       {/* Preview Modal */}

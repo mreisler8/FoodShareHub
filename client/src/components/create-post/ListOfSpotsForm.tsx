@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { MediaUploader } from '../MediaUploader';
 import { RestaurantSearch } from '../restaurant/RestaurantSearch';
 import { TagSelector } from '../post/TagSelector';
+import { ShareDestinationPicker } from '../post/ShareDestinationPicker';
 import { MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,8 +24,9 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
   const [city, setCity] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+  const [image, setImage] = useState<File | null>(null);
   const [saveToList, setSaveToList] = useState(false);
+  const [shareDestination, setShareDestination] = useState('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -47,14 +49,20 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
     try {
       const formData = {
         postType: 'restaurant',
+        restaurantName: finalRestaurantName,
+        cuisineType,
+        city,
+        tags,
+        notes,
+        image,
+        saveToList,
+        shareDestination,
         restaurant: restaurant || {
           name: restaurantName,
           cuisine: cuisineType,
           location: city,
         },
         content: notes || `Recommending ${finalRestaurantName}`,
-        tags,
-        images,
         metadata: {
           postType: 'restaurant',
           restaurantName: finalRestaurantName,
@@ -166,8 +174,8 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
           <div>
             <Label>Image (optional)</Label>
             <MediaUploader
-              onImagesChange={setImages}
-              maxImages={1}
+              onUpload={(file) => setImage(file)}
+              maxFiles={1}
               acceptedTypes={['image/*']}
             />
           </div>
@@ -186,6 +194,15 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
               onCheckedChange={setSaveToList}
             />
           </div>
+
+          {/* Share Destination */}
+          <div className="space-y-2">
+            <Label>Share Destination</Label>
+            <ShareDestinationPicker
+              value={shareDestination}
+              onChange={setShareDestination}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -201,8 +218,9 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
         <Button
           type="submit"
           disabled={isSubmitting || (!restaurant && !restaurantName.trim())}
+          className="flex-1"
         >
-          {isSubmitting ? 'Creating...' : 'Continue'}
+          {isSubmitting ? 'Creating...' : 'Share Recommendation'}
         </Button>
       </div>
     </form>

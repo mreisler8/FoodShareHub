@@ -1,4 +1,12 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  timestamp,
+  json,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -155,7 +163,9 @@ export const circles = pgTable("circles", {
   isPrivate: boolean("is_private").default(false),
   // Tracking fields
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  creatorId: integer("creator_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  creatorId: integer("creator_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   // Cover image support
   coverImage: text("cover_image"),
   // Shareable join link features
@@ -185,52 +195,56 @@ export const recommendations = pgTable("recommendations", {
 });
 
 // Zod schema for inserts
-export const insertRecommendationSchema = createInsertSchema(recommendations).pick({
+export const insertRecommendationSchema = createInsertSchema(
+  recommendations,
+).pick({
   circleId: true,
   restaurantId: true,
   userId: true,
 });
 
-export const insertCircleSchema = createInsertSchema(circles).pick({
-  name: true,
-  description: true,
-  creatorId: true,
-  isPrivate: true,
-  allowPublicJoin: true,
-  tags: true,
-  primaryCuisine: true,
-  priceRange: true,
-  location: true,
-  memberCount: true,
-  featured: true,
-  trending: true,
-  inviteCode: true,
-  coverImage: true,
-}).refine(
-  (data) => data.name && data.name.trim().length >= 3,
-  {
+export const insertCircleSchema = createInsertSchema(circles)
+  .pick({
+    name: true,
+    description: true,
+    creatorId: true,
+    isPrivate: true,
+    allowPublicJoin: true,
+    tags: true,
+    primaryCuisine: true,
+    priceRange: true,
+    location: true,
+    memberCount: true,
+    featured: true,
+    trending: true,
+    inviteCode: true,
+    coverImage: true,
+  })
+  .refine((data) => data.name && data.name.trim().length >= 3, {
     message: "Circle name must be at least 3 characters",
-    path: ["name"]
-  }
-).refine(
-  (data) => typeof data.creatorId === 'number' && data.creatorId > 0,
-  {
+    path: ["name"],
+  })
+  .refine((data) => typeof data.creatorId === "number" && data.creatorId > 0, {
     message: "Valid creator ID is required",
-    path: ["creatorId"]
-  }
-).refine(
-  (data) => !data.inviteCode || /^[A-Z0-9]{6,12}$/.test(data.inviteCode),
-  {
-    message: "Invite code must be 6-12 uppercase alphanumeric characters",
-    path: ["inviteCode"]
-  }
-);
+    path: ["creatorId"],
+  })
+  .refine(
+    (data) => !data.inviteCode || /^[A-Z0-9]{6,12}$/.test(data.inviteCode),
+    {
+      message: "Invite code must be 6-12 uppercase alphanumeric characters",
+      path: ["inviteCode"],
+    },
+  );
 
 // CircleMember model
 export const circleMembers = pgTable("circle_members", {
   id: serial("id").primaryKey(),
-  circleId: integer("circle_id").references(() => circles.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  circleId: integer("circle_id")
+    .references(() => circles.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   role: text("role").default("member"), // Can be: "owner", "admin", "member"
   status: text("status").default("active"), // Can be: "pending", "active", "blocked"
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
@@ -251,9 +265,13 @@ export const insertCircleMemberSchema = createInsertSchema(circleMembers).pick({
 // Circle Invites model
 export const circleInvites = pgTable("circle_invites", {
   id: serial("id").primaryKey(),
-  circleId: integer("circle_id").references(() => circles.id).notNull(),
+  circleId: integer("circle_id")
+    .references(() => circles.id)
+    .notNull(),
   emailOrUsername: text("email_or_username").notNull(),
-  inviterId: integer("inviter_id").references(() => users.id).notNull(),
+  inviterId: integer("inviter_id")
+    .references(() => users.id)
+    .notNull(),
   status: text("status").notNull().default("pending"), // pending, accepted, declined
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -268,8 +286,12 @@ export const insertCircleInviteSchema = createInsertSchema(circleInvites).pick({
 // User Followers model (for following system)
 export const userFollowers = pgTable("user_followers", {
   id: serial("id").primaryKey(),
-  followerId: integer("follower_id").references(() => users.id).notNull(),
-  followingId: integer("following_id").references(() => users.id).notNull(),
+  followerId: integer("follower_id")
+    .references(() => users.id)
+    .notNull(),
+  followingId: integer("following_id")
+    .references(() => users.id)
+    .notNull(),
   status: text("status").default("following"), // Can be: "pending", "following", "blocked"
   createdAt: timestamp("created_at").defaultNow().notNull(),
   approvedAt: timestamp("approved_at"),
@@ -301,7 +323,9 @@ export const savedRestaurants = pgTable("saved_restaurants", {
   savedAt: timestamp("saved_at").defaultNow().notNull(),
 });
 
-export const insertSavedRestaurantSchema = createInsertSchema(savedRestaurants).pick({
+export const insertSavedRestaurantSchema = createInsertSchema(
+  savedRestaurants,
+).pick({
   restaurantId: true,
   userId: true,
 });
@@ -309,8 +333,12 @@ export const insertSavedRestaurantSchema = createInsertSchema(savedRestaurants).
 // Saved Lists model
 export const savedLists = pgTable("saved_lists", {
   id: serial("id").primaryKey(),
-  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  listId: integer("list_id")
+    .references(() => restaurantLists.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   savedAt: timestamp("saved_at").defaultNow().notNull(),
 });
 
@@ -341,7 +369,9 @@ export const restaurantLists = pgTable("restaurant_lists", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdById: integer("created_by_id")
+    .references(() => users.id)
+    .notNull(),
   circleId: integer("circle_id").references(() => circles.id), // Optional: if associated with a circle
   isPublic: boolean("is_public").default(true),
   tags: text("tags").array(),
@@ -368,7 +398,9 @@ export const restaurantLists = pgTable("restaurant_lists", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertRestaurantListSchema = createInsertSchema(restaurantLists).pick({
+export const insertRestaurantListSchema = createInsertSchema(
+  restaurantLists,
+).pick({
   name: true,
   description: true,
   createdById: true,
@@ -410,7 +442,9 @@ export const restaurantListItems = pgTable("restaurant_list_items", {
   addedAt: timestamp("added_at").defaultNow().notNull(),
 });
 
-export const insertRestaurantListItemSchema = createInsertSchema(restaurantListItems).pick({
+export const insertRestaurantListItemSchema = createInsertSchema(
+  restaurantListItems,
+).pick({
   listId: true,
   restaurantId: true,
   rating: true,
@@ -431,13 +465,19 @@ export const insertRestaurantListItemSchema = createInsertSchema(restaurantListI
 // List Item Comments model (comments on specific list items)
 export const listItemComments = pgTable("list_item_comments", {
   id: serial("id").primaryKey(),
-  itemId: integer("item_id").notNull().references(() => restaurantListItems.id),
-  userId: integer("user_id").notNull().references(() => users.id),
+  itemId: integer("item_id")
+    .notNull()
+    .references(() => restaurantListItems.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertListItemCommentSchema = createInsertSchema(listItemComments).pick({
+export const insertListItemCommentSchema = createInsertSchema(
+  listItemComments,
+).pick({
   itemId: true,
   userId: true,
   content: true,
@@ -446,16 +486,24 @@ export const insertListItemCommentSchema = createInsertSchema(listItemComments).
 // Circle Shared Lists model (for sharing lists with circles)
 export const circleSharedLists = pgTable("circle_shared_lists", {
   id: serial("id").primaryKey(),
-  circleId: integer("circle_id").references(() => circles.id).notNull(),
-  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
-  sharedById: integer("shared_by_id").references(() => users.id).notNull(),
+  circleId: integer("circle_id")
+    .references(() => circles.id)
+    .notNull(),
+  listId: integer("list_id")
+    .references(() => restaurantLists.id)
+    .notNull(),
+  sharedById: integer("shared_by_id")
+    .references(() => users.id)
+    .notNull(),
   sharedAt: timestamp("shared_at").defaultNow().notNull(),
   // Optional: permissions for the shared list
   canEdit: boolean("can_edit").default(false),
   canReshare: boolean("can_reshare").default(false),
 });
 
-export const insertCircleSharedListSchema = createInsertSchema(circleSharedLists).pick({
+export const insertCircleSharedListSchema = createInsertSchema(
+  circleSharedLists,
+).pick({
   circleId: true,
   listId: true,
   sharedById: true,
@@ -514,20 +562,30 @@ export type RestaurantList = typeof restaurantLists.$inferSelect;
 export type InsertRestaurantList = z.infer<typeof insertRestaurantListSchema>;
 
 export type RestaurantListItem = typeof restaurantListItems.$inferSelect;
-export type InsertRestaurantListItem = z.infer<typeof insertRestaurantListItemSchema>;
+export type InsertRestaurantListItem = z.infer<
+  typeof insertRestaurantListItemSchema
+>;
 
 export type ListItemComment = typeof listItemComments.$inferSelect;
 export type InsertListItemComment = z.infer<typeof insertListItemCommentSchema>;
 
 export type CircleSharedList = typeof circleSharedLists.$inferSelect;
-export type InsertCircleSharedList = z.infer<typeof insertCircleSharedListSchema>;
+export type InsertCircleSharedList = z.infer<
+  typeof insertCircleSharedListSchema
+>;
 
 // Shared Lists model (for tracking when lists are shared with circles)
 export const sharedLists = pgTable("shared_lists", {
   id: serial("id").primaryKey(),
-  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
-  circleId: integer("circle_id").references(() => circles.id).notNull(),
-  sharedById: integer("shared_by_id").references(() => users.id).notNull(),
+  listId: integer("list_id")
+    .references(() => restaurantLists.id)
+    .notNull(),
+  circleId: integer("circle_id")
+    .references(() => circles.id)
+    .notNull(),
+  sharedById: integer("shared_by_id")
+    .references(() => users.id)
+    .notNull(),
   sharedAt: timestamp("shared_at").defaultNow().notNull(),
   // Additional permissions
   canEdit: boolean("can_edit").default(false),
@@ -545,12 +603,12 @@ export const insertSharedListSchema = createInsertSchema(sharedLists).pick({
 export type SharedList = typeof sharedLists.$inferSelect;
 export type InsertSharedList = z.infer<typeof insertSharedListSchema>;
 
-
-
 // Content Reports model for User Story 5: User-Generated Content Moderation
 export const contentReports = pgTable("content_reports", {
   id: serial("id").primaryKey(),
-  reporterId: integer("reporter_id").references(() => users.id).notNull(),
+  reporterId: integer("reporter_id")
+    .references(() => users.id)
+    .notNull(),
   contentType: text("content_type").notNull(), // 'post', 'comment', 'list', 'user'
   contentId: integer("content_id").notNull(),
   reason: text("reason").notNull(), // 'spam', 'inappropriate', 'harassment', 'false_info', 'other'
@@ -562,7 +620,9 @@ export const contentReports = pgTable("content_reports", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertContentReportSchema = createInsertSchema(contentReports).pick({
+export const insertContentReportSchema = createInsertSchema(
+  contentReports,
+).pick({
   reporterId: true,
   contentType: true,
   contentId: true,
@@ -576,8 +636,12 @@ export type InsertContentReport = z.infer<typeof insertContentReportSchema>;
 // Post List Items model (for tagging posts into lists)
 export const postListItems = pgTable("post_list_items", {
   id: serial("id").primaryKey(),
-  postId: integer("post_id").references(() => posts.id).notNull(),
-  listId: integer("list_id").references(() => restaurantLists.id).notNull(),
+  postId: integer("post_id")
+    .references(() => posts.id)
+    .notNull(),
+  listId: integer("list_id")
+    .references(() => restaurantLists.id)
+    .notNull(),
   addedAt: timestamp("added_at").defaultNow().notNull(),
 });
 
@@ -602,7 +666,9 @@ export const searchAnalytics = pgTable("search_analytics", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
-export const insertSearchAnalyticsSchema = createInsertSchema(searchAnalytics).pick({
+export const insertSearchAnalyticsSchema = createInsertSchema(
+  searchAnalytics,
+).pick({
   userId: true,
   query: true,
   category: true,
@@ -618,14 +684,18 @@ export type InsertSearchAnalytics = z.infer<typeof insertSearchAnalyticsSchema>;
 // User Search Preferences model for personalized search
 export const userSearchPreferences = pgTable("user_search_preferences", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   recentSearches: text("recent_searches").array(), // Last 20 searches
   favoriteCategories: text("favorite_categories").array(), // Preferred search categories
   searchFilters: json("search_filters"), // User's preferred default filters
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertUserSearchPreferencesSchema = createInsertSchema(userSearchPreferences).pick({
+export const insertUserSearchPreferencesSchema = createInsertSchema(
+  userSearchPreferences,
+).pick({
   userId: true,
   recentSearches: true,
   favoriteCategories: true,
@@ -633,7 +703,9 @@ export const insertUserSearchPreferencesSchema = createInsertSchema(userSearchPr
 });
 
 export type UserSearchPreferences = typeof userSearchPreferences.$inferSelect;
-export type InsertUserSearchPreferences = z.infer<typeof insertUserSearchPreferencesSchema>;
+export type InsertUserSearchPreferences = z.infer<
+  typeof insertUserSearchPreferencesSchema
+>;
 
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations

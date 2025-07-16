@@ -1,0 +1,37 @@
+CRITICAL POST CREATION FLOW FIXES - COMPLETE IMPLEMENTATION
+Context: The post creation flow is not working according to specifications. Multiple components need to be fixed and aligned.
+CURRENT ISSUES:
+1. Post type selector showing wrong options (Moment/Dish with percentages vs our 3 specified types)
+2. Forms have wrong validation rules and missing/incorrect fields
+3. Navigation broken when canceling post creation
+4. Restaurant Rec post type missing entirely
+REQUIRED SPECIFICATIONS (from our previous discussions):
+🍽️ POST TYPE 1: Food Moment
+- Goal: Quick snapshot of what you're eating now
+- Fields: Image (optional), Caption, Tags (optional), Share Destination
+- Validation: Image OR caption required (not both mandatory)
+- Style: Instagram Story/BeReal model
+📝 POST TYPE 2: Dish Review  
+- Goal: Thoughtful opinion on a specific dish
+- Fields: Dish name (required), Rating (1-5 stars), What I liked (optional), What I didn't like (optional), Image (optional), Restaurant, Tags, Share Destination
+- Validation: Dish name and rating required
+📍 POST TYPE 3: Restaurant Rec
+- Goal: Shoutout a restaurant
+- Fields: Restaurant name (required), Type/cuisine (optional), City (optional), Tags, Notes/why recommend (optional), Image (optional), Save to List toggle, Share Destination
+- Validation: Restaurant name required
+TASKS:
+1. Fix PostTypeSelector to show correct 3 options with proper titles/descriptions
+2. Update FoodMomentForm to match specifications (optional image, proper validation)
+3. Fix RecommendDishForm to match specifications
+4. Create/fix Restaurant Rec form (ListOfSpotsForm should be Restaurant Rec)
+5. Fix navigation to return to homepage on cancel
+6. Remove percentage matching and irrelevant UI elements
+7. Ensure all forms integrate properly with PostFormContainer
+8. Test complete flow from Quick Actions → Post Type Selection → Form → Cancel/Submit
+VALIDATION CRITERIA:
+- All 3 post types display correctly in selector
+- Each form matches exact field specifications
+- Validation rules work as specified
+- Navigation works properly (cancel returns to homepage)
+- No broken UI elements or incorrect labels
+Please review the current PostTypeSelector, all form components, and PostFormContainer to ensure they match these specifications exactly.
