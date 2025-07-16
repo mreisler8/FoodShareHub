@@ -12,7 +12,8 @@ import {
   UtensilsCrossed,
   Loader2,
   CheckCircle,
-  Camera
+  Camera,
+  Eye
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
@@ -29,8 +30,11 @@ interface Restaurant {
 
 interface RecommendDishFormProps {
   onSubmit: (data: any) => void;
+  onPreview?: (data: any) => void;
   isLoading?: boolean;
   className?: string;
+  initialData?: any;
+  onStateChange?: (state: any) => void;
 }
 
 const TASTE_CATEGORIES = [
@@ -42,7 +46,14 @@ const DISH_CATEGORIES = [
   'Appetizer', 'Main Course', 'Dessert', 'Drink', 'Side Dish', 'Snack'
 ];
 
-export function RecommendDishForm({ onSubmit, isLoading, className = '' }: RecommendDishFormProps) {
+export function RecommendDishForm({ 
+  onSubmit, 
+  onPreview, 
+  isLoading, 
+  className = '', 
+  initialData = {},
+  onStateChange
+}: RecommendDishFormProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [dishName, setDishName] = useState('');
@@ -137,6 +148,41 @@ export function RecommendDishForm({ onSubmit, isLoading, className = '' }: Recom
     };
 
     onSubmit(formData);
+  };
+
+  const handlePreview = () => {
+    if (!canSubmit || !onPreview) return;
+
+    const content = [
+      `Dish: ${dishName}`,
+      dishCategory && `Category: ${dishCategory}`,
+      tasteNotes.length > 0 && `Taste notes: ${tasteNotes.join(', ')}`,
+      description && `Description: ${description}`,
+      whyRecommend && `Why I recommend it: ${whyRecommend}`
+    ].filter(Boolean).join('\n\n');
+
+    const formData = {
+      postType: 'dish',
+      restaurantId: selectedRestaurant.id,
+      content,
+      rating,
+      images: media.filter(m => m.type === 'image').map(m => m.url),
+      videos: media.filter(m => m.type === 'video').map(m => m.url),
+      imageTags,
+      visibility: visibilitySettings,
+      metadata: {
+        dishName,
+        dishCategory,
+        tasteNotes,
+        restaurantName: selectedRestaurant.name,
+        restaurantLocation: selectedRestaurant.location,
+        hasPhotos: media.some(m => m.type === 'image'),
+        hasVideos: media.some(m => m.type === 'video'),
+        mediaCount: media.length
+      }
+    };
+
+    onPreview(formData);
   };
 
   const canSubmit = selectedRestaurant && dishName.trim() && whyRecommend.trim() && rating > 0;
@@ -340,24 +386,37 @@ export function RecommendDishForm({ onSubmit, isLoading, className = '' }: Recom
         />
       </div>
 
-      {/* Submit Button */}
-      <Button
-        onClick={handleSubmit}
-        disabled={!canSubmit || isLoading}
-        className="w-full"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Sharing Recommendation...
-          </>
-        ) : (
-          <>
-            <UtensilsCrossed className="w-4 h-4 mr-2" />
-            Recommend This Dish
-          </>
+      {/* Action Buttons */}
+      <div className="flex gap-2">
+        {onPreview && (
+          <Button
+            variant="outline"
+            onClick={handlePreview}
+            disabled={!canSubmit}
+            className="flex-1"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Preview
+          </Button>
         )}
-      </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!canSubmit || isLoading}
+          className="flex-1"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Sharing Recommendation...
+            </>
+          ) : (
+            <>
+              <UtensilsCrossed className="w-4 h-4 mr-2" />
+              Recommend This Dish
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,7 @@
 /* Modern Design System - Updated July 2, 2025 1:13 AM */
+/* Import modern post animations */
+@import './components/post/modern-post-animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

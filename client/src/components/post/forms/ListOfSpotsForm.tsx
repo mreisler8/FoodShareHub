@@ -12,7 +12,8 @@ import {
   X, 
   MapPin, 
   Star,
-  Loader2
+  Loader2,
+  Eye
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -38,8 +39,11 @@ interface ListRestaurant extends Restaurant {
 
 interface ListOfSpotsFormProps {
   onSubmit: (data: any) => void;
+  onPreview?: (data: any) => void;
   isLoading?: boolean;
   className?: string;
+  initialData?: any;
+  onStateChange?: (state: any) => void;
 }
 
 interface SortableRestaurantProps {
@@ -132,7 +136,14 @@ function SortableRestaurant({ restaurant, onRemove, onUpdate }: SortableRestaura
   );
 }
 
-export function ListOfSpotsForm({ onSubmit, isLoading, className = '' }: ListOfSpotsFormProps) {
+export function ListOfSpotsForm({ 
+  onSubmit, 
+  onPreview, 
+  isLoading, 
+  className = '', 
+  initialData = {},
+  onStateChange
+}: ListOfSpotsFormProps) {
   const [listName, setListName] = useState('');
   const [description, setDescription] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -228,6 +239,24 @@ export function ListOfSpotsForm({ onSubmit, isLoading, className = '' }: ListOfS
       }
     };
     onSubmit(formData);
+  };
+
+  const handlePreview = () => {
+    if (!canSubmit || !onPreview) return;
+    
+    const formData = {
+      postType: 'list',
+      listName,
+      description,
+      restaurants,
+      visibility: visibilitySettings,
+      metadata: {
+        listType: 'spots',
+        restaurantCount: restaurants.length,
+        averageRating: restaurants.reduce((sum, r) => sum + (r.personalRating || 0), 0) / restaurants.length
+      }
+    };
+    onPreview(formData);
   };
 
   const canSubmit = listName.trim() && restaurants.length > 0;
@@ -352,21 +381,34 @@ export function ListOfSpotsForm({ onSubmit, isLoading, className = '' }: ListOfS
         />
       </div>
 
-      {/* Submit Button */}
-      <Button
-        onClick={handleSubmit}
-        disabled={!canSubmit || isLoading}
-        className="w-full"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Creating List...
-          </>
-        ) : (
-          'Create List of Spots'
+      {/* Action Buttons */}
+      <div className="flex gap-2">
+        {onPreview && (
+          <Button
+            variant="outline"
+            onClick={handlePreview}
+            disabled={!canSubmit}
+            className="flex-1"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Preview
+          </Button>
         )}
-      </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!canSubmit || isLoading}
+          className="flex-1"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Creating List...
+            </>
+          ) : (
+            'Create List of Spots'
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

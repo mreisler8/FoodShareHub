@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { EnhancedCreatePost } from '@/components/post/EnhancedCreatePost';
+import { ModernCreatePost } from '@/components/post/ModernCreatePost';
 import { useLocation } from 'wouter';
 
 export default function CreatePost() {
@@ -15,7 +15,7 @@ export default function CreatePost() {
   };
 
   return (
-    <EnhancedCreatePost
+    <ModernCreatePost
       open={isOpen}
       onOpenChange={handleClose}
     />

@@ -10,7 +10,8 @@ import {
   Star,
   Camera,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  Eye
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
@@ -27,11 +28,21 @@ interface Restaurant {
 
 interface FoodMomentFormProps {
   onSubmit: (data: any) => void;
+  onPreview?: (data: any) => void;
   isLoading?: boolean;
   className?: string;
+  initialData?: any;
+  onStateChange?: (state: any) => void;
 }
 
-export function FoodMomentForm({ onSubmit, isLoading, className = '' }: FoodMomentFormProps) {
+export function FoodMomentForm({ 
+  onSubmit, 
+  onPreview, 
+  isLoading, 
+  className = '', 
+  initialData = {},
+  onStateChange
+}: FoodMomentFormProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [rating, setRating] = useState(0);
@@ -111,6 +122,36 @@ export function FoodMomentForm({ onSubmit, isLoading, className = '' }: FoodMome
     };
 
     onSubmit(formData);
+  };
+
+  const handlePreview = () => {
+    if (!canSubmit || !onPreview) return;
+
+    const content = [
+      whatILiked && `What I liked: ${whatILiked}`,
+      whatIDidntLike && `What I didn't like: ${whatIDidntLike}`,
+      additionalNotes && `Additional notes: ${additionalNotes}`
+    ].filter(Boolean).join('\n\n');
+
+    const formData = {
+      postType: 'moment',
+      restaurantId: selectedRestaurant.id,
+      content,
+      rating,
+      images: media.filter(m => m.type === 'image').map(m => m.url),
+      videos: media.filter(m => m.type === 'video').map(m => m.url),
+      imageTags,
+      visibility: visibilitySettings,
+      metadata: {
+        restaurantName: selectedRestaurant.name,
+        restaurantLocation: selectedRestaurant.location,
+        hasPhotos: media.some(m => m.type === 'image'),
+        hasVideos: media.some(m => m.type === 'video'),
+        mediaCount: media.length
+      }
+    };
+
+    onPreview(formData);
   };
 
   const canSubmit = selectedRestaurant && whatILiked.trim() && media.length > 0 && rating > 0;
@@ -278,21 +319,34 @@ export function FoodMomentForm({ onSubmit, isLoading, className = '' }: FoodMome
         />
       </div>
 
-      {/* Submit Button */}
-      <Button
-        onClick={handleSubmit}
-        disabled={!canSubmit || isLoading}
-        className="w-full"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Sharing Moment...
-          </>
-        ) : (
-          'Share Food Moment'
+      {/* Action Buttons */}
+      <div className="flex gap-2">
+        {onPreview && (
+          <Button
+            variant="outline"
+            onClick={handlePreview}
+            disabled={!canSubmit}
+            className="flex-1"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Preview
+          </Button>
         )}
-      </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!canSubmit || isLoading}
+          className="flex-1"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Sharing Moment...
+            </>
+          ) : (
+            'Share Food Moment'
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
