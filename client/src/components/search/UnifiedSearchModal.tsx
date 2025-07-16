@@ -51,7 +51,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('restaurants');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  
+
   // Fetch personalized recent searches
   const { data: personalizedSearches } = useQuery({
     queryKey: ['/api/search/recent-searches'],
@@ -90,11 +90,11 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   const requestLocation = async () => {
     try {
       setLocationPermission('prompt'); // Set loading state
-      
+
       // Use the LocationService instance
       const locationService = LocationService.getInstance();
       const location = await locationService.getCurrentLocation();
-      
+
       setUserLocation(location);
       setLocationPermission('granted');
       console.log('Location obtained:', location);
@@ -136,13 +136,13 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
         throw new Error(errorData.error || 'Search failed');
       }
-      
+
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         console.error('Invalid response content type:', contentType);
         throw new Error('Invalid response format');
       }
-      
+
       const data = await response.json();
 
       // Ensure avgRating is always a valid number
@@ -197,13 +197,13 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         }
         throw new Error('Failed to fetch trending content');
       }
-      
+
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         console.error('Invalid trending response content type:', contentType);
         throw new Error('Invalid response format');
       }
-      
+
       return response.json();
     },
     enabled: open && !debouncedQuery,
@@ -265,7 +265,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = `HTTP ${response.status}: ${errorText}`;
@@ -275,19 +275,19 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         } catch (e) {
           // Keep original error message if JSON parsing fails
         }
-        
+
         // If already following/unfollowing, just refresh to sync state
         if (errorMessage.includes('Already following') || errorMessage.includes('Not following')) {
           refetch();
           return;
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       // Refresh search results to update follow status
       refetch();
-      
+
       // Also invalidate all user-related queries to ensure consistency
       queryClient.invalidateQueries({ 
         queryKey: ['/api/search/unified'] 

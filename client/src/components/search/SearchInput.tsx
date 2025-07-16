@@ -61,26 +61,28 @@ export function SearchInput({
     <div className={cn("relative", className)}>
       <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2 z-10" />
       <Input
-        ref={inputRef}
-        type="text"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        disabled={disabled}
-        className={cn(
-          "pl-10",
-          showLocationButton && "pr-12",
-          isLoading && "pr-20"
-        )}
-      />
-      
+          ref={inputRef}
+          type="text"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          disabled={disabled}
+          className={cn(
+            "pl-10",
+            showLocationButton && "pr-12",
+            isLoading && "pr-20"
+          )}
+          autoComplete="off"
+          spellCheck="false"
+        />
+
       {isLoading && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </div>
       )}
-      
+
       {showLocationButton && onLocationRequest && !isLoading && (
         <Button
           type="button"

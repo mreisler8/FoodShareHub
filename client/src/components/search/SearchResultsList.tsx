@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ interface SearchResultsListProps {
   showFollowButton?: boolean;
   highlightedIndex?: number;
   className?: string;
+  enableDirectNavigation?: boolean;
 }
 
 export function SearchResultsList({
@@ -38,8 +40,26 @@ export function SearchResultsList({
   onFollowToggle,
   showFollowButton = false,
   highlightedIndex = -1,
-  className
+  className,
+  enableDirectNavigation = false
 }: SearchResultsListProps) {
+  const [, setLocation] = useLocation();
+
+  const handleResultClick = (result: SearchResult) => {
+    // Direct navigation for restaurants when enabled
+    if (enableDirectNavigation && result.type === 'restaurant') {
+      if (result.googlePlaceId) {
+        setLocation(`/restaurant?googlePlaceId=${encodeURIComponent(result.googlePlaceId)}`);
+      } else {
+        setLocation(`/restaurant/${result.id}`);
+      }
+      return;
+    }
+
+    // Default behavior - call the provided handler
+    onResultClick?.(result);
+  };
+
   const getResultIcon = (type: string) => {
     switch (type) {
       case 'restaurant': return <UtensilsCrossed className="h-4 w-4 text-primary" />;
@@ -109,7 +129,7 @@ export function SearchResultsList({
             "cursor-pointer hover:bg-accent transition-colors",
             highlightedIndex === index && "bg-accent"
           )}
-          onClick={() => onResultClick?.(result)}
+          onClick={() => handleResultClick(result)}
         >
           <CardContent className="p-3">
             <div className="flex items-center space-x-3">
@@ -142,26 +162,26 @@ export function SearchResultsList({
                     <h3 className="font-medium text-sm text-foreground truncate">
                       {result.name}
                     </h3>
-                    
+
                     {result.subtitle && (
                       <p className="text-xs text-muted-foreground truncate">
                         {result.subtitle}
                       </p>
                     )}
-                    
+
                     {result.type === 'user' && result.username && (
                       <p className="text-xs text-muted-foreground">
                         @{result.username}
                       </p>
                     )}
-                    
+
                     {result.location && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
                         {result.location}
                       </p>
                     )}
-                    
+
                     {result.avgRating && typeof result.avgRating === 'number' && !isNaN(result.avgRating) && (
                       <div className="flex items-center gap-1 mt-1">
                         <div className="flex">
@@ -181,13 +201,13 @@ export function SearchResultsList({
                         {result.tags[0]}
                       </Badge>
                     )}
-                    
+
                     {result.priceRange && (
                       <Badge variant="outline" className="text-xs">
                         {result.priceRange}
                       </Badge>
                     )}
-                    
+
                     {showFollowButton && result.type === 'user' && onFollowToggle && (
                       <Button
                         variant={result.isFollowing ? "secondary" : "default"}

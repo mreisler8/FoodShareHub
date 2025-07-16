@@ -152,6 +152,9 @@ export default function RestaurantDetailPage() {
   const restaurantId = placeId ? `google_${placeId}` : googlePlaceId ? `google_${googlePlaceId}` : id;
   const isGooglePlace = !!placeId || !!googlePlaceId;
 
+  // Add console log for debugging navigation
+  console.log('RestaurantDetailPage params:', { id, placeId, googlePlaceId, restaurantId });
+
   const { data: restaurant, isLoading, error } = useQuery<RestaurantDetails>({
     queryKey: googlePlaceId ? [`/api/restaurants?googlePlaceId=${googlePlaceId}`] : [`/api/restaurants/${restaurantId}`],
     enabled: !!restaurantId || !!googlePlaceId,

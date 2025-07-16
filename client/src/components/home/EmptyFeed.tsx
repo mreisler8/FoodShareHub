@@ -79,7 +79,7 @@ export function EmptyFeed() {
               Follow some foodie travelers to get personalized recommendations
             </p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/discover/people">
               <Button className="flex items-center gap-2">
@@ -201,3 +201,4 @@ export function EmptyFeed() {
     </div>
   );
 }
+```The goal is to replace the import statement to include CardContent from "@/components/ui/card".
