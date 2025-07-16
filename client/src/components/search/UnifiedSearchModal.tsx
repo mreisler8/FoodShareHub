@@ -258,9 +258,10 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   const handleFollowToggle = async (userId: string, isFollowing?: boolean) => {
     try {
       const method = isFollowing ? 'DELETE' : 'POST';
-      const response = await fetch(`/api/users/${userId}/follow`, {
+      const response = await fetch(`/api/follow/${userId}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
       
       if (!response.ok) {

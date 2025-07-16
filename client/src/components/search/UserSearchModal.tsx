@@ -69,11 +69,11 @@ export function UserSearchModal({
   const followMutation = useMutation({
     mutationFn: async ({ userId, action }: { userId: string, action: 'follow' | 'unfollow' }) => {
       if (action === 'follow') {
-        await apiRequest(`/api/users/${userId}/follow`, {
+        await apiRequest(`/api/follow/${userId}`, {
           method: 'POST',
         });
       } else {
-        await apiRequest(`/api/users/${userId}/unfollow`, {
+        await apiRequest(`/api/follow/${userId}`, {
           method: 'DELETE',
         });
       }

@@ -63,9 +63,9 @@ export function SuggestedUsersCard() {
   const followMutation = useMutation({
     mutationFn: async ({ userId, action }: { userId: number, action: 'follow' | 'unfollow' }) => {
       if (action === 'follow') {
-        return await apiRequest("POST", `/api/users/${userId}/follow`);
+        return await apiRequest(`/api/follow/${userId}`, { method: 'POST' });
       } else {
-        return await apiRequest("DELETE", `/api/users/${userId}/follow`);
+        return await apiRequest(`/api/follow/${userId}`, { method: 'DELETE' });
       }
     },
     onSuccess: (_, { userId, action }) => {
