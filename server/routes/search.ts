@@ -290,24 +290,27 @@ router.get('/unified', authenticate, async (req, res) => {
             }
           })),
 
-          users: dbUsers.map(u => ({
-            id: u.id.toString(),
-            name: u.name,
-            type: 'user' as const,
-            subtitle: u.bio || `@${u.username}`,
-            thumbnailUrl: u.profilePicture,
-            avatar: u.profilePicture, // For compatibility with SearchResultsList
-            username: u.username,
-            bio: u.bio,
-            profilePicture: u.profilePicture,
-            isFollowing: u.isFollowing,
-            metadata: {
+          users: dbUsers.map(u => {
+            console.log(`DEBUG: User ${u.name} (ID: ${u.id}) isFollowing: ${u.isFollowing} (type: ${typeof u.isFollowing})`);
+            return {
+              id: u.id.toString(),
+              name: u.name,
+              type: 'user' as const,
+              subtitle: u.bio || `@${u.username}`,
+              thumbnailUrl: u.profilePicture,
+              avatar: u.profilePicture, // For compatibility with SearchResultsList
               username: u.username,
-              preferredCuisines: u.preferredCuisines,
-              favoriteFood: u.favoriteFood,
-              favoriteRestaurant: u.favoriteRestaurant,
-            }
-          }))
+              bio: u.bio,
+              profilePicture: u.profilePicture,
+              isFollowing: u.isFollowing,
+              metadata: {
+                username: u.username,
+                preferredCuisines: u.preferredCuisines,
+                favoriteFood: u.favoriteFood,
+                favoriteRestaurant: u.favoriteRestaurant,
+              }
+            };
+          })
         };
 
         console.log(`Search results: ${formattedResults.restaurants.length} restaurants, ${formattedResults.lists.length} lists, ${formattedResults.posts.length} posts, ${formattedResults.users.length} users`);
