@@ -39,7 +39,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
     dishName: '',
     category: '',
     description: '',
-    tasteNotes: [] as string[]
+    tags: [] as string[]
   });
 
   // Debounce search query
@@ -66,16 +66,14 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
   const recommendedTypes = [
     {
       type: 'moment',
-      title: 'Moment',
-      description: 'Share your first food experience! Photos make it engaging.',
-      match: 90,
+      title: 'Food Moment',
+      description: 'Quick snapshot of what you\'re eating right now.',
       icon: '🍽️'
     },
     {
       type: 'dish',
-      title: 'Dish',
-      description: 'Dish recommendations are getting lots of engagement!',
-      match: 70,
+      title: 'Dish Review',
+      description: 'Share your thoughtful opinion on a specific dish.',
       icon: '🍕'
     }
   ];
@@ -86,7 +84,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
     { type: 'restaurant', title: 'Restaurant Rec', description: 'Shoutout a restaurant you love', icon: '📍' }
   ];
 
-  const tasteOptions = ['Sweet', 'Salty', 'Spicy', 'Sour', 'Bitter', 'Umami', 'Crispy', 'Creamy', 'Tender'];
+  const suggestedTags = ['Spicy', 'Comfort Food', 'Healthy', 'Vegetarian', 'Vegan', 'Gluten-Free', 'Must Try', 'Hidden Gem', 'Date Night', 'Family Friendly', 'Quick Bite', 'Instagrammable'];
   const categories = ['Appetizer', 'Main Course', 'Dessert', 'Beverage', 'Salad', 'Soup', 'Pasta', 'Pizza', 'Burger', 'Sushi'];
 
   const handleTypeSelect = (type: string) => {
@@ -104,12 +102,12 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
     setFormData(prev => ({ ...prev, rating }));
   };
 
-  const handleTasteNoteToggle = (note: string) => {
+  const handleTagToggle = (tag: string) => {
     setFormData(prev => ({
       ...prev,
-      tasteNotes: prev.tasteNotes.includes(note)
-        ? prev.tasteNotes.filter(n => n !== note)
-        : [...prev.tasteNotes, note]
+      tags: prev.tags.includes(tag)
+        ? prev.tags.filter(t => t !== tag)
+        : [...prev.tags, tag]
     }));
   };
 
@@ -124,7 +122,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
           dishName: formData.dishName,
           category: formData.category,
           description: formData.description,
-          tasteNotes: formData.tasteNotes
+          tags: formData.tags
         }),
       });
 
@@ -199,12 +197,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">📈</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {type.match}% match
-                            </Badge>
-                          </div>
+                          <span className="text-2xl">{type.icon}</span>
                           <div>
                             <h4 className="font-medium">{type.title}</h4>
                             <p className="text-sm text-gray-600">{type.description}</p>
@@ -352,18 +345,19 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
               />
             </div>
 
-            {/* Taste Notes */}
+            {/* Tags */}
             <div>
-              <label className="block text-sm font-medium mb-2">Taste Notes</label>
+              <label className="block text-sm font-medium mb-2">Tags</label>
+              <p className="text-sm text-gray-500 mb-3">Add tags to help others discover your post</p>
               <div className="flex flex-wrap gap-2">
-                {tasteOptions.map((note) => (
+                {suggestedTags.map((tag) => (
                   <Badge
-                    key={note}
-                    variant={formData.tasteNotes.includes(note) ? "default" : "outline"}
+                    key={tag}
+                    variant={formData.tags.includes(tag) ? "default" : "outline"}
                     className="cursor-pointer"
-                    onClick={() => handleTasteNoteToggle(note)}
+                    onClick={() => handleTagToggle(tag)}
                   >
-                    {note}
+                    {tag}
                   </Badge>
                 ))}
               </div>
