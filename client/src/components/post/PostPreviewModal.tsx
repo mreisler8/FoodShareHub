@@ -221,24 +221,26 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-lg">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col bg-white rounded-lg shadow-lg">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
             Preview Your Post
           </DialogTitle>
         </DialogHeader>
         
+        <div className="flex-1 overflow-y-auto px-1")
+        
         <div className="space-y-6">
-          {/* Post Type Badge */}
-          <div className="flex items-center justify-between">
-            <Badge variant="outline" className="flex items-center gap-2">
-              <PostTypeIcon type={data.postType} size="sm" />
-              {getPostTypeLabel(data.postType)}
-            </Badge>
-            
-            {renderVisibilityInfo()}
-          </div>
+            {/* Post Type Badge */}
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="flex items-center gap-2">
+                <PostTypeIcon type={data.postType} size="sm" />
+                {getPostTypeLabel(data.postType)}
+              </Badge>
+              
+              {renderVisibilityInfo()}
+            </div>
           
           {/* Main Content */}
           <Card>
@@ -262,15 +264,16 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
           </Card>
           
           {/* Warning */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              <strong>Preview:</strong> This is how your post will appear to others. 
-              Review the content and visibility settings before publishing.
-            </p>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Preview:</strong> This is how your post will appear to others. 
+                Review the content and visibility settings before publishing.
+              </p>
+            </div>
           </div>
         </div>
         
-        <DialogFooter className="gap-2">
+        <DialogFooter className="flex-shrink-0 gap-2 pt-4">
           <Button variant="outline" onClick={handleClose}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Edit Post

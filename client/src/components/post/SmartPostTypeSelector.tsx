@@ -62,7 +62,7 @@ export function SmartPostTypeSelector({
     if (!userStats || !userStats.postTypeBreakdown) return [];
 
     const recommendations: SmartRecommendation[] = [];
-    
+
     // New user nudge (less than 7 days, fewer than 3 posts)
     if (userStats.accountAgeInDays < 7 && userStats.totalPosts < 3) {
       recommendations.push({
@@ -124,7 +124,7 @@ export function SmartPostTypeSelector({
         })
       });
     }
-    
+
     onTypeSelect(type);
   };
 
@@ -175,12 +175,12 @@ export function SmartPostTypeSelector({
                       {Math.round(rec.confidence * 100)}% match
                     </Badge>
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="font-medium capitalize">{rec.type}</div>
                     <div className="text-sm text-muted-foreground">{rec.nudgeText}</div>
                   </div>
-                  
+
                   <ArrowRight className="w-4 h-4 text-muted-foreground" />
                 </div>
               </Card>

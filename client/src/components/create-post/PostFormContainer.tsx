@@ -139,31 +139,32 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Header with back button and preview */}
-      <div className="flex items-center justify-between mb-6">
-        <Button 
-          variant="ghost" 
-          onClick={handleBack}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-        
-        <h1 className="text-2xl font-bold">{getStepTitle()}</h1>
-
-        {(currentStep === 'metadata' || currentStep === 'sharing') && (
-          <Button
-            variant="outline"
-            onClick={() => setShowPreview(true)}
+    <div className="max-h-[90vh] overflow-y-auto">
+      <div className="max-w-4xl mx-auto p-6">
+        {/* Header with back button and preview */}
+        <div className="flex items-center justify-between mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={handleBack}
             className="gap-2"
           >
-            <Eye className="h-4 w-4" />
-            Preview
+            <ArrowLeft className="h-4 w-4" />
+            Back
           </Button>
-        )}
-      </div>
+          
+          <h1 className="text-2xl font-bold">{getStepTitle()}</h1>
+
+          {(currentStep === 'metadata' || currentStep === 'sharing') && (
+            <Button
+              variant="outline"
+              onClick={() => setShowPreview(true)}
+              className="gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              Preview
+            </Button>
+          )}
+        </div>
 
       {/* Progress indicator */}
       <div className="flex items-center gap-2 mb-8">
@@ -253,24 +254,25 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
       )}
 
       {/* Preview Modal */}
-      {showPreview && userData && (
-        <PostPreviewModal
-          open={showPreview}
-          onOpenChange={setShowPreview}
-          data={{
-            postType: selectedType!,
-            ...formData,
-            user: userData
-          }}
-          onConfirm={() => {
-            setShowPreview(false);
-            if (currentStep === 'sharing') {
-              // Continue to final submission
-              handleFinalSubmit(formData);
-            }
-          }}
-        />
-      )}
+        {showPreview && userData && (
+          <PostPreviewModal
+            open={showPreview}
+            onOpenChange={setShowPreview}
+            data={{
+              postType: selectedType!,
+              ...formData,
+              user: userData
+            }}
+            onConfirm={() => {
+              setShowPreview(false);
+              if (currentStep === 'sharing') {
+                // Continue to final submission
+                handleFinalSubmit(formData);
+              }
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
