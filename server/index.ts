@@ -50,6 +50,8 @@ app.use((req, res, next) => {
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
+    // Ensure response is always JSON
+    res.setHeader('Content-Type', 'application/json');
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
@@ -141,3 +143,38 @@ app.use((req, res, next) => {
   console.error('Unhandled server startup error:', error);
   process.exit(1);
 });
+
+// Global error handlers
+app.use((err: Error, req: any, res: any, next: any) => {
+  console.error('Unhandled error:', err);
+  
+  // Always send JSON response
+  res.setHeader('Content-Type', 'application/json');
+  res.status(500).json({
+    error: 'Internal server error',
+    timestamp: new Date().toISOString(),
+    ...(process.env.NODE_ENV === 'development' ? { details: err.message } : {})
+  });
+});
+
+// Handle 404 for API routes
+app.use('/api/*', (req: any, res: any) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.status(404).json({
+    error: 'API endpoint not found',
+    path: req.path,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
