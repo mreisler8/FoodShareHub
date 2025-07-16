@@ -307,7 +307,7 @@ export default function RestaurantDetailPage() {
               {/* Contact Information */}
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg mb-4">Contact</h3>
+                  <h3 className="font-semibold text-lg mb-4">Contact & Location</h3>
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
                       <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
@@ -322,7 +322,12 @@ export default function RestaurantDetailPage() {
                         <Phone className="h-5 w-5 text-gray-500" />
                         <div>
                           <p className="font-medium">Phone</p>
-                          <p className="text-gray-600">{restaurant.phone}</p>
+                          <a 
+                            href={`tel:${restaurant.phone}`}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            {restaurant.phone}
+                          </a>
                         </div>
                       </div>
                     )}
@@ -344,6 +349,24 @@ export default function RestaurantDetailPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Embedded Map */}
+                    {restaurant.address && (
+                      <div className="mt-4">
+                        <p className="font-medium mb-2">Location Map</p>
+                        <div className="h-48 bg-gray-100 rounded-lg overflow-hidden">
+                          <iframe
+                            src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBxuBRddfzY83RF5FsCk6ON2Mzex8jnKPM&q=${encodeURIComponent(restaurant.address)}`}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -351,7 +374,7 @@ export default function RestaurantDetailPage() {
               {/* Restaurant Information */}
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg mb-4">Information</h3>
+                  <h3 className="font-semibold text-lg mb-4">Restaurant Details</h3>
                   <div className="space-y-3">
                     {restaurant.hours && (
                       <div className="flex items-start gap-3">
@@ -382,7 +405,13 @@ export default function RestaurantDetailPage() {
                         <p className="text-gray-600">{restaurant.cuisine}</p>
                       </div>
                     </div>
+
+                    {/* Category */}
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary">{restaurant.category}</Badge>
+                    </div>
                     
+                    {/* Business Status */}
                     {restaurant.googlePlaces?.isOpen !== undefined && (
                       <div className="flex items-center gap-3">
                         <div className={`h-3 w-3 rounded-full ${restaurant.googlePlaces.isOpen ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -394,6 +423,95 @@ export default function RestaurantDetailPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Rating Summary */}
+                    <div className="border-t pt-3 mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-medium">Ratings Summary</p>
+                      </div>
+                      <div className="space-y-2">
+                        {restaurant.googlePlaces?.rating && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Google Rating</span>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                              <span className="text-sm font-medium">{restaurant.googlePlaces.rating}</span>
+                              <span className="text-xs text-gray-500">({restaurant.googlePlaces.reviewCount} reviews)</span>
+                            </div>
+                          </div>
+                        )}
+                        {restaurant.communityInsights?.followersAverageRating && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Community Rating</span>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 text-orange-500 fill-current" />
+                              <span className="text-sm font-medium">{restaurant.communityInsights.followersAverageRating}</span>
+                              <span className="text-xs text-gray-500">({restaurant.communityInsights.followersReviewCount} reviews)</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Additional Information Cards */}
+            <div className="grid md:grid-cols-3 gap-4">
+              {/* Reservation Options */}
+              <Card>
+                <CardContent className="p-4">
+                  <h4 className="font-medium mb-3">Make a Reservation</h4>
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => window.open(`https://www.opentable.com/s/?text=${encodeURIComponent(restaurant.name + ' ' + restaurant.location)}`, '_blank')}
+                    >
+                      OpenTable
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => window.open(`https://resy.com/cities/new-york-ny?query=${encodeURIComponent(restaurant.name)}`, '_blank')}
+                    >
+                      Resy
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Social Actions */}
+              <Card>
+                <CardContent className="p-4">
+                  <h4 className="font-medium mb-3">Share & Save</h4>
+                  <div className="space-y-2">
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share Restaurant
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Save for Later
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions */}
+              <Card>
+                <CardContent className="p-4">
+                  <h4 className="font-medium mb-3">Quick Actions</h4>
+                  <div className="space-y-2">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Write Review
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Add Photos
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

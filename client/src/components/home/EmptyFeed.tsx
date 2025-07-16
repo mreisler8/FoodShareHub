@@ -1,5 +1,5 @@
-import { Card, CardContent } from "@/components/Card";
-import { Button } from "@/components/Button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Users, List, Search, Plus, Heart } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -201,4 +201,3 @@ export function EmptyFeed() {
     </div>
   );
 }
-```The goal is to replace the import statement to include CardContent from "@/components/ui/card".
