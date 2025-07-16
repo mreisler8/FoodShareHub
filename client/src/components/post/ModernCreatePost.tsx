@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { X, ArrowLeft, Star, Upload, Search, MapPin, ArrowRight } from 'lucide-react';
+import { X, ArrowLeft, Star, Upload, Search, MapPin, ArrowRight, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -41,6 +41,8 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
     description: '',
     tags: [] as string[]
   });
+  
+  const [customTag, setCustomTag] = useState('');
 
   // Debounce search query
   React.useEffect(() => {
@@ -108,6 +110,30 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
       tags: prev.tags.includes(tag)
         ? prev.tags.filter(t => t !== tag)
         : [...prev.tags, tag]
+    }));
+  };
+
+  const handleCustomTagAdd = () => {
+    if (customTag.trim() && !formData.tags.includes(customTag.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, customTag.trim()]
+      }));
+      setCustomTag('');
+    }
+  };
+
+  const handleCustomTagKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCustomTagAdd();
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
   };
 
@@ -349,11 +375,50 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
             <div>
               <label className="block text-sm font-medium mb-2">Tags</label>
               <p className="text-sm text-gray-500 mb-3">Add tags to help others discover your post</p>
+              
+              {/* Selected Tags */}
+              {formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {formData.tags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="default"
+                      className="cursor-pointer"
+                      onClick={() => handleRemoveTag(tag)}
+                    >
+                      {tag}
+                      <X className="ml-1 h-3 w-3" />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
+              {/* Custom Tag Input */}
+              <div className="flex gap-2 mb-3">
+                <Input
+                  placeholder="Add your own tag..."
+                  value={customTag}
+                  onChange={(e) => setCustomTag(e.target.value)}
+                  onKeyPress={handleCustomTagKeyPress}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCustomTagAdd}
+                  disabled={!customTag.trim() || formData.tags.includes(customTag.trim())}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Suggested Tags */}
               <div className="flex flex-wrap gap-2">
-                {suggestedTags.map((tag) => (
+                {suggestedTags.filter(tag => !formData.tags.includes(tag)).map((tag) => (
                   <Badge
                     key={tag}
-                    variant={formData.tags.includes(tag) ? "default" : "outline"}
+                    variant="outline"
                     className="cursor-pointer"
                     onClick={() => handleTagToggle(tag)}
                   >
