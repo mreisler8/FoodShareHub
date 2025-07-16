@@ -106,6 +106,9 @@ export const posts = pgTable("posts", {
   atmosphere: text("atmosphere"), // "quiet", "lively", "romantic", etc.
   serviceRating: integer("service_rating"), // 1-5 rating for service
   dietaryOptions: text("dietary_options").array(), // "vegetarian", "vegan", "gluten-free"
+  // Enhanced post type support
+  postType: text("post_type").notNull().default("moment"), // "list", "moment", "dish"
+  metadata: json("metadata"), // Type-specific data: { dishName?, listId?, etc. }
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

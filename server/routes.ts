@@ -1347,9 +1347,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // Create HTTP server
-  const httpServer = createServer(app);
-
   // WebSocket server temporarily disabled to fix login issues
   // Will be re-enabled after login is working properly
 
