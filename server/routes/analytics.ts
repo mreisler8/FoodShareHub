@@ -37,11 +37,13 @@ router.post('/track', async (req, res) => {
     const userId = req.user!.id;
 
     // Store analytics event in database
-    await storage.createSearchAnalytics({
+    await storage.trackSearchAnalytics({
       userId,
       query: event,
-      source: 'post_type_analytics',
-      metadata: JSON.stringify({ event, data }),
+      category: 'post_type_analytics',
+      resultCount: 0,
+      clicked: false,
+      timestamp: new Date()
     });
 
     res.json({ success: true });
