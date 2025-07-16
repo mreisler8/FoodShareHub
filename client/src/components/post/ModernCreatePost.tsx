@@ -299,33 +299,30 @@ export function ModernCreatePost({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden">
+        <DialogContent 
+          className="sm:max-w-2xl max-h-[90vh] overflow-hidden"
+          onInteractOutside={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onOpenChange(false);
+          }}
+        >
           <DialogHeader className="relative">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {selectedType && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleTypeChange(null as any)}
-                    className="p-1"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                )}
-                <DialogTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  {selectedType ? 'Create Your Post' : 'Choose Post Type'}
-                </DialogTitle>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="p-1"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-2">
+              {selectedType && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleTypeChange(null as any)}
+                  className="p-1"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                {selectedType ? 'Create Your Post' : 'Choose Post Type'}
+              </DialogTitle>
             </div>
           </DialogHeader>
 

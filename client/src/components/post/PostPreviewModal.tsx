@@ -22,10 +22,12 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    // Prevent redirect - just close modal
-    e.preventDefault();
-    e.stopPropagation();
-    handleClose();
+    // Only close if clicking the backdrop, not the modal content
+    if (e.target === e.currentTarget) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleClose();
+    }
   };
 
   const renderPreviewContent = () => {
@@ -137,6 +139,13 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
                 </div>
               </div>
             )}
+
+            {/* Show message when no photos are included */}
+            {(!data.images || data.images.length === 0) && (
+              <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-muted-foreground/25 rounded-lg">
+                <p className="text-sm">No photos included - sharing experience through text only</p>
+              </div>
+            )}
           </div>
         );
 
@@ -231,7 +240,11 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="sm:max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col overflow-hidden"
-        onInteractOutside={handleOverlayClick}
+        onInteractOutside={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleClose();
+        }}
       >
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">

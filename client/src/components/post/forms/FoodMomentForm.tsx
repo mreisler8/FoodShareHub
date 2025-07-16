@@ -93,7 +93,7 @@ export function FoodMomentForm({
   };
 
   const handleSubmit = () => {
-    if (!selectedRestaurant || !whatILiked.trim() || media.length === 0) {
+    if (!selectedRestaurant || !whatILiked.trim()) {
       return;
     }
 
@@ -154,7 +154,7 @@ export function FoodMomentForm({
     onPreview(formData);
   };
 
-  const canSubmit = selectedRestaurant && whatILiked.trim() && media.length > 0 && rating > 0;
+  const canSubmit = selectedRestaurant && whatILiked.trim() && rating > 0;
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -251,12 +251,12 @@ export function FoodMomentForm({
 
       {/* Photo Upload */}
       <div className="space-y-2">
-        <Label>Photos & Videos *</Label>
+        <Label>Photos & Videos</Label>
         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
           <div className="text-center space-y-2">
             <Camera className="w-8 h-8 mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Upload photos or videos of your food experience
+              Upload photos or videos of your food experience (optional)
             </p>
           </div>
           <MediaUploader
@@ -264,11 +264,9 @@ export function FoodMomentForm({
             onTagsChange={handleTagsChange}
           />
         </div>
-        {media.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            At least one photo or video is required for a food moment
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground">
+          Photos help your food moment get more engagement, but they're optional
+        </p>
       </div>
 
       {/* Experience Details */}

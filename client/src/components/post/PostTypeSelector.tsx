@@ -47,8 +47,8 @@ const POST_TYPE_OPTIONS: PostTypeOption[] = [
     subtitle: 'Share your dining experience',
     icon: <Camera className="w-6 h-6" />,
     color: 'bg-green-500',
-    badge: 'Classic',
-    features: ['Single restaurant focus', 'Photo required', 'Rating & review']
+    badge: 'Quick',
+    features: ['Single restaurant focus', 'Photo OR caption', 'Rating & review']
   },
   {
     type: 'dish',
