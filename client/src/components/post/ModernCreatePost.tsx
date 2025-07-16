@@ -173,29 +173,20 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {step === 'form' && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setStep('type')}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
-              <DialogTitle className="flex items-center gap-2">
-                <span className="text-orange-500">🍕</span>
-                {step === 'type' ? 'Choose Post Type' : 'Create Your Post'}
-              </DialogTitle>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-2">
+            {step === 'form' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setStep('type')}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-orange-500">🍕</span>
+              {step === 'type' ? 'Choose Post Type' : 'Create Your Post'}
+            </DialogTitle>
           </div>
         </DialogHeader>
 
