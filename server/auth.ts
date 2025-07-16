@@ -219,25 +219,31 @@ export function setupAuth(app: Express) {
 
 // Enhanced authentication middleware with security hardening
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  // Enhanced session validation
+  // Enhanced session validation with debugging
   const sessionId = req.sessionID;
   const isAuth = req.isAuthenticated();
   const userId = req.user?.id;
 
-  // Authentication successful - remove debug logs for production
+  console.log('Auth middleware - Session ID:', sessionId);
+  console.log('Auth middleware - Is authenticated:', isAuth);
+  console.log('Auth middleware - User ID:', userId);
+  console.log('Auth middleware - Cookie header:', req.headers.cookie);
 
   // Validate session integrity
   if (!sessionId || typeof sessionId !== 'string') {
+    console.log('Auth failed: Invalid session');
     return sendError(res, 401, "Invalid session");
   }
 
   // Validate user authentication
   if (!isAuth) {
+    console.log('Auth failed: Not authenticated');
     return sendError(res, 401, "Not authenticated");
   }
 
   // Validate user object and ID
   if (!userId || typeof userId !== 'number' || userId <= 0 || !Number.isInteger(userId)) {
+    console.log('Auth failed: Invalid user session');
     return sendError(res, 401, "Invalid user session");
   }
 
@@ -250,7 +256,13 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   ].filter(Boolean);
 
   const origin = req.headers.origin;
-  if (origin && !allowedOrigins.includes(origin)) {
+  const host = req.headers.host;
+  
+  // Allow requests from same domain (for Replit environment)
+  const isSameDomain = origin && host && origin.includes(host);
+  const isReplit = origin && origin.includes('.replit.dev');
+  
+  if (origin && !allowedOrigins.includes(origin) && !isSameDomain && !isReplit) {
     console.warn('Rejected request from unauthorized origin:', origin);
     return sendError(res, 403, "Unauthorized origin");
   }
