@@ -7,17 +7,30 @@ import {
   List, 
   Camera, 
   Utensils, 
-  Users, 
-  MapPin, 
+  ChevronRight,
+  Sparkles,
   Star,
-  Clock,
-  ChevronRight
+  TrendingUp
 } from 'lucide-react';
 
 export enum PostType {
   LIST = 'list',
   MOMENT = 'moment',
   DISH = 'dish'
+}
+
+interface PostTypeCard {
+  type: PostType;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  description: string;
+  features: string[];
+  examples: string;
+  color: string;
+  accentColor: string;
+  badge?: string;
+  badgeColor?: string;
 }
 
 interface PostTypeSelectorProps {
@@ -31,140 +44,172 @@ interface PostTypeSelectorProps {
 }
 
 export function PostTypeSelector({ onSelectType, userHistory }: PostTypeSelectorProps) {
-  const [selectedType, setSelectedType] = useState<PostType | null>(null);
+  const [hoveredType, setHoveredType] = useState<PostType | null>(null);
 
-  const handleSelectType = (type: PostType) => {
-    setSelectedType(type);
-    onSelectType(type);
-  };
-
-  // Smart nudges based on user history
-  const getRecommendedBadge = () => {
+  // Smart recommendation logic
+  const getRecommendedType = (): PostType | null => {
     if (!userHistory) return null;
     
     const { listsCreated, momentsShared, circlesJoined } = userHistory;
     
-    if (listsCreated === 0 && circlesJoined > 0) {
-      return PostType.LIST;
-    }
-    if (momentsShared === 0) {
-      return PostType.MOMENT;
-    }
+    // New user - recommend moment
+    if (momentsShared === 0) return PostType.MOMENT;
+    
+    // Has circles but no lists - recommend list
+    if (listsCreated === 0 && circlesJoined > 0) return PostType.LIST;
+    
     return null;
   };
 
-  const recommendedType = getRecommendedBadge();
+  const recommendedType = getRecommendedType();
 
-  const postTypes = [
-    {
-      type: PostType.LIST,
-      icon: List,
-      title: "List of Spots",
-      description: "Create a ranked list of restaurants with drag-and-drop ordering",
-      features: ["Multiple restaurants", "Drag & drop ranking", "Share with circles", "Collaborative editing"],
-      color: "bg-blue-50 border-blue-200 hover:bg-blue-100",
-      iconColor: "text-blue-600",
-      examples: "Best Pizza in NYC, Weekend Brunch Spots, Date Night Restaurants"
-    },
+  const postTypeCards: PostTypeCard[] = [
     {
       type: PostType.MOMENT,
-      icon: Camera,
+      icon: <Camera className="w-8 h-8" />,
       title: "Food Moment",
-      description: "Share a single dining experience with photos and details",
-      features: ["Photo required", "Restaurant tagging", "Rating & review", "Atmosphere notes"],
-      color: "bg-green-50 border-green-200 hover:bg-green-100",
-      iconColor: "text-green-600",
-      examples: "Amazing dinner at..., Just tried this new place, Perfect date night"
+      subtitle: "Snap and share a quick food pic",
+      description: "Perfect for sharing your dining experience with photos and quick thoughts",
+      features: ["Photo required", "Quick capture", "Rating & review", "Instant sharing"],
+      examples: "Amazing dinner at... • Just tried this new place • Perfect date night",
+      color: "bg-gradient-to-br from-green-50 to-emerald-50",
+      accentColor: "text-green-600",
+      badge: recommendedType === PostType.MOMENT ? "Recommended" : "Most Popular",
+      badgeColor: recommendedType === PostType.MOMENT ? "bg-primary" : "bg-green-100 text-green-700"
+    },
+    {
+      type: PostType.LIST,
+      icon: <List className="w-8 h-8" />,
+      title: "List of Spots",
+      subtitle: "Create a curated list of restaurants",
+      description: "Build ranked collections and share with your circles",
+      features: ["Multi-restaurant", "Drag & drop ranking", "Share with circles", "Collaborative"],
+      examples: "Best Pizza in NYC • Weekend Brunch Spots • Date Night Restaurants",
+      color: "bg-gradient-to-br from-blue-50 to-cyan-50",
+      accentColor: "text-blue-600",
+      badge: recommendedType === PostType.LIST ? "Recommended" : "Great for Groups",
+      badgeColor: recommendedType === PostType.LIST ? "bg-primary" : "bg-blue-100 text-blue-700"
     },
     {
       type: PostType.DISH,
-      icon: Utensils,
+      icon: <Utensils className="w-8 h-8" />,
       title: "Recommend a Dish",
-      description: "Highlight a specific dish you loved at a restaurant",
-      features: ["Dish-focused", "Restaurant context", "Optional photo", "Quick sharing"],
-      color: "bg-orange-50 border-orange-200 hover:bg-orange-100",
-      iconColor: "text-orange-600",
-      examples: "The truffle pasta at..., Best burger in town, Must-try appetizer"
+      subtitle: "Highlight a specific dish you loved",
+      description: "Focus on that one incredible dish that stood out",
+      features: ["Dish-focused", "Restaurant context", "Taste notes", "Quick recommendation"],
+      examples: "The truffle pasta at... • Best burger in town • Must-try appetizer",
+      color: "bg-gradient-to-br from-orange-50 to-amber-50",
+      accentColor: "text-orange-600",
+      badge: "Trending",
+      badgeColor: "bg-orange-100 text-orange-700"
     }
   ];
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-5xl mx-auto p-6">
+      {/* Header Section */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          What do you want to share?
-        </h1>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Sparkles className="w-6 h-6 text-primary" />
+          <h1 className="text-3xl font-bold text-gray-900">
+            What do you want to share?
+          </h1>
+        </div>
         <p className="text-gray-600 text-lg">
-          Choose the best format for your food experience
+          Choose the perfect format for your food experience
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {postTypes.map(({ type, icon: Icon, title, description, features, color, iconColor, examples }) => (
+      {/* Card Grid */}
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {postTypeCards.map((card) => (
           <Card 
-            key={type} 
-            className={`cursor-pointer transition-all duration-200 ${color} border-2 hover:shadow-lg relative`}
-            onClick={() => handleSelectType(type)}
+            key={card.type}
+            className={`
+              cursor-pointer transition-all duration-300 border-2 relative overflow-hidden
+              ${hoveredType === card.type 
+                ? 'shadow-xl scale-105 border-primary' 
+                : 'shadow-md hover:shadow-lg border-gray-200'
+              }
+              ${card.color}
+            `}
+            onMouseEnter={() => setHoveredType(card.type)}
+            onMouseLeave={() => setHoveredType(null)}
+            onClick={() => onSelectType(card.type)}
           >
-            {recommendedType === type && (
-              <Badge className="absolute -top-2 -right-2 bg-primary text-white">
-                Recommended
+            {/* Badge */}
+            {card.badge && (
+              <Badge 
+                className={`absolute top-4 right-4 z-10 ${card.badgeColor} border-0`}
+              >
+                {card.badge === "Recommended" && <Star className="w-3 h-3 mr-1" />}
+                {card.badge === "Trending" && <TrendingUp className="w-3 h-3 mr-1" />}
+                {card.badge}
               </Badge>
             )}
-            
+
             <CardHeader className="pb-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2 rounded-lg bg-white`}>
-                  <Icon className={`h-6 w-6 ${iconColor}`} />
+              <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-xl bg-white shadow-sm ${card.accentColor}`}>
+                  {card.icon}
                 </div>
-                <div>
-                  <CardTitle className="text-lg">{title}</CardTitle>
-                  <CardDescription className="text-sm">
-                    {description}
+                <div className="flex-1">
+                  <CardTitle className="text-xl mb-1">{card.title}</CardTitle>
+                  <CardDescription className="text-sm font-medium">
+                    {card.subtitle}
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                {card.description}
+              </p>
+
+              {/* Features */}
               <div className="space-y-2">
-                <h4 className="font-medium text-sm text-gray-700">Features:</h4>
-                <ul className="space-y-1">
-                  {features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm text-gray-600">
-                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+                <h4 className="font-semibold text-sm text-gray-800">Features:</h4>
+                <ul className="grid grid-cols-2 gap-1">
+                  {card.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2 text-xs text-gray-600">
+                      <div className="w-1 h-1 bg-gray-400 rounded-full" />
                       {feature}
                     </li>
                   ))}
                 </ul>
               </div>
 
+              {/* Examples */}
               <div className="space-y-2">
-                <h4 className="font-medium text-sm text-gray-700">Examples:</h4>
-                <p className="text-xs text-gray-500 italic">
-                  {examples}
+                <h4 className="font-semibold text-sm text-gray-800">Examples:</h4>
+                <p className="text-xs text-gray-500 italic leading-relaxed">
+                  {card.examples}
                 </p>
               </div>
 
+              {/* CTA Button */}
               <Button 
-                className="w-full mt-4" 
-                variant="outline"
+                className="w-full mt-4 group" 
+                variant={hoveredType === card.type ? "default" : "outline"}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleSelectType(type);
+                  onSelectType(card.type);
                 }}
               >
-                Choose {title}
-                <ChevronRight className="ml-2 h-4 w-4" />
+                Create {card.title}
+                <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="mt-8 text-center">
-        <p className="text-sm text-gray-500">
-          Not sure which one to choose? Start with a <strong>Food Moment</strong> to share your latest dining experience.
+      {/* Quick Tip */}
+      <div className="text-center bg-gray-50 rounded-lg p-4">
+        <p className="text-sm text-gray-600">
+          💡 <strong>Not sure which one to choose?</strong> Start with a{' '}
+          <span className="font-semibold text-green-600">Food Moment</span> to share your latest dining experience.
         </p>
       </div>
     </div>
