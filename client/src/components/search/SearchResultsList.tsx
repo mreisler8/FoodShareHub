@@ -162,7 +162,7 @@ export function SearchResultsList({
                       </p>
                     )}
                     
-                    {result.avgRating && (
+                    {result.avgRating && typeof result.avgRating === 'number' && !isNaN(result.avgRating) && (
                       <div className="flex items-center gap-1 mt-1">
                         <div className="flex">
                           {renderStars(Math.round(result.avgRating))}

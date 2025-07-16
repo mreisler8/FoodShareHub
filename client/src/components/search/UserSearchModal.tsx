@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
 import { useSearch } from "@/hooks/useSearch";
 import { SearchInput } from "@/components/search/SearchInput";
 import { SearchResultsList } from "@/components/search/SearchResultsList";
 import { SearchResult } from "@/services/searchService";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 interface User {
   id: number;
@@ -44,6 +46,7 @@ export function UserSearchModal({
   excludeUserIds = [],
 }: UserSearchModalProps) {
   const [addingUserId, setAddingUserId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
   
   const {
     searchQuery,
@@ -60,6 +63,25 @@ export function UserSearchModal({
     includeLocation: false,
     includeTrending: false,
     includeRecentSearches: false
+  });
+
+  // Follow/unfollow mutation
+  const followMutation = useMutation({
+    mutationFn: async ({ userId, action }: { userId: string, action: 'follow' | 'unfollow' }) => {
+      if (action === 'follow') {
+        await apiRequest(`/api/users/${userId}/follow`, {
+          method: 'POST',
+        });
+      } else {
+        await apiRequest(`/api/users/${userId}/unfollow`, {
+          method: 'DELETE',
+        });
+      }
+    },
+    onSuccess: () => {
+      // Invalidate search results to refresh follow status
+      queryClient.invalidateQueries({ queryKey: ['/api/search'] });
+    }
   });
 
   // Convert SearchResult to User and filter out already selected users and excluded IDs
@@ -108,6 +130,17 @@ export function UserSearchModal({
       onSelectUser(user);
     }
     recordSearch(user.name);
+  };
+
+  const handleFollowToggle = (userId: string, isFollowing?: boolean) => {
+    if (onAddUser) {
+      const user = filteredResults.find(u => u.id === parseInt(userId));
+      if (user) handleAddUser(user);
+    } else {
+      // Handle follow/unfollow
+      const action = isFollowing ? 'unfollow' : 'follow';
+      followMutation.mutate({ userId, action });
+    }
   };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -164,11 +197,8 @@ export function UserSearchModal({
             error={error}
             emptyMessage={searchQuery ? `No users found matching "${searchQuery}"` : "Start typing to search for users"}
             onResultClick={handleResultClick}
-            onFollowToggle={onAddUser ? (userId: string) => {
-              const user = filteredResults.find(u => u.id === parseInt(userId));
-              if (user) handleAddUser(user);
-            } : undefined}
-            showFollowButton={!!onAddUser}
+            onFollowToggle={handleFollowToggle}
+            showFollowButton={true}
           />
         </div>
 

@@ -180,8 +180,17 @@ router.get('/unified', authenticate, async (req, res) => {
         ]);
 
         // Enhanced Google Places search if restaurant results are insufficient
+        // Only apply Google Places enhancement for restaurant-focused searches
         let restaurantResults = dbRestaurants;
-        if (dbRestaurants.length < 8) {
+        
+        // Check if search term is likely a person's name to avoid restaurant enhancement
+        const isPersonNameSearch = /^[a-zA-Z]+(\s[a-zA-Z]+)?$/.test(searchTerm) && 
+                                  searchTerm.length <= 20 && 
+                                  !searchTerm.toLowerCase().includes('restaurant') &&
+                                  !searchTerm.toLowerCase().includes('food') &&
+                                  !searchTerm.toLowerCase().includes('cuisine');
+        
+        if (dbRestaurants.length < 8 && !isPersonNameSearch) {
           try {
             const locationData = (searchLat && searchLng) ? { 
               lat: searchLat, 
@@ -285,10 +294,12 @@ router.get('/unified', authenticate, async (req, res) => {
             id: u.id.toString(),
             name: u.name,
             type: 'user' as const,
-            subtitle: u.bio || 'Food enthusiast',
+            subtitle: u.bio || `@${u.username}`,
             thumbnailUrl: u.profilePicture,
+            avatar: u.profilePicture, // For compatibility with SearchResultsList
             username: u.username,
             bio: u.bio,
+            profilePicture: u.profilePicture,
             isFollowing: u.isFollowing,
             metadata: {
               username: u.username,
