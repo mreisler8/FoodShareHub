@@ -29,17 +29,17 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
               <PostTypeIcon type="list" size="md" />
               <h3 className="text-lg font-semibold">{data.listName}</h3>
             </div>
-            
+
             {data.description && (
               <p className="text-muted-foreground">{data.description}</p>
             )}
-            
+
             <div className="space-y-2">
               <h4 className="font-medium flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Restaurants ({data.restaurants?.length || 0})
               </h4>
-              
+
               <div className="grid gap-2">
                 {data.restaurants?.slice(0, 3).map((restaurant: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-2 border rounded">
@@ -60,7 +60,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
                     </div>
                   </div>
                 ))}
-                
+
                 {data.restaurants?.length > 3 && (
                   <div className="text-sm text-muted-foreground text-center py-2">
                     And {data.restaurants.length - 3} more restaurants...
@@ -70,7 +70,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
             </div>
           </div>
         );
-        
+
       case 'moment':
         return (
           <div className="space-y-4">
@@ -78,7 +78,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
               <PostTypeIcon type="moment" size="md" />
               <h3 className="text-lg font-semibold">Food Moment</h3>
             </div>
-            
+
             {data.restaurant && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin className="h-4 w-4" />
@@ -88,7 +88,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
                 )}
               </div>
             )}
-            
+
             {data.rating && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Rating:</span>
@@ -105,14 +105,14 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
                 </div>
               </div>
             )}
-            
+
             {data.content && (
               <div className="space-y-2">
                 <h4 className="font-medium">Your Experience:</h4>
                 <p className="text-muted-foreground whitespace-pre-wrap">{data.content}</p>
               </div>
             )}
-            
+
             {data.images && data.images.length > 0 && (
               <div className="space-y-2">
                 <h4 className="font-medium">Photos ({data.images.length})</h4>
@@ -131,7 +131,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
             )}
           </div>
         );
-        
+
       case 'dish':
         return (
           <div className="space-y-4">
@@ -139,7 +139,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
               <PostTypeIcon type="dish" size="md" />
               <h3 className="text-lg font-semibold">Dish Recommendation</h3>
             </div>
-            
+
             {data.dish && (
               <div className="space-y-2">
                 <h4 className="font-medium text-primary">{data.dish.name}</h4>
@@ -148,7 +148,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
                 )}
               </div>
             )}
-            
+
             {data.restaurant && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin className="h-4 w-4" />
@@ -158,7 +158,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
                 )}
               </div>
             )}
-            
+
             {data.rating && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Rating:</span>
@@ -175,7 +175,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
                 </div>
               </div>
             )}
-            
+
             {data.content && (
               <div className="space-y-2">
                 <h4 className="font-medium">Why you recommend it:</h4>
@@ -184,7 +184,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
             )}
           </div>
         );
-        
+
       default:
         return <div>Preview not available</div>;
     }
@@ -192,7 +192,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
 
   const renderVisibilityInfo = () => {
     const { visibility } = data;
-    
+
     if (visibility?.public) {
       return (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -201,7 +201,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
         </div>
       );
     }
-    
+
     if (visibility?.circleIds?.length > 0) {
       return (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -210,7 +210,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
         </div>
       );
     }
-    
+
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Lock className="h-4 w-4" />
@@ -221,16 +221,15 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col bg-white rounded-lg shadow-lg">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
             Preview Your Post
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="flex-1 overflow-y-auto px-1")
-        
+
+        <div className="flex-1 overflow-y-auto p-1">
         <div className="space-y-6">
             {/* Post Type Badge */}
             <div className="flex items-center justify-between">
@@ -238,32 +237,32 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
                 <PostTypeIcon type={data.postType} size="sm" />
                 {getPostTypeLabel(data.postType)}
               </Badge>
-              
+
               {renderVisibilityInfo()}
             </div>
-          
-          {/* Main Content */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-medium">
-                    {data.user?.name?.charAt(0) || 'U'}
-                  </span>
+
+            {/* Main Content */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-sm font-medium">
+                      {data.user?.name?.charAt(0) || 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium">{data.user?.name || 'You'}</p>
+                    <p className="text-sm text-muted-foreground">Just now</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{data.user?.name || 'You'}</p>
-                  <p className="text-sm text-muted-foreground">Just now</p>
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              {renderPreviewContent()}
-            </CardContent>
-          </Card>
-          
-          {/* Warning */}
+              </CardHeader>
+
+              <CardContent>
+                {renderPreviewContent()}
+              </CardContent>
+            </Card>
+
+            {/* Warning */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-800">
                 <strong>Preview:</strong> This is how your post will appear to others. 
@@ -271,9 +270,10 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
               </p>
             </div>
           </div>
+</div>
         </div>
-        
-        <DialogFooter className="flex-shrink-0 gap-2 pt-4">
+
+        <DialogFooter className="gap-2 flex-shrink-0 border-t pt-4">
           <Button variant="outline" onClick={handleClose}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Edit Post
@@ -287,4 +287,3 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
     </Dialog>
   );
 }
-// This section was duplicated and has been removed to prevent conflicts

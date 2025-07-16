@@ -75,8 +75,8 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
 
     if (!content.trim() && selectedImages.length === 0) {
       toast({
-        title: 'Add a quick note or photo',
-        description: 'Add a quick note or photo before sharing',
+        title: 'Add content to share',
+        description: 'Add a quick note or photo before sharing your food moment.',
         variant: 'destructive',
       });
       return;
@@ -162,7 +162,7 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Image className="h-5 w-5" />
-            Photos *
+            Photos (optional)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -198,7 +198,7 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
           </div>
 
           <div>
-            <Label htmlFor="content">Tell us about your experience *</Label>
+            <Label htmlFor="content">Tell us about your experience</Label>
             <Textarea
               id="content"
               value={content}
@@ -206,6 +206,9 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
               placeholder="What did you love about this place? What dishes did you try? How was the service and atmosphere?"
               className="mt-1 min-h-24"
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              Share your thoughts or add photos - at least one is required
+            </p>
           </div>
         </CardContent>
       </Card>
