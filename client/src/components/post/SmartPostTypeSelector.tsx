@@ -59,7 +59,7 @@ export function SmartPostTypeSelector({
 
   // Generate smart recommendations based on user history
   const getSmartRecommendations = (): SmartRecommendation[] => {
-    if (!userStats) return [];
+    if (!userStats || !userStats.postTypeBreakdown) return [];
 
     const recommendations: SmartRecommendation[] = [];
     
@@ -75,7 +75,7 @@ export function SmartPostTypeSelector({
     }
 
     // Active member with circles nudge
-    if (userStats.circleCount > 0 && userStats.postTypeBreakdown.list < 2) {
+    if (userStats.circleCount > 0 && (userStats.postTypeBreakdown.list || 0) < 2) {
       recommendations.push({
         type: 'list',
         reason: 'Great for sharing with your circles',
@@ -86,7 +86,7 @@ export function SmartPostTypeSelector({
     }
 
     // Trending post type nudge
-    if (userStats.postTypeBreakdown.dish === 0) {
+    if ((userStats.postTypeBreakdown.dish || 0) === 0) {
       recommendations.push({
         type: 'dish',
         reason: 'Trending with food enthusiasts',
