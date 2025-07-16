@@ -145,8 +145,8 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
   }
 
   return (
-    <div className="max-h-[90vh] overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-6 pb-20">
+    <div className="bg-white rounded-lg shadow-lg max-h-[90vh] overflow-y-auto flex flex-col">
+      <div className="flex-1 p-6">
         {/* Header with back button and preview */}
         <div className="flex items-center justify-between mb-6">
           <Button 
@@ -172,113 +172,113 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
           )}
         </div>
 
-      {/* Progress indicator */}
-      <div className="flex items-center gap-2 mb-8">
-        {['content', 'metadata', 'sharing'].map((step, index) => (
-          <React.Fragment key={step}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep === step
-                ? 'bg-primary text-white'
-                : ['content', 'metadata', 'sharing'].indexOf(currentStep) > index
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-200 text-gray-500'
-            }`}>
-              {index + 1}
-            </div>
-            {index < 2 && (
-              <div className={`h-1 w-12 ${
-                ['content', 'metadata', 'sharing'].indexOf(currentStep) > index
-                  ? 'bg-green-500'
-                  : 'bg-gray-200'
-              }`} />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-
-      {/* Step 2: Content Form */}
-      {currentStep === 'content' && selectedType && (
-        <div>
-          {selectedType === PostType.LIST && (
-            <ListOfSpotsForm 
-              onSubmit={handleContentSubmit}
-              onCancel={handleBack}
-            />
-          )}
-
-          {selectedType === PostType.MOMENT && (
-            <FoodMomentForm 
-              onSubmit={handleContentSubmit}
-              onCancel={handleBack}
-            />
-          )}
-
-          {selectedType === PostType.DISH && (
-            <RecommendDishForm 
-              onSubmit={handleContentSubmit}
-              onCancel={handleBack}
-            />
-          )}
+        {/* Progress indicator */}
+        <div className="flex items-center gap-2 mb-8">
+          {['content', 'metadata', 'sharing'].map((step, index) => (
+            <React.Fragment key={step}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                currentStep === step
+                  ? 'bg-primary text-white'
+                  : ['content', 'metadata', 'sharing'].indexOf(currentStep) > index
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-200 text-gray-500'
+              }`}>
+                {index + 1}
+              </div>
+              {index < 2 && (
+                <div className={`h-1 w-12 ${
+                  ['content', 'metadata', 'sharing'].indexOf(currentStep) > index
+                    ? 'bg-green-500'
+                    : 'bg-gray-200'
+                }`} />
+              )}
+            </React.Fragment>
+          ))}
         </div>
-      )}
 
-      {/* Step 3: Metadata (Tags) */}
-      {currentStep === 'metadata' && (
-        <div className="space-y-6">
+        {/* Step 2: Content Form */}
+        {currentStep === 'content' && selectedType && (
           <div>
-            <h3 className="text-lg font-semibold mb-2">Add tags to help others discover your post</h3>
-            <p className="text-gray-600 mb-4">Tags make your post more discoverable and help categorize your content.</p>
-            
-            <TagSelector
-              selectedTags={formData.tags || []}
-              onTagsChange={(tags) => setFormData({ ...formData, tags })}
-              suggestedTags={[
-                'spicy', 'hiddenGem', 'noodles', 'pizza', 'brunch', 'dateNight',
-                'familyFriendly', 'vegan', 'glutenFree', 'affordable', 'upscale',
-                'quickBite', 'musttry', 'newOpening', 'localFavorite', 'authentic'
-              ]}
-            />
+            {selectedType === PostType.LIST && (
+              <ListOfSpotsForm 
+                onSubmit={handleContentSubmit}
+                onCancel={handleBack}
+              />
+            )}
+
+            {selectedType === PostType.MOMENT && (
+              <FoodMomentForm 
+                onSubmit={handleContentSubmit}
+                onCancel={handleBack}
+              />
+            )}
+
+            {selectedType === PostType.DISH && (
+              <RecommendDishForm 
+                onSubmit={handleContentSubmit}
+                onCancel={handleBack}
+              />
+            )}
           </div>
+        )}
 
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={handleBack}>
-              Back
-            </Button>
-            <Button onClick={() => handleMetadataSubmit({ tags: formData.tags || [] })}>
-              Continue to Sharing
-            </Button>
+        {/* Step 3: Metadata (Tags) */}
+        {currentStep === 'metadata' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Add tags to help others discover your post</h3>
+              <p className="text-gray-600 mb-4">Tags make your post more discoverable and help categorize your content.</p>
+              
+              <TagSelector
+                selectedTags={formData.tags || []}
+                onTagsChange={(tags) => setFormData({ ...formData, tags })}
+                suggestedTags={[
+                  'spicy', 'hiddenGem', 'noodles', 'pizza', 'brunch', 'dateNight',
+                  'familyFriendly', 'vegan', 'glutenFree', 'affordable', 'upscale',
+                  'quickBite', 'musttry', 'newOpening', 'localFavorite', 'authentic'
+                ]}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={handleBack}>
+                Back
+              </Button>
+              <Button onClick={() => handleMetadataSubmit({ tags: formData.tags || [] })}>
+                Continue to Sharing
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Step 4: Sharing */}
-      {currentStep === 'sharing' && (
-        <ShareDestinationPicker
-          circles={circles || []}
-          onShareDestinationChange={handleFinalSubmit}
-        />
-      )}
-
-      {/* Preview Modal */}
-        {showPreview && userData && (
-          <PostPreviewModal
-            open={showPreview}
-            onOpenChange={setShowPreview}
-            data={{
-              postType: selectedType!,
-              ...formData,
-              user: userData
-            }}
-            onConfirm={() => {
-              setShowPreview(false);
-              if (currentStep === 'sharing') {
-                // Continue to final submission
-                handleFinalSubmit(formData);
-              }
-            }}
+        {/* Step 4: Sharing */}
+        {currentStep === 'sharing' && (
+          <ShareDestinationPicker
+            circles={circles || []}
+            onShareDestinationChange={handleFinalSubmit}
           />
         )}
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && userData && (
+        <PostPreviewModal
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          data={{
+            postType: selectedType!,
+            ...formData,
+            user: userData
+          }}
+          onConfirm={() => {
+            setShowPreview(false);
+            if (currentStep === 'sharing') {
+              // Continue to final submission
+              handleFinalSubmit(formData);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -18,6 +19,13 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
 
   const handleClose = () => {
     onOpenChange(false);
+  };
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    // Prevent redirect - just close modal
+    e.preventDefault();
+    e.stopPropagation();
+    handleClose();
   };
 
   const renderPreviewContent = () => {
@@ -221,7 +229,10 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col overflow-hidden">
+      <DialogContent 
+        className="sm:max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col overflow-hidden"
+        onInteractOutside={handleOverlayClick}
+      >
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
@@ -229,7 +240,7 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto max-h-[calc(90vh-120px)] p-4">
+        <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-6">
             {/* Post Type Badge */}
             <div className="flex items-center justify-between">

@@ -1,25 +1,14 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Rating } from '@/components/ui/rating';
-import { RestaurantSearch } from '@/components/restaurant/RestaurantSearch';
-import { MediaUploader } from '@/components/MediaUploader';
-import { VisibilitySelector } from '@/components/VisibilitySelector';
-import { Camera, MapPin, Star, Image } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { MediaUploader } from '../MediaUploader';
+import { RestaurantSearch } from '../restaurant/RestaurantSearch';
+import { Camera, MapPin, Star, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
-
-interface Restaurant {
-  id: string;
-  name: string;
-  location?: string;
-  category?: string;
-  priceRange?: string;
-  source?: 'database' | 'google';
-  googlePlaceId?: string;
-}
 
 interface FoodMomentFormProps {
   onSubmit: (data: any) => void;
@@ -27,218 +16,164 @@ interface FoodMomentFormProps {
 }
 
 export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
+  const [restaurant, setRestaurant] = useState<any>(null);
+  const [caption, setCaption] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [rating, setRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
-  const [rating, setRating] = useState(5);
-  const [content, setContent] = useState('');
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [visibilitySettings, setVisibilitySettings] = useState({
-    public: true,
-    followers: false,
-    circleIds: [] as number[]
-  });
 
-  const createMomentMutation = useMutation({
-    mutationFn: async (momentData: FormData) => {
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        body: momentData,
-      });
-      if (!response.ok) throw new Error('Failed to create moment');
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: 'Food moment shared!',
-        description: 'Your dining experience has been shared with your circles.',
-      });
-      onSubmit(data);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error sharing moment',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const handleSubmit = async () => {
-    if (!selectedRestaurant) {
+    // Relaxed validation - allow photo OR caption
+    if (!images.length && !caption.trim()) {
       toast({
-        title: 'Restaurant required',
-        description: 'Please select a restaurant for your food moment.',
-        variant: 'destructive',
+        title: "Add content",
+        description: "Add a quick note or photo before sharing.",
+        variant: "destructive",
       });
       return;
     }
 
-    if (!content.trim() && selectedImages.length === 0) {
+    if (!restaurant) {
       toast({
-        title: 'Add content to share',
-        description: 'Add a quick note or photo before sharing your food moment.',
-        variant: 'destructive',
+        title: "Select restaurant",
+        description: "Please select a restaurant for your food moment.",
+        variant: "destructive",
       });
       return;
     }
 
-    const formData = new FormData();
-    formData.append('content', content);
-    formData.append('rating', rating.toString());
-    formData.append('visibility', JSON.stringify(visibilitySettings));
-    formData.append('postType', 'moment');
+    setIsSubmitting(true);
 
-    // Add restaurant data
-    if (selectedRestaurant.source === 'database') {
-      formData.append('restaurantId', selectedRestaurant.id);
-    } else {
-      formData.append('googlePlaceId', selectedRestaurant.googlePlaceId || '');
+    try {
+      const formData = {
+        postType: 'moment',
+        restaurant,
+        content: caption,
+        images,
+        rating: rating > 0 ? rating : null,
+      };
+
+      await onSubmit(formData);
+    } catch (error) {
+      console.error('Error submitting food moment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create food moment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Add images
-    selectedImages.forEach((file) => {
-      formData.append('media', file);
-    });
-
-    createMomentMutation.mutate(formData);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Food Moment Header */}
+    <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div className="p-2 bg-green-50 rounded-lg">
-              <Camera className="h-5 w-5 text-green-600" />
-            </div>
-            Share Your Food Moment
+            <Camera className="h-5 w-5" />
+            Food Moment
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Share a quick snapshot of what you're eating now
+          </p>
         </CardHeader>
-      </Card>
-
-      {/* Restaurant Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Where did you dine? *</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedRestaurant ? (
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <div className="font-medium">{selectedRestaurant.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {selectedRestaurant.location}
-                  </div>
-                  {selectedRestaurant.category && (
-                    <div className="text-xs text-muted-foreground">
-                      {selectedRestaurant.category} • {selectedRestaurant.priceRange}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedRestaurant(null)}
-              >
-                Change
-              </Button>
-            </div>
-          ) : (
+        <CardContent className="space-y-4">
+          {/* Restaurant Selection */}
+          <div>
+            <Label htmlFor="restaurant">Restaurant *</Label>
             <RestaurantSearch
-              onSelectRestaurant={setSelectedRestaurant}
-              placeholder="Search for the restaurant you visited..."
-              buttonLabel="Find restaurant"
+              onSelect={setRestaurant}
+              placeholder="Where are you eating?"
+              value={restaurant}
             />
+          </div>
+
+          {/* Photo Upload */}
+          <div>
+            <Label>Photo (optional)</Label>
+            <MediaUploader
+              onImagesChange={setImages}
+              maxImages={3}
+              acceptedTypes={['image/*']}
+            />
+          </div>
+
+          {/* Caption */}
+          <div>
+            <Label htmlFor="caption">Caption (optional)</Label>
+            <Textarea
+              id="caption"
+              placeholder="What's good about this meal?"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </div>
+
+          {/* Rating */}
+          <div>
+            <Label>Rating (optional)</Label>
+            <div className="flex items-center gap-1 mt-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <Star
+                    className={`h-6 w-6 ${
+                      star <= rating
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                </button>
+              ))}
+              {rating > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setRating(0)}
+                  className="ml-2 text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Validation Helper */}
+          {!images.length && !caption.trim() && (
+            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <span className="text-sm text-blue-700">
+                Add a photo or caption to share your food moment
+              </span>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Photo Upload */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5" />
-            Photos (optional)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MediaUploader
-            onFilesSelected={setSelectedImages}
-            maxFiles={5}
-            acceptedFileTypes="image/*"
-          />
-          <p className="text-sm text-muted-foreground mt-2">
-            Share photos of your meal, the restaurant, or the dining experience
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Experience Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Experience</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="rating">Rating *</Label>
-            <div className="flex items-center gap-2 mt-1">
-              <Rating
-                value={rating}
-                onChange={setRating}
-                className="text-lg"
-              />
-              <span className="text-sm text-muted-foreground">
-                {rating} star{rating !== 1 ? 's' : ''}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="content">Tell us about your experience</Label>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="What did you love about this place? What dishes did you try? How was the service and atmosphere?"
-              className="mt-1 min-h-24"
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              Share your thoughts or add photos - at least one is required
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Visibility Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Share With</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VisibilitySelector
-            value={visibilitySettings}
-            onChange={setVisibilitySettings}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onCancel} className="flex-1">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          className="flex-1"
-          disabled={createMomentMutation.isPending}
+        <Button
+          type="submit"
+          disabled={isSubmitting || (!images.length && !caption.trim())}
         >
-          {createMomentMutation.isPending ? 'Sharing...' : 'Share Moment'}
+          {isSubmitting ? 'Creating...' : 'Continue'}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
