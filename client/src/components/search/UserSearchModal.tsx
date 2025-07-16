@@ -164,7 +164,7 @@ export function UserSearchModal({
             error={error}
             emptyMessage={searchQuery ? `No users found matching "${searchQuery}"` : "Start typing to search for users"}
             onResultClick={handleResultClick}
-            onFollowToggle={onAddUser ? (userId: string) => {
+            onFollowToggle={onAddUser ? (userId: string, isFollowing: boolean) => {
               const user = filteredResults.find(u => u.id === parseInt(userId));
               if (user) handleAddUser(user);
             } : undefined}

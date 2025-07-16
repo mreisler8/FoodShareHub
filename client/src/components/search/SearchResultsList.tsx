@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
+import { FollowButton } from '@/components/FollowButton';
 
 interface SearchResultsListProps {
   results: SearchResult[];
@@ -188,22 +189,16 @@ export function SearchResultsList({
                       </Badge>
                     )}
                     
-                    {showFollowButton && result.type === 'user' && onFollowToggle && (
-                      <Button
-                        variant={result.isFollowing ? "secondary" : "default"}
+                    {showFollowButton && result.type === 'user' && (
+                      <FollowButton
+                        userId={parseInt(result.id)}
+                        isFollowing={result.isFollowing || false}
                         size="sm"
                         className="h-7 px-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onFollowToggle(result.id, result.isFollowing);
+                        onFollowChange={(isFollowing) => {
+                          onFollowToggle?.(result.id, isFollowing);
                         }}
-                      >
-                        {result.isFollowing ? (
-                          <UserCheck className="h-3 w-3" />
-                        ) : (
-                          <UserPlus className="h-3 w-3" />
-                        )}
-                      </Button>
+                      />
                     )}
                   </div>
                 </div>
