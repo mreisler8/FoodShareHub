@@ -24,6 +24,12 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
   const [showPreview, setShowPreview] = useState(false);
 
   const handleModalClose = () => {
+    // Reset form state
+    setCurrentStep('type');
+    setSelectedType(null);
+    setFormData({});
+    setShowPreview(false);
+    
     if (onClose) {
       onClose();
     }
@@ -140,7 +146,7 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
 
   return (
     <div className="max-h-[90vh] overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6 pb-20">
         {/* Header with back button and preview */}
         <div className="flex items-center justify-between mb-6">
           <Button 

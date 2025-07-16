@@ -59,12 +59,13 @@ export function SmartPostTypeSelector({
 
   // Generate smart recommendations based on user history
   const getSmartRecommendations = (): SmartRecommendation[] => {
-    if (!userStats || !userStats.postTypeBreakdown) return [];
+    if (!userStats) return [];
 
     const recommendations: SmartRecommendation[] = [];
+    const breakdown = userStats.postTypeBreakdown || { list: 0, moment: 0, dish: 0 };
 
     // New user nudge (less than 7 days, fewer than 3 posts)
-    if (userStats.accountAgeInDays < 7 && userStats.totalPosts < 3) {
+    if ((userStats.accountAgeInDays || 0) < 7 && (userStats.totalPosts || 0) < 3) {
       recommendations.push({
         type: 'moment',
         reason: 'Perfect for getting started',
@@ -75,7 +76,7 @@ export function SmartPostTypeSelector({
     }
 
     // Active member with circles nudge
-    if (userStats.circleCount > 0 && (userStats.postTypeBreakdown.list || 0) < 2) {
+    if ((userStats.circleCount || 0) > 0 && breakdown.list < 2) {
       recommendations.push({
         type: 'list',
         reason: 'Great for sharing with your circles',
@@ -86,7 +87,7 @@ export function SmartPostTypeSelector({
     }
 
     // Trending post type nudge
-    if ((userStats.postTypeBreakdown.dish || 0) === 0) {
+    if (breakdown.dish === 0) {
       recommendations.push({
         type: 'dish',
         reason: 'Trending with food enthusiasts',
@@ -97,7 +98,7 @@ export function SmartPostTypeSelector({
     }
 
     // Repeat last successful type
-    if (userStats.lastPostType && userStats.totalPosts > 5) {
+    if (userStats.lastPostType && (userStats.totalPosts || 0) > 5) {
       recommendations.push({
         type: userStats.lastPostType,
         reason: 'You\'ve had success with this format',

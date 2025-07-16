@@ -220,8 +220,8 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
@@ -229,8 +229,8 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-1">
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto max-h-[calc(90vh-120px)] p-4">
+          <div className="space-y-6">
             {/* Post Type Badge */}
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="flex items-center gap-2">
@@ -270,7 +270,6 @@ export function PostPreviewModal({ open, onOpenChange, data, onConfirm }: PostPr
               </p>
             </div>
           </div>
-</div>
         </div>
 
         <DialogFooter className="gap-2 flex-shrink-0 border-t pt-4">
