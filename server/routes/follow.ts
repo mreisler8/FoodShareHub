@@ -61,15 +61,6 @@ router.get('/following/:userId', authenticate, async (req, res) => {
 // POST /api/follow/:userId - Follow a user
 router.post('/:userId', authenticate, async (req, res) => {
   try {
-    console.log('POST Request:', req.path);
-    console.log('Content-Type:', req.headers['content-type']);
-    console.log('Session exists:', !!req.session);
-    console.log('SessionID:', req.sessionID);
-    console.log('User authenticated:', req.isAuthenticated());
-    console.log('User ID:', req.user?.id);
-    console.log('Origin:', req.headers.origin);
-    console.log('Cookie:', req.headers.cookie);
-    
     const followingId = parseInt(req.params.userId);
     const followerId = req.user!.id;
     

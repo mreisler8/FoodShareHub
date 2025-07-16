@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
-import { FollowButton } from '@/components/FollowButton';
 
 interface SearchResultsListProps {
   results: SearchResult[];
@@ -166,10 +165,10 @@ export function SearchResultsList({
                     {result.avgRating && (
                       <div className="flex items-center gap-1 mt-1">
                         <div className="flex">
-                          {renderStars(Math.round(typeof result.avgRating === 'number' ? result.avgRating : 4.0))}
+                          {renderStars(Math.round(result.avgRating))}
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {typeof result.avgRating === 'number' ? result.avgRating.toFixed(1) : '4.0'}
+                          {result.avgRating.toFixed(1)}
                         </span>
                       </div>
                     )}
@@ -189,16 +188,22 @@ export function SearchResultsList({
                       </Badge>
                     )}
                     
-                    {showFollowButton && result.type === 'user' && (
-                      <FollowButton
-                        userId={parseInt(result.id)}
-                        isFollowing={result.isFollowing || false}
+                    {showFollowButton && result.type === 'user' && onFollowToggle && (
+                      <Button
+                        variant={result.isFollowing ? "secondary" : "default"}
                         size="sm"
                         className="h-7 px-2"
-                        onFollowChange={(isFollowing) => {
-                          onFollowToggle?.(result.id, isFollowing);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onFollowToggle(result.id, result.isFollowing);
                         }}
-                      />
+                      >
+                        {result.isFollowing ? (
+                          <UserCheck className="h-3 w-3" />
+                        ) : (
+                          <UserPlus className="h-3 w-3" />
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>

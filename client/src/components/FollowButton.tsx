@@ -1,95 +1,85 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { UserPlus, UserCheck, Loader2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { UserPlus, UserMinus } from 'lucide-react';
+import { Button } from './ui/button';
+import { useToast } from '../hooks/use-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '../lib/queryClient';
 
 interface FollowButtonProps {
   userId: number;
-  isFollowing: boolean;
-  size?: "sm" | "md" | "lg";
-  variant?: "default" | "outline" | "secondary";
+  initialFollowing: boolean;
+  variant?: 'default' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
-  onFollowChange?: (isFollowing: boolean) => void;
 }
 
 export function FollowButton({
   userId,
-  isFollowing,
-  size = "sm",
-  variant = "default",
-  className,
-  onFollowChange
+  initialFollowing,
+  variant = 'default',
+  size = 'md',
+  className = ''
 }: FollowButtonProps) {
-  const [localIsFollowing, setLocalIsFollowing] = useState(isFollowing);
+  const [isFollowing, setIsFollowing] = useState(initialFollowing);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const followMutation = useMutation({
-    mutationFn: async (shouldFollow: boolean) => {
-      if (shouldFollow) {
-        return apiRequest(`/api/follow/${userId}`, {
-          method: "POST"
-        });
+    mutationFn: async (action: 'follow' | 'unfollow') => {
+      if (action === 'follow') {
+        const response = await apiRequest('POST', `/api/follow/requests`, { targetUserId: userId });
+        return response.json();
       } else {
-        return apiRequest(`/api/follow/${userId}`, {
-          method: "DELETE"
-        });
+        const response = await apiRequest('DELETE', `/api/follow/${userId}`);
+        return response.json();
       }
     },
-    onSuccess: (_, shouldFollow) => {
-      setLocalIsFollowing(shouldFollow);
-      onFollowChange?.(shouldFollow);
-      
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ["/api/follow/status", userId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/search/unified"] });
+    onSuccess: (_, action) => {
+      const newFollowingState = action === 'follow';
+      setIsFollowing(newFollowingState);
       
       toast({
-        title: shouldFollow ? "Followed" : "Unfollowed",
-        description: shouldFollow 
-          ? "You are now following this user" 
-          : "You are no longer following this user",
+        title: newFollowingState ? 'Now following' : 'Unfollowed',
+        description: newFollowingState ? 'You are now following this user' : 'You have unfollowed this user',
+      });
+
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/stats`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update follow status',
+        variant: 'destructive',
       });
     },
-    onError: (error, shouldFollow) => {
-      console.error("Follow error:", error);
-      toast({
-        title: "Error",
-        description: shouldFollow 
-          ? "Failed to follow user. Please try again." 
-          : "Failed to unfollow user. Please try again.",
-        variant: "destructive",
-      });
-    }
   });
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    followMutation.mutate(!localIsFollowing);
+  const handleClick = () => {
+    followMutation.mutate(isFollowing ? 'unfollow' : 'follow');
   };
 
   return (
     <Button
+      variant={isFollowing ? 'outline' : variant}
+      size={size}
       onClick={handleClick}
       disabled={followMutation.isPending}
-      size={size}
-      variant={localIsFollowing ? "secondary" : variant}
-      className={className}
+      className={`${className} ${isFollowing ? 'hover:bg-red-50 hover:text-red-600 hover:border-red-300' : ''}`}
     >
       {followMutation.isPending ? (
-        <Loader2 className="h-3 w-3 animate-spin" />
-      ) : localIsFollowing ? (
-        <UserCheck className="h-3 w-3" />
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+      ) : isFollowing ? (
+        <>
+          <UserMinus className="h-4 w-4 mr-1" />
+          Unfollow
+        </>
       ) : (
-        <UserPlus className="h-3 w-3" />
-      )}
-      
-      {size !== "sm" && (
-        <span className="ml-1">
-          {localIsFollowing ? "Following" : "Follow"}
-        </span>
+        <>
+          <UserPlus className="h-4 w-4 mr-1" />
+          Follow
+        </>
       )}
     </Button>
   );

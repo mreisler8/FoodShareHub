@@ -1,15 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useDebounce } from '@/hooks/useDebounce';
+import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2, Navigation, UserPlus, UserCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { useSearch } from '@/hooks/useSearch';
-import { SearchInput } from '@/components/search/SearchInput';
-import { SearchResultsList } from '@/components/search/SearchResultsList';
-import { SearchResult } from '@/services/searchService';
-import { Clock, TrendingUp } from 'lucide-react';
+import { LocationService, type LocationData } from '@/services/locationService';
 import './UnifiedSearchModal.css';
+
+interface SearchResult {
+  id: string;
+  name: string;
+  subtitle?: string;
+  type: 'restaurant' | 'list' | 'post' | 'user';
+  avatar?: string;
+  location?: string;
+  thumbnailUrl?: string;
+  avgRating?: number;
+  // User-specific fields
+  username?: string;
+  bio?: string;
+  profilePicture?: string;
+  isFollowing?: boolean;
+  // List-specific fields
+  description?: string;
+  tags?: string[];
+  // Restaurant-specific fields
+  cuisine?: string;
+  priceRange?: string;
+}
+
+interface SearchResults {
+  restaurants: SearchResult[];
+  lists: SearchResult[];
+  posts: SearchResult[];
+  users: SearchResult[];
+}
 
 interface UnifiedSearchModalProps {
   open: boolean;
@@ -17,26 +47,10 @@ interface UnifiedSearchModalProps {
 }
 
 export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalProps) {
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('restaurants');
-  const [, setLocation] = useLocation();
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   
-  const {
-    searchQuery,
-    setSearchQuery,
-    results,
-    isLoading,
-    error,
-    inputRef,
-    recordSearch
-  } = useSearch({
-    searchType: 'unified',
-    enabled: open,
-    autoFocus: true,
-    includeLocation: true,
-    includeTrending: true,
-    includeRecentSearches: true
-  });
-
   // Fetch personalized recent searches
   const { data: personalizedSearches } = useQuery({
     queryKey: ['/api/search/recent-searches'],
@@ -50,18 +64,147 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     enabled: open,
     staleTime: 300000, // 5 minutes
   });
+  const [, setLocation] = useLocation();
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debouncedQuery = useDebounce(searchQuery, 300);
+
+  useEffect(() => {
+    if (open && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [open]);
+
+  // Request location on modal open
+  useEffect(() => {
+    if (open && locationPermission === null) {
+      setLocationPermission('prompt');
+      requestLocation();
+    }
+  }, [open]);
+
+  const requestLocation = async () => {
+    try {
+      setLocationPermission('prompt'); // Set loading state
+      
+      // Use the LocationService instance
+      const locationService = LocationService.getInstance();
+      const location = await locationService.getCurrentLocation();
+      
+      setUserLocation(location);
+      setLocationPermission('granted');
+      console.log('Location obtained:', location);
+    } catch (error) {
+      console.error('Location access denied:', error);
+      setLocationPermission('denied');
+    }
+  };
+
+  // Fetch search results
+  const { data: searchResults, isLoading, error, refetch } = useQuery<SearchResults>({
+    queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation }],
+    queryFn: async () => {
+      let searchUrl = `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`;
+
+      // Add location parameters if available
+      if (userLocation) {
+        searchUrl += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
+      }
+
+      const response = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(8000) // Optimized timeout
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Search service unavailable');
+        }
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        if (response.status >= 500) {
+          throw new Error('Server error - please try again');
+        }
+        const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
+        throw new Error(errorData.error || 'Search failed');
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid response content type:', contentType);
+        throw new Error('Invalid response format');
+      }
+      
+      const data = await response.json();
+
+      // Ensure avgRating is always a valid number
+      const processResults = (results: SearchResult[]) => {
+        return results.map(result => ({
+          ...result,
+          avgRating: typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating : 4.0
+        }));
+      };
+
+      return {
+        restaurants: processResults(data.restaurants || []),
+        lists: data.lists || [],
+        posts: data.posts || [],
+        users: data.users || []
+      };
+    },
+    enabled: !!debouncedQuery && debouncedQuery.length >= 2,
+    staleTime: 30000,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error.message.includes('Authentication required')) {
+        return false;
+      }
+      // Don't retry on client errors (4xx)
+      if (error.message.includes('service unavailable')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
   // Fetch trending content when no search query
   const { data: trending } = useQuery({
-    queryKey: ['/api/search/trending'],
+    queryKey: ['/api/search/trending', { location: userLocation }],
     queryFn: async () => {
-      const response = await fetch('/api/search/trending');
+      let trendingUrl = '/api/search/trending';
+
+      // Add location parameters if available
+      if (userLocation) {
+        trendingUrl += `?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
+      }
+
+      const response = await fetch(trendingUrl);
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        if (response.status >= 500) {
+          throw new Error('Server error - please try again');
+        }
         throw new Error('Failed to fetch trending content');
       }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid trending response content type:', contentType);
+        throw new Error('Invalid response format');
+      }
+      
       return response.json();
     },
-    enabled: open && !searchQuery,
+    enabled: open && !debouncedQuery,
     staleTime: 300000, // 5 minutes
   });
 
@@ -72,6 +215,8 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         console.error('Invalid search result:', result);
         return;
       }
+
+      console.log('Navigating to result:', result.type, result.id);
 
       // Navigate based on result type with enhanced routing
       switch (result.type) {
@@ -96,177 +241,373 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
           setLocation(`/profile/${encodeURIComponent(result.id)}`);
           break;
         default:
-          console.warn('Unknown result type:', result.type);
-          break;
+          console.error('Unknown result type:', result.type);
+          return;
       }
 
-      // Record the search and close modal
-      recordSearch(result.name);
       onOpenChange(false);
     } catch (error) {
-      console.error('Error handling result click:', error);
+      console.error('Error handling search result click:', error);
     }
   };
 
-  const handleFollowToggle = (userId: string, isFollowing: boolean) => {
-    // The FollowButton component handles the actual follow/unfollow logic
-    // This is just a callback to update any local state if needed
-    console.log(`User ${userId} follow status changed to: ${isFollowing}`);
+  const handleRecentSearchClick = (term: string) => {
+    setSearchQuery(term);
   };
 
-  // Handle recent search click
-  const handleRecentSearchClick = (searchTerm: string) => {
-    setSearchQuery(searchTerm);
-    setActiveTab('restaurants');
+  const handleFollowToggle = async (userId: string, isFollowing?: boolean) => {
+    try {
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/users/${userId}/follow`, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle follow');
+      }
+      
+      // Refresh search results to update follow status
+      refetch();
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+    }
   };
 
-  // Process results for current tab
-  const getResultsForTab = (tab: string): SearchResult[] => {
-    if (!results || typeof results !== 'object') return [];
-    
+  const getTabIcon = (tab: string) => {
     switch (tab) {
-      case 'restaurants':
-        return results.restaurants || [];
-      case 'lists':
-        return results.lists || [];
-      case 'posts':
-        return results.posts || [];
-      case 'users':
-        return results.users || [];
-      default:
-        return [];
+      case 'restaurants': return <UtensilsCrossed className="h-4 w-4" />;
+      case 'lists': return <FileText className="h-4 w-4" />;
+      case 'posts': return <MapPin className="h-4 w-4" />;
+      case 'users': return <User className="h-4 w-4" />;
+      default: return null;
     }
   };
 
-  // Get trending results for current tab
-  const getTrendingForTab = (tab: string): SearchResult[] => {
-    if (!trending || typeof trending !== 'object') return [];
-    
-    switch (tab) {
-      case 'restaurants':
-        return trending.trending || [];
-      case 'lists':
-        return trending.lists || [];
-      case 'posts':
-        return trending.posts || [];
-      case 'users':
-        return trending.users || [];
-      default:
-        return [];
+  const getResultIcon = (type: string) => {
+    switch (type) {
+      case 'restaurant': return <UtensilsCrossed className="h-4 w-4 text-primary" />;
+      case 'list': return <FileText className="h-4 w-4 text-blue-500" />;
+      case 'post': return <MapPin className="h-4 w-4 text-blue-500" />;
+      case 'user': return <User className="h-4 w-4 text-purple-500" />;
+      default: return null;
     }
   };
 
-  const currentResults = getResultsForTab(activeTab);
-  const currentTrending = getTrendingForTab(activeTab);
-  
+  const hasResults = searchResults && Object.values(searchResults).some(arr => arr.length > 0);
+  const totalResults = searchResults ? Object.values(searchResults).reduce((acc, arr) => acc + arr.length, 0) : 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] p-0">
-        <DialogTitle className="sr-only">Search Circles</DialogTitle>
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6 pb-4 border-b">
-            <h2 className="text-xl font-semibold mb-4">Search Circles</h2>
-            <SearchInput
-              inputRef={inputRef}
+      <DialogContent className="max-w-2xl max-h-[80vh] p-0" aria-describedby="search-description">
+        <div className="sr-only">
+          <h2 id="search-title">Search</h2>
+          <p id="search-description">Search for restaurants, lists, posts, and people</p>
+        </div>
+        {/* Search Header */}
+        <div className="p-6 pb-4 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
+            <Input
+              ref={inputRef}
+              type="text"
+              placeholder="Search restaurants, lists, posts, people…"
               value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search for restaurants, lists, posts, or people..."
-              isLoading={isLoading}
-              showLocationButton={true}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-11"
             />
           </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-4 mx-6 mt-4">
-              <TabsTrigger value="restaurants">Restaurants</TabsTrigger>
-              <TabsTrigger value="lists">Lists</TabsTrigger>
-              <TabsTrigger value="posts">Posts</TabsTrigger>
-              <TabsTrigger value="users">People</TabsTrigger>
-            </TabsList>
-
-            {/* Search Results */}
-            <div className="flex-1 overflow-hidden">
-              {searchQuery ? (
-                <TabsContent value={activeTab} className="h-full overflow-y-auto p-6 pt-4">
-                  <SearchResultsList
-                    results={currentResults}
-                    isLoading={isLoading}
-                    error={error}
-                    emptyMessage={`No ${activeTab} found matching "${searchQuery}"`}
-                    onResultClick={handleResultClick}
-                    onFollowToggle={activeTab === 'users' ? handleFollowToggle : undefined}
-                    showFollowButton={activeTab === 'users'}
-                  />
-                </TabsContent>
-              ) : (
-                <TabsContent value={activeTab} className="h-full overflow-y-auto p-6 pt-4">
-                  <div className="space-y-6">
-                    {/* Recent Searches */}
-                    {personalizedSearches?.recent?.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <h3 className="font-medium">Recent Searches</h3>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {personalizedSearches.recent.map((search: string, index: number) => (
-                            <Badge
-                              key={index}
-                              variant="secondary"
-                              className="cursor-pointer hover:bg-primary/20"
-                              onClick={() => handleRecentSearchClick(search)}
-                            >
-                              {search}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Trending Content */}
-                    {currentTrending.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                          <h3 className="font-medium">Trending {activeTab}</h3>
-                        </div>
-                        <SearchResultsList
-                          results={currentTrending}
-                          isLoading={false}
-                          error={null}
-                          emptyMessage={`No trending ${activeTab} available`}
-                          onResultClick={handleResultClick}
-                          onFollowToggle={activeTab === 'users' ? handleFollowToggle : undefined}
-                          showFollowButton={activeTab === 'users'}
-                        />
-                      </div>
-                    )}
-
-                    {/* Suggestions */}
-                    {personalizedSearches?.suggestions?.length > 0 && (
-                      <div>
-                        <h3 className="font-medium mb-3">Suggested for You</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {personalizedSearches.suggestions.map((suggestion: string, index: number) => (
-                            <Badge
-                              key={index}
-                              variant="outline"
-                              className="cursor-pointer hover:bg-primary/20"
-                              onClick={() => handleRecentSearchClick(suggestion)}
-                            >
-                              {suggestion}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
+          {/* Location Status */}
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              {locationPermission === 'granted' && userLocation && (
+                <div className="flex items-center gap-1 text-xs text-green-600">
+                  <Navigation className="h-3 w-3" />
+                  <span>
+                    Searching near {userLocation.city && userLocation.city !== `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}` 
+                      ? userLocation.city 
+                      : 'your location'}
+                  </span>
+                </div>
+              )}
+              {locationPermission === 'denied' && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span>Location disabled - showing global results</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={requestLocation}
+                    className="h-6 text-xs ml-2"
+                  >
+                    Enable Location
+                  </Button>
+                </div>
+              )}
+              {locationPermission === 'prompt' && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Navigation className="h-3 w-3 animate-pulse" />
+                  <span>Requesting location access...</span>
+                </div>
+              )}
+              {!locationPermission && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span>Location services disabled</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={requestLocation}
+                    className="h-6 text-xs ml-2"
+                  >
+                    Enable Location
+                  </Button>
+                </div>
               )}
             </div>
-          </Tabs>
+
+            {debouncedQuery && (
+              <div className="text-xs text-muted-foreground">
+                {userLocation ? 'Searching nearby' : 'Searching everywhere'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {!searchQuery && (
+            <div className="p-6 space-y-6">
+              {/* Recent Searches */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Recent Searches</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(personalizedSearches?.recent || []).map((term: string, index: number) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRecentSearchClick(term)}
+                      className="h-8 text-xs"
+                    >
+                      {term}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trending */}
+              {trending?.trending && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Trending</span>
+                  </div>
+                  <div className="space-y-2">
+                    {trending.trending.slice(0, 5).map((item: any, index: number) => (
+                      <div key={index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer">
+                        {getResultIcon(item.type)}
+                        <div className="flex-1">
+                          <span className="text-sm font-medium">{item.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {item.type === 'list' ? `${item.viewCount || 0} views` : item.location}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Search Results */}
+          {searchQuery && (
+            <div className="search-results-enhanced">
+              {isLoading && (
+                <div className="flex flex-col items-center justify-center py-8 px-6">
+                  <div className="text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                    <span className="text-sm text-muted-foreground">
+                      Searching {userLocation ? 'nearby' : 'everywhere'}...
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="flex flex-col items-center justify-center py-8 px-6">
+                  <div className="text-center">
+                    <span className="text-sm text-red-500 mb-3 block">
+                      Search failed. Please try again.
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetch()}
+                        className="text-xs"
+                      >
+                        Retry Search
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSearchQuery('')}
+                        className="text-xs"
+                      >
+                        Clear Search
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {hasResults ? (
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+                  <div className="px-6 pt-4 pb-2 border-b">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="restaurants" className="text-xs">
+                        {getTabIcon('restaurants')}
+                        <span className="ml-1">Restaurants ({searchResults?.restaurants?.length || 0})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="lists" className="text-xs">
+                        {getTabIcon('lists')}
+                        <span className="ml-1">Lists ({searchResults?.lists?.length || 0})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="posts" className="text-xs">
+                        {getTabIcon('posts')}
+                        <span className="ml-1">Posts ({searchResults?.posts?.length || 0})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="users" className="text-xs">
+                        {getTabIcon('users')}
+                        <span className="ml-1">People ({searchResults?.users?.length || 0})</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <div className="overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
+                    {Object.entries(searchResults || {}).map(([type, items]) => (
+                      <TabsContent key={type} value={type} className="m-0 p-6">
+                        <div className="space-y-2">
+                          {items.map((result: SearchResult) => (
+                            <div key={result.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                              {/* Avatar/Icon */}
+                              <div className="flex-shrink-0">
+                                {result.type === 'user' ? (
+                                  <Avatar className="w-12 h-12">
+                                    <AvatarImage src={result.profilePicture || result.avatar} alt={result.name} />
+                                    <AvatarFallback className="bg-primary/10 text-primary">
+                                      {result.name?.charAt(0)?.toUpperCase() || '?'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                ) : result.thumbnailUrl ? (
+                                  <img 
+                                    src={result.thumbnailUrl} 
+                                    alt={result.name}
+                                    className="w-10 h-10 object-cover rounded"
+                                  />
+                                ) : (
+                                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                                      {getResultIcon(result.type)}
+                                    </div>
+                                  )}
+                              </div>
+
+                              {/* Content */}
+                              <div 
+                                className="flex-1 cursor-pointer"
+                                onClick={() => handleResultClick(result)}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-medium text-sm">{result.name}</span>
+                                      {result.type === 'user' && result.username && (
+                                        <span className="text-xs text-muted-foreground">@{result.username}</span>
+                                      )}
+                                      {result.avgRating && (
+                                        <div className="flex items-center gap-1">
+                                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                          <span className="text-xs text-muted-foreground">
+                                            {typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating.toFixed(1) : '4.0'}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Type-specific content */}
+                                    {result.type === 'user' && result.bio && (
+                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{result.bio}</p>
+                                    )}
+                                    {result.type === 'list' && result.description && (
+                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{result.description}</p>
+                                    )}
+                                    {result.type === 'restaurant' && result.cuisine && (
+                                      <p className="text-xs text-muted-foreground">{result.cuisine} • {result.location}</p>
+                                    )}
+                                    {result.subtitle && result.type !== 'user' && result.type !== 'list' && result.type !== 'restaurant' && (
+                                      <p className="text-xs text-muted-foreground">{result.subtitle}</p>
+                                    )}
+                                    
+                                    {/* Tags */}
+                                    {result.tags && result.tags.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-2">
+                                        {result.tags.slice(0, 3).map((tag, tagIndex) => (
+                                          <Badge key={tagIndex} variant="secondary" className="text-xs px-2 py-0.5">
+                                            {tag}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Follow button for users */}
+                                  {result.type === 'user' && (
+                                    <Button
+                                      variant={result.isFollowing ? "outline" : "default"}
+                                      size="sm"
+                                      className="ml-2 h-8 px-3"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleFollowToggle(result.id, result.isFollowing);
+                                      }}
+                                    >
+                                      {result.isFollowing ? (
+                                        <>
+                                          <UserCheck className="h-3 w-3 mr-1" />
+                                          Following
+                                        </>
+                                      ) : (
+                                        <>
+                                          <UserPlus className="h-3 w-3 mr-1" />
+                                          Follow
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </TabsContent>
+                    ))}
+                  </div>
+                </Tabs>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-40 text-center px-6">
+                  <Search className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-sm font-medium">No results found</span>
+                  <span className="text-xs text-muted-foreground">No results for "{searchQuery}"</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
