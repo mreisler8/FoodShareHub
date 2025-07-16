@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { PostTypeIcon, getPostTypeColor, getPostTypeLabel } from '@/components/post/PostTypeIcon';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -38,7 +39,18 @@ export function PostCard({ post, isCompact = false }: PostCardProps) {
           </Avatar>
 
           <div className="post-author-details">
-            <div className="post-author-name">{post.author?.name || 'Anonymous'}</div>
+            <div className="flex items-center gap-2">
+              <div className="post-author-name">{post.author?.name || 'Anonymous'}</div>
+              {post.postType && (
+                <Badge 
+                  variant="secondary" 
+                  className={`text-xs px-2 py-1 ${getPostTypeColor(post.postType)} text-white`}
+                >
+                  <PostTypeIcon type={post.postType} size="sm" className="mr-1" />
+                  {getPostTypeLabel(post.postType)}
+                </Badge>
+              )}
+            </div>
             <div className="post-meta">
               <MapPin className="post-meta-icon" />
               <span className="post-restaurant-name">{post.restaurant?.name}</span>

@@ -33,6 +33,8 @@ import listItemCommentsRouter from './routes/list-item-comments.js';
 import * as circleRoutes from './routes/circles';
 import circleRequestsRouter from './routes/circle-requests';
 import usersRouter from './routes/users';
+import usersStatsRouter from './routes/users-stats';
+import analyticsRouter from './routes/analytics';
 import savedListsRouter from './routes/saved-lists';
 // import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
@@ -1341,6 +1343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
   app.use("/api/circles", circleRequestsRouter);
   app.use("/api/users", usersRouter);
+  app.use("/api/users", usersStatsRouter);
+  app.use("/api/analytics", analyticsRouter);
 
   // Health check route
   app.get("/api/health", (_req, res) => {
@@ -1350,5 +1354,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WebSocket server temporarily disabled to fix login issues
   // Will be re-enabled after login is working properly
 
-  return httpServer;
+  // Return the express app since httpServer is not available in this context
+  return app;
 }

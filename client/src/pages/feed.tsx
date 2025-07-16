@@ -8,9 +8,11 @@ import { PostCard } from '@/components/home/PostCard';
 import { PostModal } from '@/components/post/PostModal';
 import { Button } from '@/components/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Users, Home } from 'lucide-react';
+import { PlusCircle, Users, Home, Filter } from 'lucide-react';
 import { PostWithDetails } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
+import { PostTypeFeedFilter } from '@/components/feed/PostTypeFeedFilter';
+import { PostType } from '@/components/post/PostTypeSelector';
 import './FeedPage.css';
 
 interface FeedPageProps {
@@ -37,6 +39,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const [showPostModal, setShowPostModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'feed' | 'circle'>(scope);
   const [hasMore, setHasMore] = useState(true);
+  const [selectedPostTypes, setSelectedPostTypes] = useState<PostType[]>(['list', 'moment', 'dish']);
+  const [showFilters, setShowFilters] = useState(false);
   const limit = 10;
 
   // Get user's circles for tab navigation
@@ -45,16 +49,27 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
     enabled: !!user,
   });
 
-  // Reset posts when scope changes
+  // Reset posts when scope or filters change
   useEffect(() => {
     setAllPosts([]);
     setPage(1);
     setHasMore(true);
-  }, [activeTab, circleId]);
+  }, [activeTab, circleId, selectedPostTypes]);
 
   // Fetch posts based on current scope and page
   const { data: feedData, isLoading, error } = useQuery<PaginatedFeedResponse>({
-    queryKey: ['/api/feed', { scope: activeTab, circleId: activeTab === 'circle' ? circleId : undefined, page }],
+    queryKey: ['/api/feed', { 
+      scope: activeTab, 
+      circleId: activeTab === 'circle' ? circleId : undefined, 
+      page,
+      postTypes: selectedPostTypes.length < 3 ? selectedPostTypes : undefined
+    }],
+    enabled: !!user,
+  });
+
+  // Get post type counts for filter UI
+  const { data: postTypeCounts } = useQuery<Record<PostType, number>>({
+    queryKey: ['/api/feed/counts', { scope: activeTab, circleId: activeTab === 'circle' ? circleId : undefined }],
     enabled: !!user,
   });
 
@@ -122,14 +137,35 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             <h1 className="text-2xl font-bold text-foreground">
               {activeTab === 'feed' ? 'Your Feed' : 'Circle Feed'}
             </h1>
-            <Button 
-              onClick={() => setShowPostModal(true)}
-              className="flex items-center gap-2"
-            >
-              <PlusCircle className="h-4 w-4" />
-              New Post
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                Filters
+              </Button>
+              <Button 
+                onClick={() => setShowPostModal(true)}
+                className="flex items-center gap-2"
+              >
+                <PlusCircle className="h-4 w-4" />
+                New Post
+              </Button>
+            </div>
           </div>
+
+          {/* Post Type Filters */}
+          {showFilters && (
+            <div className="mb-6">
+              <PostTypeFeedFilter
+                selectedTypes={selectedPostTypes}
+                onTypesChange={setSelectedPostTypes}
+                postCounts={postTypeCounts}
+              />
+            </div>
+          )}
 
           {/* Feed/Circle Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">

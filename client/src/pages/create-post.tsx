@@ -1,20 +1,23 @@
 
-import React from 'react';
-import { PostFormContainer } from '@/components/create-post/PostFormContainer';
+import React, { useState } from 'react';
+import { EnhancedCreatePost } from '@/components/post/EnhancedCreatePost';
 import { useLocation } from 'wouter';
 
 export default function CreatePost() {
   const [, navigate] = useLocation();
+  const [isOpen, setIsOpen] = useState(true);
 
-  const handleClose = () => {
-    navigate('/feed');
+  const handleClose = (open: boolean) => {
+    if (!open) {
+      navigate('/feed');
+    }
+    setIsOpen(open);
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-4xl mx-auto px-4 py-6">
-        <PostFormContainer onClose={handleClose} />
-      </div>
-    </div>
+    <EnhancedCreatePost
+      open={isOpen}
+      onOpenChange={handleClose}
+    />
   );
 }

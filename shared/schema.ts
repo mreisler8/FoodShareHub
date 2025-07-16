@@ -126,7 +126,11 @@ export const insertPostSchema = createInsertSchema(posts).pick({
   atmosphere: true,
   serviceRating: true,
   dietaryOptions: true,
+  postType: true,
+  metadata: true,
 });
+
+// Post types moved to end of file
 
 // Comment model
 export const comments = pgTable("comments", {
