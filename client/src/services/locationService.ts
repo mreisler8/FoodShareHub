@@ -1,24 +1,16 @@
-
-interface LocationData {
+export interface LocationData {
   lat: number;
   lng: number;
-  city?: string;
   address?: string;
-}
-
-class LocationError extends Error {
-  code: string;
-  
-  constructor(code: string, message: string) {
-    super(message);
-    this.code = code;
-    this.name = 'LocationError';
-  }
+  city?: string;
+  country?: string;
+  timestamp?: number;
 }
 
 export class LocationService {
   private static instance: LocationService;
-  private cache: Map<string, { data: LocationData; timestamp: number }> = new Map();
+  private cachedLocation: LocationData | null = null;
+  private locationCacheTime: number = 0;
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   public static getInstance(): LocationService {
@@ -28,10 +20,18 @@ export class LocationService {
     return LocationService.instance;
   }
 
+  /**
+   * Get current location with caching
+   */
   async getCurrentLocation(): Promise<LocationData> {
+    // Check if cached location is still valid
+    if (this.cachedLocation && Date.now() - this.locationCacheTime < this.CACHE_DURATION) {
+      return this.cachedLocation;
+    }
+
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new LocationError('GEOLOCATION_NOT_SUPPORTED', 'Geolocation is not supported by this browser'));
+        reject(new Error('Geolocation is not supported by this browser.'));
         return;
       }
 
@@ -39,37 +39,40 @@ export class LocationService {
         async (position) => {
           const locationData: LocationData = {
             lat: position.coords.latitude,
-            lng: position.coords.longitude
+            lng: position.coords.longitude,
+            timestamp: Date.now()
           };
-          
-          // Try to get user-friendly location name using reverse geocoding
+
+          // Try to get reverse geocoding
           try {
-            const city = await this.reverseGeocode(locationData.lat, locationData.lng);
-            locationData.city = city;
+            const address = await this.reverseGeocode(locationData.lat, locationData.lng);
+            locationData.address = address.formatted_address;
+            locationData.city = address.city;
+            locationData.country = address.country;
           } catch (error) {
             console.warn('Reverse geocoding failed:', error);
-            // Fall back to coordinates if reverse geocoding fails
           }
-          
+
+          // Cache the location
+          this.cachedLocation = locationData;
+          this.locationCacheTime = Date.now();
+
           resolve(locationData);
         },
         (error) => {
-          let locationError: LocationError;
+          let message = 'Unable to get your location.';
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              locationError = new LocationError('PERMISSION_DENIED', 'Location access denied by user. Please enable location in your browser settings.');
+              message = 'Location access was denied. Please enable location permissions.';
               break;
             case error.POSITION_UNAVAILABLE:
-              locationError = new LocationError('POSITION_UNAVAILABLE', 'Location information is unavailable. Please check your GPS or internet connection.');
+              message = 'Location information is unavailable.';
               break;
             case error.TIMEOUT:
-              locationError = new LocationError('TIMEOUT', 'Location request timed out. Please try again.');
-              break;
-            default:
-              locationError = new LocationError('UNKNOWN_ERROR', 'An unknown error occurred while getting your location.');
+              message = 'Location request timed out.';
               break;
           }
-          reject(locationError);
+          reject(new Error(message));
         },
         {
           enableHighAccuracy: true,
@@ -80,54 +83,73 @@ export class LocationService {
     });
   }
 
-  async reverseGeocode(lat: number, lng: number): Promise<string> {
-    const cacheKey = `reverse_${lat}_${lng}`;
-    const cached = this.cache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      return cached.data.city || `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
-    }
-
+  /**
+   * Reverse geocode coordinates to address
+   */
+  private async reverseGeocode(lat: number, lng: number): Promise<{
+    formatted_address: string;
+    city: string;
+    country: string;
+  }> {
     try {
-      // Use Google Geocoding API for reverse geocoding
       const response = await fetch(
         `/api/geocode/reverse?lat=${lat}&lng=${lng}`
       );
 
       if (!response.ok) {
-        throw new Error('Geocoding API request failed');
+        throw new Error('Reverse geocoding failed');
       }
 
-      const data = await response.json();
-      
-      if (data.city) {
-        // Cache the result
-        this.cache.set(cacheKey, {
-          data: { lat, lng, city: data.city },
-          timestamp: Date.now()
-        });
-        
-        return data.city;
-      }
-      
-      throw new Error('No results from geocoding');
+      return await response.json();
     } catch (error) {
-      console.warn('Reverse geocoding failed:', error);
-      return `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+      // Fallback to basic location description
+      return {
+        formatted_address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        city: 'Unknown',
+        country: 'Unknown'
+      };
     }
   }
 
-  getCachedLocation(key: string): LocationData | null {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      return cached.data;
-    }
-    return null;
+  /**
+   * Calculate distance between two points in kilometers
+   */
+  calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLng = this.toRadians(lng2 - lng1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 
-  setCachedLocation(key: string, data: LocationData): void {
-    this.cache.set(key, { data, timestamp: Date.now() });
+  /**
+   * Check if location permission is granted
+   */
+  async checkPermission(): Promise<'granted' | 'denied' | 'prompt'> {
+    if (!navigator.permissions) {
+      return 'prompt';
+    }
+
+    try {
+      const result = await navigator.permissions.query({ name: 'geolocation' });
+      return result.state;
+    } catch (error) {
+      return 'prompt';
+    }
+  }
+
+  /**
+   * Clear cached location
+   */
+  clearCache(): void {
+    this.cachedLocation = null;
+    this.locationCacheTime = 0;
+  }
+
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
   }
 }
-
-export { LocationData, LocationError };

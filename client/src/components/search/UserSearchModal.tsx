@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Input } from "@/components/ui/input";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { X, Search, UserPlus, Check } from "lucide-react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { X } from "lucide-react";
+import { useSearch } from "@/hooks/useSearch";
+import { SearchInput } from "@/components/search/SearchInput";
+import { SearchResultsList } from "@/components/search/SearchResultsList";
+import { SearchResult } from "@/services/searchService";
 
 interface User {
   id: number;
@@ -44,29 +43,41 @@ export function UserSearchModal({
   showMemberStatus = false,
   excludeUserIds = [],
 }: UserSearchModalProps) {
-  const [searchQuery, setSearchQuery] = useState("");
   const [addingUserId, setAddingUserId] = useState<number | null>(null);
-  const debouncedQuery = useDebounce(searchQuery, 300);
-
-  // Search users
-  const { data: searchResults = [], isLoading } = useQuery({
-    queryKey: ["/api/search/users", debouncedQuery],
-    queryFn: async () => {
-      if (!debouncedQuery.trim()) return [];
-      
-      const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
-      // Extract users from unified search results
-      return response.users || [];
-    },
-    enabled: isOpen && debouncedQuery.length > 0,
+  
+  const {
+    searchQuery,
+    setSearchQuery,
+    results,
+    isLoading,
+    error,
+    inputRef,
+    recordSearch
+  } = useSearch({
+    searchType: 'users',
+    enabled: isOpen,
+    autoFocus: true,
+    includeLocation: false,
+    includeTrending: false,
+    includeRecentSearches: false
   });
 
-  // Filter out already selected users and excluded IDs
-  const filteredResults = searchResults.filter((user: User) => {
-    const isSelected = selectedUsers.some(u => u.id === user.id);
-    const isExcluded = excludeUserIds.includes(user.id);
-    return !isSelected && !isExcluded;
-  });
+  // Convert SearchResult to User and filter out already selected users and excluded IDs
+  const filteredResults = (Array.isArray(results) ? results : [])
+    .map((result: SearchResult) => ({
+      id: parseInt(result.id),
+      name: result.name,
+      username: result.username || result.name,
+      profilePicture: result.profilePicture || result.avatar,
+      bio: result.bio || result.subtitle,
+      isFollowing: result.isFollowing,
+      isMember: false
+    }))
+    .filter((user: User) => {
+      const isSelected = selectedUsers.some(u => u.id === user.id);
+      const isExcluded = excludeUserIds.includes(user.id);
+      return !isSelected && !isExcluded;
+    });
 
   const handleAddUser = async (user: User) => {
     if (onAddUser) {
@@ -79,6 +90,24 @@ export function UserSearchModal({
     } else if (onSelectUser) {
       onSelectUser(user);
     }
+    recordSearch(user.name);
+  };
+
+  const handleResultClick = (result: SearchResult) => {
+    const user: User = {
+      id: parseInt(result.id),
+      name: result.name,
+      username: result.username || result.name,
+      profilePicture: result.profilePicture || result.avatar,
+      bio: result.bio || result.subtitle,
+      isFollowing: result.isFollowing,
+      isMember: false
+    };
+    
+    if (onSelectUser) {
+      onSelectUser(user);
+    }
+    recordSearch(user.name);
   };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -115,101 +144,32 @@ export function UserSearchModal({
           <p className="text-sm text-gray-600">{subtitle}</p>
           
           {/* Search Input */}
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
+          <div className="mt-4">
+            <SearchInput
+              inputRef={inputRef}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={setSearchQuery}
               placeholder="Search by name or username..."
-              className="pl-10"
-              autoFocus
+              isLoading={isLoading}
+              showLocationButton={false}
             />
           </div>
         </div>
 
         {/* Results */}
         <div className="flex-1 overflow-y-auto p-4">
-          {isLoading && searchQuery && (
-            <div className="text-center py-8 text-gray-500">
-              Searching...
-            </div>
-          )}
-
-          {!isLoading && searchQuery && filteredResults.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No users found matching "{searchQuery}"
-            </div>
-          )}
-
-          {!searchQuery && (
-            <div className="text-center py-8 text-gray-500">
-              Start typing to search for users
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {filteredResults.map((user: User) => (
-              <Card
-                key={user.id}
-                className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                onClick={() => handleAddUser(user)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                      {user.profilePicture ? (
-                        <img
-                          src={user.profilePicture}
-                          alt={user.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-lg font-semibold text-gray-600">
-                          {user.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{user.name}</h3>
-                      <p className="text-sm text-gray-600">@{user.username}</p>
-                      {user.bio && (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                          {user.bio}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {showFollowStatus && user.isFollowing && (
-                      <span className="text-xs text-gray-500">Following</span>
-                    )}
-                    {showMemberStatus && user.isMember && (
-                      <span className="text-xs text-gray-500">Member</span>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={addingUserId === user.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddUser(user);
-                      }}
-                    >
-                      {addingUserId === user.id ? (
-                        "Adding..."
-                      ) : (
-                        <>
-                          <UserPlus className="h-3 w-3 mr-1" />
-                          {actionLabel}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+          <SearchResultsList
+            results={Array.isArray(results) ? results : []}
+            isLoading={isLoading}
+            error={error}
+            emptyMessage={searchQuery ? `No users found matching "${searchQuery}"` : "Start typing to search for users"}
+            onResultClick={handleResultClick}
+            onFollowToggle={onAddUser ? (userId: string) => {
+              const user = filteredResults.find(u => u.id === parseInt(userId));
+              if (user) handleAddUser(user);
+            } : undefined}
+            showFollowButton={!!onAddUser}
+          />
         </div>
 
         {/* Selected Users Preview */}
