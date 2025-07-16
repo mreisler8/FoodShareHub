@@ -155,8 +155,11 @@ const getCuisineType = (types?: string[]): string => {
   return 'Restaurant';
 };
 
-// Enhanced semantic query mapping for Google Places with typo tolerance
+
+
+// Enhanced semantic query mapping with comprehensive restaurant intelligence
 const SEMANTIC_QUERY_MAPPINGS = {
+  // Intent-based semantic mappings
   'late night': 'restaurants open late night after hours',
   'brunch': 'brunch restaurants breakfast lunch weekend dining',
   'date night': 'romantic restaurants fine dining intimate wine bar',
@@ -178,11 +181,33 @@ const SEMANTIC_QUERY_MAPPINGS = {
   'delivery': 'restaurants delivery takeout food delivery service',
   'takeout': 'takeout restaurants pickup fast food quick service',
   
-  // Typo tolerance mappings
-  'tacoronto': 'tacos toronto',
+  // Cuisine-specific semantic mappings
+  'korean': 'korean restaurants bbq kimchi bulgogi',
+  'japanese': 'japanese restaurants sushi ramen sashimi',
+  'chinese': 'chinese restaurants dim sum noodles',
+  'italian': 'italian restaurants pasta pizza gelato',
+  'mexican': 'mexican restaurants tacos burritos',
+  'thai': 'thai restaurants pad thai curry',
+  'indian': 'indian restaurants curry naan tandoori',
+  'french': 'french restaurants bistro croissant',
+  'mediterranean': 'mediterranean restaurants hummus falafel',
+  'vietnamese': 'vietnamese restaurants pho banh mi',
+  'greek': 'greek restaurants gyros souvlaki',
+  'middle eastern': 'middle eastern restaurants kebab shawarma',
+  
+  // Restaurant name corrections and expansions
+  'oddseoul': 'odd seoul korean restaurant toronto',
+  'oddseol': 'odd seoul korean restaurant toronto',
+  'odseoul': 'odd seoul korean restaurant toronto',
+  'odds': 'odd seoul korean restaurant toronto',
+  'odd seoul': 'odd seoul korean restaurant toronto',
+  'tacoronto': 'tacos toronto mexican',
+  
+  // Common typos and corrections
   'pizzza': 'pizza',
   'resturant': 'restaurant',
   'restaurent': 'restaurant',
+  'resteraunt': 'restaurant',
   'caffee': 'coffee',
   'brekfast': 'breakfast',
   'diner': 'dinner restaurant',
@@ -196,7 +221,107 @@ const SEMANTIC_QUERY_MAPPINGS = {
   'frech': 'french',
 } as const;
 
-// Enhanced location-based query optimization
+// Advanced semantic search with multi-layered matching
+function performSemanticSearch(query: string): string {
+  const lowerQuery = query.toLowerCase().trim();
+  
+  // Layer 1: Exact substring matching
+  for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
+    if (lowerQuery.includes(key)) {
+      console.log(`Exact match found: ${key} -> ${enhancement}`);
+      return enhancement;
+    }
+  }
+  
+  // Layer 2: Phonetic and character-level fuzzy matching
+  let bestMatch = '';
+  let bestScore = 0;
+  
+  for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
+    // Standard similarity
+    const similarity = calculateSimilarity(lowerQuery, key);
+    
+    // Phonetic similarity for restaurant names
+    const phoneticSimilarity = calculatePhoneticSimilarity(lowerQuery, key);
+    
+    // Combined score with phonetic weighting
+    const combinedScore = Math.max(similarity, phoneticSimilarity * 0.9);
+    
+    if (combinedScore > bestScore && combinedScore > 0.6) {
+      bestMatch = enhancement;
+      bestScore = combinedScore;
+    }
+  }
+  
+  if (bestMatch) {
+    console.log(`Fuzzy match found: ${lowerQuery} -> ${bestMatch} (score: ${bestScore.toFixed(2)})`);
+    return bestMatch;
+  }
+  
+  // Layer 3: Word-level fuzzy matching for compound queries
+  const queryWords = lowerQuery.split(/\s+/);
+  for (const word of queryWords) {
+    for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
+      const wordSimilarity = calculateSimilarity(word, key);
+      if (wordSimilarity > 0.8) {
+        console.log(`Word-level match found: ${word} -> ${enhancement}`);
+        return enhancement;
+      }
+    }
+  }
+  
+  // Layer 4: Special handling for specific restaurant patterns
+  if (lowerQuery.match(/^od{1,2}s?e?o?u?l?$/)) {
+    console.log(`Special OddSeoul pattern match: ${lowerQuery} -> odd seoul korean restaurant toronto`);
+    return 'odd seoul korean restaurant toronto';
+  }
+  
+  return lowerQuery;
+}
+
+// Phonetic similarity for restaurant names
+function calculatePhoneticSimilarity(str1: string, str2: string): number {
+  // Simple phonetic matching rules
+  const phoneticMap = {
+    'c': 'k',
+    'ph': 'f',
+    'gh': 'f',
+    'ck': 'k',
+    'qu': 'kw',
+    'x': 'ks',
+    'z': 's',
+    'tion': 'shun',
+    'sion': 'shun',
+    'ough': 'uf',
+    'augh': 'af',
+    'eigh': 'ay',
+    'ey': 'ay',
+    'y': 'i',
+    'ie': 'i',
+    'ea': 'e',
+    'oo': 'u',
+    'ou': 'u',
+    'ow': 'o',
+    'aw': 'a',
+    'ai': 'a',
+    'ay': 'a',
+  };
+  
+  function toPhonetic(str: string): string {
+    let phonetic = str.toLowerCase();
+    for (const [pattern, replacement] of Object.entries(phoneticMap)) {
+      phonetic = phonetic.replace(new RegExp(pattern, 'g'), replacement);
+    }
+    return phonetic;
+  }
+  
+  const phonetic1 = toPhonetic(str1);
+  const phonetic2 = toPhonetic(str2);
+  
+  return calculateSimilarity(phonetic1, phonetic2);
+}
+
+// Enhanced location-based query optimization with semantic intelligence
 function enhanceQueryForGoogle(query: string, location?: { lat: number; lng: number }): string {
   const lowerQuery = query.toLowerCase().trim();
   
@@ -205,14 +330,10 @@ function enhanceQueryForGoogle(query: string, location?: { lat: number; lng: num
     .replace(/\b(near me|nearby|around here|close to me)\b/gi, '')
     .trim();
   
-  // Apply semantic mappings with fuzzy matching
-  for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
-    if (lowerQuery.includes(key) || 
-        lowerQuery.replace(/\s+/g, '').includes(key.replace(/\s+/g, '')) ||
-        calculateSimilarity(lowerQuery, key) > 0.8) {
-      enhancedQuery = enhancement;
-      break;
-    }
+  // Apply semantic search first
+  const semanticResult = performSemanticSearch(enhancedQuery);
+  if (semanticResult !== enhancedQuery) {
+    enhancedQuery = semanticResult;
   }
   
   // Handle natural language phrases
@@ -237,15 +358,69 @@ function enhanceQueryForGoogle(query: string, location?: { lat: number; lng: num
   return enhancedQuery;
 }
 
-// Helper function for fuzzy string matching
+// Advanced fuzzy string matching with multiple algorithms
 function calculateSimilarity(str1: string, str2: string): number {
   const longer = str1.length > str2.length ? str1 : str2;
   const shorter = str1.length > str2.length ? str2 : str1;
   
   if (longer.length === 0) return 1.0;
   
+  // Levenshtein distance similarity
   const editDistance = levenshteinDistance(longer, shorter);
-  return (longer.length - editDistance) / longer.length;
+  const levenshteinSimilarity = (longer.length - editDistance) / longer.length;
+  
+  // Jaro-Winkler similarity for better prefix matching
+  const jaroSimilarity = calculateJaroSimilarity(str1, str2);
+  
+  // Substring matching bonus
+  const substringBonus = shorter.length > 2 && longer.includes(shorter) ? 0.2 : 0;
+  
+  // Combined similarity score
+  return Math.max(levenshteinSimilarity, jaroSimilarity) + substringBonus;
+}
+
+// Jaro similarity implementation
+function calculateJaroSimilarity(str1: string, str2: string): number {
+  if (str1 === str2) return 1.0;
+  
+  const len1 = str1.length;
+  const len2 = str2.length;
+  
+  if (len1 === 0 || len2 === 0) return 0.0;
+  
+  const matchDistance = Math.floor(Math.max(len1, len2) / 2) - 1;
+  const str1Matches = new Array(len1).fill(false);
+  const str2Matches = new Array(len2).fill(false);
+  
+  let matches = 0;
+  let transpositions = 0;
+  
+  // Find matches
+  for (let i = 0; i < len1; i++) {
+    const start = Math.max(0, i - matchDistance);
+    const end = Math.min(i + matchDistance + 1, len2);
+    
+    for (let j = start; j < end; j++) {
+      if (str2Matches[j] || str1[i] !== str2[j]) continue;
+      str1Matches[i] = true;
+      str2Matches[j] = true;
+      matches++;
+      break;
+    }
+  }
+  
+  if (matches === 0) return 0.0;
+  
+  // Find transpositions
+  let k = 0;
+  for (let i = 0; i < len1; i++) {
+    if (!str1Matches[i]) continue;
+    while (!str2Matches[k]) k++;
+    if (str1[i] !== str2[k]) transpositions++;
+    k++;
+  }
+  
+  return (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3.0;
 }
 
 function levenshteinDistance(str1: string, str2: string): number {
@@ -339,34 +514,13 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
     
     console.log(`Using ${searchStrategy} search strategy for query: "${enhancedQuery}"`);
     
-    // Add typo correction for common search failures
-    const typoCorrections: Record<string, string> = {
-      'oddseoul': 'odd seoul korean restaurant',
-      'oddseol': 'odd seoul korean restaurant', 
-      'odseoul': 'odd seoul korean restaurant',
-      'restaurent': 'restaurant',
-      'resturant': 'restaurant',
-      'resteraunt': 'restaurant',
-      'caffee': 'coffee',
-      'pizzza': 'pizza',
-      'suchi': 'sushi',
-      'borger': 'burger',
-      'chinease': 'chinese',
-      'itallian': 'italian',
-      'japaneese': 'japanese',
-      'mexcan': 'mexican',
-      'indain': 'indian',
-      'frech': 'french',
-    };
-    
-    // Apply typo corrections
+    // Apply semantic search and typo correction
     let correctedQuery = enhancedQuery;
-    for (const [typo, correction] of Object.entries(typoCorrections)) {
-      if (correctedQuery.toLowerCase().includes(typo)) {
-        correctedQuery = correctedQuery.toLowerCase().replace(typo, correction);
-        console.log(`Applied typo correction: ${typo} -> ${correction}`);
-        break;
-      }
+    
+    // Check if semantic search found a better match
+    if (enhancedQuery !== query.toLowerCase().trim()) {
+      correctedQuery = enhancedQuery;
+      console.log(`Applied semantic search enhancement: ${query} -> ${correctedQuery}`);
     }
     
     if (searchStrategy === 'nearby' && location) {
