@@ -224,20 +224,29 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   const isAuth = req.isAuthenticated();
   const userId = req.user?.id;
 
-  // Authentication successful - remove debug logs for production
+  // Debug logging for POST follow requests
+  console.log('AUTH DEBUG - Method:', req.method, 'Path:', req.path);
+  console.log('AUTH DEBUG - Session ID:', sessionId);
+  console.log('AUTH DEBUG - Is authenticated:', isAuth);
+  console.log('AUTH DEBUG - User ID:', userId);
+  console.log('AUTH DEBUG - Session exists:', !!req.session);
+  console.log('AUTH DEBUG - Cookie:', req.headers.cookie);
 
   // Validate session integrity
   if (!sessionId || typeof sessionId !== 'string') {
+    console.log('AUTH ERROR - Invalid session');
     return sendError(res, 401, "Invalid session");
   }
 
   // Validate user authentication
   if (!isAuth) {
+    console.log('AUTH ERROR - Not authenticated');
     return sendError(res, 401, "Not authenticated");
   }
 
   // Validate user object and ID
   if (!userId || typeof userId !== 'number' || userId <= 0 || !Number.isInteger(userId)) {
+    console.log('AUTH ERROR - Invalid user session');
     return sendError(res, 401, "Invalid user session");
   }
 

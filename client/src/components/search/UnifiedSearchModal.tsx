@@ -265,13 +265,23 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
       });
       
       if (!response.ok) {
-        throw new Error('Failed to toggle follow');
+        const errorText = await response.text();
+        let errorMessage = `HTTP ${response.status}: ${errorText}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // Keep original error message if JSON parsing fails
+        }
+        throw new Error(errorMessage);
       }
       
       // Refresh search results to update follow status
       refetch();
     } catch (error) {
       console.error('Error toggling follow:', error);
+      // Show user-friendly error message
+      alert(error instanceof Error ? error.message : 'Failed to toggle follow');
     }
   };
 

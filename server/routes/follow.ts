@@ -61,8 +61,20 @@ router.get('/following/:userId', authenticate, async (req, res) => {
 // POST /api/follow/:userId - Follow a user
 router.post('/:userId', authenticate, async (req, res) => {
   try {
+    console.log('POST Request: /api/follow/' + req.params.userId);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Session exists:', !!req.session);
+    console.log('SessionID:', req.sessionID);
+    console.log('User ID:', req.user?.id);
+    console.log('Is authenticated:', req.isAuthenticated());
+    
     const followingId = parseInt(req.params.userId);
     const followerId = req.user!.id;
+    
+    // Prevent following self
+    if (followingId === followerId) {
+      return res.status(400).json({ error: 'Cannot follow yourself' });
+    }
     
     // Check if already following
     const existingFollow = await db
@@ -83,7 +95,7 @@ router.post('/:userId', authenticate, async (req, res) => {
       followingId,
     });
     
-    res.json({ message: 'Successfully followed user' });
+    res.json({ message: 'Successfully followed user', isFollowing: true });
   } catch (error) {
     console.error('Error following user:', error);
     res.status(500).json({ error: 'Failed to follow user' });
@@ -96,14 +108,19 @@ router.delete('/:userId', authenticate, async (req, res) => {
     const followingId = parseInt(req.params.userId);
     const followerId = req.user!.id;
     
-    await db
+    // Prevent unfollowing self
+    if (followingId === followerId) {
+      return res.status(400).json({ error: 'Cannot unfollow yourself' });
+    }
+    
+    const result = await db
       .delete(userFollowers)
       .where(and(
         eq(userFollowers.followerId, followerId),
         eq(userFollowers.followingId, followingId)
       ));
     
-    res.json({ message: 'Successfully unfollowed user' });
+    res.json({ message: 'Successfully unfollowed user', isFollowing: false });
   } catch (error) {
     console.error('Error unfollowing user:', error);
     res.status(500).json({ error: 'Failed to unfollow user' });
