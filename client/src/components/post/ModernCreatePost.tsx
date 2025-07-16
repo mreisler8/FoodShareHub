@@ -1,392 +1,387 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useMutation } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { X, ArrowLeft, Star, Upload, Search, MapPin, ArrowRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/use-auth';
-import { useLocation } from 'wouter';
-import { PostTypeSelector, PostType } from './PostTypeSelector';
-import { SmartPostTypeSelector } from './SmartPostTypeSelector';
-import { PostTypeAnalytics } from './PostTypeAnalytics';
-import { ListOfSpotsForm } from './forms/ListOfSpotsForm';
-import { FoodMomentForm } from './forms/FoodMomentForm';
-import { RecommendDishForm } from './forms/RecommendDishForm';
-import { PostPreviewModal } from './PostPreviewModal';
-import { SuccessAnimation } from './SuccessAnimation';
-import { LoadingSpinner } from '../ui/loading-spinner';
-import { Card } from '@/components/ui/card';
-import { X, ArrowLeft, Eye, Send, Sparkles } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface ModernCreatePostProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultType?: PostType;
+  defaultType?: string;
 }
 
-interface FormState {
-  [key: string]: any;
+interface Restaurant {
+  id: string;
+  name: string;
+  location?: string;
+  address?: string;
+  avgRating?: number;
 }
 
-export function ModernCreatePost({ 
-  open, 
-  onOpenChange, 
-  defaultType 
-}: ModernCreatePostProps) {
-  const { user } = useAuth();
+export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCreatePostProps) {
+  const [step, setStep] = useState<'type' | 'form'>('type');
+  const [selectedType, setSelectedType] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [showRestaurantResults, setShowRestaurantResults] = useState(false);
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  
-  // State management
-  const [selectedType, setSelectedType] = useState<PostType | null>(defaultType || null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [formStates, setFormStates] = useState<Record<PostType, FormState>>({
-    list: {},
-    moment: {},
-    dish: {}
+
+  const [formData, setFormData] = useState({
+    restaurant: null as Restaurant | null,
+    rating: 0,
+    dishName: '',
+    category: '',
+    description: '',
+    tasteNotes: [] as string[]
   });
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [isOptimisticUpdate, setIsOptimisticUpdate] = useState(false);
-  
-  // Refs for animations
-  const transitionRef = useRef<HTMLDivElement>(null);
-  const formRef = useRef<HTMLDivElement>(null);
 
-  // Smooth transition between post types
-  const handleTypeChange = async (type: PostType) => {
-    if (type === selectedType) return;
-    
-    setIsTransitioning(true);
-    
-    // Save current form state
-    if (selectedType) {
-      setFormStates(prev => ({
-        ...prev,
-        [selectedType]: getCurrentFormState()
-      }));
-    }
-    
-    // Wait for exit animation
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    setSelectedType(type);
-    
-    // Wait for enter animation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    setIsTransitioning(false);
-    
-    // Restore saved form state
-    if (formStates[type]) {
-      restoreFormState(type, formStates[type]);
-    }
-  };
+  // Debounce search query
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // Get current form state (to be implemented by individual forms)
-  const getCurrentFormState = (): FormState => {
-    // This would be implemented to get current form values
-    return {};
-  };
-
-  // Restore form state (to be implemented by individual forms)
-  const restoreFormState = (type: PostType, state: FormState) => {
-    // This would be implemented to restore form values
-  };
-
-  // Handle preview before publishing
-  const handlePreview = (data: any) => {
-    setPreviewData(data);
-    setShowPreview(true);
-  };
-
-  // Optimistic update for immediate feedback
-  const handleOptimisticCreate = (data: any) => {
-    setIsOptimisticUpdate(true);
-    
-    // Add optimistic post to cache
-    queryClient.setQueryData(['/api/posts'], (old: any) => {
-      if (!old) return old;
-      return {
-        ...old,
-        data: [{
-          id: `temp-${Date.now()}`,
-          ...data,
-          createdAt: new Date().toISOString(),
-          isOptimistic: true
-        }, ...old.data]
-      };
-    });
-    
-    // Show success animation
-    setShowSuccess(true);
-    
-    // Close modal after animation
-    setTimeout(() => {
-      onOpenChange(false);
-      setShowSuccess(false);
-      setIsOptimisticUpdate(false);
-    }, 2000);
-  };
-
-  // Create post mutation with optimistic updates
-  const createPostMutation = useMutation({
-    mutationFn: async (postData: any) => {
-      // Handle different post types
-      if (postData.postType === 'list') {
-        // Create list first, then create post referencing it
-        const listData = {
-          name: postData.listName,
-          description: postData.description,
-          shareWithCircle: postData.visibility.circleIds.length > 0,
-          makePublic: postData.visibility.public,
-          tags: [],
-          restaurants: postData.restaurants
-        };
-
-        const list = await apiRequest('/api/lists', {
-          method: 'POST',
-          body: JSON.stringify(listData)
-        });
-
-        // Create post with list reference
-        const postPayload = {
-          userId: user?.id,
-          restaurantId: postData.restaurants[0]?.id || null,
-          content: `Created a list: ${postData.listName}${postData.description ? `\n\n${postData.description}` : ''}`,
-          rating: 5, // Default rating for list posts
-          visibility: postData.visibility,
-          postType: 'list',
-          metadata: {
-            listId: list.id,
-            listName: postData.listName,
-            restaurantCount: postData.restaurants.length,
-            ...postData.metadata
-          }
-        };
-
-        return apiRequest('/api/posts', {
-          method: 'POST',
-          body: JSON.stringify(postPayload)
-        });
-      } else {
-        // Handle moment and dish posts
-        const postPayload = {
-          userId: user?.id,
-          restaurantId: postData.restaurantId,
-          content: postData.content,
-          rating: postData.rating,
-          visibility: postData.visibility,
-          postType: postData.postType,
-          metadata: postData.metadata
-        };
-
-        return apiRequest('/api/posts', {
-          method: 'POST',
-          body: JSON.stringify(postPayload)
-        });
-      }
+  // Fetch restaurant search results
+  const { data: restaurants, isLoading: isSearchLoading } = useQuery({
+    queryKey: ['/api/search/unified', { q: debouncedQuery }],
+    queryFn: async () => {
+      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
+      return data.restaurants || [];
     },
-    onSuccess: (data) => {
-      // Remove optimistic update and add real data
-      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
-      
-      // Show type-specific success message
-      const messages = {
-        list: 'Your spot list has been published and is now discoverable by your circle!',
-        moment: 'Your food moment has been captured and shared with your community!',
-        dish: 'Your dish recommendation has been added to help others discover great food!'
-      };
-      
+    enabled: debouncedQuery.length >= 2,
+    staleTime: 30000,
+  });
+
+  const recommendedTypes = [
+    {
+      type: 'moment',
+      title: 'Moment',
+      description: 'Share your first food experience! Photos make it engaging.',
+      match: 90,
+      icon: '🍽️'
+    },
+    {
+      type: 'dish',
+      title: 'Dish',
+      description: 'Dish recommendations are getting lots of engagement!',
+      match: 70,
+      icon: '🍕'
+    }
+  ];
+
+  const allPostTypes = [
+    { type: 'moment', title: 'Food Moment', description: 'Quick snapshot of what you\'re eating now', icon: '🍽️' },
+    { type: 'dish', title: 'Dish Review', description: 'Thoughtful opinion on a specific dish', icon: '🍕' },
+    { type: 'restaurant', title: 'Restaurant Rec', description: 'Shoutout a restaurant you love', icon: '📍' }
+  ];
+
+  const tasteOptions = ['Sweet', 'Salty', 'Spicy', 'Sour', 'Bitter', 'Umami', 'Crispy', 'Creamy', 'Tender'];
+  const categories = ['Appetizer', 'Main Course', 'Dessert', 'Beverage', 'Salad', 'Soup', 'Pasta', 'Pizza', 'Burger', 'Sushi'];
+
+  const handleTypeSelect = (type: string) => {
+    setSelectedType(type);
+    setStep('form');
+  };
+
+  const handleRestaurantSelect = (restaurant: Restaurant) => {
+    setFormData(prev => ({ ...prev, restaurant }));
+    setSearchQuery(restaurant.name);
+    setShowRestaurantResults(false);
+  };
+
+  const handleRatingClick = (rating: number) => {
+    setFormData(prev => ({ ...prev, rating }));
+  };
+
+  const handleTasteNoteToggle = (note: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tasteNotes: prev.tasteNotes.includes(note)
+        ? prev.tasteNotes.filter(n => n !== note)
+        : [...prev.tasteNotes, note]
+    }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const response = await apiRequest('/api/posts', {
+        method: 'POST',
+        body: JSON.stringify({
+          postType: selectedType,
+          restaurant: formData.restaurant,
+          rating: formData.rating,
+          dishName: formData.dishName,
+          category: formData.category,
+          description: formData.description,
+          tasteNotes: formData.tasteNotes
+        }),
+      });
+
       toast({
         title: "Success!",
-        description: messages[selectedType as PostType] || 'Post created successfully!',
-        duration: 4000,
+        description: "Your post has been created successfully.",
       });
-      
-      // Analytics tracking
-      if (selectedType) {
-        // Track successful creation
-        queryClient.setQueryData(['analytics', 'post_creation'], (old: any) => ({
-          ...old,
-          [selectedType]: (old?.[selectedType] || 0) + 1
-        }));
-      }
-    },
-    onError: (error) => {
-      // Remove optimistic update on error
-      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
-      setIsOptimisticUpdate(false);
-      
+
+      onOpenChange(false);
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to create post. Please try again.",
         variant: "destructive",
       });
     }
-  });
-
-  // Handle form submission with optimistic updates
-  const handleSubmit = async (data: any) => {
-    // Start optimistic update
-    handleOptimisticCreate(data);
-    
-    // Submit to server
-    try {
-      await createPostMutation.mutateAsync(data);
-    } catch (error) {
-      // Error handling is done in onError
-    }
   };
 
-  // Reset form when modal closes
-  useEffect(() => {
-    if (!open) {
-      setSelectedType(defaultType || null);
-      setFormStates({ list: {}, moment: {}, dish: {} });
-      setShowPreview(false);
-      setPreviewData(null);
-      setShowSuccess(false);
-      setIsOptimisticUpdate(false);
-    }
-  }, [open, defaultType]);
-
-  // Render form based on selected type
-  const renderForm = () => {
-    if (!selectedType) return null;
-    
-    const formProps = {
-      onSubmit: handleSubmit,
-      onPreview: handlePreview,
-      isLoading: createPostMutation.isPending || isOptimisticUpdate,
-      initialData: formStates[selectedType],
-      onStateChange: (state: FormState) => {
-        setFormStates(prev => ({ ...prev, [selectedType]: state }));
-      }
-    };
-
-    switch (selectedType) {
-      case 'list':
-        return <ListOfSpotsForm {...formProps} />;
-      case 'moment':
-        return <FoodMomentForm {...formProps} />;
-      case 'dish':
-        return <RecommendDishForm {...formProps} />;
-      default:
-        return null;
-    }
-  };
-
-  // Success animation overlay
-  if (showSuccess) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <SuccessAnimation 
-            type={selectedType!} 
-            onComplete={() => {
-              setShowSuccess(false);
-              onOpenChange(false);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const isSubmitDisabled = !formData.restaurant || !formData.rating || !formData.dishName.trim();
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent 
-          className="sm:max-w-2xl max-h-[90vh] overflow-hidden"
-          onInteractOutside={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onOpenChange(false);
-          }}
-        >
-          <DialogHeader className="relative">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {selectedType && (
+              {step === 'form' && (
                 <Button
                   variant="ghost"
-                  size="sm"
-                  onClick={() => handleTypeChange(null as any)}
-                  className="p-1"
+                  size="icon"
+                  onClick={() => setStep('type')}
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               )}
               <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                {selectedType ? 'Create Your Post' : 'Choose Post Type'}
+                <span className="text-orange-500">🍕</span>
+                {step === 'type' ? 'Choose Post Type' : 'Create Your Post'}
               </DialogTitle>
             </div>
-          </DialogHeader>
-
-          <div className="relative overflow-hidden">
-            {/* Post Type Selection */}
-            <div 
-              className={`transition-all duration-300 ease-in-out ${
-                selectedType ? 'opacity-0 -translate-x-full' : 'opacity-100 translate-x-0'
-              }`}
-              style={{ display: selectedType ? 'none' : 'block' }}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
             >
-              <div className="space-y-6">
-                <SmartPostTypeSelector
-                  selectedType={selectedType}
-                  onTypeSelect={handleTypeChange}
-                />
-                
-                <div className="text-center text-sm text-muted-foreground">
-                  Not sure which type to choose? We'll suggest the best option based on your activity.
-                </div>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        {step === 'type' ? (
+          <div className="space-y-6">
+            {/* Recommended Section */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="flex items-center gap-2 text-sm font-medium">
+                  <span className="text-orange-500">🍕</span>
+                  Recommended for you
+                </h3>
+                <Button variant="ghost" size="sm">
+                  Show all
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {recommendedTypes.map((type) => (
+                  <Card
+                    key={type.type}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleTypeSelect(type.type)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">📈</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {type.match}% match
+                            </Badge>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{type.title}</h4>
+                            <p className="text-sm text-gray-600">{type.description}</p>
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
 
-            {/* Form Display */}
-            <div 
-              ref={formRef}
-              className={`transition-all duration-300 ease-in-out ${
-                selectedType ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
-              }`}
-              style={{ display: selectedType ? 'block' : 'none' }}
-            >
-              {isTransitioning ? (
-                <div className="flex items-center justify-center py-12">
-                  <LoadingSpinner />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {renderForm()}
-                </div>
-              )}
+            {/* Or choose from all post types */}
+            <div className="text-center">
+              <p className="text-sm font-medium mb-2">Or choose from all post types</p>
+              <p className="text-xs text-gray-500">
+                Not sure which type to choose? We'll suggest the best option based on your activity.
+              </p>
             </div>
           </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Restaurant Search */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Restaurant <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search for a restaurant..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowRestaurantResults(e.target.value.length >= 2);
+                  }}
+                  className="pl-10"
+                />
+                
+                {showRestaurantResults && restaurants && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {restaurants.slice(0, 5).map((restaurant: Restaurant) => (
+                      <button
+                        key={restaurant.id}
+                        onClick={() => handleRestaurantSelect(restaurant)}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:bg-gray-50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+                          <div>
+                            <div className="font-medium">{restaurant.name}</div>
+                            {restaurant.location && (
+                              <div className="text-sm text-gray-500">{restaurant.location}</div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
-          {/* Analytics Tracking */}
-          <PostTypeAnalytics 
-            eventType="view" 
-            postType={selectedType || undefined}
-            metadata={{ modal: 'create_post' }}
-          />
-        </DialogContent>
-      </Dialog>
+            {/* Rating */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Your Rating <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => handleRatingClick(star)}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
+                    <Star
+                      className={`h-6 w-6 ${
+                        star <= formData.rating
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="ml-2 text-sm text-gray-600">Select a rating</span>
+              </div>
+            </div>
 
-      {/* Preview Modal */}
-      <PostPreviewModal
-        open={showPreview}
-        onOpenChange={setShowPreview}
-        data={previewData}
-        onConfirm={() => {
-          setShowPreview(false);
-          if (previewData) {
-            handleSubmit(previewData);
-          }
-        }}
-      />
-    </>
+            {/* Photos & Videos */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Photos & Videos</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-blue-600 mb-1">Upload photos or videos of your food experience (optional)</p>
+                <p className="text-gray-500 text-sm mb-2">Drag & drop images/videos, or click to select</p>
+                <p className="text-xs text-gray-400">Supports: JPG, PNG, GIF, MP4, MOV (Max 10 images, 2 videos)</p>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Photos help your food moment get more engagement, but they're optional!
+              </p>
+            </div>
+
+            {/* Dish Name */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Dish Name <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="e.g. Margherita Pizza, Chicken Tikka Masala"
+                value={formData.dishName}
+                onChange={(e) => setFormData(prev => ({ ...prev, dishName: e.target.value }))}
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Category</label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Description</label>
+              <Textarea
+                placeholder="Describe the dish - ingredients, preparation, presentation..."
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                rows={4}
+              />
+            </div>
+
+            {/* Taste Notes */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Taste Notes</label>
+              <div className="flex flex-wrap gap-2">
+                {tasteOptions.map((note) => (
+                  <Badge
+                    key={note}
+                    variant={formData.tasteNotes.includes(note) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => handleTasteNoteToggle(note)}
+                  >
+                    {note}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end pt-4">
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitDisabled}
+                className="px-8"
+              >
+                Create Post
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
