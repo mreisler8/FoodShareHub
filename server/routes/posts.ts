@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import { eq, desc, and, or } from 'drizzle-orm';
 import { db } from '../db';
@@ -11,7 +10,7 @@ const router = Router();
 router.get('/history', requireAuth, async (req, res) => {
   try {
     const userId = req.user!.id;
-    
+
     // Get user's post statistics
     const userPosts = await db
       .select()

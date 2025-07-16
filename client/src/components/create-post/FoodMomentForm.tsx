@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,11 +24,11 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Must have caption (image is optional per your specs)
-    if (!caption.trim()) {
+    // Must have caption OR image (per your specs - relaxed validation)
+    if (!caption.trim() && images.length === 0) {
       toast({
-        title: "Add a caption",
-        description: "Quick caption required - what are you eating?",
+        title: "Add content",
+        description: "Please add either a caption or a photo to share your moment.",
         variant: "destructive",
       });
       return;
@@ -38,9 +39,12 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
     try {
       const formData = {
         postType: 'moment',
-        content: caption,
+        content: caption || 'Food moment shared',
         images,
         tags,
+        metadata: {
+          postType: 'moment'
+        }
       };
 
       await onSubmit(formData);
@@ -62,26 +66,14 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Camera className="h-5 w-5" />
-            Food Moment
+            🍽️ Food Moment
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Quick snapshot of what you're eating now - Instagram Story style
+            Quick snapshot of what you're eating now - Instagram Story / BeReal style
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Caption - Required */}
-          <div>
-            <Label htmlFor="caption">Caption *</Label>
-            <Textarea
-              id="caption"
-              placeholder="What are you eating? Quick note about this meal..."
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="min-h-[80px]"
-            />
-          </div>
-
-          {/* Photo Upload - Optional */}
+          {/* Image Upload - Optional */}
           <div>
             <Label>Image (optional)</Label>
             <MediaUploader
@@ -94,7 +86,22 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
             </p>
           </div>
 
-          {/* Tags */}
+          {/* Caption - Optional but encouraged */}
+          <div>
+            <Label htmlFor="caption">Caption</Label>
+            <Textarea
+              id="caption"
+              placeholder="What are you eating? Quick note about this meal..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="min-h-[80px]"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Share what you're enjoying right now
+            </p>
+          </div>
+
+          {/* Tags - Optional */}
           <div>
             <Label>Tags (optional)</Label>
             <TagSelector
@@ -109,11 +116,11 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
           </div>
 
           {/* Validation Helper */}
-          {!caption.trim() && (
+          {!caption.trim() && images.length === 0 && (
             <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <span className="text-sm text-blue-700">
-                Add a quick caption about what you're eating
+                Add either a photo or caption to share your food moment
               </span>
             </div>
           )}
@@ -131,7 +138,7 @@ export function FoodMomentForm({ onSubmit, onCancel }: FoodMomentFormProps) {
         </Button>
         <Button
           type="submit"
-          disabled={isSubmitting || !caption.trim()}
+          disabled={isSubmitting || (!caption.trim() && images.length === 0)}
         >
           {isSubmitting ? 'Creating...' : 'Continue'}
         </Button>

@@ -10,6 +10,7 @@ import { ShareDestinationPicker } from '../post/ShareDestinationPicker';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 interface PostFormContainerProps {
   onClose?: () => void;
@@ -22,6 +23,7 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
   const [selectedType, setSelectedType] = useState<PostType | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [showPreview, setShowPreview] = useState(false);
+  const { toast } = useToast();
 
   const handleModalClose = () => {
     // Reset form state
@@ -89,13 +91,27 @@ export function PostFormContainer({ onClose }: PostFormContainerProps) {
         body: JSON.stringify(finalData),
       });
 
-      if (!response.ok) throw new Error('Failed to create post');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create post');
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Success!",
+        description: "Your post has been created successfully.",
+      });
 
       // Success! Close modal and return to previous state
       handleModalClose();
     } catch (error) {
       console.error('Error creating post:', error);
-      // Handle error (show toast, etc.)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create post. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

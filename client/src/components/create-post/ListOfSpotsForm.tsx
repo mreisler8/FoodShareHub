@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,14 +53,16 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
           cuisine: cuisineType,
           location: city,
         },
-        content: notes,
+        content: notes || `Recommending ${finalRestaurantName}`,
         tags,
         images,
-        saveToList,
         metadata: {
+          postType: 'restaurant',
+          restaurantName: finalRestaurantName,
           cuisineType,
           city,
-          saveToList
+          saveToList,
+          notes
         }
       };
 
@@ -82,16 +85,16 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
-            Restaurant Rec
+            📍 Restaurant Rec
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Shoutout a restaurant you love
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Restaurant Search or Manual Entry */}
+          {/* Restaurant Name - Required */}
           <div>
-            <Label>Restaurant name *</Label>
+            <Label>Restaurant name (required)</Label>
             <RestaurantSearch
               onSelect={(selectedRestaurant) => {
                 setRestaurant(selectedRestaurant);
@@ -112,7 +115,7 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
             )}
           </div>
 
-          {/* Type / Cuisine */}
+          {/* Type / Cuisine - Optional */}
           <div>
             <Label htmlFor="cuisineType">Type / cuisine (optional)</Label>
             <Input
@@ -123,7 +126,7 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
             />
           </div>
 
-          {/* City */}
+          {/* City - Optional */}
           <div>
             <Label htmlFor="city">City (optional)</Label>
             <Input
@@ -134,7 +137,7 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
             />
           </div>
 
-          {/* Tags */}
+          {/* Tags - Optional */}
           <div>
             <Label>Tags</Label>
             <TagSelector
@@ -148,7 +151,7 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
             />
           </div>
 
-          {/* Notes / Why recommend */}
+          {/* Notes / Why recommend - Optional */}
           <div>
             <Label htmlFor="notes">Notes / why you recommend it</Label>
             <Textarea
@@ -160,7 +163,7 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
             />
           </div>
 
-          {/* Image */}
+          {/* Image - Optional */}
           <div>
             <Label>Image (optional)</Label>
             <MediaUploader
@@ -170,12 +173,12 @@ export function ListOfSpotsForm({ onSubmit, onCancel }: RestaurantRecFormProps) 
             />
           </div>
 
-          {/* Save to List Toggle */}
+          {/* Save to List Toggle - Optional */}
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="saveToList">Save to List</Label>
+              <Label htmlFor="saveToList">Save to List toggle</Label>
               <p className="text-sm text-muted-foreground">
-                Add this restaurant to your saved lists
+                Optional: Add this restaurant to your saved lists
               </p>
             </div>
             <Switch

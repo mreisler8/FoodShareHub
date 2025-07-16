@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,15 +39,6 @@ export function RecommendDishForm({ onSubmit, onCancel }: RecommendDishFormProps
       return;
     }
 
-    if (!restaurant) {
-      toast({
-        title: "Restaurant required",
-        description: "Please select the restaurant where you had this dish.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (rating === 0) {
       toast({
         title: "Rating required",
@@ -62,16 +54,17 @@ export function RecommendDishForm({ onSubmit, onCancel }: RecommendDishFormProps
       const formData = {
         postType: 'dish',
         restaurant,
-        dish: {
-          name: dishName,
-          rating: rating,
-          whatILiked: whatILiked,
-          whatIDidntLike: whatIDidntLike
-        },
         content: `${whatILiked ? `What I liked: ${whatILiked}` : ''}${whatILiked && whatIDidntLike ? '\n\n' : ''}${whatIDidntLike ? `What I didn't like: ${whatIDidntLike}` : ''}`,
         images,
         rating,
         tags,
+        metadata: {
+          postType: 'dish',
+          dishName: dishName,
+          rating: rating,
+          whatILiked: whatILiked,
+          whatIDidntLike: whatIDidntLike
+        }
       };
 
       await onSubmit(formData);
@@ -87,22 +80,22 @@ export function RecommendDishForm({ onSubmit, onCancel }: RecommendDishFormProps
     }
   };
 
-return (
+  return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UtensilsCrossed className="h-5 w-5" />
-            Dish Review
+            📝 Dish Review
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Thoughtful opinion on a specific dish
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Dish Name */}
+          {/* Dish Name - Required */}
           <div>
-            <Label htmlFor="dishName">Dish name *</Label>
+            <Label htmlFor="dishName">Dish name (required)</Label>
             <Input
               id="dishName"
               placeholder="e.g., Margherita Pizza, Spicy Ramen"
@@ -111,9 +104,9 @@ return (
             />
           </div>
 
-          {/* Rating */}
+          {/* Rating - Required */}
           <div>
-            <Label>Rating (1–5 stars) *</Label>
+            <Label>Rating (1–5 stars) (required)</Label>
             <div className="flex items-center gap-1 mt-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -139,7 +132,7 @@ return (
             </div>
           </div>
 
-          {/* What I liked */}
+          {/* What I liked - Optional */}
           <div>
             <Label htmlFor="whatILiked">What I liked (optional)</Label>
             <Textarea
@@ -151,7 +144,7 @@ return (
             />
           </div>
 
-          {/* What I didn't like */}
+          {/* What I didn't like - Optional */}
           <div>
             <Label htmlFor="whatIDidntLike">What I didn't like (optional)</Label>
             <Textarea
@@ -163,7 +156,7 @@ return (
             />
           </div>
 
-          {/* Photo Upload */}
+          {/* Image - Optional */}
           <div>
             <Label>Image (optional)</Label>
             <MediaUploader
@@ -173,17 +166,17 @@ return (
             />
           </div>
 
-          {/* Restaurant Selection */}
+          {/* Restaurant - Required but flexible */}
           <div>
-            <Label htmlFor="restaurant">Restaurant *</Label>
+            <Label htmlFor="restaurant">Restaurant</Label>
             <RestaurantSearch
               onSelect={setRestaurant}
-              placeholder="Which restaurant?"
+              placeholder="Which restaurant? (optional but recommended)"
               value={restaurant}
             />
           </div>
 
-          {/* Tags */}
+          {/* Tags - Optional */}
           <div>
             <Label>Tags</Label>
             <TagSelector
@@ -210,7 +203,7 @@ return (
         </Button>
         <Button
           type="submit"
-          disabled={isSubmitting || !dishName.trim() || !restaurant || rating === 0}
+          disabled={isSubmitting || !dishName.trim() || rating === 0}
         >
           {isSubmitting ? 'Creating...' : 'Continue'}
         </Button>
