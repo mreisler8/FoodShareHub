@@ -535,33 +535,19 @@ router.get('/trending', authenticate, async (req, res) => {
 
     console.log(`Fetching trending content for user ${userId}${searchLat && searchLng ? ` at ${searchLat}, ${searchLng}` : ''}`);
 
-    // Get trending restaurants with enhanced location support
-    let trendingRestaurants = await db.select({
-      id: restaurants.id,
-      name: restaurants.name,
-      location: restaurants.location,
-      category: restaurants.category,
-      cuisine: restaurants.cuisine,
-      imageUrl: restaurants.imageUrl,
-      avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
-      postCount: sql<number>`COUNT(${posts.id})`,
-    })
-    .from(restaurants)
-    .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
-    .groupBy(restaurants.id)
-    .orderBy(desc(sql`COUNT(${posts.id})`), desc(sql`AVG(${posts.rating})`))
-    .limit(8);
+    let trendingRestaurants = [];
 
-    // Enhance with location-based Google Places results
-    if (searchLat && searchLng && trendingRestaurants.length < 8) {
+    // Prioritize location-based results if GPS is available
+    if (searchLat && searchLng) {
       try {
+        console.log(`Fetching location-based trending for ${searchLat}, ${searchLng}`);
         const locationResults = await searchGooglePlaces('popular restaurants trending', {
           lat: searchLat,
           lng: searchLng,
           radius: parseInt(radius as string)
         });
 
-        const formattedLocationResults = locationResults.slice(0, 8 - trendingRestaurants.length).map(r => ({
+        trendingRestaurants = locationResults.slice(0, 8).map(r => ({
           id: `google_${r.googlePlaceId}`,
           name: r.name,
           location: r.location,
@@ -572,9 +558,34 @@ router.get('/trending', authenticate, async (req, res) => {
           postCount: 0,
         }));
 
-        trendingRestaurants.push(...formattedLocationResults);
+        console.log(`Found ${trendingRestaurants.length} location-based trending restaurants`);
       } catch (error) {
         console.error('Error fetching location-based trending:', error);
+      }
+    }
+
+    // Fallback to database results if no location or insufficient results
+    if (trendingRestaurants.length < 8) {
+      try {
+        const dbResults = await db.select({
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          category: restaurants.category,
+          cuisine: restaurants.cuisine,
+          imageUrl: restaurants.imageUrl,
+          avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
+          postCount: sql<number>`COUNT(${posts.id})`,
+        })
+        .from(restaurants)
+        .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
+        .groupBy(restaurants.id)
+        .orderBy(desc(sql`COUNT(${posts.id})`), desc(sql`AVG(${posts.rating})`))
+        .limit(8 - trendingRestaurants.length);
+
+        trendingRestaurants.push(...dbResults);
+      } catch (error) {
+        console.error('Error fetching database trending:', error);
       }
     }
 

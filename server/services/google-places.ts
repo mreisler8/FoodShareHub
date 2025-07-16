@@ -339,13 +339,43 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
     
     console.log(`Using ${searchStrategy} search strategy for query: "${enhancedQuery}"`);
     
+    // Add typo correction for common search failures
+    const typoCorrections: Record<string, string> = {
+      'oddseoul': 'odd seoul korean restaurant',
+      'oddseol': 'odd seoul korean restaurant', 
+      'odseoul': 'odd seoul korean restaurant',
+      'restaurent': 'restaurant',
+      'resturant': 'restaurant',
+      'resteraunt': 'restaurant',
+      'caffee': 'coffee',
+      'pizzza': 'pizza',
+      'suchi': 'sushi',
+      'borger': 'burger',
+      'chinease': 'chinese',
+      'itallian': 'italian',
+      'japaneese': 'japanese',
+      'mexcan': 'mexican',
+      'indain': 'indian',
+      'frech': 'french',
+    };
+    
+    // Apply typo corrections
+    let correctedQuery = enhancedQuery;
+    for (const [typo, correction] of Object.entries(typoCorrections)) {
+      if (correctedQuery.toLowerCase().includes(typo)) {
+        correctedQuery = correctedQuery.toLowerCase().replace(typo, correction);
+        console.log(`Applied typo correction: ${typo} -> ${correction}`);
+        break;
+      }
+    }
+    
     if (searchStrategy === 'nearby' && location) {
       // Use Nearby Search API for location-based searches
       const nearbyParams = {
         location: `${location.lat},${location.lng}`,
         radius: Math.min(location.radius || 15000, 50000), // Default 15km, max 50km
         type: 'restaurant',
-        keyword: enhancedQuery,
+        keyword: correctedQuery,
         key: GOOGLE_MAPS_API_KEY,
         // Enhanced parameters for better results
         opennow: query.toLowerCase().includes('open now') || query.toLowerCase().includes('open'),
@@ -404,7 +434,7 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
     } else {
       // Use Text Search API for general searches
       const textParams = {
-        query: enhancedQuery,
+        query: correctedQuery,
         type: 'restaurant',
         key: GOOGLE_MAPS_API_KEY,
         // Add location bias if available
@@ -430,6 +460,28 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
 
     if (response.data.status !== 'OK') {
       console.error('Google Places API error:', response.data.status, response.data.error_message);
+      
+      // Handle specific error cases
+      if (response.data.status === 'ZERO_RESULTS') {
+        console.log(`No results found for query: "${query}"`);
+        return [];
+      }
+      
+      if (response.data.status === 'INVALID_REQUEST') {
+        console.error('Invalid request parameters for query:', query);
+        return [];
+      }
+      
+      if (response.data.status === 'OVER_QUERY_LIMIT') {
+        console.error('Google Places API quota exceeded');
+        throw new Error('Search service temporarily unavailable');
+      }
+      
+      if (response.data.status === 'REQUEST_DENIED') {
+        console.error('Google Places API request denied');
+        throw new Error('Search service authentication failed');
+      }
+      
       return [];
     }
 

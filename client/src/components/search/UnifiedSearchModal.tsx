@@ -125,12 +125,19 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         if (response.status === 404) {
           throw new Error('Search service unavailable');
         }
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        if (response.status >= 500) {
+          throw new Error('Server error - please try again');
+        }
         const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
         throw new Error(errorData.error || 'Search failed');
       }
       
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid response content type:', contentType);
         throw new Error('Invalid response format');
       }
       
@@ -153,7 +160,17 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     },
     enabled: !!debouncedQuery && debouncedQuery.length >= 2,
     staleTime: 30000,
-    retry: 3,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error.message.includes('Authentication required')) {
+        return false;
+      }
+      // Don't retry on client errors (4xx)
+      if (error.message.includes('service unavailable')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
@@ -170,8 +187,21 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
       const response = await fetch(trendingUrl);
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        if (response.status >= 500) {
+          throw new Error('Server error - please try again');
+        }
         throw new Error('Failed to fetch trending content');
       }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid trending response content type:', contentType);
+        throw new Error('Invalid response format');
+      }
+      
       return response.json();
     },
     enabled: open && !debouncedQuery,
