@@ -143,14 +143,34 @@ const CircularProgress = ({
 
 export default function RestaurantDetailPage() {
   const { id, placeId } = useParams();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
-  const restaurantId = placeId ? `google_${placeId}` : id;
-  const isGooglePlace = !!placeId;
+  // Handle both path parameters and query parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const googlePlaceId = urlParams.get('googlePlaceId');
+  
+  const restaurantId = placeId ? `google_${placeId}` : googlePlaceId ? `google_${googlePlaceId}` : id;
+  const isGooglePlace = !!placeId || !!googlePlaceId;
 
   const { data: restaurant, isLoading, error } = useQuery<RestaurantDetails>({
-    queryKey: [`/api/restaurants/${restaurantId}`],
-    enabled: !!restaurantId,
+    queryKey: googlePlaceId ? [`/api/restaurants?googlePlaceId=${googlePlaceId}`] : [`/api/restaurants/${restaurantId}`],
+    enabled: !!restaurantId || !!googlePlaceId,
+    queryFn: async () => {
+      if (googlePlaceId) {
+        const response = await fetch(`/api/restaurants?googlePlaceId=${encodeURIComponent(googlePlaceId)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch restaurant details');
+        }
+        return response.json();
+      } else if (restaurantId) {
+        const response = await fetch(`/api/restaurants/${restaurantId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch restaurant details');
+        }
+        return response.json();
+      }
+      throw new Error('No restaurant ID provided');
+    },
   });
 
   if (isLoading) {
