@@ -48,10 +48,11 @@ export function SearchResultsList({
   const handleResultClick = (result: SearchResult) => {
     // Direct navigation for restaurants when enabled
     if (enableDirectNavigation && result.type === 'restaurant') {
-      if (result.googlePlaceId) {
-        setLocation(`/restaurant?googlePlaceId=${encodeURIComponent(result.googlePlaceId)}`);
+      if (result.metadata?.googlePlaceId || result.id.toString().startsWith('google_')) {
+        const googlePlaceId = result.metadata?.googlePlaceId || result.id.toString().replace('google_', '');
+        setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
       } else {
-        setLocation(`/restaurant/${result.id}`);
+        setLocation(`/restaurants/${result.id}`);
       }
       return;
     }

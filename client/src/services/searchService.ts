@@ -23,6 +23,16 @@ export interface SearchResult {
   address?: string;
   googlePlaceId?: string;
   source?: 'database' | 'google';
+  // Metadata for additional information
+  metadata?: {
+    category?: string;
+    priceRange?: string;
+    cuisine?: string;
+    address?: string;
+    reviewCount?: number;
+    googlePlaceId?: string;
+    [key: string]: any;
+  };
 }
 
 export interface UnifiedSearchResults {

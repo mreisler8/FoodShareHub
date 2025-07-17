@@ -1,0 +1,31 @@
+Current Issues Identified
+Searching for Restaurants: The search results show "Unknown location" for restaurants like Badiali. This indicates that the location services or the API fetching the location data are not functioning correctly.
+
+Incorrect Navigation: Clicking on a restaurant link leads to a page with a non-existent endpoint (e.g., /restaurant/#). This suggests either a routing issue or a problem with how restaurant data is being linked.
+
+Missing Google Places Data: Restaurants like OddSeoul are not pulling in any content, indicating that Google Places API integration might not be working as expected.
+
+Inconsistent API Responses: API endpoints are not returning the appropriate data, leading to inconsistencies in search results and navigation.
+
+Why This Is Happening
+API Configuration Issues: The endpoints for fetching restaurant data and location details may not be correctly set up or may have been modified recently, leading to failures in data retrieval.
+
+Location Services Not Initialized: The application may not be correctly initializing location services to provide the expected location context during searches.
+
+Routing Conflicts: Multiple routes might be conflicting, or endpoint paths could be incorrectly defined, causing navigation to fail.
+
+How to Fix This Once and For All
+1. Verify API Integrations
+Review the API calls made to Google Places and ensure they are correctly formatted.
+Check the server logs to see if there are any errors during API calls to fetch restaurant details.
+2. Fix Routing Issues
+Ensure that the routing logic is correctly set to handle restaurant IDs. Make sure all links to restaurant pages use the correct path format (e.g., /restaurant/{id}).
+Check that the router is set up correctly and that new routes are properly defined.
+3. Confirm Location Services Setup
+Ensure that location services are properly fetching the user's current location.
+Implement error handling where the application can default to a known location if fetching fails.
+4. Implement Comprehensive Testing
+Write automated tests for the search functionality and restaurant navigation to ensure these issues don't reoccur.
+Use tools like Cypress to simulate user interactions and verify that the correct pages load with the correct data.
+5. Code Review for Recent Changes
+Go through the recent changes made to the codebase, especially around the affected components (e.g., EmptyFeed.tsx, API route files). Identify any adjustments that might have inadvertently affected the functionality.

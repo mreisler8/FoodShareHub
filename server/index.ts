@@ -3,9 +3,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import uploadsRouter from "./routes/uploads";
 import { performanceMiddleware } from "./middleware/performance.js";
-import geocodeRouter from "./routes/geocode";
-import searchRoutes from "./routes/search";
-import searchAnalyticsRoutes from "./routes/search-analytics";
+// geocodeRouter imported and registered in registerRoutes function
+// searchRoutes and searchAnalyticsRoutes imported and registered in registerRoutes function
 
 const app = express();
 
@@ -93,10 +92,7 @@ app.use((req, res, next) => {
     app.use(performanceMiddleware);
 
     const server = await registerRoutes(app);
-    app.use('/api/uploads', uploadsRouter);
-    app.use('/api/geocode', geocodeRouter);
-    app.use('/api/search', searchRoutes);
-    app.use('/api/search-analytics', searchAnalyticsRoutes);
+    // Additional routes are registered in registerRoutes function
     console.log('Routes registered successfully');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -142,29 +138,6 @@ app.use((req, res, next) => {
 })().catch(error => {
   console.error('Unhandled server startup error:', error);
   process.exit(1);
-});
-
-// Global error handlers
-app.use((err: Error, req: any, res: any, next: any) => {
-  console.error('Unhandled error:', err);
-  
-  // Always send JSON response
-  res.setHeader('Content-Type', 'application/json');
-  res.status(500).json({
-    error: 'Internal server error',
-    timestamp: new Date().toISOString(),
-    ...(process.env.NODE_ENV === 'development' ? { details: err.message } : {})
-  });
-});
-
-// Handle 404 for API routes
-app.use('/api/*', (req: any, res: any) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.status(404).json({
-    error: 'API endpoint not found',
-    path: req.path,
-    timestamp: new Date().toISOString()
-  });
 });
 
 // Handle unhandled promise rejections

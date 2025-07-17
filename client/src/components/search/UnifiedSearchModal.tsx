@@ -228,20 +228,20 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
       switch (result.type) {
         case 'restaurant':
           // Handle both database and Google Places results
-          if (result.id.startsWith('google_')) {
-            const googlePlaceId = result.id.replace('google_', '');
+          if (result.metadata?.googlePlaceId || result.id.startsWith('google_')) {
+            const googlePlaceId = result.metadata?.googlePlaceId || result.id.replace('google_', '');
             if (googlePlaceId) {
-              setLocation(`/restaurants?googlePlaceId=${encodeURIComponent(googlePlaceId)}`);
+              setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
             }
           } else {
             setLocation(`/restaurants/${encodeURIComponent(result.id)}`);
           }
           break;
         case 'list':
-          setLocation(`/list-details/${encodeURIComponent(result.id)}`);
+          setLocation(`/lists/${encodeURIComponent(result.id)}`);
           break;
         case 'post':
-          setLocation(`/post-details/${encodeURIComponent(result.id)}`);
+          setLocation(`/posts/${encodeURIComponent(result.id)}`);
           break;
         case 'user':
           setLocation(`/profile/${encodeURIComponent(result.id)}`);

@@ -308,104 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Restaurant routes
-  app.get("/api/restaurants", async (req, res) => {
-    try {
-      const { query, location } = req.query;
-
-      console.log(`Restaurant search request received with params:`, {
-        query,
-        location,
-      });
-
-      // Search by query text
-      if (query && typeof query === "string") {
-        console.log(`Searching restaurants with query: "${query}"`);
-
-        // First search local database
-        const dbResults = await storage.searchRestaurants(query);
-        console.log(
-          `Local database search returned ${dbResults.length} results`,
-        );
-        if (dbResults.length > 0) {
-          console.log(
-            `First local result: ${JSON.stringify(dbResults[0].name)}`,
-          );
-        }
-
-        // Then search Google Places API
-        console.log(`Searching Google Places for: "${query}"`);
-        const googleResults = await searchGooglePlaces(query);
-        console.log(
-          `Google Places search returned ${googleResults.length} results`,
-        );
-        if (googleResults.length > 0) {
-          console.log(
-            `First Google result: ${JSON.stringify(googleResults[0].name)}`,
-          );
-        }
-
-        // Filter out Google results that already exist in the database to avoid duplicates
-        const filteredGoogleResults = googleResults.filter(
-          (gr) =>
-            !dbResults.some((dr) => dr.googlePlaceId === gr.googlePlaceId),
-        );
-        console.log(
-          `After filtering duplicates, using ${filteredGoogleResults.length} Google results`,
-        );
-
-        // Combine results, with local database results first
-        const combinedResults = [...dbResults, ...filteredGoogleResults];
-        console.log(
-          `Found ${dbResults.length} local results and ${filteredGoogleResults.length} unique Google results, total: ${combinedResults.length}`,
-        );
-
-        return res.json(combinedResults);
-      }
-
-      // Search by location
-      if (location && typeof location === "string") {
-        console.log(`Searching restaurants by location: "${location}"`);
-
-        // First search local database
-        const dbResults = await storage.searchRestaurantsByLocation(location);
-        console.log(
-          `Local database location search returned ${dbResults.length} results`,
-        );
-
-        // Then search Google Places API
-        console.log(`Searching Google Places for location: "${location}"`);
-        const googleResults = await searchGooglePlaces(location);
-        console.log(
-          `Google Places location search returned ${googleResults.length} results`,
-        );
-
-        // Filter out Google results that already exist in the database
-        const filteredGoogleResults = googleResults.filter(
-          (gr) =>
-            !dbResults.some((dr) => dr.googlePlaceId === gr.googlePlaceId),
-        );
-
-        // Combine results, with local database results first
-        const combinedResults = [...dbResults, ...filteredGoogleResults];
-        console.log(
-          `Combined location results: ${combinedResults.length} total`,
-        );
-
-        return res.json(combinedResults);
-      }
-
-      // Return all restaurants if no query parameters
-      console.log("No query or location provided, returning all restaurants");
-      const restaurants = await storage.getAllRestaurants();
-      console.log(`Returning ${restaurants.length} restaurants from database`);
-      res.json(restaurants);
-    } catch (err: any) {
-      console.error("Error in /api/restaurants:", err);
-      console.error(err.stack); // Log stack trace for better debugging
-      res.status(500).json({ error: err.message });
-    }
-  });
+  // Restaurant routes removed - handled by restaurants router at line 1387
 
   // Restaurant detail endpoint moved to restaurant router
 
@@ -488,15 +391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/restaurants", async (req, res) => {
-    try {
-      const restaurantData = insertRestaurantSchema.parse(req.body);
-      const newRestaurant = await storage.createRestaurant(restaurantData);
-      res.status(201).json(newRestaurant);
-    } catch (err: any) {
-      handleZodError(err, res);
-    }
-  });
+  // POST /api/restaurants handler removed - handled by restaurants router
 
   // Mount the search router
   app.use('/api/search', searchRouter);
@@ -1389,6 +1284,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health check route
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Global error handlers
+  app.use((err: Error, req: any, res: any, next: any) => {
+    console.error('Unhandled error:', err);
+    
+    // Always send JSON response
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({
+      error: 'Internal server error',
+      timestamp: new Date().toISOString(),
+      ...(process.env.NODE_ENV === 'development' ? { details: err.message } : {})
+    });
+  });
+
+  // Handle 404 for API routes
+  app.use('/api/*', (req: any, res: any) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(404).json({
+      error: 'API endpoint not found',
+      path: req.path,
+      timestamp: new Date().toISOString()
+    });
   });
 
   // WebSocket server temporarily disabled to fix login issues

@@ -149,30 +149,48 @@ export default function RestaurantDetailPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const googlePlaceId = urlParams.get('googlePlaceId');
   
-  const restaurantId = placeId ? `google_${placeId}` : googlePlaceId ? `google_${googlePlaceId}` : id;
-  const isGooglePlace = !!placeId || !!googlePlaceId;
+  // Determine the restaurant identifier and query method
+  let restaurantId: string | undefined;
+  let queryMethod: 'id' | 'googlePlaceId' = 'id';
+  
+  if (placeId) {
+    // URL format: /restaurants/google/:placeId
+    restaurantId = placeId;
+    queryMethod = 'googlePlaceId';
+  } else if (googlePlaceId) {
+    // URL format: /restaurants?googlePlaceId=...
+    restaurantId = googlePlaceId;
+    queryMethod = 'googlePlaceId';
+  } else if (id) {
+    // URL format: /restaurants/:id
+    restaurantId = id;
+    queryMethod = 'id';
+  }
 
   // Add console log for debugging navigation
-  console.log('RestaurantDetailPage params:', { id, placeId, googlePlaceId, restaurantId });
+  console.log('RestaurantDetailPage params:', { id, placeId, googlePlaceId, restaurantId, queryMethod });
 
   const { data: restaurant, isLoading, error } = useQuery<RestaurantDetails>({
-    queryKey: googlePlaceId ? [`/api/restaurants?googlePlaceId=${googlePlaceId}`] : [`/api/restaurants/${restaurantId}`],
-    enabled: !!restaurantId || !!googlePlaceId,
+    queryKey: queryMethod === 'googlePlaceId' ? [`/api/restaurants?googlePlaceId=${restaurantId}`] : [`/api/restaurants/${restaurantId}`],
+    enabled: !!restaurantId,
     queryFn: async () => {
-      if (googlePlaceId) {
-        const response = await fetch(`/api/restaurants?googlePlaceId=${encodeURIComponent(googlePlaceId)}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch restaurant details');
-        }
-        return response.json();
-      } else if (restaurantId) {
-        const response = await fetch(`/api/restaurants/${restaurantId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch restaurant details');
-        }
-        return response.json();
+      if (!restaurantId) {
+        throw new Error('No restaurant ID provided');
       }
-      throw new Error('No restaurant ID provided');
+      
+      let url: string;
+      if (queryMethod === 'googlePlaceId') {
+        url = `/api/restaurants?googlePlaceId=${encodeURIComponent(restaurantId)}`;
+      } else {
+        url = `/api/restaurants/${restaurantId}`;
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch restaurant details');
+      }
+      return response.json();
     },
   });
 
