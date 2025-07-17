@@ -110,6 +110,7 @@ export const posts = pgTable("posts", {
   images: text("images").array().default([]),
   videos: text("videos").array().default([]),
   imageTags: text("image_tags").array().default([]),
+  tags: text("tags").array().default([]), // General tags for thematic search: "best burger", "new restaurants", "toronto", etc.
   priceAssessment: text("price_assessment"), // "great value", "overpriced", "fair"
   atmosphere: text("atmosphere"), // "quiet", "lively", "romantic", etc.
   serviceRating: integer("service_rating"), // 1-5 rating for service
@@ -130,6 +131,7 @@ export const insertPostSchema = createInsertSchema(posts).pick({
   images: true,
   videos: true,
   imageTags: true,
+  tags: true,
   priceAssessment: true,
   atmosphere: true,
   serviceRating: true,

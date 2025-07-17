@@ -136,10 +136,22 @@ router.get('/restaurants', authenticate, async (req, res) => {
     console.log(`Restaurant search for "${searchTerm}" by user ${userId}`);
 
     // Use the working searchRestaurants function
-    const restaurants = await searchRestaurants(searchTerm, searchLat, searchLng, searchRadius, resultLimit);
-    
-    console.log(`Restaurant search results: ${restaurants.length} restaurants`);
-    res.json({ restaurants });
+    try {
+      const restaurants = await searchRestaurants(searchTerm, searchLat, searchLng, searchRadius, resultLimit);
+      
+      console.log(`Restaurant search results: ${restaurants ? restaurants.length : 'undefined'} restaurants`);
+      console.log(`Type of restaurants: ${typeof restaurants}`);
+      
+      if (!restaurants || !Array.isArray(restaurants)) {
+        console.error('SearchRestaurants returned invalid result:', restaurants);
+        return res.json({ restaurants: [] });
+      }
+      
+      res.json({ restaurants });
+    } catch (searchError) {
+      console.error('SearchRestaurants function error:', searchError);
+      return res.json({ restaurants: [] });
+    }
 
   } catch (error) {
     console.error('Restaurant search error:', error);
@@ -521,6 +533,154 @@ router.get('/unified', authenticate, async (req, res) => {
   }
 });
 
+// New endpoint for trending tags/themes
+router.get('/trending-tags', authenticate, async (req, res) => {
+  try {
+    const { limit = '20' } = req.query;
+    const resultLimit = Math.min(parseInt(limit as string), 50);
+
+    // Get trending tags from posts
+    const postTags = await db.select({
+      tag: sql<string>`unnest(${posts.tags})`,
+      count: sql<number>`COUNT(*)`,
+      avgRating: sql<number>`AVG(${posts.rating})`,
+      recentUsage: sql<number>`COUNT(CASE WHEN ${posts.createdAt} > NOW() - INTERVAL '7 days' THEN 1 END)`,
+    })
+    .from(posts)
+    .where(sql`array_length(${posts.tags}, 1) > 0`)
+    .groupBy(sql`unnest(${posts.tags})`)
+    .orderBy(desc(sql`COUNT(CASE WHEN ${posts.createdAt} > NOW() - INTERVAL '7 days' THEN 1 END)`), desc(sql`COUNT(*)`))
+    .limit(resultLimit);
+
+    // Get trending tags from restaurant lists
+    const listTags = await db.select({
+      tag: sql<string>`unnest(${restaurantLists.tags})`,
+      count: sql<number>`COUNT(*)`,
+      avgRating: sql<number>`4.0`, // Default rating for lists
+      recentUsage: sql<number>`COUNT(CASE WHEN ${restaurantLists.createdAt} > NOW() - INTERVAL '7 days' THEN 1 END)`,
+    })
+    .from(restaurantLists)
+    .where(sql`array_length(${restaurantLists.tags}, 1) > 0`)
+    .groupBy(sql`unnest(${restaurantLists.tags})`)
+    .orderBy(desc(sql`COUNT(CASE WHEN ${restaurantLists.createdAt} > NOW() - INTERVAL '7 days' THEN 1 END)`), desc(sql`COUNT(*)`))
+    .limit(resultLimit);
+
+    // Combine and deduplicate tags
+    const allTags = new Map();
+    
+    [...postTags, ...listTags].forEach(tagData => {
+      const tag = tagData.tag.toLowerCase().trim();
+      if (tag && tag.length > 0) {
+        if (allTags.has(tag)) {
+          const existing = allTags.get(tag);
+          allTags.set(tag, {
+            tag: tagData.tag,
+            count: existing.count + tagData.count,
+            avgRating: (existing.avgRating + tagData.avgRating) / 2,
+            recentUsage: existing.recentUsage + tagData.recentUsage,
+            trending: tagData.recentUsage > 0
+          });
+        } else {
+          allTags.set(tag, {
+            tag: tagData.tag,
+            count: tagData.count,
+            avgRating: tagData.avgRating,
+            recentUsage: tagData.recentUsage,
+            trending: tagData.recentUsage > 0
+          });
+        }
+      }
+    });
+
+    // Convert to array and sort by trending score
+    const trendingTags = Array.from(allTags.values())
+      .sort((a, b) => {
+        // Primary sort: recent usage (trending)
+        if (a.recentUsage !== b.recentUsage) {
+          return b.recentUsage - a.recentUsage;
+        }
+        // Secondary sort: total count
+        return b.count - a.count;
+      })
+      .slice(0, resultLimit);
+
+    res.json({ 
+      tags: trendingTags,
+      suggested: [
+        { tag: 'best burger', count: 0, trending: false, suggested: true },
+        { tag: 'date night', count: 0, trending: false, suggested: true },
+        { tag: 'casual dining', count: 0, trending: false, suggested: true },
+        { tag: 'new restaurants', count: 0, trending: false, suggested: true },
+        { tag: 'toronto', count: 0, trending: false, suggested: true },
+        { tag: 'pizza', count: 0, trending: false, suggested: true },
+        { tag: 'sushi', count: 0, trending: false, suggested: true },
+        { tag: 'dim sum', count: 0, trending: false, suggested: true },
+        { tag: 'birthday', count: 0, trending: false, suggested: true },
+        { tag: 'low key', count: 0, trending: false, suggested: true },
+        { tag: 'fun', count: 0, trending: false, suggested: true },
+        { tag: 'trending restaurants', count: 0, trending: false, suggested: true },
+      ]
+    });
+
+  } catch (error) {
+    console.error('Trending tags error:', error);
+    res.status(500).json({ error: 'Failed to fetch trending tags' });
+  }
+});
+
+// Helper function to search restaurants by tags for thematic search
+async function searchRestaurantsByTags(searchTerm: string, userId?: number, limit: number = 20) {
+  const tagSearchTerm = searchTerm.toLowerCase().trim();
+  console.log(`[TAG SEARCH] Starting tag search for: "${tagSearchTerm}"`);
+  
+  try {
+    // Get restaurants mentioned in posts with matching tags
+    const taggedRestaurants = await db.select({
+      id: restaurants.id,
+      name: restaurants.name,
+      location: restaurants.location,
+      category: restaurants.category,
+      priceRange: restaurants.priceRange,
+      cuisine: restaurants.cuisine,
+      address: restaurants.address,
+      imageUrl: restaurants.imageUrl,
+      googlePlaceId: restaurants.googlePlaceId,
+      avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
+      reviewCount: sql<number>`COUNT(${posts.id})`,
+    })
+    .from(restaurants)
+    .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
+    .where(
+      sql`EXISTS (
+        SELECT 1 FROM posts p 
+        WHERE p.restaurant_id = ${restaurants.id} 
+        AND p.tags IS NOT NULL 
+        AND array_length(p.tags, 1) > 0
+        AND EXISTS (
+          SELECT 1 FROM unnest(p.tags) as tag 
+          WHERE LOWER(tag) LIKE ${`%${tagSearchTerm}%`}
+        )
+      )`
+    )
+    .groupBy(restaurants.id)
+    .orderBy(desc(sql`AVG(${posts.rating})`))
+    .limit(limit);
+
+    const results = taggedRestaurants.map(r => ({
+      ...r,
+      tagMatch: true, // Mark as tag-based result
+    }));
+    
+    console.log(`[TAG SEARCH] Found ${results.length} restaurants with tag "${tagSearchTerm}"`);
+    results.forEach(r => console.log(`[TAG SEARCH] - ${r.name} (ID: ${r.id})`));
+    
+    return results;
+  } catch (error) {
+    console.error('Tag search error:', error);
+    return [];
+  }
+}
+
 // Helper functions for individual searches
 async function searchRestaurants(searchTerm: string, lat?: number, lng?: number, radius?: number, limit: number = 20) {
   const dbResults = await db.select({
@@ -556,16 +716,36 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
   END`), desc(sql`AVG(${posts.rating})`))
   .limit(limit);
 
-  // Enhanced with Google Places if needed (avoid for person name searches)
+  // Enhanced with tag-based search for thematic queries
   let allResults = [...dbResults];
-  if (dbResults.length < 10 && !isPersonNameQuery(searchTerm) && searchTerm.length > 3) {
+  
+  // Add tag-based search results for themes like "best burger", "date night", etc.
+  try {
+    const tagResults = await searchRestaurantsByTags(searchTerm, undefined, limit);
+    console.log(`Tag search for "${searchTerm}" returned ${tagResults.length} results`);
+    
+    // Merge tag results with database results, avoiding duplicates
+    for (const tagResult of tagResults) {
+      if (!allResults.some(r => r.id === tagResult.id)) {
+        // Mark tag results for special handling
+        tagResult.tagMatch = true;
+        allResults.push(tagResult);
+        console.log(`Added tag result: ${tagResult.name} (ID: ${tagResult.id})`);
+      }
+    }
+  } catch (error) {
+    console.error('Tag-based search error:', error);
+  }
+  
+  // Enhanced with Google Places if needed (avoid for person name searches)
+  if (allResults.length < 10 && !isPersonNameQuery(searchTerm) && searchTerm.length > 3) {
     try {
       const locationData = (lat && lng) ? { lat, lng, radius: radius || 15000 } : undefined;
       const googleResults = await searchGooglePlaces(searchTerm, locationData);
 
       const formattedGoogleResults = googleResults
-        .filter(gr => !dbResults.some(dr => dr.googlePlaceId === gr.googlePlaceId))
-        .slice(0, limit - dbResults.length)
+        .filter(gr => !allResults.some(dr => dr.googlePlaceId === gr.googlePlaceId))
+        .slice(0, limit - allResults.length)
         .map(r => ({
           id: `google_${r.googlePlaceId}`,
           name: r.name,
@@ -586,14 +766,19 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
     }
   }
 
-  return allResults
+  console.log(`[SEARCH] Processing ${allResults.length} results for "${searchTerm}"`);
+  
+  const processedResults = allResults
     .map(r => {
       // Calculate relevance score for filtering
       const nameRelevance = calculateRelevanceScore(r.name, searchTerm);
       const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm);
-      const totalRelevance = Math.max(nameRelevance, categoryRelevance);
+      const baseRelevance = Math.max(nameRelevance, categoryRelevance);
       
-      return {
+      // Give tag-based results high relevance score for thematic searches
+      const totalRelevance = (r as any).tagMatch ? Math.max(baseRelevance, 85) : baseRelevance;
+      
+      const result = {
         id: r.id.toString(),
         name: r.name,
         type: 'restaurant' as const,
@@ -603,18 +788,26 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
         thumbnailUrl: r.imageUrl,
         source: r.id.toString().startsWith('google_') ? 'google' : 'database',
         relevanceScore: totalRelevance,
+        tagMatch: (r as any).tagMatch || false, // Mark if found via tag search
         metadata: r
       };
+      
+      console.log(`[SEARCH] Restaurant: ${result.name} - Relevance: ${result.relevanceScore} - TagMatch: ${result.tagMatch}`);
+      return result;
     })
     .filter(r => {
       // Apply stricter relevance filtering for person name searches
       // This prevents showing irrelevant restaurants when searching for people
       if (isPersonNameQuery(searchTerm)) {
         // Only show restaurants where the name actually contains the search term
-        return r.name.toLowerCase().includes(searchTerm.toLowerCase()) && r.relevanceScore >= 70;
+        const result = r.name.toLowerCase().includes(searchTerm.toLowerCase()) && r.relevanceScore >= 70;
+        console.log(`[FILTER] Person name query "${searchTerm}" - Restaurant "${r.name}" - Relevance: ${r.relevanceScore} - Include: ${result}`);
+        return result;
       }
       // For general searches, require at least some relevance
-      return r.relevanceScore >= 55;
+      const result = r.relevanceScore >= 55;
+      console.log(`[FILTER] General query "${searchTerm}" - Restaurant "${r.name}" - Relevance: ${r.relevanceScore} - TagMatch: ${r.tagMatch} - Include: ${result}`);
+      return result;
     })
     .sort((a, b) => {
       // Primary sort: Relevance score (higher is better)
@@ -628,10 +821,13 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
       }
       
       // Tertiary sort: Review count (higher is better)
-      const aReviewCount = a.metadata.reviewCount || 0;
-      const bReviewCount = b.metadata.reviewCount || 0;
+      const aReviewCount = a.metadata?.reviewCount || 0;
+      const bReviewCount = b.metadata?.reviewCount || 0;
       return bReviewCount - aReviewCount;
     });
+  
+  console.log(`[SEARCH] Final results: ${processedResults.length} restaurants`);
+  return processedResults;
 }
 
 async function searchLists(searchTerm: string, limit: number = 10) {
