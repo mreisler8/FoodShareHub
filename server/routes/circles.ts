@@ -804,12 +804,13 @@ export async function getCircleSharedLists(req: Request, res: Response) {
   }
 }
 
-// Get pending invites for the authenticated user
+// Get pending invites for the authenticated user - ENTERPRISE GRADE
 router.get('/invites/pending', authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
+    console.log(`[ENDPOINT] Fetching pending circle invites for user ${userId}`);
 
-    // Get pending invites where the user's email or username matches
+    // Get current user details for matching invites
     const user = await db.select({ 
       username: users.username, 
       email: users.email 
@@ -822,8 +823,53 @@ router.get('/invites/pending', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Mock response for now - would need actual circle_invites table
-    res.json([]);
+    // Get pending invites sent to this user's email or username
+    const pendingInvites = await db
+      .select({
+        id: circleInvites.id,
+        circleId: circleInvites.circleId,
+        status: circleInvites.status,
+        createdAt: circleInvites.createdAt,
+        circle: {
+          id: circles.id,
+          name: circles.name,
+          description: circles.description,
+          memberCount: circles.memberCount,
+          primaryCuisine: circles.primaryCuisine,
+          location: circles.location,
+          isPrivate: circles.isPrivate,
+        },
+        inviter: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+        }
+      })
+      .from(circleInvites)
+      .innerJoin(circles, eq(circleInvites.circleId, circles.id))
+      .innerJoin(users, eq(circleInvites.inviterId, users.id))
+      .where(
+        and(
+          eq(circleInvites.status, 'pending'),
+          or(
+            eq(circleInvites.emailOrUsername, user[0].email),
+            eq(circleInvites.emailOrUsername, user[0].username)
+          )
+        )
+      )
+      .orderBy(sql`${circleInvites.createdAt} DESC`);
+
+    // Add metadata for enterprise features
+    const enrichedInvites = pendingInvites.map(invite => ({
+      ...invite,
+      priority: invite.circle.isPrivate ? 'high' : 'medium',
+      category: 'circle_invitation',
+      actionRequired: true,
+      expiresAt: new Date(new Date(invite.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days from creation
+    }));
+
+    res.json(enrichedInvites);
   } catch (error) {
     console.error('Error fetching pending circle invites:', error);
     res.status(500).json({ error: 'Internal server error' });

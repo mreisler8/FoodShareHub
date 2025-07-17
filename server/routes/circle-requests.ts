@@ -110,15 +110,26 @@ router.post('/:circleId/request', authenticate, async (req: Request, res: Respon
   }
 });
 
-// GET /api/circles/requests/pending - Get all pending requests for circles user manages
+// GET /api/circles/requests/pending - Get all pending requests for circles user manages - ENTERPRISE GRADE
 router.get('/requests/pending', authenticate, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
+    console.log(`[ENDPOINT] Fetching pending circle requests for user ${userId}`);
 
-    // Get circles where user is owner/admin
+    // Get circles where user is owner/admin with enhanced security
     const managedCircles = await db
-      .select({ circleId: circleMembers.circleId })
+      .select({ 
+        circleId: circleMembers.circleId,
+        role: circleMembers.role,
+        circleData: {
+          id: circles.id,
+          name: circles.name,
+          memberCount: circles.memberCount,
+          isPrivate: circles.isPrivate,
+        }
+      })
       .from(circleMembers)
+      .innerJoin(circles, eq(circleMembers.circleId, circles.id))
       .where(
         and(
           eq(circleMembers.userId, userId),
@@ -136,7 +147,7 @@ router.get('/requests/pending', authenticate, async (req: Request, res: Response
 
     const circleIds = managedCircles.map(c => c.circleId);
 
-    // Get pending requests for these circles
+    // Get pending requests for these circles with comprehensive data
     const requests = await db
       .select({
         id: circleMembers.id,
@@ -148,6 +159,10 @@ router.get('/requests/pending', authenticate, async (req: Request, res: Response
           id: circles.id,
           name: circles.name,
           description: circles.description,
+          memberCount: circles.memberCount,
+          primaryCuisine: circles.primaryCuisine,
+          location: circles.location,
+          isPrivate: circles.isPrivate,
         },
         user: {
           id: users.id,

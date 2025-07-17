@@ -1281,6 +1281,358 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/restaurants", restaurantsRouter);
 
+  // Enterprise-grade social network activity feed
+  app.get('/api/social/activity', authenticate, async (req: any, res: any) => {
+    try {
+      const userId = req.user!.id;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      // Get circle invites
+      const circleInvites = await db
+        .select({
+          id: circleInvites.id,
+          type: sql<string>`'circle_invite'`.as('type'),
+          priority: sql<string>`CASE WHEN ${circles.isPrivate} THEN 'high' ELSE 'medium' END`.as('priority'),
+          createdAt: circleInvites.createdAt,
+          data: sql<any>`json_build_object(
+            'inviteId', ${circleInvites.id},
+            'circle', json_build_object(
+              'id', ${circles.id},
+              'name', ${circles.name},
+              'description', ${circles.description},
+              'memberCount', ${circles.memberCount},
+              'isPrivate', ${circles.isPrivate}
+            ),
+            'inviter', json_build_object(
+              'id', ${users.id},
+              'name', ${users.name},
+              'username', ${users.username},
+              'profilePicture', ${users.profilePicture}
+            )
+          )`.as('data')
+        })
+        .from(circleInvites)
+        .innerJoin(circles, eq(circleInvites.circleId, circles.id))
+        .innerJoin(users, eq(circleInvites.inviterId, users.id))
+        .where(
+          and(
+            eq(circleInvites.status, 'pending'),
+            or(
+              eq(circleInvites.emailOrUsername, (await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1))[0]?.email || ''),
+              eq(circleInvites.emailOrUsername, (await db.select({ username: users.username }).from(users).where(eq(users.id, userId)).limit(1))[0]?.username || '')
+            )
+          )
+        );
+
+      // Get follow requests
+      const followRequests = await db
+        .select({
+          id: userFollowers.id,
+          type: sql<string>`'follow_request'`.as('type'),
+          priority: sql<string>`'medium'`.as('priority'),
+          createdAt: userFollowers.createdAt,
+          data: sql<any>`json_build_object(
+            'requestId', ${userFollowers.id},
+            'follower', json_build_object(
+              'id', ${users.id},
+              'name', ${users.name},
+              'username', ${users.username},
+              'profilePicture', ${users.profilePicture},
+              'bio', ${users.bio}
+            )
+          )`.as('data')
+        })
+        .from(userFollowers)
+        .innerJoin(users, eq(userFollowers.followerId, users.id))
+        .where(
+          and(
+            eq(userFollowers.followingId, userId),
+            eq(userFollowers.status, 'pending')
+          )
+        );
+
+      // Get circle member requests for circles user manages
+      const managedCircles = await db
+        .select({ circleId: circleMembers.circleId })
+        .from(circleMembers)
+        .where(
+          and(
+            eq(circleMembers.userId, userId),
+            or(
+              eq(circleMembers.role, 'owner'),
+              eq(circleMembers.role, 'admin')
+            ),
+            eq(circleMembers.status, 'active')
+          )
+        );
+
+      let memberRequests: any[] = [];
+      if (managedCircles.length > 0) {
+        const circleIds = managedCircles.map(c => c.circleId);
+        memberRequests = await db
+          .select({
+            id: circleMembers.id,
+            type: sql<string>`'circle_member_request'`.as('type'),
+            priority: sql<string>`'high'`.as('priority'),
+            createdAt: circleMembers.joinedAt,
+            data: sql<any>`json_build_object(
+              'requestId', ${circleMembers.id},
+              'circle', json_build_object(
+                'id', ${circles.id},
+                'name', ${circles.name},
+                'description', ${circles.description}
+              ),
+              'user', json_build_object(
+                'id', ${users.id},
+                'name', ${users.name},
+                'username', ${users.username},
+                'profilePicture', ${users.profilePicture},
+                'bio', ${users.bio}
+              )
+            )`.as('data')
+          })
+          .from(circleMembers)
+          .innerJoin(circles, eq(circleMembers.circleId, circles.id))
+          .innerJoin(users, eq(circleMembers.userId, users.id))
+          .where(
+            and(
+              inArray(circleMembers.circleId, circleIds),
+              eq(circleMembers.status, 'pending')
+            )
+          );
+      }
+
+      // Combine all activities
+      const allActivities = [
+        ...circleInvites,
+        ...followRequests,
+        ...memberRequests
+      ];
+
+      // Sort by creation date (newest first) and apply pagination
+      const sortedActivities = allActivities
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(offset, offset + limit);
+
+      // Add metadata for enterprise features
+      const enrichedActivities = sortedActivities.map(activity => ({
+        ...activity,
+        actionRequired: true,
+        category: 'social_network',
+        expiresAt: new Date(new Date(activity.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000),
+        metadata: {
+          source: 'circles_social_network',
+          version: '1.0',
+          timestamp: new Date().toISOString()
+        }
+      }));
+
+      res.json({
+        activities: enrichedActivities,
+        pagination: {
+          total: allActivities.length,
+          limit,
+          offset,
+          hasMore: offset + limit < allActivities.length
+        },
+        summary: {
+          totalActivities: allActivities.length,
+          byType: {
+            circle_invites: circleInvites.length,
+            follow_requests: followRequests.length,
+            member_requests: memberRequests.length
+          },
+          byPriority: {
+            high: allActivities.filter(a => a.priority === 'high').length,
+            medium: allActivities.filter(a => a.priority === 'medium').length,
+            low: allActivities.filter(a => a.priority === 'low').length
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching social activity:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Enterprise-grade social network analytics
+  app.get('/api/social/analytics', authenticate, async (req: any, res: any) => {
+    try {
+      const userId = req.user!.id;
+
+      // Get user's social network metrics
+      const followingCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(userFollowers)
+        .where(
+          and(
+            eq(userFollowers.followerId, userId),
+            eq(userFollowers.status, 'following')
+          )
+        );
+
+      const followersCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(userFollowers)
+        .where(
+          and(
+            eq(userFollowers.followingId, userId),
+            eq(userFollowers.status, 'following')
+          )
+        );
+
+      const circleCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(circleMembers)
+        .where(
+          and(
+            eq(circleMembers.userId, userId),
+            eq(circleMembers.status, 'active')
+          )
+        );
+
+      const ownedCircleCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(circleMembers)
+        .where(
+          and(
+            eq(circleMembers.userId, userId),
+            eq(circleMembers.role, 'owner'),
+            eq(circleMembers.status, 'active')
+          )
+        );
+
+      // Get pending activity counts
+      const pendingFollowRequests = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(userFollowers)
+        .where(
+          and(
+            eq(userFollowers.followingId, userId),
+            eq(userFollowers.status, 'pending')
+          )
+        );
+
+      const pendingCircleInvites = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(circleInvites)
+        .where(
+          and(
+            eq(circleInvites.status, 'pending'),
+            or(
+              eq(circleInvites.emailOrUsername, (await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1))[0]?.email || ''),
+              eq(circleInvites.emailOrUsername, (await db.select({ username: users.username }).from(users).where(eq(users.id, userId)).limit(1))[0]?.username || '')
+            )
+          )
+        );
+
+      // Get user's network activity over time (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const recentFollows = await db
+        .select({
+          date: sql<string>`date(${userFollowers.createdAt}) as date`,
+          count: sql<number>`count(*)`
+        })
+        .from(userFollowers)
+        .where(
+          and(
+            eq(userFollowers.followerId, userId),
+            eq(userFollowers.status, 'following'),
+            sql`${userFollowers.createdAt} >= ${thirtyDaysAgo}`
+          )
+        )
+        .groupBy(sql`date(${userFollowers.createdAt})`)
+        .orderBy(sql`date(${userFollowers.createdAt})`);
+
+      const recentCircleJoins = await db
+        .select({
+          date: sql<string>`date(${circleMembers.joinedAt}) as date`,
+          count: sql<number>`count(*)`
+        })
+        .from(circleMembers)
+        .where(
+          and(
+            eq(circleMembers.userId, userId),
+            eq(circleMembers.status, 'active'),
+            sql`${circleMembers.joinedAt} >= ${thirtyDaysAgo}`
+          )
+        )
+        .groupBy(sql`date(${circleMembers.joinedAt})`)
+        .orderBy(sql`date(${circleMembers.joinedAt})`);
+
+      // Calculate engagement metrics
+      const engagementScore = Math.min(100, 
+        (followingCount[0].count * 2) + 
+        (followersCount[0].count * 3) + 
+        (circleCount[0].count * 5) + 
+        (ownedCircleCount[0].count * 10)
+      );
+
+      const networkHealth = {
+        score: engagementScore,
+        level: engagementScore > 75 ? 'high' : engagementScore > 50 ? 'medium' : 'low',
+        recommendations: []
+      };
+
+      // Add personalized recommendations
+      if (followingCount[0].count < 5) {
+        networkHealth.recommendations.push({
+          type: 'increase_following',
+          message: 'Follow more users to discover new restaurants',
+          priority: 'medium'
+        });
+      }
+
+      if (circleCount[0].count < 3) {
+        networkHealth.recommendations.push({
+          type: 'join_circles',
+          message: 'Join food-focused circles to expand your network',
+          priority: 'high'
+        });
+      }
+
+      if (ownedCircleCount[0].count === 0) {
+        networkHealth.recommendations.push({
+          type: 'create_circle',
+          message: 'Create your own circle to curate restaurant recommendations',
+          priority: 'medium'
+        });
+      }
+
+      res.json({
+        socialMetrics: {
+          following: followingCount[0].count,
+          followers: followersCount[0].count,
+          circles: circleCount[0].count,
+          ownedCircles: ownedCircleCount[0].count,
+          pendingFollowRequests: pendingFollowRequests[0].count,
+          pendingCircleInvites: pendingCircleInvites[0].count
+        },
+        networkHealth,
+        activityTrends: {
+          followingActivity: recentFollows,
+          circleActivity: recentCircleJoins
+        },
+        insights: {
+          networkGrowth: recentFollows.length > 0 || recentCircleJoins.length > 0 ? 'active' : 'stagnant',
+          socialReach: Math.floor(followersCount[0].count * 1.5 + circleCount[0].count * 10),
+          influence: ownedCircleCount[0].count > 0 ? 'leader' : 'participant'
+        },
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          version: '1.0',
+          source: 'circles_social_analytics'
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching social analytics:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Health check route
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
