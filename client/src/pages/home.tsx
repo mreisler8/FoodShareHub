@@ -105,6 +105,35 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* Welcome to Circles */}
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200 rounded-xl border p-6">
+              <div className="text-center mb-6">
+                <div className="text-3xl mb-3">❤️</div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Welcome to Circles!
+                </h2>
+                <p className="text-gray-600">
+                  Follow some foodie travelers to get personalized recommendations
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button 
+                  onClick={() => setIsSearchOpen(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Search className="h-4 w-4" />
+                  Find People to Follow
+                </button>
+                <Link href="/discover">
+                  <button className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Compass className="h-4 w-4" />
+                    Explore
+                  </button>
+                </Link>
+              </div>
+            </div>
+
             {/* Lists Feed */}
             {listsLoading ? (
               <div className="space-y-4">
