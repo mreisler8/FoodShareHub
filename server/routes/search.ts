@@ -23,7 +23,8 @@ function isPersonNameQuery(query: string): boolean {
   // Specific restaurant names that should be enhanced (exact matches)
   const knownRestaurantNames = [
     'badiali', 'pizzeria badiali', 'oddseoul', 'odd seoul', 'veselka', 'katz deli',
-    'russ daughters', 'peter luger', 'grammercy tavern', 'rikki tikki', 'khazana'
+    'russ daughters', 'peter luger', 'grammercy tavern', 'rikki tikki', 'khazana',
+    'pai', 'gusto', 'earls', 'cactus club', 'milestones', 'keg', 'joey', 'moxies'
   ];
 
   // If the query exactly matches a known restaurant name, definitely not a person
@@ -53,6 +54,80 @@ function isPersonNameQuery(query: string): boolean {
 
   return personNamePatterns.some(pattern => pattern.test(lowerQuery));
 }
+
+// Dedicated restaurant search endpoint
+router.get('/restaurants', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { 
+      q: query, 
+      lat, 
+      lng, 
+      radius = '15000', 
+      limit = '20'
+    } = req.query;
+
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
+      return res.json({ restaurants: [] });
+    }
+
+    const searchTerm = query.trim();
+    const searchLat = lat ? parseFloat(lat as string) : undefined;
+    const searchLng = lng ? parseFloat(lng as string) : undefined;
+    const searchRadius = parseInt(radius as string);
+    const resultLimit = Math.min(parseInt(limit as string), 50);
+
+    console.log(`Restaurant search for "${searchTerm}" by user ${userId}`);
+
+    // Use the working searchRestaurants function
+    const restaurants = await searchRestaurants(searchTerm, searchLat, searchLng, searchRadius, resultLimit);
+    
+    console.log(`Restaurant search results: ${restaurants.length} restaurants`);
+    res.json({ restaurants });
+
+  } catch (error) {
+    console.error('Restaurant search error:', error);
+    res.status(500).json({ error: 'Restaurant search failed' });
+  }
+});
+
+// Dedicated user search endpoint
+router.get('/users', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { 
+      q: query, 
+      limit = '10'
+    } = req.query;
+
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
+      return res.json({ users: [] });
+    }
+
+    const searchTerm = query.trim();
+    const resultLimit = Math.min(parseInt(limit as string), 20);
+
+    console.log(`User search for "${searchTerm}" by user ${userId}`);
+
+    // Use the working searchUsers function
+    const users = await searchUsers(searchTerm, userId, resultLimit);
+    
+    console.log(`User search results: ${users.length} users`);
+    res.json({ users });
+
+  } catch (error) {
+    console.error('User search error:', error);
+    res.status(500).json({ error: 'User search failed' });
+  }
+});
 
 // Optimized unified search with database and Google Places integration
 router.get('/unified', authenticate, async (req, res) => {
@@ -87,6 +162,58 @@ router.get('/unified', authenticate, async (req, res) => {
     const resultLimit = Math.min(parseInt(limit as string), 50);
 
     console.log(`Enhanced unified search for "${searchTerm}" by user ${userId}`);
+
+    // Enhanced relevance scoring system that prioritizes relevance over rating
+    function calculateRelevanceScore(restaurantName: string, searchQuery: string): number {
+      const name = restaurantName.toLowerCase().trim();
+      const query = searchQuery.toLowerCase().trim();
+      
+      // Exact match gets highest priority
+      if (name === query) {
+        return 100;
+      }
+      
+      // Name starts with search term
+      if (name.startsWith(query)) {
+        return 90;
+      }
+      
+      // Name contains search term
+      if (name.includes(query)) {
+        return 80;
+      }
+      
+      // Check if any word in the name starts with the query
+      const nameWords = name.split(/\s+/);
+      for (const word of nameWords) {
+        if (word.startsWith(query)) {
+          return 70;
+        }
+      }
+      
+      // Check if any word in the name contains the query
+      for (const word of nameWords) {
+        if (word.includes(query)) {
+          return 60;
+        }
+      }
+      
+      // Default score for no match
+      return 50;
+    }
+
+    function calculateCategoryRelevance(category: string, cuisine: string, searchQuery: string): number {
+      const query = searchQuery.toLowerCase().trim();
+      const cat = category?.toLowerCase() || '';
+      const cui = cuisine?.toLowerCase() || '';
+      
+      // Category/cuisine matches
+      if (cat.includes(query) || cui.includes(query)) {
+        return 70;
+      }
+      
+      return 0;
+    }
 
     // Simplified search with basic queries to ensure functionality
     if (type === "all") {
@@ -244,26 +371,51 @@ router.get('/unified', authenticate, async (req, res) => {
           }
         }
 
-        // Enhanced result formatting with proper navigation
+        // Enhanced result formatting with relevance-based sorting
         const formattedResults = {
-          restaurants: restaurantResults.map(r => ({
-            id: r.id.toString(),
-            name: r.name,
-            type: 'restaurant' as const,
-            subtitle: buildRestaurantSubtitle(r),
-            location: r.city || r.location || 'Unknown location',
-            avgRating: typeof r.avgRating === 'number' && !isNaN(r.avgRating) ? r.avgRating : 4.0,
-            thumbnailUrl: r.imageUrl,
-            source: r.id.toString().startsWith('google_') ? 'google' : 'database',
-            metadata: {
-              category: r.category,
-              priceRange: r.priceRange,
-              cuisine: r.cuisine,
-              address: r.address,
-              reviewCount: r.reviewCount || 0,
-              googlePlaceId: r.googlePlaceId,
-            }
-          })),
+          restaurants: restaurantResults
+            .map(r => {
+              // Calculate relevance score for each restaurant
+              const nameRelevance = calculateRelevanceScore(r.name, searchTerm);
+              const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm);
+              const totalRelevance = Math.max(nameRelevance, categoryRelevance);
+              
+              return {
+                id: r.id.toString(),
+                name: r.name,
+                type: 'restaurant' as const,
+                subtitle: buildRestaurantSubtitle(r),
+                location: r.city || r.location || 'Unknown location',
+                avgRating: typeof r.avgRating === 'number' && !isNaN(r.avgRating) ? r.avgRating : 4.0,
+                thumbnailUrl: r.imageUrl,
+                source: r.id.toString().startsWith('google_') ? 'google' : 'database',
+                relevanceScore: totalRelevance,
+                metadata: {
+                  category: r.category,
+                  priceRange: r.priceRange,
+                  cuisine: r.cuisine,
+                  address: r.address,
+                  reviewCount: r.reviewCount || 0,
+                  googlePlaceId: r.googlePlaceId,
+                }
+              };
+            })
+            .sort((a, b) => {
+              // Primary sort: Relevance score (higher is better)
+              if (a.relevanceScore !== b.relevanceScore) {
+                return b.relevanceScore - a.relevanceScore;
+              }
+              
+              // Secondary sort: Rating (higher is better)
+              if (a.avgRating !== b.avgRating) {
+                return b.avgRating - a.avgRating;
+              }
+              
+              // Tertiary sort: Review count (higher is better)
+              const aReviewCount = a.metadata.reviewCount || 0;
+              const bReviewCount = b.metadata.reviewCount || 0;
+              return bReviewCount - aReviewCount;
+            }),
 
           lists: dbLists.map(l => ({
             id: l.id.toString(),

@@ -356,6 +356,58 @@ function enhanceQueryForGoogle(query: string, location?: { lat: number; lng: num
   return enhancedQuery;
 }
 
+// Enhanced relevance scoring system that prioritizes relevance over rating
+function calculateRelevanceScore(restaurantName: string, searchQuery: string): number {
+  const name = restaurantName.toLowerCase().trim();
+  const query = searchQuery.toLowerCase().trim();
+  
+  // Exact match gets highest priority
+  if (name === query) {
+    return 100;
+  }
+  
+  // Name starts with search term
+  if (name.startsWith(query)) {
+    return 90;
+  }
+  
+  // Name contains search term
+  if (name.includes(query)) {
+    return 80;
+  }
+  
+  // Check if any word in the name starts with the query
+  const nameWords = name.split(/\s+/);
+  for (const word of nameWords) {
+    if (word.startsWith(query)) {
+      return 70;
+    }
+  }
+  
+  // Check if any word in the name contains the query
+  for (const word of nameWords) {
+    if (word.includes(query)) {
+      return 60;
+    }
+  }
+  
+  // Default score for no match
+  return 0;
+}
+
+function calculateCategoryRelevance(category: string, cuisine: string, searchQuery: string): number {
+  const query = searchQuery.toLowerCase().trim();
+  const cat = category?.toLowerCase() || '';
+  const cui = cuisine?.toLowerCase() || '';
+  
+  // Category/cuisine matches
+  if (cat.includes(query) || cui.includes(query)) {
+    return 70;
+  }
+  
+  return 0;
+}
+
 // Advanced fuzzy string matching with multiple algorithms
 function calculateSimilarity(str1: string, str2: string): number {
   const longer = str1.length > str2.length ? str1 : str2;
@@ -728,11 +780,34 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
           resyId: null,
         };
       })
+      .map(restaurant => {
+        // Calculate relevance score for each restaurant
+        const nameRelevance = calculateRelevanceScore(restaurant.name, query);
+        const categoryRelevance = calculateCategoryRelevance(restaurant.category, restaurant.cuisine, query);
+        const totalRelevance = Math.max(nameRelevance, categoryRelevance);
+        
+        return {
+          ...restaurant,
+          relevanceScore: totalRelevance,
+        };
+      })
       .sort((a, b) => {
-        // Sort by rating and review count for better quality results
-        const aScore = (a.rating || 0) * Math.log10((a.reviewCount || 0) + 10);
-        const bScore = (b.rating || 0) * Math.log10((b.reviewCount || 0) + 10);
-        return bScore - aScore;
+        // Primary sort: Relevance score (higher is better)
+        if (a.relevanceScore !== b.relevanceScore) {
+          return b.relevanceScore - a.relevanceScore;
+        }
+        
+        // Secondary sort: Rating (higher is better)
+        const aRating = a.rating || 0;
+        const bRating = b.rating || 0;
+        if (aRating !== bRating) {
+          return bRating - aRating;
+        }
+        
+        // Tertiary sort: Review count (higher is better)
+        const aReviewCount = a.reviewCount || 0;
+        const bReviewCount = b.reviewCount || 0;
+        return bReviewCount - aReviewCount;
       })
       .slice(0, 25); // Limit to top 25 results
 

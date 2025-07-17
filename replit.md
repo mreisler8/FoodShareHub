@@ -113,6 +113,14 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 17, 2025: **Separated Restaurant and User Search Features - COMPLETE**: Successfully implemented dedicated search endpoints for cleaner, more reliable search functionality:
+  - **Dedicated Restaurant Search**: Created `/api/search/restaurants` endpoint exclusively for restaurant discovery with relevance-based prioritization
+  - **Dedicated User Search**: Created `/api/search/users` endpoint exclusively for user discovery with follow status tracking
+  - **Eliminated Person Name Detection**: Removed complex person name detection logic that was causing restaurants like "PAI" to be filtered out
+  - **Enhanced Relevance Scoring**: Implemented precise relevance scoring (exact: 100, starts with: 90, contains: 80, word starts: 70, word contains: 60) for restaurant results
+  - **Improved Search Architecture**: Cleaner separation of concerns with dedicated endpoints for each search type
+  - **Test Results**: "PAI" now correctly appears as first result in restaurant search, "Jason Bloom" properly found in user search
+  - **Status**: Clean architecture with specialized search endpoints working optimally for restaurant and user discovery
 - July 16, 2025: **Consistent Search Fix Across All Components - COMPLETE**: Successfully ensured the OddSeoul search fix is applied consistently across all search functionality:
   - **Centralized Person Name Detection**: Created centralized `isPersonNameQuery()` function in both server/routes/search.ts and server/services/search-engine.ts
   - **Comprehensive Restaurant Terms List**: Updated restaurant terms to include "odds", "oddseoul", "pizza", "burger", "sushi", "taco", "cafe", "bar", "grill", "kitchen", "house", "spot", "place", "bistro", "eatery", "diner", "dining", "menu", "eat", "taste", "flavor", "spicy", "sweet", "meal", "lunch", "dinner", "breakfast", "brunch"
