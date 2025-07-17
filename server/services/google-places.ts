@@ -202,6 +202,8 @@ const SEMANTIC_QUERY_MAPPINGS = {
   'odds': 'odd seoul korean restaurant toronto',
   'odd seoul': 'odd seoul korean restaurant toronto',
   'tacoronto': 'tacos toronto mexican',
+  'gusto': 'gusto restaurant toronto',
+  'badiali': 'pizzeria badiali toronto',
   
   // Common typos and corrections
   'pizzza': 'pizza',
@@ -221,61 +223,57 @@ const SEMANTIC_QUERY_MAPPINGS = {
   'frech': 'french',
 } as const;
 
-// Advanced semantic search with multi-layered matching
+// Generic restaurant search optimization - works for any restaurant name
 function performSemanticSearch(query: string): string {
   const lowerQuery = query.toLowerCase().trim();
   
-  // Layer 1: Exact substring matching
-  for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
-    if (lowerQuery.includes(key)) {
-      console.log(`Exact match found: ${key} -> ${enhancement}`);
-      return enhancement;
-    }
+  // Layer 1: Only enhance generic food/dining terms, not specific restaurant names
+  const genericTerms = {
+    'pizza': 'pizza restaurant',
+    'burger': 'burger restaurant',
+    'sushi': 'sushi restaurant',
+    'taco': 'taco restaurant mexican',
+    'coffee': 'coffee shop cafe',
+    'breakfast': 'breakfast restaurant',
+    'lunch': 'lunch restaurant',
+    'dinner': 'dinner restaurant',
+    'brunch': 'brunch restaurant',
+    'thai': 'thai restaurant',
+    'chinese': 'chinese restaurant',
+    'italian': 'italian restaurant',
+    'indian': 'indian restaurant',
+    'mexican': 'mexican restaurant',
+    'japanese': 'japanese restaurant',
+    'korean': 'korean restaurant',
+    'french': 'french restaurant',
+    'mediterranean': 'mediterranean restaurant',
+    'vietnamese': 'vietnamese restaurant',
+  };
+  
+  // Only enhance if query matches generic terms exactly
+  if (genericTerms[lowerQuery]) {
+    console.log(`Generic cuisine match: ${lowerQuery} -> ${genericTerms[lowerQuery]}`);
+    return genericTerms[lowerQuery];
   }
   
-  // Layer 2: Phonetic and character-level fuzzy matching
-  let bestMatch = '';
-  let bestScore = 0;
+  // Layer 2: Handle common typos only
+  const typoCorrections = {
+    'pizzza': 'pizza',
+    'resturant': 'restaurant',
+    'restaurent': 'restaurant',
+    'resteraunt': 'restaurant',
+    'suchi': 'sushi',
+    'borger': 'burger',
+  };
   
-  for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
-    // Standard similarity
-    const similarity = calculateSimilarity(lowerQuery, key);
-    
-    // Phonetic similarity for restaurant names
-    const phoneticSimilarity = calculatePhoneticSimilarity(lowerQuery, key);
-    
-    // Combined score with phonetic weighting
-    const combinedScore = Math.max(similarity, phoneticSimilarity * 0.9);
-    
-    if (combinedScore > bestScore && combinedScore > 0.6) {
-      bestMatch = enhancement;
-      bestScore = combinedScore;
-    }
+  if (typoCorrections[lowerQuery]) {
+    console.log(`Typo correction: ${lowerQuery} -> ${typoCorrections[lowerQuery]}`);
+    return typoCorrections[lowerQuery];
   }
   
-  if (bestMatch) {
-    console.log(`Fuzzy match found: ${lowerQuery} -> ${bestMatch} (score: ${bestScore.toFixed(2)})`);
-    return bestMatch;
-  }
-  
-  // Layer 3: Word-level fuzzy matching for compound queries
-  const queryWords = lowerQuery.split(/\s+/);
-  for (const word of queryWords) {
-    for (const [key, enhancement] of Object.entries(SEMANTIC_QUERY_MAPPINGS)) {
-      const wordSimilarity = calculateSimilarity(word, key);
-      if (wordSimilarity > 0.8) {
-        console.log(`Word-level match found: ${word} -> ${enhancement}`);
-        return enhancement;
-      }
-    }
-  }
-  
-  // Layer 4: Special handling for specific restaurant patterns
-  if (lowerQuery.match(/^od{1,2}s?e?o?u?l?$/)) {
-    console.log(`Special OddSeoul pattern match: ${lowerQuery} -> odd seoul korean restaurant toronto`);
-    return 'odd seoul korean restaurant toronto';
-  }
-  
+  // Layer 3: For restaurant names, return as-is to preserve exact matching
+  // This ensures "Gusto", "Badiali", etc. search for themselves, not enhanced terms
+  console.log(`Preserving restaurant name: ${lowerQuery}`);
   return lowerQuery;
 }
 
@@ -330,7 +328,7 @@ function enhanceQueryForGoogle(query: string, location?: { lat: number; lng: num
     .replace(/\b(near me|nearby|around here|close to me)\b/gi, '')
     .trim();
   
-  // Apply semantic search first
+  // Apply minimal semantic enhancement only for generic terms
   const semanticResult = performSemanticSearch(enhancedQuery);
   if (semanticResult !== enhancedQuery) {
     enhancedQuery = semanticResult;

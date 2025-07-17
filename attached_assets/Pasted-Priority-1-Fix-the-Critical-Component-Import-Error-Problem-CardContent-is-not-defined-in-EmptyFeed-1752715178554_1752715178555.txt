@@ -1,0 +1,41 @@
+Priority 1: Fix the Critical Component Import Error
+Problem: CardContent is not defined in EmptyFeed.tsx
+Solution: Add the missing import for CardContent from the UI components library. Looking at the file, I can see it imports Card but is missing CardContent which is being used in the component.
+
+Priority 2: Fix Missing API Endpoints
+Problem: 404 errors for pending requests endpoints
+Solution: The server routes need to properly mount these endpoint handlers:
+
+/api/circles/invites/pending
+/api/follow/requests/pending
+/api/circles/requests/pending
+Looking at the server structure, these route files exist but aren't being properly registered in the main routes file.
+
+Priority 3: Optimize Search Performance
+Problem: 3.5+ second search requests
+Solutions:
+
+Reduce semantic search aggressiveness - The fuzzy matching is incorrectly mapping unrelated terms (e.g., "gigi" → "indian restaurants")
+Add caching - I see some cache hits in the logs, but more aggressive caching of Google Places results would help
+Implement search result debouncing - Prevent multiple rapid requests while user is typing
+Priority 4: Fix Search Relevance Algorithm
+Problem: Search shows irrelevant results (PAI instead of Gusto)
+Solution: The ranking algorithm needs adjustment. Currently it's:
+
+Using semantic enhancement that's too broad
+Not prioritizing exact name matches enough
+The relevance scoring in the frontend is overriding proper backend relevance
+Root Cause Summary
+The main issue is a cascading failure:
+
+Component error crashes the page state
+Broken page state interferes with search modal rendering
+Missing API endpoints cause continuous retry loops
+Performance issues compound the user experience problems
+Fix Order
+First: Fix the CardContent import to stop the page crashes
+Second: Register the missing API routes to stop the 404 flood
+Third: Tune the search algorithm to be less aggressive with semantic matching
+Fourth: Optimize performance with better caching and debouncing
+The search functionality is actually working (I can see successful results in the logs), but the UI crashes are preventing users from seeing the results properly.
+
