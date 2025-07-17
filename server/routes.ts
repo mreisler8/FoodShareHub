@@ -36,7 +36,7 @@ import usersRouter from './routes/users';
 import usersStatsRouter from './routes/users-stats';
 import analyticsRouter from './routes/analytics';
 import savedListsRouter from './routes/saved-lists';
-// import restaurantsRouter from './routes.js';
+// import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
 import { getPlaceDetails } from './services/google-places';
@@ -910,9 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Restaurant detail endpoint removed - now handled by restaurant router
-
-  //  // Circle endpoints (inline for compatibility)
+  // Restaurant detail endpoint removed -// Circle endpoints (inline for compatibility)
   app.get("/api/circles", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -1259,134 +1257,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Import necessary routers
 
-  const authRouter = Router();
-  const usersRouter = Router();
-  const postsRouter = Router();
-  const restaurantsRouter = Router();
-  const searchRouter = Router();
-  const listsRouter = Router();
-  const circlesRouter = Router();
-  const followRouter = Router();
-  const followRequestsRouter = Router();
-  const circleInvitesRouter = Router();
-  const circleRequestsRouter = Router();
-  const healthRouter = Router();
-  const analyticsRouter = Router();
-  const searchAnalyticsRouter = Router();
-  const usersStatsRouter = Router();
-  const locationRouter = Router();
-  const recommendationsRouter = Router();
-  const savedListsRouter = Router();
-  const listItemCommentsRouter = Router();
-
-  // Auth routes are now handled in auth.ts with setupAuth
-
-  // Users (Inline)
-  usersRouter.get('/', async (req, res) => {
-    try {
-      const users = await storage.getAllUsers();
-      const usersWithoutPasswords = users.map((user) => {
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-      });
-      res.json(usersWithoutPasswords);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  usersRouter.get('/:id', async (req, res) => {
-    try {
-      const user = await storage.getUser(parseInt(req.params.id));
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Posts (Inline)
-  postsRouter.get('/', async (req, res) => {
-    try {
-      const userId = req.query.userId;
-      const restaurantId = req.query.restaurantId;
-
-      if (userId && typeof userId === "string") {
-        const posts = await storage.getPostsByUser(parseInt(userId));
-        return res.json(posts);
-      }
-
-      if (restaurantId && typeof restaurantId === "string") {
-        const posts = await storage.getPostsByRestaurant(
-          parseInt(restaurantId),
-        );
-        return res.json(posts);
-      }
-
-      const posts = await storage.getAllPosts();
-      res.json(posts);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  postsRouter.get('/:id', async (req, res) => {
-    try {
-      const postDetails = await storage.getPostDetails(parseInt(req.params.id));
-      if (!postDetails) {
-        return res.status(404).json({ error: "Post not found" });
-      }
-
-      let safePostDetails = { ...postDetails };
-      if (safePostDetails.author && safePostDetails.author.password) {
-        const { password, ...authorWithoutPassword } = safePostDetails.author;
-        safePostDetails.author = authorWithoutPassword;
-      }
-
-      if (safePostDetails.comments && Array.isArray(safePostDetails.comments)) {
-        safePostDetails.comments = safePostDetails.comments.map(
-          (comment: any) => {
-            if (comment.author && comment.author.password) {
-              const { password, ...authorWithoutPassword } = comment.author;
-              return { ...comment, author: authorWithoutPassword };
-            }
-            return comment;
-          },
-        );
-      }
-
-      res.json(safePostDetails);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Restaurants (Inline)
-  restaurantsRouter.get("/:id", async (req, res) => {
-    try {
-      const restaurantId = parseInt(req.params.id, 10);
-      if (isNaN(restaurantId)) {
-        return res.status(400).json({ error: "Invalid restaurant ID" });
-      }
-      const restaurant = await storage.getRestaurant(restaurantId);
-      if (!restaurant) {
-        return res.status(404).json({ error: "Restaurant not found" });
-      }
-      res.json(restaurant);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  const { default: geocodeRouter } = await import("./routes/geocode");
   // Mount routers
   app.use("/api/search", searchRouter);
   app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/location", locationRoutes);
-  app.use("/api/geocode", geocodeRouter);
+
+  // Import and mount geocode routes
+  const geocodeRouter = await import("./routes/geocode");
+  app.use("/api/geocode", geocodeRouter.default);
+
   app.use("/api/lists", listsRouter);
   app.use("/api/saved-lists", savedListsRouter);
   app.use("/api/recommendations", recommendationsRouter);
@@ -1395,7 +1275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/follow-requests", followRequestsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
   app.use("/api/circles/invites", circleInvitesRouter);
-  app.use("/api/circles/requests", circleRequestsRouter);
+  app.use("/api/circles", circleRequestsRouter);
   app.use("/api/users", usersRouter);
   app.use("/api/users", usersStatsRouter);
   app.use("/api/analytics", analyticsRouter);
