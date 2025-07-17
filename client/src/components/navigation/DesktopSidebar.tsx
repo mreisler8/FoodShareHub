@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings, TrendingUp } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings, TrendingUp, Activity } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -123,6 +123,14 @@ export function DesktopSidebar() {
               <div className={getNavItemClasses("/lists/create")} role="menuitem" tabIndex={0}>
                 <PlusCircle className="w-6 mr-2" aria-hidden="true" />
                 <span>Create List</span>
+              </div>
+            </Link>
+          </li>
+          <li>
+            <Link href="/social-dashboard" aria-label="Social network dashboard">
+              <div className={getNavItemClasses("/social-dashboard")} role="menuitem" tabIndex={0}>
+                <Activity className="w-6 mr-2" aria-hidden="true" />
+                <span>Social Dashboard</span>
               </div>
             </Link>
           </li>
