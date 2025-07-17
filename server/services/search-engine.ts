@@ -1,4 +1,3 @@
-
 import { Client } from 'typesense';
 import { Restaurant, User, RestaurantList } from '@shared/schema';
 
@@ -15,11 +14,55 @@ const typesense = new Client({
   connectionTimeoutSeconds: 10,
 });
 
+// Helper function to detect if a search term is likely a person's name
+function isPersonNameQuery(query: string): boolean {
+  const lowerQuery = query.toLowerCase().trim();
+
+  // Restaurant-related terms that should NOT be treated as person names
+  const restaurantTerms = [
+    'restaurant', 'cafe', 'bar', 'grill', 'kitchen', 'bistro', 'eatery', 'diner',
+    'pizza', 'burger', 'sushi', 'taco', 'sandwich', 'bakery', 'brewery', 'pub',
+    'steakhouse', 'seafood', 'food', 'eat', 'dining', 'menu', 'dish', 'meal',
+    'lunch', 'dinner', 'breakfast', 'brunch', 'coffee', 'tea', 'wine', 'cocktail',
+    'odds', 'oddseoul', 'badiali', 'pizzeria', 'trattoria', 'brasserie', 'tavern',
+    'veselka', 'katz', 'russ', 'daughters'
+  ];
+
+  // Specific restaurant names that should be enhanced
+  const knownRestaurantNames = [
+    'oddseoul', 'odd seoul', 'badiali', 'pizzeria badiali', 'veselka', 'katz deli',
+    'russ daughters', 'peter luger', 'grammercy tavern'
+  ];
+
+  // If the query is a known restaurant name, definitely not a person
+  if (knownRestaurantNames.some(name => lowerQuery.includes(name) || name.includes(lowerQuery))) {
+    return false;
+  }
+
+  // If the query contains any restaurant terms, it's not a person name
+  if (restaurantTerms.some(term => lowerQuery.includes(term))) {
+    return false;
+  }
+
+  // Queries with 3 or fewer characters that don't match known restaurants are likely person names
+  if (lowerQuery.length <= 3) {
+    return true;
+  }
+
+  // Common person name patterns (only for longer queries)
+  const personNamePatterns = [
+    /^[a-z]+\s+[a-z]+$/,  // "john smith"
+    /^(alex|mike|john|jane|bob|sue|tom|amy|joe|ann|ben|sam|dan|max|kim|pat|ray|jim|ron|ted|tim|guy|leo|eva|zoe|ian|kai|eli|ivy|sky|rio|drew|cole|dean|finn|gray|jude|luke|noah|owen|seth|will|zane)$/i
+  ];
+
+  return personNamePatterns.some(pattern => pattern.test(lowerQuery));
+}
+
 // Centralized person name detection to ensure consistency across all search functions
-function isPersonNameQuery(searchTerm: string): boolean {
+function isPersonNameQueryOld(searchTerm: string): boolean {
   // Updated to exclude known restaurant terms like "odds" (OddSeoul)
   const restaurantTerms = ['odds', 'oddseoul', 'pizza', 'burger', 'sushi', 'taco', 'cafe', 'bar', 'grill', 'kitchen', 'house', 'spot', 'place', 'bistro', 'eatery', 'diner', 'restaurant', 'food', 'cuisine', 'dining', 'menu', 'eat', 'taste', 'flavor', 'spicy', 'sweet', 'meal', 'lunch', 'dinner', 'breakfast', 'brunch'];
-  
+
   return /^[a-zA-Z]+(\s[a-zA-Z]+)?$/.test(searchTerm) && 
          searchTerm.length <= 20 && 
          !searchTerm.toLowerCase().includes('restaurant') &&
@@ -210,10 +253,10 @@ export class SearchEngineService {
 
   async search(options: SearchOptions): Promise<EnhancedSearchResult[]> {
     const { query, lat, lng, radius = 10000, userId, filters } = options;
-    
+
     // Expand query with semantic terms
     const expandedQuery = this.expandSemanticQuery(query);
-    
+
     const searchParams = {
       q: expandedQuery,
       query_by: 'name,location,category,cuisine,tags,description',
@@ -300,7 +343,7 @@ export class SearchEngineService {
 
   private expandSemanticQuery(query: string): string {
     let expandedQuery = query;
-    
+
     Object.entries(SEMANTIC_MAPPINGS).forEach(([key, synonyms]) => {
       if (query.toLowerCase().includes(key)) {
         expandedQuery += ' ' + synonyms.join(' ');
@@ -337,11 +380,11 @@ export class SearchEngineService {
 
   private extractTags(restaurant: Restaurant): string[] {
     const tags: string[] = [];
-    
+
     if (restaurant.category) tags.push(restaurant.category.toLowerCase());
     if (restaurant.cuisine) tags.push(restaurant.cuisine.toLowerCase());
     if (restaurant.priceRange) tags.push(restaurant.priceRange);
-    
+
     // Add semantic tags based on category/cuisine
     if (restaurant.category?.toLowerCase().includes('coffee')) {
       tags.push('coffee', 'cafe', 'morning');
@@ -349,29 +392,29 @@ export class SearchEngineService {
     if (restaurant.category?.toLowerCase().includes('bar')) {
       tags.push('drinks', 'evening', 'social');
     }
-    
+
     return [...new Set(tags)];
   }
 
   private calculatePopularityScore(restaurant: Restaurant): number {
     let score = 0;
-    
+
     if (restaurant.verified) score += 100;
     if (restaurant.rating && restaurant.rating > 4) score += 50;
     if (restaurant.googlePlaceId) score += 25;
-    
+
     return score;
   }
 
   private async basicSearch(query: string, options: { lat?: number; lng?: number; radius?: number; userId?: number }): Promise<EnhancedSearchResult[]> {
     const { lat, lng, radius, userId } = options;
     const results: EnhancedSearchResult[] = [];
-    
+
     try {
       const { db } = await import('../db');
       const { restaurants, users, restaurantLists, posts } = await import('../../shared/schema');
       const { eq, or, ilike, sql, desc, and } = await import('drizzle-orm');
-      
+
       // Search restaurants
       const restaurantResults = await db.select()
         .from(restaurants)
@@ -385,7 +428,7 @@ export class SearchEngineService {
           )
         )
         .limit(10);
-      
+
       // Search users (if userId provided)
       if (userId) {
         const userResults = await db.select()
@@ -403,7 +446,7 @@ export class SearchEngineService {
             )
           )
           .limit(5);
-        
+
         // Add user results
         userResults.forEach(user => {
           results.push({
@@ -415,7 +458,7 @@ export class SearchEngineService {
           });
         });
       }
-      
+
       // Search lists  
       const listResults = await db.select()
         .from(restaurantLists)
@@ -430,7 +473,7 @@ export class SearchEngineService {
           )
         )
         .limit(5);
-      
+
       // Add restaurant results
       restaurantResults.forEach(restaurant => {
         results.push({
@@ -445,7 +488,7 @@ export class SearchEngineService {
           metadata: restaurant,
         });
       });
-      
+
       // Add list results
       listResults.forEach(list => {
         results.push({
@@ -459,7 +502,7 @@ export class SearchEngineService {
           metadata: list,
         });
       });
-      
+
       return results.sort((a, b) => b.relevanceScore - a.relevanceScore);
     } catch (error) {
       console.error('Basic search error:', error);
@@ -469,19 +512,19 @@ export class SearchEngineService {
 
   private calculateDistance(lat1?: number, lng1?: number, geopoint?: [number, number]): number | undefined {
     if (!lat1 || !lng1 || !geopoint) return undefined;
-    
+
     const [lat2, lng2] = geopoint;
     const R = 6371; // Earth's radius in km
-    
+
     const dLat = this.toRadians(lat2 - lat1);
     const dLng = this.toRadians(lng2 - lng1);
-    
+
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
               Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
               Math.sin(dLng / 2) * Math.sin(dLng / 2);
-              
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    
+
     return R * c * 1000; // Distance in meters
   }
 
@@ -508,7 +551,7 @@ export class EnhancedSearchEngine {
     limits: { restaurants: number, lists: number, users: number, posts: number } = { restaurants: 10, lists: 5, users: 5, posts: 5 }
   ) {
     const searchEngineService = SearchEngineService.getInstance();
-    
+
     // Use the existing search functionality with enhanced capabilities
     const results = await searchEngineService.search({
       query,

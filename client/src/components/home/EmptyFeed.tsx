@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, List, Search, Plus, Heart } from "lucide-react";
 import { Link } from "wouter";
@@ -69,7 +69,7 @@ export function EmptyFeed() {
     <div className="space-y-6">
       {/* Welcome Message */}
       <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
-        <div className="p-6 text-center">
+        <CardContent className="p-6 text-center">
           <div className="mb-4">
             <Heart className="h-12 w-12 mx-auto text-blue-500 mb-3" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -94,13 +94,13 @@ export function EmptyFeed() {
               </Button>
             </Link>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
       {/* Suggested Circles */}
       {circles.length > 0 && (
         <Card className="bg-white border border-neutral-200">
-          <div className="p-6">
+          <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Users className="h-5 w-5" />
               Popular Circles
@@ -108,7 +108,7 @@ export function EmptyFeed() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               {circles.map((circle) => (
                 <Card key={circle.id} className="border border-neutral-200 hover:border-neutral-300 transition-colors">
-                  <div className="p-4">
+                  <CardContent className="p-4">
                     <h4 className="font-medium text-gray-900 mb-2">{circle.name}</h4>
                     <p className="text-sm text-gray-600 mb-3">{circle.description}</p>
                     <div className="flex items-center justify-between">
@@ -121,7 +121,7 @@ export function EmptyFeed() {
                         </Button>
                       </Link>
                     </div>
-                  </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>
@@ -132,14 +132,14 @@ export function EmptyFeed() {
                 </Button>
               </Link>
             </div>
-          </div>
+          </CardContent>
         </Card>
       )}
 
       {/* Featured Lists */}
       {lists.length > 0 && (
         <Card className="bg-white border border-neutral-200">
-          <div className="p-6">
+          <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <List className="h-5 w-5" />
               Featured Lists
@@ -147,7 +147,7 @@ export function EmptyFeed() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               {lists.map((list) => (
                 <Card key={list.id} className="border border-neutral-200 hover:border-neutral-300 transition-colors">
-                  <div className="p-4">
+                  <CardContent className="p-4">
                     <h4 className="font-medium text-gray-900 mb-2">{list.name}</h4>
                     <p className="text-sm text-gray-600 mb-3">{list.description}</p>
                     <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
@@ -165,7 +165,7 @@ export function EmptyFeed() {
                         </Button>
                       </Link>
                     </div>
-                  </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>
@@ -176,7 +176,7 @@ export function EmptyFeed() {
                 </Button>
               </Link>
             </div>
-          </div>
+          </CardContent>
         </Card>
       )}
 

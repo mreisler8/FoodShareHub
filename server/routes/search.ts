@@ -7,17 +7,48 @@ import { searchGooglePlaces } from '../services/google-places';
 
 const router = Router();
 
-// Centralized person name detection to ensure consistency across all search functions
-function isPersonNameQuery(searchTerm: string): boolean {
-  // Updated to exclude known restaurant terms like "odds" (OddSeoul)
-  const restaurantTerms = ['odds', 'oddseoul', 'pizza', 'burger', 'sushi', 'taco', 'cafe', 'bar', 'grill', 'kitchen', 'house', 'spot', 'place', 'bistro', 'eatery', 'diner', 'restaurant', 'food', 'cuisine', 'dining', 'menu', 'eat', 'taste', 'flavor', 'spicy', 'sweet', 'meal', 'lunch', 'dinner', 'breakfast', 'brunch'];
-  
-  return /^[a-zA-Z]+(\s[a-zA-Z]+)?$/.test(searchTerm) && 
-         searchTerm.length <= 20 && 
-         !searchTerm.toLowerCase().includes('restaurant') &&
-         !searchTerm.toLowerCase().includes('food') &&
-         !searchTerm.toLowerCase().includes('cuisine') &&
-         !restaurantTerms.some(term => searchTerm.toLowerCase().includes(term));
+// Helper function to detect if a search term is likely a person's name
+function isPersonNameQuery(query: string): boolean {
+  const lowerQuery = query.toLowerCase().trim();
+
+  // Restaurant-related terms that should NOT be treated as person names
+  const restaurantTerms = [
+    'restaurant', 'cafe', 'bar', 'grill', 'kitchen', 'bistro', 'eatery', 'diner',
+    'pizza', 'burger', 'sushi', 'taco', 'sandwich', 'bakery', 'brewery', 'pub',
+    'steakhouse', 'seafood', 'food', 'eat', 'dining', 'menu', 'dish', 'meal',
+    'lunch', 'dinner', 'breakfast', 'brunch', 'coffee', 'tea', 'wine', 'cocktail',
+    'odds', 'oddseoul', 'badiali', 'pizzeria', 'trattoria', 'brasserie', 'tavern',
+    'veselka', 'katz', 'russ', 'daughters'
+  ];
+
+  // Specific restaurant names that should be enhanced
+  const knownRestaurantNames = [
+    'oddseoul', 'odd seoul', 'badiali', 'pizzeria badiali', 'veselka', 'katz deli',
+    'russ daughters', 'peter luger', 'grammercy tavern'
+  ];
+
+  // If the query is a known restaurant name, definitely not a person
+  if (knownRestaurantNames.some(name => lowerQuery.includes(name) || name.includes(lowerQuery))) {
+    return false;
+  }
+
+  // If the query contains any restaurant terms, it's not a person name
+  if (restaurantTerms.some(term => lowerQuery.includes(term))) {
+    return false;
+  }
+
+  // Queries with 3 or fewer characters that don't match known restaurants are likely person names
+  if (lowerQuery.length <= 3) {
+    return true;
+  }
+
+  // Common person name patterns (only for longer queries)
+  const personNamePatterns = [
+    /^[a-z]+\s+[a-z]+$/,  // "john smith"
+    /^(alex|mike|john|jane|bob|sue|tom|amy|joe|ann|ben|sam|dan|max|kim|pat|ray|jim|ron|ted|tim|guy|leo|eva|zoe|ian|kai|eli|ivy|sky|rio|drew|cole|dean|finn|gray|jude|luke|noah|owen|seth|will|zane)$/i
+  ];
+
+  return personNamePatterns.some(pattern => pattern.test(lowerQuery));
 }
 
 // Optimized unified search with database and Google Places integration
@@ -195,12 +226,12 @@ router.get('/unified', authenticate, async (req, res) => {
         // Enhanced Google Places search if restaurant results are insufficient
         // Only apply Google Places enhancement for restaurant-focused searches
         let restaurantResults = dbRestaurants;
-        
+
         // Check if search term is likely a person's name to avoid restaurant enhancement
         const isPersonNameSearch = isPersonNameQuery(searchTerm);
-        
+
         console.log(`DEBUG: Search term "${searchTerm}" - isPersonNameSearch: ${isPersonNameSearch}, dbRestaurants.length: ${dbRestaurants.length}`);
-        
+
         if (dbRestaurants.length < 8 && !isPersonNameSearch) {
           try {
             const locationData = (searchLat && searchLng) ? { 
@@ -325,7 +356,7 @@ router.get('/unified', authenticate, async (req, res) => {
         };
 
         console.log(`Search results: ${formattedResults.restaurants.length} restaurants, ${formattedResults.lists.length} lists, ${formattedResults.posts.length} posts, ${formattedResults.users.length} users`);
-        
+
         // Add caching headers for better performance
         res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
         return res.json(formattedResults);

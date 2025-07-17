@@ -41,6 +41,7 @@ import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzl
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
 import { getPlaceDetails } from './services/google-places';
 import locationRoutes from "./routes/location";
+import restaurantsRouter from "./routes/restaurants";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -923,7 +924,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if the authenticated user is the author of the post
-      if (post.userId !== req.user!.id) {
+      if (postuserId !== req.user!.id) {
         return res
           .status(403).json({ error: "Not authorized to delete this post" });
       }
@@ -1330,21 +1331,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/location", locationRoutes);
 
   // Mount restaurant router
-  const restaurantRouter = await import("./routes/restaurants");
-  app.use("/api/restaurants", restaurantRouter.default);
+  // const restaurantRouter = await import("./routes/restaurants");
+  // app.use("/api/restaurants", restaurantRouter.default);
 
   app.use("/api/lists", listsRouter);
   app.use("/api/saved-lists", savedListsRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/list-item-comments", listItemCommentsRouter);
   app.use("/api/follow", followRoutes);
-  app.use("/api/follow", followRequestsRouter);
+  app.use("/api/follow-requests", followRequestsRouter);
   // app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
   app.use("/api/circles", circleRequestsRouter);
   app.use("/api/users", usersRouter);
   app.use("/api/users", usersStatsRouter);
   app.use("/api/analytics", analyticsRouter);
+  app.use("/api/restaurants", restaurantsRouter);
 
   // Health check route
   app.get("/api/health", (_req, res) => {
