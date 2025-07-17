@@ -7,6 +7,58 @@ import { searchGooglePlaces } from '../services/google-places';
 
 const router = Router();
 
+// Enhanced relevance scoring system that prioritizes relevance over rating
+function calculateRelevanceScore(restaurantName: string, searchQuery: string): number {
+  const name = restaurantName.toLowerCase().trim();
+  const query = searchQuery.toLowerCase().trim();
+  
+  // Exact match gets highest priority
+  if (name === query) {
+    return 100;
+  }
+  
+  // Name starts with search term
+  if (name.startsWith(query)) {
+    return 90;
+  }
+  
+  // Name contains search term
+  if (name.includes(query)) {
+    return 80;
+  }
+  
+  // Check if any word in the name starts with the query
+  const nameWords = name.split(/\s+/);
+  for (const word of nameWords) {
+    if (word.startsWith(query)) {
+      return 70;
+    }
+  }
+  
+  // Check if any word in the name contains the query
+  for (const word of nameWords) {
+    if (word.includes(query)) {
+      return 60;
+    }
+  }
+  
+  // Default score for no match
+  return 50;
+}
+
+function calculateCategoryRelevance(category: string, cuisine: string, searchQuery: string): number {
+  const query = searchQuery.toLowerCase().trim();
+  const cat = category?.toLowerCase() || '';
+  const cui = cuisine?.toLowerCase() || '';
+  
+  // Category/cuisine matches
+  if (cat.includes(query) || cui.includes(query)) {
+    return 70;
+  }
+  
+  return 0;
+}
+
 // Helper function to detect if a search term is likely a person's name
 function isPersonNameQuery(query: string): boolean {
   const lowerQuery = query.toLowerCase().trim();
@@ -49,7 +101,7 @@ function isPersonNameQuery(query: string): boolean {
   // Common person name patterns (only for longer queries)
   const personNamePatterns = [
     /^[a-z]+\s+[a-z]+$/,  // "john smith"
-    /^(alex|mike|john|jane|bob|sue|tom|amy|joe|ann|ben|sam|dan|max|kim|pat|ray|jim|ron|ted|tim|guy|leo|eva|zoe|ian|kai|eli|ivy|sky|rio|drew|cole|dean|finn|gray|jude|luke|noah|owen|seth|will|zane)$/i
+    /^(alex|mike|john|jane|bob|sue|tom|amy|joe|ann|ben|sam|dan|max|kim|pat|ray|jim|ron|ted|tim|guy|leo|eva|zoe|ian|kai|eli|ivy|sky|rio|drew|cole|dean|finn|gray|jude|luke|noah|owen|seth|will|zane|rachael|rachel|mitch|casey|jason|sarah|david|chris|steve|brian|kevin|karen|linda|mary|patricia|robert|michael|william|richard|charles|thomas|matthew|mark|donald|steven|paul|andrew|joshua|kenneth|daniel|christopher|anthony|joseph|michelle|kimberly|deborah|dorothy|lisa|nancy|betty|helen|sandra|donna|carol|ruth|sharon|barbara|diana|maria|jennifer|angela|melissa|brenda|emma|olivia|ava|sophia|isabella|mia|charlotte|abigail|emily|harper|ella|elizabeth|avery|sofia|chloe|victoria|grace|zoey|natalie|addison|lillian|brooklyn|samantha|audrey|leah|anna|allison|savannah|gabriella|camila|aria|liam|mason|james|benjamin|jacob|elijah|ethan|alexander|samuel|henry|carter|wyatt|jayden|hunter|connor|aaron|colton|gabriel|jordan|levi|isaac|hudson|jaxon|maverick|josiah|isaiah|nathaniel|christian|mateo|adrian|maxton|parker|brayden|asher|carson|lincoln|leonardo|jaxson|silas|bennett|nathanael|ryder|diego|greyson)$/i
   ];
 
   return personNamePatterns.some(pattern => pattern.test(lowerQuery));
@@ -163,58 +215,6 @@ router.get('/unified', authenticate, async (req, res) => {
 
     console.log(`Enhanced unified search for "${searchTerm}" by user ${userId}`);
 
-    // Enhanced relevance scoring system that prioritizes relevance over rating
-    function calculateRelevanceScore(restaurantName: string, searchQuery: string): number {
-      const name = restaurantName.toLowerCase().trim();
-      const query = searchQuery.toLowerCase().trim();
-      
-      // Exact match gets highest priority
-      if (name === query) {
-        return 100;
-      }
-      
-      // Name starts with search term
-      if (name.startsWith(query)) {
-        return 90;
-      }
-      
-      // Name contains search term
-      if (name.includes(query)) {
-        return 80;
-      }
-      
-      // Check if any word in the name starts with the query
-      const nameWords = name.split(/\s+/);
-      for (const word of nameWords) {
-        if (word.startsWith(query)) {
-          return 70;
-        }
-      }
-      
-      // Check if any word in the name contains the query
-      for (const word of nameWords) {
-        if (word.includes(query)) {
-          return 60;
-        }
-      }
-      
-      // Default score for no match
-      return 50;
-    }
-
-    function calculateCategoryRelevance(category: string, cuisine: string, searchQuery: string): number {
-      const query = searchQuery.toLowerCase().trim();
-      const cat = category?.toLowerCase() || '';
-      const cui = cuisine?.toLowerCase() || '';
-      
-      // Category/cuisine matches
-      if (cat.includes(query) || cui.includes(query)) {
-        return 70;
-      }
-      
-      return 0;
-    }
-
     // Simplified search with basic queries to ensure functionality
     if (type === "all") {
       try {
@@ -327,7 +327,8 @@ router.get('/unified', authenticate, async (req, res) => {
 
         console.log(`DEBUG: Search term "${searchTerm}" - isPersonNameSearch: ${isPersonNameSearch}, dbRestaurants.length: ${dbRestaurants.length}`);
 
-        if (dbRestaurants.length < 8 && !isPersonNameSearch) {
+        // Be more strict about person name searches - only enhance if we have really good results
+        if (dbRestaurants.length < 8 && !isPersonNameSearch && searchTerm.length > 3) {
           try {
             const locationData = (searchLat && searchLng) ? { 
               lat: searchLat, 
@@ -371,7 +372,7 @@ router.get('/unified', authenticate, async (req, res) => {
           }
         }
 
-        // Enhanced result formatting with relevance-based sorting
+        // Enhanced result formatting with relevance-based sorting and minimum threshold
         const formattedResults = {
           restaurants: restaurantResults
             .map(r => {
@@ -399,6 +400,16 @@ router.get('/unified', authenticate, async (req, res) => {
                   googlePlaceId: r.googlePlaceId,
                 }
               };
+            })
+            .filter(r => {
+              // Apply stricter relevance filtering for person name searches
+              // This prevents showing irrelevant restaurants when searching for people
+              if (isPersonNameQuery(searchTerm)) {
+                // Only show restaurants where the name actually contains the search term
+                return r.name.toLowerCase().includes(searchTerm.toLowerCase()) && r.relevanceScore >= 70;
+              }
+              // For general searches, require at least some relevance
+              return r.relevanceScore >= 55;
             })
             .sort((a, b) => {
               // Primary sort: Relevance score (higher is better)
@@ -547,7 +558,7 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
 
   // Enhanced with Google Places if needed (avoid for person name searches)
   let allResults = [...dbResults];
-  if (dbResults.length < 10 && !isPersonNameQuery(searchTerm)) {
+  if (dbResults.length < 10 && !isPersonNameQuery(searchTerm) && searchTerm.length > 3) {
     try {
       const locationData = (lat && lng) ? { lat, lng, radius: radius || 15000 } : undefined;
       const googleResults = await searchGooglePlaces(searchTerm, locationData);
@@ -575,17 +586,52 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
     }
   }
 
-  return allResults.map(r => ({
-    id: r.id.toString(),
-    name: r.name,
-    type: 'restaurant' as const,
-    subtitle: buildRestaurantSubtitle(r),
-    location: r.location,
-    avgRating: r.avgRating,
-    thumbnailUrl: r.imageUrl,
-    source: r.id.toString().startsWith('google_') ? 'google' : 'database',
-    metadata: r
-  }));
+  return allResults
+    .map(r => {
+      // Calculate relevance score for filtering
+      const nameRelevance = calculateRelevanceScore(r.name, searchTerm);
+      const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm);
+      const totalRelevance = Math.max(nameRelevance, categoryRelevance);
+      
+      return {
+        id: r.id.toString(),
+        name: r.name,
+        type: 'restaurant' as const,
+        subtitle: buildRestaurantSubtitle(r),
+        location: r.location,
+        avgRating: r.avgRating,
+        thumbnailUrl: r.imageUrl,
+        source: r.id.toString().startsWith('google_') ? 'google' : 'database',
+        relevanceScore: totalRelevance,
+        metadata: r
+      };
+    })
+    .filter(r => {
+      // Apply stricter relevance filtering for person name searches
+      // This prevents showing irrelevant restaurants when searching for people
+      if (isPersonNameQuery(searchTerm)) {
+        // Only show restaurants where the name actually contains the search term
+        return r.name.toLowerCase().includes(searchTerm.toLowerCase()) && r.relevanceScore >= 70;
+      }
+      // For general searches, require at least some relevance
+      return r.relevanceScore >= 55;
+    })
+    .sort((a, b) => {
+      // Primary sort: Relevance score (higher is better)
+      if (a.relevanceScore !== b.relevanceScore) {
+        return b.relevanceScore - a.relevanceScore;
+      }
+      
+      // Secondary sort: Rating (higher is better)
+      if (a.avgRating !== b.avgRating) {
+        return b.avgRating - a.avgRating;
+      }
+      
+      // Tertiary sort: Review count (higher is better)
+      const aReviewCount = a.metadata.reviewCount || 0;
+      const bReviewCount = b.metadata.reviewCount || 0;
+      return bReviewCount - aReviewCount;
+    });
 }
 
 async function searchLists(searchTerm: string, limit: number = 10) {

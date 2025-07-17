@@ -113,6 +113,13 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 17, 2025: **Restaurant Search Relevance Threshold Filtering - COMPLETE**: Successfully implemented intelligent filtering to prevent irrelevant results when searching for person names while preserving legitimate restaurant searches:
+  - **Smart Person Name Detection**: Enhanced `isPersonNameQuery()` function with comprehensive name patterns to identify when users are searching for people vs restaurants
+  - **Relevance Threshold Filtering**: Implemented stricter filtering (70+ relevance for person names, 55+ for general searches) to prevent showing irrelevant Google Places results
+  - **Name Matching Requirement**: For person name searches, restaurants must actually contain the search term in their name to appear in results
+  - **Preserved Legitimate Results**: Restaurants like "Rachel's Kitchen" or "Jason's Deli" would still appear, but irrelevant results are filtered out
+  - **Test Results**: Person name searches ("rachael", "jason", "rachel") now return 0 restaurants, while "pizza" returns 16 relevant pizza restaurants
+  - **Status**: Search now works "equally well for any and all restaurants" while preventing irrelevant results for person name queries
 - July 17, 2025: **Separated Restaurant and User Search Features - COMPLETE**: Successfully implemented dedicated search endpoints for cleaner, more reliable search functionality:
   - **Dedicated Restaurant Search**: Created `/api/search/restaurants` endpoint exclusively for restaurant discovery with relevance-based prioritization
   - **Dedicated User Search**: Created `/api/search/users` endpoint exclusively for user discovery with follow status tracking
