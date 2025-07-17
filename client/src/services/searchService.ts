@@ -69,9 +69,9 @@ export class SearchService {
 
     let searchUrl = `/api/search/unified?q=${encodeURIComponent(query)}`;
 
-    // Add location parameters if available
+    // Add location parameters if available with expanded radius for better coverage
     if (options.location) {
-      searchUrl += `&lat=${options.location.lat}&lng=${options.location.lng}&radius=${options.radius || 10000}`;
+      searchUrl += `&lat=${options.location.lat}&lng=${options.location.lng}&radius=${options.radius || 25000}`;
     }
 
     const response = await fetch(searchUrl, {

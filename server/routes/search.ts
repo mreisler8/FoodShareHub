@@ -339,17 +339,19 @@ router.get('/unified', authenticate, async (req, res) => {
 
         console.log(`DEBUG: Search term "${searchTerm}" - isPersonNameSearch: ${isPersonNameSearch}, dbRestaurants.length: ${dbRestaurants.length}`);
 
-        // Be more strict about person name searches - only enhance if we have really good results
-        if (dbRestaurants.length < 8 && !isPersonNameSearch && searchTerm.length > 3) {
+        // Enhanced search strategy - try Google Places for restaurant names like "Costa Verde"
+        if (dbRestaurants.length < 12 && !isPersonNameSearch && searchTerm.length > 2) {
           try {
             const locationData = (searchLat && searchLng) ? { 
               lat: searchLat, 
               lng: searchLng, 
-              radius: searchRadius 
+              radius: Math.max(searchRadius, 25000) // Minimum 25km radius for better coverage
             } : undefined;
 
             console.log(`Enhancing with Google Places search for "${searchTerm}"`);
+            console.log(`Location data:`, locationData);
             const googleResults = await searchGooglePlaces(searchTerm, locationData);
+            console.log(`Google Places returned ${googleResults.length} results for "${searchTerm}"`);
 
             // Enhanced deduplication and formatting
             const filteredGoogleResults = googleResults
