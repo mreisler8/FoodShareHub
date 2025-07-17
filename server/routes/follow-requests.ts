@@ -222,3 +222,47 @@ router.patch('/me/privacy', authenticate, async (req: Request, res: Response) =>
 });
 
 export default router;
+import { Router } from 'express';
+import { authenticate } from '../auth';
+import { db } from '../db';
+import { followRequests, users } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
+
+const router = Router();
+
+// Get pending follow requests for the current user
+router.get('/pending', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    console.log(`[ENDPOINT] Fetching pending follow requests for user ${userId}`);
+
+    const pendingRequests = await db
+      .select({
+        id: followRequests.id,
+        requesterId: followRequests.requesterId,
+        requesterName: users.name,
+        requesterUsername: users.username,
+        requesterProfilePicture: users.profilePicture,
+        createdAt: followRequests.createdAt,
+      })
+      .from(followRequests)
+      .leftJoin(users, eq(followRequests.requesterId, users.id))
+      .where(
+        and(
+          eq(followRequests.requesteeId, userId),
+          eq(followRequests.status, 'pending')
+        )
+      );
+
+    res.json(pendingRequests);
+  } catch (error) {
+    console.error('Error fetching pending follow requests:', error);
+    res.status(500).json({ error: 'Failed to fetch pending requests' });
+  }
+});
+
+export default router;

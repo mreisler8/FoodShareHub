@@ -93,43 +93,51 @@ router.get('/unified', authenticate, async (req, res) => {
       try {
         // Parallel database searches with enhanced queries
         const [dbRestaurants, dbUsers, dbLists, dbPosts] = await Promise.all([
-          // Enhanced restaurant search
-          db.select({
-            id: restaurants.id,
-            name: restaurants.name,
-            location: restaurants.location,
-            category: restaurants.category,
-            priceRange: restaurants.priceRange,
-            cuisine: restaurants.cuisine,
-            address: restaurants.address,
-            imageUrl: restaurants.imageUrl,
-            city: restaurants.city,
-            state: restaurants.state,
-            latitude: restaurants.latitude,
-            longitude: restaurants.longitude,
-            googlePlaceId: restaurants.googlePlaceId,
-            avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
-            reviewCount: sql<number>`COUNT(${posts.id})`,
-          })
-          .from(restaurants)
-          .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
-          .where(
-            or(
-              ilike(restaurants.name, `%${searchTerm}%`),
-              ilike(restaurants.location, `%${searchTerm}%`),
-              ilike(restaurants.city, `%${searchTerm}%`),
-              ilike(restaurants.category, `%${searchTerm}%`),
-              ilike(restaurants.cuisine, `%${searchTerm}%`),
-              ilike(restaurants.address, `%${searchTerm}%`),
-              // Enhanced semantic search
-              sql`LOWER(${restaurants.name}) LIKE LOWER(${'%' + searchTerm.replace(/\s+/g, '%') + '%'})`,
-              sql`LOWER(${restaurants.category}) LIKE LOWER(${'%' + searchTerm + '%'})`,
-              sql`LOWER(${restaurants.cuisine}) LIKE LOWER(${'%' + searchTerm + '%'})`
-            )
+          // Enhanced restaurant search with exact match priority
+        db.select({
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          category: restaurants.category,
+          priceRange: restaurants.priceRange,
+          cuisine: restaurants.cuisine,
+          address: restaurants.address,
+          imageUrl: restaurants.imageUrl,
+          city: restaurants.city,
+          state: restaurants.state,
+          latitude: restaurants.latitude,
+          longitude: restaurants.longitude,
+          googlePlaceId: restaurants.googlePlaceId,
+          avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
+          reviewCount: sql<number>`COUNT(${posts.id})`,
+          relevanceScore: sql<number>`
+            CASE 
+              WHEN LOWER(${restaurants.name}) = LOWER(${searchTerm}) THEN 100
+              WHEN LOWER(${restaurants.name}) LIKE LOWER(${searchTerm + '%'}) THEN 90
+              WHEN LOWER(${restaurants.name}) LIKE LOWER(${'%' + searchTerm + '%'}) THEN 80
+              ELSE 70
+            END
+          `.as('relevanceScore'),
+        })
+        .from(restaurants)
+        .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
+        .where(
+          or(
+            ilike(restaurants.name, `%${searchTerm}%`),
+            ilike(restaurants.location, `%${searchTerm}%`),
+            ilike(restaurants.city, `%${searchTerm}%`),
+            ilike(restaurants.category, `%${searchTerm}%`),
+            ilike(restaurants.cuisine, `%${searchTerm}%`),
+            ilike(restaurants.address, `%${searchTerm}%`),
+            // Enhanced semantic search
+            sql`LOWER(${restaurants.name}) LIKE LOWER(${'%' + searchTerm.replace(/\s+/g, '%') + '%'})`,
+            sql`LOWER(${restaurants.category}) LIKE LOWER(${'%' + searchTerm + '%'})`,
+            sql`LOWER(${restaurants.cuisine}) LIKE LOWER(${'%' + searchTerm + '%'})`
           )
-          .groupBy(restaurants.id)
-          .orderBy(desc(sql`AVG(${posts.rating})`), desc(sql`COUNT(${posts.id})`))
-          .limit(Math.floor(resultLimit * 0.5)),
+        )
+        .groupBy(restaurants.id)
+        .orderBy(desc(sql`relevanceScore`), desc(sql`AVG(${posts.rating})`), desc(sql`COUNT(${posts.id})`))
+        .limit(Math.floor(resultLimit * 0.5)),
 
           // Enhanced user search with follow status
           db.select({
@@ -217,9 +225,7 @@ router.get('/unified', authenticate, async (req, res) => {
           .where(
             or(
               ilike(posts.content, `%${searchTerm}%`),
-              sql`${posts.dishesTried}::text ILIKE ${'%' + searchTerm + '%'}`,
-              ilike(restaurants.name, `%${searchTerm}%`),
-              ilike(restaurants.location, `%${searchTerm}%`)
+              sql`${posts.dishesTried}::text ILIKE ${'%' + searchTerm + '%'}`
             )
           )
           .orderBy(desc(posts.createdAt))

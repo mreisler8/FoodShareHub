@@ -42,6 +42,7 @@ import { userFollowers, posts, restaurants, users } from "@shared/schema";
 import { getPlaceDetails } from './services/google-places';
 import locationRoutes from "./routes/location";
 import restaurantsRouter from "./routes/restaurants";
+import circleInvitesRouter from './routes/circle-invites';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -1257,7 +1258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
+
 
   // Mount routers
   app.use("/api/search", searchRouter);
@@ -1275,6 +1276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/follow", followRoutes);
   app.use("/api/follow-requests", followRequestsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
+  app.use("/api/circles/invites", circleInvitesRouter);
   app.use("/api/circles", circleRequestsRouter);
   app.use("/api/users", usersRouter);
   app.use("/api/users", usersStatsRouter);
@@ -1289,7 +1291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Global error handlers
   app.use((err: Error, req: any, res: any, next: any) => {
     console.error('Unhandled error:', err);
-    
+
     // Always send JSON response
     res.setHeader('Content-Type', 'application/json');
     res.status(500).json({
