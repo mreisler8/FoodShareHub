@@ -6,7 +6,43 @@ import { authenticate } from '../auth';
 
 const router = Router();
 
-// GET /api/follow/requests/pending - Get pending follow requests for current user
+// Get pending follow requests for the authenticated user
+router.get('/pending', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const pendingRequests = await db
+      .select({
+        id: userFollowers.id,
+        followerId: userFollowers.followerId,
+        status: userFollowers.status,
+        createdAt: userFollowers.createdAt,
+        follower: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio,
+        }
+      })
+      .from(userFollowers)
+      .innerJoin(users, eq(userFollowers.followerId, users.id))
+      .where(
+        and(
+          eq(userFollowers.followingId, userId),
+          eq(userFollowers.status, 'pending')
+        )
+      )
+      .orderBy(desc(userFollowers.createdAt));
+
+    res.json(pendingRequests);
+  } catch (error) {
+    console.error('Error fetching pending follow requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/follow/requests/pending - Get pending follow requests for current user
 router.get('/requests/pending', authenticate, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;

@@ -804,6 +804,32 @@ export async function getCircleSharedLists(req: Request, res: Response) {
   }
 }
 
+// Get pending invites for the authenticated user
+router.get('/invites/pending', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+
+    // Get pending invites where the user's email or username matches
+    const user = await db.select({ 
+      username: users.username, 
+      email: users.email 
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+    if (!user[0]) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Mock response for now - would need actual circle_invites table
+    res.json([]);
+  } catch (error) {
+    console.error('Error fetching pending circle invites:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get circle details with enhanced access control
 router.get('/:id', authenticate, validateUserId, validateCircleId(), async (req, res) => {
   try {
@@ -917,7 +943,8 @@ router.get('/:id/access', authenticate, validateUserId, validateCircleId(), asyn
     const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId);
 
     const circle = await db
-      .select({
+      .```text
+select({
         id: circles.id,
         name: circles.name,
         isPrivate: circles.isPrivate

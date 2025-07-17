@@ -1329,6 +1329,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/search", searchRouter);
   app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/location", locationRoutes);
+  
+  // Import and mount geocode routes
+  const geocodeRouter = await import("./routes/geocode");
+  app.use("/api/geocode", geocodeRouter.default);
 
   // Mount restaurant router
   // const restaurantRouter = await import("./routes/restaurants");

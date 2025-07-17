@@ -17,18 +17,21 @@ function isPersonNameQuery(query: string): boolean {
     'pizza', 'burger', 'sushi', 'taco', 'sandwich', 'bakery', 'brewery', 'pub',
     'steakhouse', 'seafood', 'food', 'eat', 'dining', 'menu', 'dish', 'meal',
     'lunch', 'dinner', 'breakfast', 'brunch', 'coffee', 'tea', 'wine', 'cocktail',
-    'odds', 'oddseoul', 'badiali', 'pizzeria', 'trattoria', 'brasserie', 'tavern',
-    'veselka', 'katz', 'russ', 'daughters'
+    'pizzeria', 'trattoria', 'brasserie', 'tavern'
   ];
 
-  // Specific restaurant names that should be enhanced
+  // Specific restaurant names that should be enhanced (exact matches)
   const knownRestaurantNames = [
-    'oddseoul', 'odd seoul', 'badiali', 'pizzeria badiali', 'veselka', 'katz deli',
-    'russ daughters', 'peter luger', 'grammercy tavern'
+    'badiali', 'pizzeria badiali', 'oddseoul', 'odd seoul', 'veselka', 'katz deli',
+    'russ daughters', 'peter luger', 'grammercy tavern', 'rikki tikki', 'khazana'
   ];
 
-  // If the query is a known restaurant name, definitely not a person
-  if (knownRestaurantNames.some(name => lowerQuery.includes(name) || name.includes(lowerQuery))) {
+  // If the query exactly matches a known restaurant name, definitely not a person
+  if (knownRestaurantNames.some(name => 
+    lowerQuery === name || 
+    lowerQuery.includes(name) || 
+    name.includes(lowerQuery)
+  )) {
     return false;
   }
 
