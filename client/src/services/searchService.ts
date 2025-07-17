@@ -105,7 +105,37 @@ export class SearchService {
       throw new Error('Invalid response format');
     }
 
-    return response.json();
+    const results = await response.json();
+
+    // Sort by relevance first, then rating as secondary
+    if (results.restaurants) {
+      results.restaurants.sort((a: SearchResult, b: SearchResult) => {
+        // Calculate relevance score based on name matching
+        const getRelevanceScore = (restaurant: SearchResult, query: string) => {
+          const name = restaurant.name.toLowerCase();
+          const searchTerm = query.toLowerCase();
+
+          if (name === searchTerm) return 100;
+          if (name.startsWith(searchTerm)) return 90;
+          if (name.includes(searchTerm)) return 80;
+          return 70;
+        };
+
+        const aRelevance = getRelevanceScore(a, query);
+        const bRelevance = getRelevanceScore(b, query);
+
+        // Sort by relevance first, then by rating
+        if (aRelevance !== bRelevance) {
+          return bRelevance - aRelevance;
+        }
+
+        const aRating = typeof a.avgRating === 'number' ? a.avgRating : 0;
+        const bRating = typeof b.avgRating === 'number' ? b.avgRating : 0;
+        return bRating - aRating;
+      });
+    }
+
+    return results;
   }
 
   /**

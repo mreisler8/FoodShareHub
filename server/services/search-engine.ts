@@ -328,8 +328,22 @@ export class SearchEngineService {
         });
       });
 
-      // Sort by relevance and return
-      return results.sort((a, b) => b.relevanceScore - a.relevanceScore);
+      // Enhanced sorting: relevance first, then rating
+      return results.sort((a, b) => {
+        // Primary sort by relevance score
+        if (a.relevanceScore !== b.relevanceScore) {
+          return b.relevanceScore - a.relevanceScore;
+        }
+        
+        // Secondary sort by rating for restaurants
+        if (a.type === 'restaurant' && b.type === 'restaurant') {
+          const aRating = a.metadata?.rating || a.metadata?.avgRating || 0;
+          const bRating = b.metadata?.rating || b.metadata?.avgRating || 0;
+          return bRating - aRating;
+        }
+        
+        return 0;
+      });
 
     } catch (error) {
       console.error('Typesense search error:', error);
@@ -415,19 +429,47 @@ export class SearchEngineService {
       const { restaurants, users, restaurantLists, posts } = await import('../../shared/schema');
       const { eq, or, ilike, sql, desc, and } = await import('drizzle-orm');
 
-      // Search restaurants
-      const restaurantResults = await db.select()
-        .from(restaurants)
-        .where(
-          or(
-            ilike(restaurants.name, `%${query}%`),
-            ilike(restaurants.location, `%${query}%`),
-            ilike(restaurants.category, `%${query}%`),
-            ilike(restaurants.cuisine, `%${query}%`),
-            ilike(restaurants.address, `%${query}%`)
-          )
+      // Enhanced restaurant search with relevance scoring
+      const restaurantResults = await db.select({
+        id: restaurants.id,
+        name: restaurants.name,
+        location: restaurants.location,
+        category: restaurants.category,
+        cuisine: restaurants.cuisine,
+        address: restaurants.address,
+        priceRange: restaurants.priceRange,
+        imageUrl: restaurants.imageUrl,
+        city: restaurants.city,
+        state: restaurants.state,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
+        googlePlaceId: restaurants.googlePlaceId,
+        avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
+        relevanceScore: sql<number>`
+          CASE 
+            WHEN LOWER(${restaurants.name}) = LOWER(${query}) THEN 100
+            WHEN LOWER(${restaurants.name}) LIKE LOWER(${query + '%'}) THEN 90
+            WHEN LOWER(${restaurants.name}) LIKE LOWER(${'%' + query + '%'}) THEN 80
+            WHEN LOWER(${restaurants.category}) LIKE LOWER(${'%' + query + '%'}) THEN 70
+            WHEN LOWER(${restaurants.cuisine}) LIKE LOWER(${'%' + query + '%'}) THEN 70
+            ELSE 60
+          END
+        `.as('relevanceScore'),
+      })
+      .from(restaurants)
+      .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
+      .where(
+        or(
+          ilike(restaurants.name, `%${query}%`),
+          ilike(restaurants.location, `%${query}%`),
+          ilike(restaurants.category, `%${query}%`),
+          ilike(restaurants.cuisine, `%${query}%`),
+          ilike(restaurants.address, `%${query}%`)
         )
-        .limit(10);
+      )
+      .groupBy(restaurants.id)
+      .orderBy(desc(sql`relevanceScore`), desc(sql`AVG(${posts.rating})`))
+      .limit(10);
 
       // Search users (if userId provided)
       if (userId) {
@@ -474,13 +516,14 @@ export class SearchEngineService {
         )
         .limit(5);
 
-      // Add restaurant results
+      // Add restaurant results with enhanced relevance scoring
       restaurantResults.forEach(restaurant => {
+        const relevanceScore = restaurant.relevanceScore || this.calculateRelevanceScore(restaurant.name, query);
         results.push({
           id: restaurant.id.toString(),
           name: restaurant.name,
           type: 'restaurant',
-          relevanceScore: 60,
+          relevanceScore: relevanceScore,
           location: {
             city: restaurant.location,
             address: restaurant.address,
@@ -530,6 +573,32 @@ export class SearchEngineService {
 
   private toRadians(degrees: number): number {
     return degrees * (Math.PI / 180);
+  }
+
+  private calculateRelevanceScore(restaurantName: string, query: string): number {
+    const name = restaurantName.toLowerCase();
+    const searchTerm = query.toLowerCase();
+    
+    // Exact match gets highest score
+    if (name === searchTerm) return 100;
+    
+    // Starts with query gets high score
+    if (name.startsWith(searchTerm)) return 90;
+    
+    // Contains query gets medium score
+    if (name.includes(searchTerm)) return 80;
+    
+    // Partial word matches get lower score
+    const nameWords = name.split(/\s+/);
+    const queryWords = searchTerm.split(/\s+/);
+    
+    for (const nameWord of nameWords) {
+      for (const queryWord of queryWords) {
+        if (nameWord.startsWith(queryWord)) return 70;
+      }
+    }
+    
+    return 60; // Default score
   }
 }
 

@@ -136,7 +136,7 @@ router.get('/unified', authenticate, async (req, res) => {
           )
         )
         .groupBy(restaurants.id)
-        .orderBy(desc(sql`relevanceScore`), desc(sql`AVG(${posts.rating})`), desc(sql`COUNT(${posts.id})`))
+        .orderBy(desc(sql`relevanceScore`), desc(sql`AVG(${posts.rating})`))
         .limit(Math.floor(resultLimit * 0.5)),
 
           // Enhanced user search with follow status
@@ -432,7 +432,12 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
     )
   )
   .groupBy(restaurants.id)
-  .orderBy(desc(sql`AVG(${posts.rating})`), desc(sql`COUNT(${posts.id})`))
+  .orderBy(desc(sql`CASE 
+    WHEN LOWER(${restaurants.name}) = LOWER(${searchTerm}) THEN 100
+    WHEN LOWER(${restaurants.name}) LIKE LOWER(${searchTerm + '%'}) THEN 90
+    WHEN LOWER(${restaurants.name}) LIKE LOWER(${'%' + searchTerm + '%'}) THEN 80
+    ELSE 70
+  END`), desc(sql`AVG(${posts.rating})`))
   .limit(limit);
 
   // Enhanced with Google Places if needed (avoid for person name searches)
