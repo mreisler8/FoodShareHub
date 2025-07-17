@@ -1325,6 +1325,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add missing endpoint that's causing 404s
+  app.get("/api/circles/requests/pending", authenticate, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      // Return empty array for now - proper implementation can come later
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching circle requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Mount routers
   app.use("/api/search", searchRouter);
   app.use("/api/search-analytics", searchAnalyticsRouter);
@@ -1334,17 +1346,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const geocodeRouter = await import("./routes/geocode");
   app.use("/api/geocode", geocodeRouter.default);
 
-  // Mount restaurant router
-  // const restaurantRouter = await import("./routes/restaurants");
-  // app.use("/api/restaurants", restaurantRouter.default);
-
   app.use("/api/lists", listsRouter);
   app.use("/api/saved-lists", savedListsRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/list-item-comments", listItemCommentsRouter);
   app.use("/api/follow", followRoutes);
   app.use("/api/follow-requests", followRequestsRouter);
-  // app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
   app.use("/api/circles", circleRequestsRouter);
   app.use("/api/users", usersRouter);
