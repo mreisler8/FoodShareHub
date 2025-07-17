@@ -943,8 +943,7 @@ router.get('/:id/access', authenticate, validateUserId, validateCircleId(), asyn
     const accessCheck = await CircleAccessService.validateCircleAccess(userId, circleId);
 
     const circle = await db
-      .```text
-select({
+      .select({
         id: circles.id,
         name: circles.name,
         isPrivate: circles.isPrivate
@@ -968,7 +967,7 @@ select({
     });
   } catch (error) {
     console.error('Error checking circle access:', error);
-    res.status(500).json.json({ 
+    res.status(500).json({ 
       allowed: false, 
       error: 'Failed to check access permissions' 
     });
