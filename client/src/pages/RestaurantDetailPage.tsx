@@ -214,11 +214,8 @@ export default function RestaurantDetailPage() {
     ? Math.round((restaurant.communityInsights.followersAverageRating / 5) * 100)
     : 0;
 
-  // Get restaurant image URL
-  const heroImageUrl = restaurant.imageUrl || 
-    (restaurant.googlePlaces?.photos?.[0] ? 
-      `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${restaurant.googlePlaces.photos[0].reference}&key=AIzaSyBxuBRddfzY83RF5FsCk6ON2Mzex8jnKPM` : 
-      null);
+  // Get restaurant image URL (removed Google Places photo API due to API access limitations)
+  const heroImageUrl = restaurant.imageUrl || null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -350,23 +347,7 @@ export default function RestaurantDetailPage() {
                       </div>
                     )}
 
-                    {/* Embedded Map */}
-                    {restaurant.address && (
-                      <div className="mt-4">
-                        <p className="font-medium mb-2">Location Map</p>
-                        <div className="h-48 bg-gray-100 rounded-lg overflow-hidden">
-                          <iframe
-                            src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBxuBRddfzY83RF5FsCk6ON2Mzex8jnKPM&q=${encodeURIComponent(restaurant.address)}`}
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            allowFullScreen
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                          />
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                 </CardContent>
               </Card>
