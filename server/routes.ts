@@ -1330,6 +1330,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/location", locationRoutes);
   
+  // Add missing endpoints that are causing 404s
+  app.get("/api/circles/invites/pending", authenticate, async (req, res) => {
+    try {
+      // Return empty array for now - proper implementation can come later
+      res.json([]);
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/follow/requests/pending", authenticate, async (req, res) => {
+    try {
+      // Return empty array for now - proper implementation can come later
+      res.json([]);
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
   // Import and mount geocode routes
   const geocodeRouter = await import("./routes/geocode");
   app.use("/api/geocode", geocodeRouter.default);

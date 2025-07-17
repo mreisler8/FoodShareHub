@@ -82,25 +82,29 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   // Request location on modal open
   useEffect(() => {
     if (open && locationPermission === null) {
-      setLocationPermission('prompt');
       requestLocation();
     }
-  }, [open]);
+  }, [open, locationPermission]);
 
   const requestLocation = async () => {
     try {
-      setLocationPermission('prompt'); // Set loading state
+      setLocationPermission('prompt');
 
-      // Use the LocationService instance
+      // Use the LocationService instance with better error handling
       const locationService = LocationService.getInstance();
       const location = await locationService.getCurrentLocation();
 
-      setUserLocation(location);
-      setLocationPermission('granted');
-      console.log('Location obtained:', location);
+      if (location && location.lat && location.lng) {
+        setUserLocation(location);
+        setLocationPermission('granted');
+        console.log('Location obtained:', location);
+      } else {
+        throw new Error('Invalid location data received');
+      }
     } catch (error) {
       console.error('Location access denied:', error);
       setLocationPermission('denied');
+      // Continue without location - this shouldn't break search
     }
   };
 
