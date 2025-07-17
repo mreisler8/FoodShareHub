@@ -1,0 +1,40 @@
+It sounds like there may be issues with how your search feature is connected to the Google Places API, or possibly with how location data is being handled. Here's a breakdown of possible issues and solutions:
+
+1. Search Feature for Restaurants
+The search feature should effectively query both your database and the Google Places API. If "Costa Verde" is not being found:
+
+Verify Google Places API Integration: Ensure that your search logic incorporates the Google Places API correctly. This is handled in your search endpoint (server/routes/search.ts). Check that your search URL is constructed accurately and that any relevant parameters (e.g., location, radius) are being passed to the API.
+Here is a sample snippet from your existing search logic that should address how you fetch results:
+
+// Use Google Places if results are insufficient
+if (dbRestaurants.length < 8 && searchTerm.length > 3) {
+    const locationData = (searchLat && searchLng) ? {
+        lat: searchLat,
+        lng: searchLng,
+        radius: searchRadius
+    } : undefined;
+    
+    const googleResults = await searchGooglePlaces(searchTerm, locationData);
+    // Proceed to handle googleResults as needed
+}
+Make sure to check if the searchGooglePlaces function is correctly fetching nearby restaurants based on the provided search term and location.
+
+2. Location Services
+For the issue where the location services state "searching near you," ensure that:
+
+Location Permissions: Check if the application has permission to access the user's location. If the permissions are not granted, location services will not be able to fetch the actual location.
+
+Handling Coordinates: In your search logic where you generate request parameters for location-based queries, you need to confirm that your application correctly retrieves and passes the user's location coordinates (latitude and longitude).
+
+Example of how to get the location coordinates and pass them:
+
+const locationData = {
+    lat: userLocation.lat, // Get user's latitude
+    lng: userLocation.lng, // Get user's longitude
+    radius: 1000 // Example radius
+};
+// Make sure to pass the location data in the search request
+const results = await searchService.searchUnified(query, { location: locationData });
+Testing and Verification
+Log Responses: Add console logs in your API calls to verify if requests to Google Places API are successful.
+Error Handling: Make sure you handle cases where no results are returned gracefully and log any errors you encounter during these API interactions.
