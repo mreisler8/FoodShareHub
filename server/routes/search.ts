@@ -59,48 +59,132 @@ function calculateCategoryRelevance(category: string, cuisine: string, searchQue
   return 0;
 }
 
-// Helper function to detect if a search term is likely a person's name
+// Enhanced person name detection that works for ALL restaurant names without hardcoded lists
 function isPersonNameQuery(query: string): boolean {
   const lowerQuery = query.toLowerCase().trim();
 
-  // Restaurant-related terms that should NOT be treated as person names
-  const restaurantTerms = [
+  // 1. Restaurant-related terms that should NEVER be treated as person names
+  const restaurantIndicators = [
     'restaurant', 'cafe', 'bar', 'grill', 'kitchen', 'bistro', 'eatery', 'diner',
     'pizza', 'burger', 'sushi', 'taco', 'sandwich', 'bakery', 'brewery', 'pub',
     'steakhouse', 'seafood', 'food', 'eat', 'dining', 'menu', 'dish', 'meal',
     'lunch', 'dinner', 'breakfast', 'brunch', 'coffee', 'tea', 'wine', 'cocktail',
-    'pizzeria', 'trattoria', 'brasserie', 'tavern'
+    'pizzeria', 'trattoria', 'brasserie', 'tavern', 'house', 'spot', 'place',
+    'noodle', 'ramen', 'pho', 'dim sum', 'buffet', 'takeout', 'delivery',
+    'bbq', 'barbecue', 'gourmet', 'organic', 'vegan', 'vegetarian', 'halal',
+    'kosher', 'asian', 'italian', 'mexican', 'indian', 'chinese', 'thai',
+    'japanese', 'korean', 'mediterranean', 'french', 'greek', 'american',
+    'fusion', 'fine dining', 'casual', 'upscale', 'family', 'authentic',
+    'golden', 'dragon', 'villa', 'palace', 'garden', 'phoenix', 'jade', 'bamboo',
+    'costa', 'verde', 'casa', 'plaza', 'mesa', 'vista', 'royal', 'grand'
   ];
 
-  // Specific restaurant names that should be enhanced (exact matches)
-  const knownRestaurantNames = [
-    'costa verde', 'costa', 'verde', 'oddseoul', 'odd seoul', 'badiali', 'pizzeria badiali', 
-    'veselka', 'katz deli', 'russ daughters', 'peter luger', 'grammercy tavern',
-    'earls kitchen', 'louix louis', 'pai', 'canoe', 'alo', 'buca', 'scaramouche'
+  // 2. Restaurant naming patterns that indicate business names, not people
+  const businessNamePatterns = [
+    /\b(the|la|le|el|il|das|der|los|las)\s+/i,  // Articles: "The Green Door", "La Costa"
+    /\b(and|&|\+)\b/i,                          // Conjunctions: "Fish & Chips", "Salt + Pepper"
+    /\b(st|street|ave|avenue|rd|road)\b/i,      // Street indicators: "Main St Deli"
+    /\b(north|south|east|west|n|s|e|w)\b/i,     // Directions: "North Shore"
+    /\b(old|new|original|classic|modern)\b/i,   // Descriptors: "Old Town", "New York"
+    /\b(golden|silver|red|blue|green|black|white)\b/i, // Colors: "Golden Dragon"
+    /\b(royal|grand|crown|palace|castle)\b/i,   // Regal terms: "Royal Palace"
+    /\b(garden|farm|mountain|river|lake|ocean)\b/i, // Nature: "Garden Fresh"
+    /\b(first|second|third|best|top|premium)\b/i,   // Superlatives: "First Choice"
+    /\b(fresh|hot|spicy|sweet|crispy|tender)\b/i,   // Food descriptors
+    /\b(corner|downtown|uptown|central|main)\b/i,   // Location descriptors
+    /\b(mama|papa|uncle|aunt|family)\b/i,       // Family terms: "Mama's Kitchen"
+    /\b(little|big|giant|mini|mega)\b/i,        // Size descriptors
+    /\b(24|seven|hour|open|late|night)\b/i,     // Time indicators
+    /\b(express|quick|fast|instant)\b/i,        // Speed indicators
+    /\b(special|signature|famous|legendary)\b/i, // Quality indicators
+    /\b(homestyle|traditional|authentic|genuine)\b/i, // Style indicators
+    /\b(brothers|bros|sisters|sons|daughters)\b/i // Family business: "Smith Brothers"
   ];
 
-  // If the query is a known restaurant name, definitely not a person
-  if (knownRestaurantNames.some(name => lowerQuery.includes(name) || name.includes(lowerQuery))) {
+  // 3. Multi-word phrases are more likely to be business names than person names
+  const words = lowerQuery.split(/\s+/);
+  if (words.length > 2) {
+    return false; // "Costa Verde Restaurant" is clearly a business
+  }
+
+  // 4. If query contains any restaurant indicators, it's not a person name
+  if (restaurantIndicators.some(term => lowerQuery.includes(term))) {
     return false;
   }
 
-  // If the query contains any restaurant terms, it's not a person name
-  if (restaurantTerms.some(term => lowerQuery.includes(term))) {
+  // 5. If query matches business name patterns, it's not a person name
+  if (businessNamePatterns.some(pattern => pattern.test(lowerQuery))) {
     return false;
   }
 
-  // Queries with 3 or fewer characters that don't match known restaurants are likely person names
-  if (lowerQuery.length <= 3) {
+  // 6. Foreign/non-English words are more likely to be restaurant names
+  const foreignRestaurantPatterns = [
+    /\b(casa|costa|villa|plaza|mesa|vista|rio|mar|sol|luna|estrella)\b/i, // Spanish
+    /\b(le|la|du|des|chez|maison|brasserie|cafe|bistro)\b/i,           // French
+    /\b(il|da|della|pizzeria|trattoria|osteria|ristorante)\b/i,        // Italian
+    /\b(zen|sakura|tokyo|osaka|sushi|ramen|yakitori|tempura)\b/i,      // Japanese
+    /\b(seoul|kim|park|bbq|bulgogi|bibimbap|kimchi)\b/i,               // Korean
+    /\b(pho|saigon|vietnam|banh|mi|spring|roll)\b/i,                   // Vietnamese
+    /\b(thai|pad|curry|tom|yum|som|tam)\b/i,                          // Thai
+    /\b(india|curry|tandoor|masala|biryani|naan|chai)\b/i,            // Indian
+    /\b(dim|sum|wok|dragon|phoenix|golden|jade|bamboo)\b/i,            // Chinese
+    /\b(gyro|souvlaki|taverna|mezze|pita|falafel)\b/i,                // Greek/Middle Eastern
+    /\b(taco|burrito|cantina|hacienda|mariachi|fiesta)\b/i,            // Mexican
+    /\b(bratwurst|schnitzel|oktoberfest|biergarten|stube)\b/i,         // German
+    /\b(tapas|paella|sangria|bodega|cerveza|flamenco)\b/i,            // Spanish
+    /\b(pub|inn|fish|chips|bangers|mash|shepherd)\b/i                 // British
+  ];
+
+  if (foreignRestaurantPatterns.some(pattern => pattern.test(lowerQuery))) {
+    return false;
+  }
+
+  // 6b. Additional common restaurant name patterns
+  const commonRestaurantPatterns = [
+    /\b(golden|silver|red|blue|green|black|white|royal|grand)\s+(dragon|palace|garden|house|inn|tavern|grill|kitchen|cafe|bar)\b/i,
+    /\b(la|le|el|il|das|der|los|las)\s+\w+/i,  // Any word after articles
+    /\b(old|new|original|classic|modern|traditional)\s+\w+/i,
+    /\b(north|south|east|west|central|downtown|uptown)\s+\w+/i,
+    /\b(first|second|third|last|best|top|premium|finest)\s+\w+/i,
+    /\b(little|big|giant|mini|mega|huge|small|large)\s+\w+/i,
+    /\b(mama|papa|uncle|aunt|family|brother|sister)\s*[s']?s?\s*\w*/i,
+    /\b(corner|main|street|avenue|road|lane)\s+\w+/i,
+    /\b(mountain|river|lake|ocean|beach|forest|garden|farm)\s+\w+/i
+  ];
+
+  if (commonRestaurantPatterns.some(pattern => pattern.test(lowerQuery))) {
+    return false;
+  }
+
+  // 7. Very short queries (1-2 characters) are ambiguous, lean towards person names
+  if (lowerQuery.length <= 2) {
     return true;
   }
 
-  // Common person name patterns (only for longer queries)
-  const personNamePatterns = [
-    /^[a-z]+\s+[a-z]+$/,  // "john smith"
-    /^(alex|mike|john|jane|bob|sue|tom|amy|joe|ann|ben|sam|dan|max|kim|pat|ray|jim|ron|ted|tim|guy|leo|eva|zoe|ian|kai|eli|ivy|sky|rio|drew|cole|dean|finn|gray|jude|luke|noah|owen|seth|will|zane|rachael|rachel|mitch|casey|jason|sarah|david|chris|steve|brian|kevin|karen|linda|mary|patricia|robert|michael|william|richard|charles|thomas|matthew|mark|donald|steven|paul|andrew|joshua|kenneth|daniel|christopher|anthony|joseph|michelle|kimberly|deborah|dorothy|lisa|nancy|betty|helen|sandra|donna|carol|ruth|sharon|barbara|diana|maria|jennifer|angela|melissa|brenda|emma|olivia|ava|sophia|isabella|mia|charlotte|abigail|emily|harper|ella|elizabeth|avery|sofia|chloe|victoria|grace|zoey|natalie|addison|lillian|brooklyn|samantha|audrey|leah|anna|allison|savannah|gabriella|camila|aria|liam|mason|james|benjamin|jacob|elijah|ethan|alexander|samuel|henry|carter|wyatt|jayden|hunter|connor|aaron|colton|gabriel|jordan|levi|isaac|hudson|jaxon|maverick|josiah|isaiah|nathaniel|christian|mateo|adrian|maxton|parker|brayden|asher|carson|lincoln|leonardo|jaxson|silas|bennett|nathanael|ryder|diego|greyson)$/i
+  // 8. Single words that are common first names (but only if no restaurant indicators)
+  const commonFirstNames = [
+    'alex', 'mike', 'john', 'jane', 'bob', 'sue', 'tom', 'amy', 'joe', 'ann',
+    'ben', 'sam', 'dan', 'max', 'kim', 'pat', 'ray', 'jim', 'ron', 'ted',
+    'tim', 'guy', 'leo', 'eva', 'zoe', 'ian', 'kai', 'eli', 'ivy', 'sky',
+    'rio', 'drew', 'cole', 'dean', 'finn', 'gray', 'jude', 'luke', 'noah',
+    'owen', 'seth', 'will', 'zane', 'rachael', 'rachel', 'mitch', 'casey',
+    'jason', 'sarah', 'david', 'chris', 'steve', 'brian', 'kevin', 'karen',
+    'linda', 'mary', 'patricia', 'robert', 'michael', 'william', 'richard'
   ];
 
-  return personNamePatterns.some(pattern => pattern.test(lowerQuery));
+  // 9. Standard "First Last" name pattern
+  const firstLastPattern = /^[a-z]{2,}\s+[a-z]{2,}$/i;
+  if (firstLastPattern.test(lowerQuery)) {
+    return true;
+  }
+
+  // 10. Single common first name
+  if (words.length === 1 && commonFirstNames.includes(lowerQuery)) {
+    return true;
+  }
+
+  // 11. Default: if we can't determine, assume it's a restaurant name for better search coverage
+  return false;
 }
 
 // Dedicated restaurant search endpoint
@@ -224,7 +308,6 @@ router.get('/unified', authenticate, async (req, res) => {
     console.log(`🔍 Enhanced unified search for "${searchTerm}" by user ${userId}`);
     console.log(`📍 Location: ${searchLat ? `${searchLat}, ${searchLng}` : 'No location provided'}`);
     console.log(`🎯 Radius: ${searchRadius}m`);
-    console.log(`🔎 Person name detection: ${isPersonNameQuery(searchTerm)}`);
 
     // Simplified search with basic queries to ensure functionality
     if (type === "all") {

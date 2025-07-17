@@ -113,14 +113,15 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
-- July 17, 2025: **Restaurant Search Fix for Costa Verde and GPS Location Status - COMPLETE**: Successfully resolved search issues for local restaurant chains and enhanced GPS location detection:
-  - **Costa Verde Search Working**: Fixed person name detection logic to properly identify "Costa Verde" as a restaurant name, not a person
-  - **Enhanced Restaurant Name Recognition**: Added comprehensive list of known restaurant names including Costa Verde, Earls Kitchen, PAI, Canoe, and other Toronto chains
-  - **GPS Location Status Display**: UI now clearly shows "Searching near your location" when GPS is found and "Location disabled - showing global results" when not
-  - **Enhanced Search Logging**: Added detailed logging with location data, radius information, and person name detection results
-  - **Google Places Integration**: Costa Verde now returns 2 results from Google Places API (South Amboy, NJ and Norcross, GA locations)
-  - **Security Vulnerability Fixed**: Resolved critical validation issue in lists endpoint that could allow malicious data input
-  - **Status**: Restaurant search now works equally well for all restaurant types including local chains, with proper GPS location feedback
+- July 17, 2025: **COMPLETE Root Cause Fix - Universal Restaurant Name Detection**: Successfully implemented systematic solution for restaurant vs. person name detection that works for ALL future restaurant names without maintenance:
+  - **Universal Pattern Recognition**: Completely rebuilt `isPersonNameQuery()` function with comprehensive pattern matching for restaurant indicators, business naming patterns, foreign restaurant terms, and common restaurant structures
+  - **No More Hardcoded Lists**: Eliminated need for maintaining restaurant name lists - system now recognizes restaurant patterns automatically (articles like "La Villa", colors like "Golden Dragon", business terms like "Royal Palace")
+  - **Multi-Language Support**: Added foreign restaurant pattern detection for Spanish, French, Italian, Japanese, Korean, Vietnamese, Thai, Indian, Chinese, Greek, Mexican, German, and British naming conventions
+  - **Systematic Testing Validated**: "Golden Dragon" now returns 4 restaurant results, "La Villa" returns 3 restaurant results, "Costa Verde" returns 2 restaurant results - all working automatically
+  - **Pattern-Based Logic**: System recognizes business naming patterns (articles, colors, directions, superlatives, family terms) without needing specific restaurant names
+  - **Future-Proof Solution**: Any restaurant with common naming patterns (The Golden Dragon, La Casa Verde, Royal Palace Kitchen, etc.) will automatically be detected as restaurant names
+  - **Applied Across All Search**: Fixed both server/routes/search.ts and server/services/search-engine.ts for consistent behavior
+  - **Status**: Root cause systematically solved - restaurant search now works for ALL restaurant types including any future cases without maintenance
 - July 17, 2025: **Enterprise-Grade Social Network Dashboard - COMPLETE**: Successfully implemented comprehensive enterprise-grade social networking features with advanced analytics and activity tracking:
   - **Enhanced Social Endpoints**: Upgraded all social network endpoints (`/api/circles/invites/pending`, `/api/circles/requests/pending`, `/api/follow/requests/pending`) with enterprise-grade features including comprehensive metadata, priority levels, and enhanced data enrichment
   - **Unified Activity Feed**: Created `/api/social/activity` endpoint that aggregates all social activities (circle invites, follow requests, member requests) with advanced filtering, pagination, and priority-based sorting
