@@ -54,6 +54,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     throw error;
   }
 
+  // Add missing endpoints that are causing 404s - MUST be before router mounting
+  app.get("/api/circles/invites/pending", authenticate, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      console.log(`[ENDPOINT] Fetching pending circle invites for user ${userId}`);
+      // Return empty array for now - proper implementation can come later
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching circle invites:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/follow/requests/pending", authenticate, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      console.log(`[ENDPOINT] Fetching pending follow requests for user ${userId}`);
+      // Return empty array for now - proper implementation can come later
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching follow requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/circles/requests/pending", authenticate, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      console.log(`[ENDPOINT] Fetching pending circle requests for user ${userId}`);
+      // Return empty array for now - proper implementation can come later
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching circle requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Error handling middleware
   const handleZodError = (err: any, res: Response) => {
     if (err instanceof ZodError) {
@@ -1325,42 +1362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add missing endpoints that are causing 404s
-  app.get("/api/circles/invites/pending", authenticate, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      console.log(`Fetching pending circle invites for user ${userId}`);
-      // Return empty array for now - proper implementation can come later
-      res.json([]);
-    } catch (error) {
-      console.error('Error fetching circle invites:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
-
-  app.get("/api/follow/requests/pending", authenticate, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      console.log(`Fetching pending follow requests for user ${userId}`);
-      // Return empty array for now - proper implementation can come later
-      res.json([]);
-    } catch (error) {
-      console.error('Error fetching follow requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
-
-  app.get("/api/circles/requests/pending", authenticate, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      console.log(`Fetching pending circle requests for user ${userId}`);
-      // Return empty array for now - proper implementation can come later
-      res.json([]);
-    } catch (error) {
-      console.error('Error fetching circle requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+  
 
   // Mount routers
   app.use("/api/search", searchRouter);
