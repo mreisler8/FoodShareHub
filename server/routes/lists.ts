@@ -282,6 +282,10 @@ router.get('/', authenticate, async (req, res) => {
 router.post("/", authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
+    
+    // Validate request body using schema
+    const validatedData = createListSchema.parse(req.body);
+    
     const { 
       name, 
       description, 
@@ -291,7 +295,7 @@ router.post("/", authenticate, async (req, res) => {
       circleId, 
       shareWithCircle, 
       makePublic 
-    } = req.body;
+    } = validatedData;
 
     // Enterprise validation
     if (!name || name.trim().length === 0) {
@@ -382,8 +386,8 @@ router.post("/", authenticate, async (req, res) => {
       }
 
       // Handle items array - store each item in restaurant_list_items table
-      if (data.items && data.items.length > 0) {
-        const itemPromises = data.items.map(async (item, index) => {
+      if (validatedData.items && validatedData.items.length > 0) {
+        const itemPromises = validatedData.items.map(async (item, index) => {
           let restaurantId = item.restaurantId;
 
           // If no restaurantId provided, create a placeholder restaurant
@@ -404,7 +408,7 @@ router.post("/", authenticate, async (req, res) => {
           return db
             .insert(restaurantListItems)
             .values({
-              listId: list.id,
+              listId: newList[0].id,
               restaurantId: restaurantId,
               name: item.name,
               notes: item.notes || null,

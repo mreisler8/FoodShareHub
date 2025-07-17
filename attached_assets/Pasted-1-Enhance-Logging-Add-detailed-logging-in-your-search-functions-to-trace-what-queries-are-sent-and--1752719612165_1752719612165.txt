@@ -1,0 +1,56 @@
+1. Enhance Logging
+Add detailed logging in your search functions to trace what queries are sent and what responses are received. For instance, modify searchUnified in your searchService.ts to include more console logs:
+
+async searchUnified(query: string, options: SearchOptions = {}): Promise<UnifiedSearchResults> {
+  console.log("Searching for:", query);
+  
+  // ... existing code ...
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    signal: AbortSignal.timeout(8000),
+  });
+  
+  console.log("Response status:", response.status);
+  
+  if (!response.ok) {
+    console.error("Search failed with status:", response.status);
+    // ... existing error handling ...
+  }
+  // ... existing code ...
+}
+2. Confirm API Endpoint Configuration
+Make sure your API key is set up correctly and is being used in your API calls. You can add checks for your environment configuration:
+
+if (!process.env.GOOGLE_MAPS_API_KEY) {
+  console.warn("GOOGLE_MAPS_API_KEY is not set. Check your environment variables.");
+}
+3. Validate Search Radius
+Ensure your search radius is correctly set in searchService.ts, confirming it is at least 25 km:
+
+// Check default radius
+const searchRadius = options.radius || 25000; // 25 km
+console.log("Using search radius:", searchRadius);
+4. Frontend Verification
+Check that your UI components are receiving and displaying the correct data. In EmptyFeed.tsx, ensure that the search results are correctly mapped:
+
+{results.restaurants.map((restaurant) => (
+  <div key={restaurant.id}>{restaurant.name}</div>
+))}
+5. Test Using Postman
+To isolate backend issues, use Postman or similar tools to test the /api/search/unified?q=Costa Verde endpoint to see what data is being returned.
+
+6. Run All Tests
+Utilize your existing test suite to execute unit tests and integration tests. Focus on ensuring your restaurant search feature passes:
+
+npm test
+7. Deployment Verification
+When you deploy, ensure you're using the correct settings to avoid the localhost issue in production. Use 0.0.0.0 as needed in your server configurations to handle requests properly.
+
+8. Review Your Environment
+Ensure all environment variables are configured correctly in Replit's environment settings.
+
+By following these steps, you should be able to diagnose and resolve the issues with finding "Costa Verde" in your application effectively!
+

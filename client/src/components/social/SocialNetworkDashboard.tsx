@@ -215,7 +215,7 @@ export function SocialNetworkDashboard() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.followers + metrics.following}</div>
+                <div className="text-2xl font-bold">{(metrics.followers || 0) + (metrics.following || 0)}</div>
                 <p className="text-xs text-muted-foreground">
                   {metrics.followers} followers • {metrics.following} following
                 </p>
@@ -228,9 +228,9 @@ export function SocialNetworkDashboard() {
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.circles}</div>
+                <div className="text-2xl font-bold">{metrics.circles || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {metrics.ownedCircles} owned • {metrics.circles - metrics.ownedCircles} member
+                  {metrics.ownedCircles || 0} owned • {(metrics.circles || 0) - (metrics.ownedCircles || 0)} member
                 </p>
               </CardContent>
             </Card>
@@ -242,10 +242,10 @@ export function SocialNetworkDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {metrics.pendingFollowRequests + metrics.pendingCircleInvites}
+                  {(metrics.pendingFollowRequests || 0) + (metrics.pendingCircleInvites || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {metrics.pendingFollowRequests} follow requests • {metrics.pendingCircleInvites} invites
+                  {metrics.pendingFollowRequests || 0} follow requests • {metrics.pendingCircleInvites || 0} invites
                 </p>
               </CardContent>
             </Card>
@@ -326,11 +326,11 @@ export function SocialNetworkDashboard() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Total Followers</span>
-                    <span className="font-medium">{metrics.followers}</span>
+                    <span className="font-medium">{metrics.followers || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Total Following</span>
-                    <span className="font-medium">{metrics.following}</span>
+                    <span className="font-medium">{metrics.following || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Active Circles</span>

@@ -74,17 +74,13 @@ function isPersonNameQuery(query: string): boolean {
 
   // Specific restaurant names that should be enhanced (exact matches)
   const knownRestaurantNames = [
-    'badiali', 'pizzeria badiali', 'oddseoul', 'odd seoul', 'veselka', 'katz deli',
-    'russ daughters', 'peter luger', 'grammercy tavern', 'rikki tikki', 'khazana',
-    'pai', 'gusto', 'earls', 'cactus club', 'milestones', 'keg', 'joey', 'moxies'
+    'costa verde', 'costa', 'verde', 'oddseoul', 'odd seoul', 'badiali', 'pizzeria badiali', 
+    'veselka', 'katz deli', 'russ daughters', 'peter luger', 'grammercy tavern',
+    'earls kitchen', 'louix louis', 'pai', 'canoe', 'alo', 'buca', 'scaramouche'
   ];
 
-  // If the query exactly matches a known restaurant name, definitely not a person
-  if (knownRestaurantNames.some(name => 
-    lowerQuery === name || 
-    lowerQuery.includes(name) || 
-    name.includes(lowerQuery)
-  )) {
+  // If the query is a known restaurant name, definitely not a person
+  if (knownRestaurantNames.some(name => lowerQuery.includes(name) || name.includes(lowerQuery))) {
     return false;
   }
 
@@ -225,7 +221,10 @@ router.get('/unified', authenticate, async (req, res) => {
     const searchRadius = parseInt(radius as string);
     const resultLimit = Math.min(parseInt(limit as string), 50);
 
-    console.log(`Enhanced unified search for "${searchTerm}" by user ${userId}`);
+    console.log(`🔍 Enhanced unified search for "${searchTerm}" by user ${userId}`);
+    console.log(`📍 Location: ${searchLat ? `${searchLat}, ${searchLng}` : 'No location provided'}`);
+    console.log(`🎯 Radius: ${searchRadius}m`);
+    console.log(`🔎 Person name detection: ${isPersonNameQuery(searchTerm)}`);
 
     // Simplified search with basic queries to ensure functionality
     if (type === "all") {

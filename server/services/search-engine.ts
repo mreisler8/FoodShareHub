@@ -30,8 +30,9 @@ function isPersonNameQuery(query: string): boolean {
 
   // Specific restaurant names that should be enhanced
   const knownRestaurantNames = [
-    'oddseoul', 'odd seoul', 'badiali', 'pizzeria badiali', 'veselka', 'katz deli',
-    'russ daughters', 'peter luger', 'grammercy tavern'
+    'costa verde', 'costa', 'verde', 'oddseoul', 'odd seoul', 'badiali', 'pizzeria badiali', 
+    'veselka', 'katz deli', 'russ daughters', 'peter luger', 'grammercy tavern',
+    'earls kitchen', 'louix louis', 'pai', 'canoe', 'alo', 'buca', 'scaramouche'
   ];
 
   // If the query is a known restaurant name, definitely not a person
