@@ -8,24 +8,14 @@ import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { SearchService } from '@/services/searchService';
+import { Restaurant } from '@/types/restaurant';
 
 interface RestaurantSearchProps {
-  onSelect: (restaurant: any) => void;
+  onSelect: (restaurant: Restaurant) => void;
   placeholder?: string;
   className?: string;
   showRecentSearches?: boolean;
   initialValue?: string;
-}
-
-interface Restaurant {
-  id: string;
-  name: string;
-  location: string;
-  cuisine?: string;
-  rating?: number;
-  source: 'database' | 'google';
-  priceLevel?: number;
-  isOpen?: boolean;
 }
 
 export function RestaurantSearchComponent({

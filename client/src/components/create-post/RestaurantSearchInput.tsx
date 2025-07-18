@@ -1,9 +1,9 @@
 import React from 'react';
 import { RestaurantSearchComponent } from '@/components/shared/RestaurantSearchComponent';
-import { SearchResult } from '@/services/searchService';
+import { Restaurant } from '@/types/restaurant';
 
 interface RestaurantSearchInputProps {
-  onSelect: (restaurant: any) => void;
+  onSelect: (restaurant: Restaurant) => void;
   placeholder?: string;
   initialValue?: string;
 }

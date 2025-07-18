@@ -10,6 +10,7 @@ import { RestaurantSearchComponent } from '@/components/shared/RestaurantSearchC
 import { postService } from '@/services/postService';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Restaurant } from '@/types/restaurant';
 
 interface CreatePostModalProps {
   open: boolean;
@@ -19,7 +20,7 @@ interface CreatePostModalProps {
 
 export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModalProps) {
   const [formData, setFormData] = useState({
-    restaurant: null,
+    restaurant: null as Restaurant | null,
     rating: 0,
     dishName: '',
     category: '',
@@ -101,13 +102,13 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
 
   const resetForm = () => {
     setFormData({
-      restaurant: null,
+      restaurant: null as Restaurant | null,
       rating: 0,
       dishName: '',
       category: '',
       description: '',
-      media: null,
-      tasteNotes: []
+      media: null as File | null,
+      tasteNotes: [] as string[]
     });
   };
 
