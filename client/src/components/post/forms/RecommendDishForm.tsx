@@ -18,6 +18,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
 import { MediaUploader } from '@/components/MediaUploader';
+import { RestaurantSearchInput } from '@/components/search/RestaurantSearchInput';
 
 interface Restaurant {
   id: string;
@@ -54,7 +55,6 @@ export function RecommendDishForm({
   initialData = {},
   onStateChange
 }: RecommendDishFormProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [dishName, setDishName] = useState('');
   const [dishCategory, setDishCategory] = useState('');
@@ -64,48 +64,14 @@ export function RecommendDishForm({
   const [whyRecommend, setWhyRecommend] = useState('');
   const [media, setMedia] = useState<any[]>([]);
   const [imageTags, setImageTags] = useState<string[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [visibilitySettings, setVisibilitySettings] = useState({
     public: true,
     followers: false,
     circleIds: [] as number[]
   });
 
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Restaurant search query - using standardized homepage search infrastructure
-  const { data: searchResults = [], isLoading: isSearching } = useQuery({
-    queryKey: ['/api/search/unified', debouncedQuery],
-    enabled: debouncedQuery.length >= 2,
-    queryFn: async () => {
-      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
-      const data = await response.json();
-      
-      // Standardize restaurant results to match PostModal interface
-      const restaurants = (data.restaurants || []).map((restaurant: any) => ({
-        id: restaurant.id?.toString() || '',
-        name: restaurant.name || '',
-        location: restaurant.location || restaurant.address || '',
-        cuisine: restaurant.cuisine || restaurant.category || '',
-        rating: restaurant.avgRating || 0,
-        source: restaurant.source || 'database'
-      }));
-      
-      return restaurants;
-    },
-  });
-
   const handleRestaurantSelect = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
-    setSearchQuery(restaurant.name);
-    setShowSearchResults(false);
   };
 
   const handleMediaChange = (files: any[]) => {
@@ -201,69 +167,14 @@ export function RecommendDishForm({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Restaurant Search */}
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="restaurant">Restaurant *</Label>
-          <div className="relative mt-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              id="restaurant"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSearchResults(true);
-              }}
-              onFocus={() => setShowSearchResults(true)}
-              placeholder="Search for a restaurant..."
-              className="pl-10"
-            />
-            {selectedRestaurant && (
-              <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-500" />
-            )}
-          </div>
-        </div>
-
-        {/* Search Results */}
-        {showSearchResults && searchQuery && (
-          <Card className="p-4 max-h-60 overflow-y-auto">
-            {isSearching ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Searching...
-              </div>
-            ) : searchResults.length > 0 ? (
-              <div className="space-y-2">
-                {searchResults.slice(0, 5).map((restaurant: Restaurant) => (
-                  <div
-                    key={restaurant.id}
-                    className="flex items-center justify-between p-3 hover:bg-muted rounded-lg cursor-pointer"
-                    onClick={() => handleRestaurantSelect(restaurant)}
-                  >
-                    <div>
-                      <div className="font-medium">{restaurant.name}</div>
-                      {restaurant.location && (
-                        <div className="text-sm text-muted-foreground flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {restaurant.location}
-                        </div>
-                      )}
-                    </div>
-                    {restaurant.rating && (
-                      <div className="flex items-center gap-1 text-sm">
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        {restaurant.rating}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                No restaurants found
-              </div>
-            )}
-          </Card>
-        )}
+      <div className="space-y-2">
+        <Label htmlFor="restaurant">Restaurant *</Label>
+        <RestaurantSearchInput
+          onSelect={handleRestaurantSelect}
+          selectedRestaurant={selectedRestaurant}
+          placeholder="Search for a restaurant..."
+          required
+        />
       </div>
 
       {/* Dish Details */}

@@ -1,0 +1,221 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useDebounce } from '@/hooks/useDebounce';
+import { Search, MapPin, Star, Loader2, Navigation, UtensilsCrossed } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { LocationService, type LocationData } from '@/services/locationService';
+
+interface Restaurant {
+  id: string;
+  name: string;
+  location?: string;
+  cuisine?: string;
+  avgRating?: number;
+  source?: string;
+}
+
+interface RestaurantSearchInputProps {
+  onSelect: (restaurant: Restaurant) => void;
+  selectedRestaurant: Restaurant | null;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+}
+
+export function RestaurantSearchInput({
+  onSelect,
+  selectedRestaurant,
+  placeholder = "Search for a restaurant...",
+  required = false,
+  className = ""
+}: RestaurantSearchInputProps) {
+  const [searchQuery, setSearchQuery] = useState(selectedRestaurant?.name || '');
+  const [showResults, setShowResults] = useState(false);
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
+  
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debouncedQuery = useDebounce(searchQuery, 300);
+
+  // Location service integration - same as homepage
+  useEffect(() => {
+    const initializeLocation = async () => {
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        setLocationPermission(permission.state);
+        
+        if (permission.state === 'granted') {
+          const location = await LocationService.getCurrentLocation();
+          setUserLocation(location);
+          console.log('Location obtained:', location);
+        }
+      } catch (error) {
+        console.warn('Location service not available:', error);
+        setLocationPermission('denied');
+      }
+    };
+
+    initializeLocation();
+  }, []);
+
+  // Restaurant search with location integration - same API as homepage
+  const { data: restaurants = [], isLoading } = useQuery({
+    queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation }],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        q: debouncedQuery,
+        type: 'restaurants'
+      });
+      
+      if (userLocation) {
+        params.append('lat', userLocation.lat.toString());
+        params.append('lng', userLocation.lng.toString());
+      }
+      
+      const response = await fetch(`/api/search/unified?${params}`);
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
+      
+      // Standardize restaurant results
+      const restaurants = (data.restaurants || []).map((restaurant: any) => ({
+        id: restaurant.id?.toString() || '',
+        name: restaurant.name || '',
+        location: restaurant.location || restaurant.address || '',
+        cuisine: restaurant.cuisine || restaurant.category || '',
+        avgRating: restaurant.avgRating || 0,
+        source: restaurant.source || 'database'
+      }));
+      
+      return restaurants;
+    },
+    enabled: debouncedQuery.length >= 2,
+    staleTime: 30000,
+  });
+
+  const handleLocationRequest = async () => {
+    try {
+      const location = await LocationService.getCurrentLocation();
+      setUserLocation(location);
+      setLocationPermission('granted');
+      console.log('Location enabled:', location);
+    } catch (error) {
+      console.error('Location access denied:', error);
+      setLocationPermission('denied');
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setShowResults(value.length >= 2);
+    
+    // Clear selected restaurant if user starts typing again
+    if (selectedRestaurant && value !== selectedRestaurant.name) {
+      onSelect(null as any);
+    }
+  };
+
+  const handleSelectRestaurant = (restaurant: Restaurant) => {
+    setSearchQuery(restaurant.name);
+    setShowResults(false);
+    onSelect(restaurant);
+    inputRef.current?.blur();
+  };
+
+  const handleInputFocus = () => {
+    if (searchQuery.length >= 2) {
+      setShowResults(true);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // Delay hiding results to allow clicking
+    setTimeout(() => setShowResults(false), 200);
+  };
+
+  return (
+    <div className={`relative ${className}`}>
+      <div className="relative">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+        <Input
+          ref={inputRef}
+          placeholder={placeholder}
+          value={searchQuery}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+          className="pl-10 pr-12"
+          required={required}
+        />
+        
+        {/* Location button */}
+        {locationPermission !== 'granted' && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-1 top-1 h-8 w-8 p-0"
+            onClick={handleLocationRequest}
+            title="Enable location for better results"
+          >
+            <Navigation className="h-4 w-4" />
+          </Button>
+        )}
+        
+        {/* Location status indicator */}
+        {locationPermission === 'granted' && userLocation && (
+          <div className="absolute right-3 top-3">
+            <MapPin className="h-4 w-4 text-green-500" title="Location enabled" />
+          </div>
+        )}
+      </div>
+
+      {/* Search Results Dropdown */}
+      {showResults && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span className="text-sm text-gray-500">Searching...</span>
+            </div>
+          ) : restaurants.length > 0 ? (
+            <div className="py-2">
+              {restaurants.slice(0, 5).map((restaurant) => (
+                <button
+                  key={restaurant.id}
+                  type="button"
+                  onClick={() => handleSelectRestaurant(restaurant)}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-start gap-3"
+                >
+                  <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                    <UtensilsCrossed className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{restaurant.name}</p>
+                      {restaurant.avgRating > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                          <span>{restaurant.avgRating.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">{restaurant.location}</p>
+                    {restaurant.cuisine && (
+                      <p className="text-xs text-gray-400">{restaurant.cuisine}</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : debouncedQuery.length >= 2 ? (
+            <div className="p-4 text-center text-sm text-gray-500">
+              No restaurants found for "{debouncedQuery}"
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
