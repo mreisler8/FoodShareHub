@@ -15,6 +15,7 @@ import { CreateListModal } from '@/components/lists/CreateListModal';
 import { RestaurantList } from '@shared/schema';
 import MediaUploader from '@/components/MediaUploader';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
+import { postService } from '@/services/postService';
 
 interface PostModalProps {
   open: boolean;
@@ -158,27 +159,48 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     enabled: !!user,
   });
 
-  // Create/Update post mutation
+  // Create/Update post mutation using centralized post service
   const savePostMutation = useMutation({
-    mutationFn: async (postData: any) => {
-      if (!user) throw new Error('User not authenticated');
+    mutationFn: async () => {
+      if (!user || !selectedRestaurant) {
+        throw new Error('User authentication or restaurant selection required');
+      }
+
+      // Process form data using the post service
+      const formData = {
+        liked,
+        disliked,
+        notes,
+        rating,
+        visibilitySettings,
+        imageUrls,
+        videoUrls: [], // Add video support later
+        imageTags,
+        tags: [], // Add tag support later
+        priceAssessment: null, // Add price assessment support later
+        atmosphere: null, // Add atmosphere support later
+        serviceRating: null, // Add service rating support later
+        dietaryOptions: [], // Add dietary options support later
+        dishesTried: [], // Add dishes tried support later
+      };
+
+      const postData = postService.processPostData(formData, selectedRestaurant);
       
+      // Validate the post data
+      const validation = postService.validatePostData(postData);
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(', '));
+      }
+
       if (isEditMode && post) {
         // Update existing post
-        return apiRequest(`/api/posts/${post.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(postData),
+        return postService.updatePost({
+          id: post.id,
+          ...postData,
         });
       } else {
         // Create new post
-        return apiRequest('/api/posts', {
-          method: 'POST',
-          body: JSON.stringify({
-            ...postData,
-            userId: user.id,
-            listIds: taggedListIds,
-          }),
-        });
+        return postService.createPost(postData);
       }
     },
     onSuccess: () => {
@@ -258,31 +280,6 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       return;
     }
 
-    // Combine the structured fields into content for current schema compatibility
-    const contentParts = [];
-    if (liked.trim()) contentParts.push(`What I liked: ${liked.trim()}`);
-    if (disliked.trim()) contentParts.push(`What I didn't like: ${disliked.trim()}`);
-    if (notes.trim()) contentParts.push(`Additional notes: ${notes.trim()}`);
-    const content = contentParts.join('\n\n');
-
-    // Extract media URLs
-    const images = media.filter(f => f.type === 'image').map(f => f.url);
-    const videos = media.filter(f => f.type === 'video').map(f => f.url);
-
-    // Handle restaurant ID - if Google place, we need to create/find the restaurant first
-    if (selectedRestaurant.source === 'google') {
-      // For Google Places, we'll need to create the restaurant first
-      // For now, show an error message as this requires additional API integration
-      toast({
-        title: 'Google Places Integration',
-        description: 'Creating posts with Google Places restaurants will be implemented in the next iteration.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const restaurantId = parseInt(selectedRestaurant.id);
-
     if (!user) {
       toast({
         title: 'Authentication required',
@@ -292,16 +289,8 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       return;
     }
 
-    savePostMutation.mutate({
-      userId: user.id,
-      restaurantId,
-      rating,
-      content,
-      images,
-      videos,
-      imageTags,
-      visibility: visibilitySettings
-    });
+    // Submit using the centralized post service
+    savePostMutation.mutate();
   };
 
   const isFormValid = selectedRestaurant && rating > 0 && liked.trim().length > 0;

@@ -43,6 +43,7 @@ import { getPlaceDetails } from './services/google-places';
 import locationRoutes from "./routes/location";
 import restaurantsRouter from "./routes/restaurants";
 import circleInvitesRouter from './routes/circle-invites';
+import postsRouter from './routes/posts';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -1262,6 +1263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/search", searchRouter);
   app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/location", locationRoutes);
+  app.use("/api/posts", postsRouter);
 
   // Import and mount geocode routes
   const geocodeRouter = await import("./routes/geocode");
