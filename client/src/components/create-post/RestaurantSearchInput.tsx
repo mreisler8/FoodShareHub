@@ -3,17 +3,17 @@ import { RestaurantSearchComponent } from '@/components/shared/RestaurantSearchC
 import { SearchResult } from '@/services/searchService';
 
 interface RestaurantSearchInputProps {
-  onSelect: (restaurant: SearchResult) => void;
+  onSelect: (restaurant: any) => void;
   placeholder?: string;
-  value?: SearchResult | null;
+  initialValue?: string;
 }
 
-export function RestaurantSearchInput({ onSelect, placeholder, value }: RestaurantSearchInputProps) {
+export function RestaurantSearchInput({ onSelect, placeholder, initialValue }: RestaurantSearchInputProps) {
   return (
     <RestaurantSearchComponent
       onSelect={onSelect}
       placeholder={placeholder}
-      value={value}
+      initialValue={initialValue}
       showRecentSearches={true}
     />
   );

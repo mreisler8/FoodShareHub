@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
+import { SearchService } from '@/services/searchService';
 
 interface RestaurantSearchProps {
   onSelect: (restaurant: any) => void;
@@ -59,23 +60,16 @@ export function RestaurantSearchComponent({
 
   // Search restaurants with debouncing
   const { data: searchResults = [], isLoading } = useQuery({
-    queryKey: ['/api/search/restaurants', searchQuery, userLocation],
+    queryKey: ['/api/search/unified', searchQuery, userLocation],
     queryFn: async () => {
       if (!searchQuery.trim() || searchQuery.length < 2) return [];
       
-      const params = new URLSearchParams({
-        q: searchQuery.trim(),
-        type: 'restaurants',
-        limit: '8'
+      const searchService = SearchService.getInstance();
+      const results = await searchService.searchRestaurants(searchQuery.trim(), {
+        location: userLocation,
+        limit: 8
       });
-
-      if (userLocation) {
-        params.append('lat', userLocation.lat.toString());
-        params.append('lng', userLocation.lng.toString());
-      }
-
-      const response = await apiRequest(`/api/search/restaurants?${params}`);
-      return response.restaurants || [];
+      return results;
     },
     enabled: searchQuery.length >= 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
