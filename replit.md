@@ -113,6 +113,14 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 18, 2025: **Universal Search Functionality Fix - COMPLETE**: Successfully fixed restaurant search functionality to work consistently across all application components:
+  - **API Call Standardization**: Fixed RestaurantSearchInput component to use exact same API call format as homepage search (removed type parameter, added proper headers and timeout)
+  - **Location Services Integration**: Implemented automatic location request on component mount with proper error handling and fallback behavior
+  - **Search Result Processing**: Updated result processing to match homepage patterns exactly, ensuring consistent data structure across all search components  
+  - **Relevance Algorithm Enhanced**: Improved relevance scoring to handle multi-word queries like "revolver pizza" matching "Revolver Pizza Co." with proper scoring (90 points)
+  - **Filtering Threshold Lowered**: Reduced overly strict filtering threshold from 55 to 40 points to allow more valid restaurant matches
+  - **Consistent User Experience**: All search components now provide identical functionality - location services, search results, and user interface patterns
+  - **Status**: Restaurant search now works identically across homepage, post creation forms, and all other search components with proper location integration
 - July 18, 2025: **Search Standardization Completion - COMPLETE**: Successfully completed the standardization of restaurant search functionality across all post creation forms and components:
   - **RestaurantSearchInput Component**: Created reusable component with location services, fast search, and consistent UI patterns extracted from UnifiedSearchModal
   - **FoodMomentForm Updated**: Replaced complex search logic with RestaurantSearchInput, maintaining all functionality while improving performance

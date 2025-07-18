@@ -68,32 +68,36 @@ export function RestaurantSearchInput({
     }
   };
 
-  // Restaurant search with location integration - same API as homepage
+  // Restaurant search with location integration - EXACTLY same API as homepage
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation }],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        q: debouncedQuery,
-        type: 'restaurants'
-      });
-      
+      // Use EXACT same URL format as homepage search
+      let searchUrl = `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`;
+
+      // Add location parameters if available (same as homepage)
       if (userLocation) {
-        params.append('lat', userLocation.lat.toString());
-        params.append('lng', userLocation.lng.toString());
-        params.append('radius', '10000'); // 10km radius like homepage
+        searchUrl += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
       }
-      
-      const response = await fetch(`/api/search/unified?${params}`);
+
+      const response = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(8000) // Same timeout as homepage
+      });
+
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
-      
-      // Standardize restaurant results
+
+      // Process results EXACTLY like homepage - use the restaurants array from the response
       const restaurants = (data.restaurants || []).map((restaurant: any) => ({
         id: restaurant.id?.toString() || '',
         name: restaurant.name || '',
-        location: restaurant.location || restaurant.address || '',
+        location: restaurant.location || restaurant.subtitle || '',
         cuisine: restaurant.cuisine || restaurant.category || '',
-        avgRating: restaurant.avgRating || 0,
+        avgRating: typeof restaurant.avgRating === 'number' && !isNaN(restaurant.avgRating) ? restaurant.avgRating : 4.0,
         source: restaurant.source || 'database'
       }));
       
