@@ -1,140 +1,218 @@
-
 import React, { useState, useEffect } from 'react';
+import { Search, MapPin, Star, Clock, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { SearchResult } from '@/services/searchService';
-import { SearchService } from '@/services/searchService';
-import { useDebounce } from '@/hooks/use-debounce';
-import { MapPin, Star, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
 
-interface RestaurantSearchComponentProps {
-  onSelect: (restaurant: SearchResult) => void;
+interface RestaurantSearchProps {
+  onSelect: (restaurant: any) => void;
   placeholder?: string;
-  value?: SearchResult | null;
   className?: string;
   showRecentSearches?: boolean;
+  initialValue?: string;
+}
+
+interface Restaurant {
+  id: string;
+  name: string;
+  location: string;
+  cuisine?: string;
+  rating?: number;
+  source: 'database' | 'google';
+  priceLevel?: number;
+  isOpen?: boolean;
 }
 
 export function RestaurantSearchComponent({
   onSelect,
-  placeholder = "Search restaurants...",
-  value,
+  placeholder = "Search for restaurants...",
   className = "",
-  showRecentSearches = true
-}: RestaurantSearchComponentProps) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  showRecentSearches = true,
+  initialValue = ""
+}: RestaurantSearchProps) {
+  const [searchQuery, setSearchQuery] = useState(initialValue);
   const [showResults, setShowResults] = useState(false);
-  
-  const debouncedQuery = useDebounce(query, 300);
-  const searchService = SearchService.getInstance();
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const { user } = useAuth();
 
+  // Get user location on mount
   useEffect(() => {
-    if (showRecentSearches) {
-      searchService.getRecentSearches().then(data => {
-        setRecentSearches(data.recent);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.log('Location access denied or unavailable');
+        }
+      );
+    }
+  }, []);
+
+  // Search restaurants with debouncing
+  const { data: searchResults = [], isLoading } = useQuery({
+    queryKey: ['/api/search/restaurants', searchQuery, userLocation],
+    queryFn: async () => {
+      if (!searchQuery.trim() || searchQuery.length < 2) return [];
+      
+      const params = new URLSearchParams({
+        q: searchQuery.trim(),
+        type: 'restaurants',
+        limit: '8'
       });
-    }
-  }, [showRecentSearches]);
 
-  useEffect(() => {
-    if (debouncedQuery.length >= 2) {
-      setIsLoading(true);
-      searchService.searchRestaurants(debouncedQuery)
-        .then(restaurants => {
-          setResults(restaurants);
-          setIsLoading(false);
-        })
-        .catch(error => {
-          console.error('Search error:', error);
-          setResults([]);
-          setIsLoading(false);
-        });
-    } else {
-      setResults([]);
-      setIsLoading(false);
-    }
-  }, [debouncedQuery]);
+      if (userLocation) {
+        params.append('lat', userLocation.lat.toString());
+        params.append('lng', userLocation.lng.toString());
+      }
 
-  const handleSelect = (restaurant: SearchResult) => {
-    onSelect(restaurant);
-    setShowResults(false);
-    setQuery('');
-    searchService.recordSearch(restaurant.name);
+      const response = await apiRequest(`/api/search/restaurants?${params}`);
+      return response.restaurants || [];
+    },
+    enabled: searchQuery.length >= 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Get recent searches
+  const { data: recentSearches = [] } = useQuery({
+    queryKey: ['/api/search/recent-searches'],
+    queryFn: async () => {
+      if (!user) return [];
+      const response = await apiRequest('/api/search/recent-searches');
+      return response.searches || [];
+    },
+    enabled: showRecentSearches && !!user && searchQuery.length === 0,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const handleInputChange = (value: string) => {
+    setSearchQuery(value);
+    setShowResults(value.length >= 1);
+    if (value.length === 0) {
+      setSelectedRestaurant(null);
+      setShowResults(showRecentSearches);
+    }
   };
 
-  const handleRecentSearch = (searchTerm: string) => {
-    setQuery(searchTerm);
+  const handleRestaurantSelect = (restaurant: Restaurant) => {
+    setSelectedRestaurant(restaurant);
+    setSearchQuery(restaurant.name);
+    setShowResults(false);
+    onSelect(restaurant);
+  };
+
+  const handleRecentSearchSelect = (searchTerm: string) => {
+    setSearchQuery(searchTerm);
     setShowResults(true);
   };
 
+  const renderRestaurantCard = (restaurant: Restaurant) => (
+    <div
+      key={`${restaurant.source}-${restaurant.id}`}
+      onClick={() => handleRestaurantSelect(restaurant)}
+      className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <h4 className="font-medium text-gray-900 text-sm">{restaurant.name}</h4>
+          <div className="flex items-center gap-2 mt-1">
+            <MapPin className="w-3 h-3 text-gray-400" />
+            <span className="text-xs text-gray-600">{restaurant.location}</span>
+          </div>
+          {restaurant.cuisine && (
+            <Badge variant="secondary" className="mt-1 text-xs">
+              {restaurant.cuisine}
+            </Badge>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          {restaurant.rating && (
+            <div className="flex items-center gap-1">
+              <Star className="w-3 h-3 text-yellow-500 fill-current" />
+              <span className="text-xs text-gray-600">{restaurant.rating}</span>
+            </div>
+          )}
+          {restaurant.source === 'google' && (
+            <Badge variant="outline" className="text-xs">Google</Badge>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderRecentSearches = () => (
+    <div className="p-3 border-b">
+      <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+        <Clock className="w-3 h-3" />
+        Recent Searches
+      </h5>
+      <div className="space-y-1">
+        {recentSearches.slice(0, 3).map((search: any, index: number) => (
+          <button
+            key={index}
+            onClick={() => handleRecentSearchSelect(search.query)}
+            className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-1"
+          >
+            {search.query}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className={`relative ${className}`}>
-      <Input
-        type="text"
-        placeholder={placeholder}
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setShowResults(true);
-        }}
-        onFocus={() => setShowResults(true)}
-        className="w-full"
-      />
-      
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Input
+          type="text"
+          placeholder={placeholder}
+          value={searchQuery}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onFocus={() => setShowResults(true)}
+          className="pl-10 pr-4"
+        />
+        {isLoading && (
+          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+        )}
+      </div>
+
       {showResults && (
-        <div className="absolute top-full left-0 right-0 z-50 bg-white border rounded-md shadow-lg max-h-80 overflow-y-auto">
-          {isLoading ? (
-            <div className="p-4 text-center text-gray-500">Searching...</div>
-          ) : results.length > 0 ? (
-            <div className="py-2">
-              {results.map((restaurant) => (
-                <button
-                  key={restaurant.id}
-                  onClick={() => handleSelect(restaurant)}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3"
-                >
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">{restaurant.name}</div>
-                    <div className="text-sm text-gray-500 flex items-center space-x-2">
-                      {restaurant.location && (
-                        <span className="flex items-center">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {restaurant.location}
-                        </span>
-                      )}
-                      {restaurant.avgRating && (
-                        <span className="flex items-center">
-                          <Star className="w-3 h-3 mr-1 text-yellow-400" />
-                          {restaurant.avgRating.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
+        <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-80 overflow-y-auto shadow-lg">
+          <CardContent className="p-0">
+            {searchQuery.length === 0 && showRecentSearches && recentSearches.length > 0 && (
+              renderRecentSearches()
+            )}
+            
+            {searchQuery.length >= 2 && (
+              <>
+                {isLoading ? (
+                  <div className="p-4 text-center text-gray-500">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                    Searching restaurants...
                   </div>
-                </button>
-              ))}
-            </div>
-          ) : query.length >= 2 ? (
-            <div className="p-4 text-center text-gray-500">No restaurants found</div>
-          ) : showRecentSearches && recentSearches.length > 0 ? (
-            <div className="py-2">
-              <div className="px-4 py-2 text-xs font-medium text-gray-400 uppercase tracking-wider">
-                Recent Searches
-              </div>
-              {recentSearches.map((search, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleRecentSearch(search)}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
-                >
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-700">{search}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+                ) : searchResults.length > 0 ? (
+                  <div>
+                    {searchResults.map(renderRestaurantCard)}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-gray-500">
+                    <Search className="w-5 h-5 mx-auto mb-2 text-gray-400" />
+                    No restaurants found for "{searchQuery}"
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

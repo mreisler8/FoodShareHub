@@ -6,8 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, ArrowLeft, Star, Upload } from 'lucide-react';
-import { RestaurantSearchInput } from './RestaurantSearchInput';
+import { RestaurantSearchComponent } from '@/components/shared/RestaurantSearchComponent';
 import { postService } from '@/services/postService';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface CreatePostModalProps {
   open: boolean;
@@ -25,6 +27,9 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
     media: null as File | null,
     tasteNotes: [] as string[]
   });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const tasteOptions = [
     'Sweet', 'Salty', 'Spicy', 'Sour', 'Bitter', 'Umami', 'Crispy', 'Creamy', 'Tender'
@@ -47,14 +52,15 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!formData.restaurant || !formData.rating || !formData.dishName.trim()) {
-      return;
-    }
+  // Create post mutation
+  const createPostMutation = useMutation({
+    mutationFn: async () => {
+      if (!formData.restaurant || !formData.rating || !formData.dishName.trim()) {
+        throw new Error('Restaurant, rating, and dish name are required');
+      }
 
-    try {
       const postData = {
-        restaurantId: formData.restaurant.id,
+        restaurantId: formData.restaurant.id.toString(),
         content: formData.description || `${formData.dishName} - ${formData.tasteNotes.join(', ')}`,
         rating: formData.rating,
         visibility: {
@@ -72,11 +78,41 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
         }
       };
 
-      await postService.createPost(postData);
+      return await postService.createPost(postData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      toast({
+        title: 'Post created successfully',
+        description: 'Your dining experience has been shared!',
+      });
       onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to create post:', error);
-    }
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error creating post',
+        description: error.message || 'Failed to create post. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      restaurant: null,
+      rating: 0,
+      dishName: '',
+      category: '',
+      description: '',
+      media: null,
+      tasteNotes: []
+    });
+  };
+
+  const handleSubmit = () => {
+    createPostMutation.mutate();
   };
 
   return (
@@ -109,10 +145,11 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
             <label className="block text-sm font-medium mb-2">
               Restaurant <span className="text-red-500">*</span>
             </label>
-            <RestaurantSearchInput
+            <RestaurantSearchComponent
               onSelect={(restaurant) => setFormData(prev => ({ ...prev, restaurant }))}
               placeholder="Search for a restaurant..."
-              value={formData.restaurant}
+              initialValue={formData.restaurant?.name || ''}
+              showRecentSearches={true}
             />
           </div>
 
