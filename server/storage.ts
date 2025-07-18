@@ -223,10 +223,20 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // User operations
+  // User operations with error handling
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error: any) {
+      console.error('Error fetching user:', error);
+      if (error.code === '57P01') {
+        // Connection terminated, return undefined instead of throwing
+        console.warn('Database connection terminated during user fetch');
+        return undefined;
+      }
+      throw error;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {

@@ -106,8 +106,15 @@ export function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       done(null, user);
-    } catch (err) {
-      done(err);
+    } catch (err: any) {
+      console.error('User deserialization error:', err);
+      // If it's a database connection error, return null instead of error
+      if (err.code === '57P01' || err.message?.includes('connection')) {
+        console.warn('Database connection issue during auth, continuing without user');
+        done(null, null);
+      } else {
+        done(err);
+      }
     }
   });
 
