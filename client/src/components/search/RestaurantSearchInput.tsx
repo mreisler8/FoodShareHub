@@ -136,16 +136,34 @@ export function RestaurantSearchInput({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Location status bar */}
+      {/* Location status bar - matching homepage design */}
       {locationPermission === 'granted' && userLocation && (
-        <div className="flex items-center gap-2 text-xs text-green-600 mb-2 bg-green-50 px-3 py-1 rounded-md">
-          <MapPin className="h-3 w-3" />
-          <span>Location enabled - showing nearby restaurants</span>
+        <div className="flex items-center gap-2 text-xs text-green-600 mb-3">
+          <Navigation className="h-3 w-3" />
+          <span>
+            Searching near {userLocation.city && userLocation.city !== `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}` 
+              ? userLocation.city 
+              : 'Current Location'}
+          </span>
         </div>
       )}
       
       {locationPermission === 'denied' && (
-        <div className="flex items-center gap-2 text-xs text-amber-600 mb-2 bg-amber-50 px-3 py-1 rounded-md">
+        <div className="flex items-center gap-2 text-xs text-orange-600 mb-3">
+          <Navigation className="h-3 w-3" />
+          <span>Enable location for better local results</span>
+        </div>
+      )}
+      
+      {locationPermission === 'prompt' && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+          <Navigation className="h-3 w-3 animate-pulse" />
+          <span>Requesting location access...</span>
+        </div>
+      )}
+      
+      {!locationPermission && (
+        <div className="flex items-center gap-2 text-xs text-orange-600 mb-3">
           <Navigation className="h-3 w-3" />
           <span>Enable location for better local results</span>
         </div>
@@ -164,36 +182,18 @@ export function RestaurantSearchInput({
           required={required}
         />
         
-        {/* Location button - always visible for clarity */}
+        {/* Simplified location button - only when needed */}
         {locationPermission !== 'granted' && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="absolute right-1 top-1 h-8 w-8 p-0 border border-gray-300 hover:border-orange-400 hover:bg-orange-50"
+            className="absolute right-1 top-1 h-8 w-8 p-0"
             onClick={handleLocationRequest}
             title="Enable location for better results"
           >
-            <Navigation className="h-4 w-4 text-gray-600 hover:text-orange-600" />
+            <Navigation className="h-4 w-4 text-gray-600" />
           </Button>
-        )}
-        
-        {/* Location status indicator */}
-        {locationPermission === 'granted' && userLocation && (
-          <div className="absolute right-3 top-3 flex items-center gap-1">
-            <MapPin className="h-4 w-4 text-green-500" title="Location enabled" />
-            <span className="text-xs text-green-600 font-medium">📍</span>
-          </div>
-        )}
-        
-        {/* Enhanced location prompt */}
-        {locationPermission === 'denied' && (
-          <div className="absolute right-3 top-3">
-            <div className="flex items-center gap-1 text-xs text-red-500" title="Location access denied">
-              <MapPin className="h-4 w-4" />
-              <span>❌</span>
-            </div>
-          </div>
         )}
       </div>
 
