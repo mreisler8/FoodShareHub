@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Restaurant, InsertRestaurantListItem } from "@shared/schema";
-import { RestaurantSearch } from "./RestaurantSearch";
+import { RestaurantSearchComponent } from "@/components/shared/RestaurantSearchComponent";
 import { RestaurantForm } from "./RestaurantForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -135,11 +135,10 @@ export function RestaurantAddToListModal({
             {!selectedRestaurant ? (
               <div className="space-y-2">
                 <Label htmlFor="restaurant">Restaurant</Label>
-                <RestaurantSearch 
-                  onSelectRestaurant={handleSelectRestaurant}
-                  onCreateNewRestaurant={handleCreateRestaurant}
-                  buttonLabel="Select"
+                <RestaurantSearchComponent
+                  onSelect={handleSelectRestaurant}
                   placeholder="Search for a restaurant to add"
+                  showRecentSearches={true}
                 />
                 <p className="text-xs text-neutral-500">
                   <Info className="h-3 w-3 inline-block mr-1" />

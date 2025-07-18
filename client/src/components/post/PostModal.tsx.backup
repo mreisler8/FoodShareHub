@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { MapPin, Star, X, Loader2, Plus } from 'lucide-react';
+import { Search, MapPin, Star, X, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { MultiSelect } from '@/components/ui/multi-select';
@@ -23,6 +23,15 @@ interface PostModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   post?: any; // Optional post for editing mode
+}
+
+interface RestaurantSearchResult {
+  id: string;
+  name: string;
+  thumbnailUrl: string | null;
+  avgRating: number;
+  location?: string;
+  source: 'database' | 'google';
 }
 
 export function PostModal({ open, onOpenChange, post }: PostModalProps) {
@@ -114,36 +123,55 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     setSelectedRestaurant(restaurant);
   };
 
-  // Get user's restaurant lists for tagging
-  const { data: userLists = [] } = useQuery({
+  // Fetch user lists for tagging
+  const { data: userLists = [] } = useQuery<RestaurantList[]>({
     queryKey: ['/api/lists'],
-    select: (data: any) => data?.lists || []
+    enabled: !!user,
   });
 
-  // Save post mutation using centralized service
+  // Create/Update post mutation using centralized post service
   const savePostMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedRestaurant || !rating || !liked.trim() || !user) {
-        throw new Error('Missing required fields');
+      if (!user || !selectedRestaurant) {
+        throw new Error('User authentication or restaurant selection required');
       }
 
-      const postData = {
-        restaurantId: selectedRestaurant.id,
-        restaurantName: selectedRestaurant.name,
-        restaurantLocation: selectedRestaurant.location,
+      // Process form data using the post service
+      const formData = {
+        liked,
+        disliked,
+        notes,
         rating,
-        liked: liked.trim(),
-        disliked: disliked.trim(),
-        notes: notes.trim(),
-        media,
-        imageTags,
-        taggedListIds,
         visibilitySettings,
-        userId: user.id,
-        postId: isEditMode ? post.id : undefined
+        imageUrls,
+        videoUrls: [], // Add video support later
+        imageTags,
+        tags: [], // Add tag support later
+        priceAssessment: null, // Add price assessment support later
+        atmosphere: null, // Add atmosphere support later
+        serviceRating: null, // Add service rating support later
+        dietaryOptions: [], // Add dietary options support later
+        dishesTried: [], // Add dishes tried support later
       };
 
-      return await postService.createPost(postData);
+      const postData = postService.processPostData(formData, selectedRestaurant);
+      
+      // Validate the post data
+      const validation = postService.validatePostData(postData);
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(', '));
+      }
+
+      if (isEditMode && post) {
+        // Update existing post
+        return postService.updatePost({
+          id: post.id,
+          ...postData,
+        });
+      } else {
+        // Create new post
+        return postService.createPost(postData);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
@@ -258,8 +286,8 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
 
           {/* Rating */}
           <div className="space-y-2">
-            <Label>Rating</Label>
-            <div className="flex items-center space-x-2">
+            <Label>Your Rating *</Label>
+            <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
@@ -268,7 +296,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
                   className="focus:outline-none"
                 >
                   <Star
-                    className={`h-6 w-6 transition-colors ${
+                    className={`h-6 w-6 ${
                       star <= rating
                         ? 'fill-yellow-400 text-yellow-400'
                         : 'text-gray-300 hover:text-yellow-400'
@@ -276,38 +304,34 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
                   />
                 </button>
               ))}
-              <span className="text-sm text-gray-500 ml-2">
-                {rating > 0 ? `${rating} star${rating > 1 ? 's' : ''}` : 'No rating'}
-              </span>
             </div>
           </div>
 
-          {/* What I Liked */}
+          {/* What I Liked - Required */}
           <div className="space-y-2">
             <Label htmlFor="liked">What I liked *</Label>
             <Textarea
               id="liked"
-              placeholder="Describe what you enjoyed about this restaurant..."
+              placeholder="Tell us what you enjoyed about this place..."
               value={liked}
               onChange={(e) => setLiked(e.target.value)}
               className="min-h-[80px]"
-              required
             />
           </div>
 
-          {/* What I Didn't Like */}
+          {/* What I Didn't Like - Optional */}
           <div className="space-y-2">
             <Label htmlFor="disliked">What I didn't like (optional)</Label>
             <Textarea
               id="disliked"
-              placeholder="Anything you didn't enjoy or would change..."
+              placeholder="Any areas for improvement..."
               value={disliked}
               onChange={(e) => setDisliked(e.target.value)}
               className="min-h-[60px]"
             />
           </div>
 
-          {/* Additional Notes */}
+          {/* Additional Notes - Optional */}
           <div className="space-y-2">
             <Label htmlFor="notes">Additional notes (optional)</Label>
             <Textarea
