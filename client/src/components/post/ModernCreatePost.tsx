@@ -10,6 +10,7 @@ import { X, ArrowLeft, Star, Upload, Search, MapPin, ArrowRight, Plus } from 'lu
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { RestaurantSearchInput } from '@/components/search/RestaurantSearchInput';
 
 interface ModernCreatePostProps {
   open: boolean;
@@ -28,9 +29,6 @@ interface Restaurant {
 export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCreatePostProps) {
   const [step, setStep] = useState<'type' | 'form'>('type');
   const [selectedType, setSelectedType] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [showRestaurantResults, setShowRestaurantResults] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -43,37 +41,6 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
   });
   
   const [customTag, setCustomTag] = useState('');
-
-  // Debounce search query
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Fetch restaurant search results - using standardized homepage search infrastructure
-  const { data: restaurants, isLoading: isSearchLoading } = useQuery({
-    queryKey: ['/api/search/unified', { q: debouncedQuery }],
-    queryFn: async () => {
-      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
-      if (!response.ok) throw new Error('Search failed');
-      const data = await response.json();
-      
-      // Standardize restaurant results to match PostModal interface
-      const restaurants = (data.restaurants || []).map((restaurant: any) => ({
-        id: restaurant.id?.toString() || '',
-        name: restaurant.name || '',
-        location: restaurant.location || restaurant.address || '',
-        avgRating: restaurant.avgRating || 0,
-        source: restaurant.source || 'database'
-      }));
-      
-      return restaurants;
-    },
-    enabled: debouncedQuery.length >= 2,
-    staleTime: 30000,
-  });
 
   const recommendedTypes = [
     {
@@ -106,8 +73,6 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
 
   const handleRestaurantSelect = (restaurant: Restaurant) => {
     setFormData(prev => ({ ...prev, restaurant }));
-    setSearchQuery(restaurant.name);
-    setShowRestaurantResults(false);
   };
 
   const handleRatingClick = (rating: number) => {
@@ -253,40 +218,12 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
               <label className="block text-sm font-medium mb-2">
                 Restaurant <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search for a restaurant..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setShowRestaurantResults(e.target.value.length >= 2);
-                  }}
-                  className="pl-10"
-                />
-                
-                {showRestaurantResults && restaurants && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
-                    {restaurants.slice(0, 5).map((restaurant: Restaurant) => (
-                      <button
-                        key={restaurant.id}
-                        onClick={() => handleRestaurantSelect(restaurant)}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:bg-gray-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <div>
-                            <div className="font-medium">{restaurant.name}</div>
-                            {restaurant.location && (
-                              <div className="text-sm text-gray-500">{restaurant.location}</div>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <RestaurantSearchInput
+                onSelect={handleRestaurantSelect}
+                selectedRestaurant={formData.restaurant}
+                placeholder="Search for a restaurant..."
+                required
+              />
             </div>
 
             {/* Rating */}
