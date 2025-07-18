@@ -40,24 +40,33 @@ export function RestaurantSearchInput({
 
   // Location service integration - same as homepage
   useEffect(() => {
-    const initializeLocation = async () => {
-      try {
-        const permission = await navigator.permissions.query({ name: 'geolocation' });
-        setLocationPermission(permission.state);
-        
-        if (permission.state === 'granted') {
-          const location = await LocationService.getCurrentLocation();
-          setUserLocation(location);
-          console.log('Location obtained:', location);
-        }
-      } catch (error) {
-        console.warn('Location service not available:', error);
-        setLocationPermission('denied');
-      }
-    };
+    // Auto-request location when component mounts
+    if (locationPermission === null) {
+      requestLocation();
+    }
+  }, [locationPermission]);
 
-    initializeLocation();
-  }, []);
+  const requestLocation = async () => {
+    try {
+      setLocationPermission('prompt');
+
+      // Use the LocationService instance with better error handling
+      const locationService = LocationService.getInstance();
+      const location = await locationService.getCurrentLocation();
+
+      if (location && location.lat && location.lng) {
+        setUserLocation(location);
+        setLocationPermission('granted');
+        console.log('Location obtained:', location);
+      } else {
+        throw new Error('Invalid location data received');
+      }
+    } catch (error) {
+      console.error('Location access denied:', error);
+      setLocationPermission('denied');
+      // Continue without location - this shouldn't break search
+    }
+  };
 
   // Restaurant search with location integration - same API as homepage
   const { data: restaurants = [], isLoading } = useQuery({
@@ -71,6 +80,7 @@ export function RestaurantSearchInput({
       if (userLocation) {
         params.append('lat', userLocation.lat.toString());
         params.append('lng', userLocation.lng.toString());
+        params.append('radius', '10000'); // 10km radius like homepage
       }
       
       const response = await fetch(`/api/search/unified?${params}`);
@@ -94,15 +104,7 @@ export function RestaurantSearchInput({
   });
 
   const handleLocationRequest = async () => {
-    try {
-      const location = await LocationService.getCurrentLocation();
-      setUserLocation(location);
-      setLocationPermission('granted');
-      console.log('Location enabled:', location);
-    } catch (error) {
-      console.error('Location access denied:', error);
-      setLocationPermission('denied');
-    }
+    await requestLocation();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
