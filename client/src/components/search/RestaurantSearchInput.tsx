@@ -136,6 +136,21 @@ export function RestaurantSearchInput({
 
   return (
     <div className={`relative ${className}`}>
+      {/* Location status bar */}
+      {locationPermission === 'granted' && userLocation && (
+        <div className="flex items-center gap-2 text-xs text-green-600 mb-2 bg-green-50 px-3 py-1 rounded-md">
+          <MapPin className="h-3 w-3" />
+          <span>Location enabled - showing nearby restaurants</span>
+        </div>
+      )}
+      
+      {locationPermission === 'denied' && (
+        <div className="flex items-center gap-2 text-xs text-amber-600 mb-2 bg-amber-50 px-3 py-1 rounded-md">
+          <Navigation className="h-3 w-3" />
+          <span>Enable location for better local results</span>
+        </div>
+      )}
+      
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
         <Input
@@ -149,24 +164,35 @@ export function RestaurantSearchInput({
           required={required}
         />
         
-        {/* Location button */}
+        {/* Location button - always visible for clarity */}
         {locationPermission !== 'granted' && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="absolute right-1 top-1 h-8 w-8 p-0"
+            className="absolute right-1 top-1 h-8 w-8 p-0 border border-gray-300 hover:border-orange-400 hover:bg-orange-50"
             onClick={handleLocationRequest}
             title="Enable location for better results"
           >
-            <Navigation className="h-4 w-4" />
+            <Navigation className="h-4 w-4 text-gray-600 hover:text-orange-600" />
           </Button>
         )}
         
         {/* Location status indicator */}
         {locationPermission === 'granted' && userLocation && (
-          <div className="absolute right-3 top-3">
+          <div className="absolute right-3 top-3 flex items-center gap-1">
             <MapPin className="h-4 w-4 text-green-500" title="Location enabled" />
+            <span className="text-xs text-green-600 font-medium">📍</span>
+          </div>
+        )}
+        
+        {/* Enhanced location prompt */}
+        {locationPermission === 'denied' && (
+          <div className="absolute right-3 top-3">
+            <div className="flex items-center gap-1 text-xs text-red-500" title="Location access denied">
+              <MapPin className="h-4 w-4" />
+              <span>❌</span>
+            </div>
           </div>
         )}
       </div>
