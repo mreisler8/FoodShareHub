@@ -42,6 +42,38 @@ function calculateRelevanceScore(restaurantName: string, searchQuery: string): n
     }
   }
   
+  // NEW: Check if any word in the search query matches the restaurant name
+  // This handles cases like "revolver pizza" matching "Revolver" restaurant
+  const queryWords = query.split(/\s+/);
+  for (const queryWord of queryWords) {
+    if (queryWord.length >= 3) { // Only check meaningful words
+      // Exact word match
+      if (name === queryWord) {
+        return 85;
+      }
+      // Restaurant name starts with query word
+      if (name.startsWith(queryWord)) {
+        return 75;
+      }
+      // Restaurant name contains query word
+      if (name.includes(queryWord)) {
+        return 65;
+      }
+      // Any word in restaurant name matches query word
+      for (const nameWord of nameWords) {
+        if (nameWord === queryWord) {
+          return 75;
+        }
+        if (nameWord.startsWith(queryWord)) {
+          return 65;
+        }
+        if (nameWord.includes(queryWord)) {
+          return 55;
+        }
+      }
+    }
+  }
+  
   // Default score for no match
   return 50;
 }
@@ -888,8 +920,8 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
         console.log(`[FILTER] Person name query "${searchTerm}" - Restaurant "${r.name}" - Relevance: ${r.relevanceScore} - Include: ${result}`);
         return result;
       }
-      // For general searches, require at least some relevance
-      const result = r.relevanceScore >= 55;
+      // For general searches, be more permissive with relevance filtering
+      const result = r.relevanceScore >= 40;
       console.log(`[FILTER] General query "${searchTerm}" - Restaurant "${r.name}" - Relevance: ${r.relevanceScore} - TagMatch: ${r.tagMatch} - Include: ${result}`);
       return result;
     })
