@@ -4,9 +4,19 @@ import { z } from 'zod';
 // Post data interfaces
 export interface CreatePostData {
   restaurantId: string;
-  content: string;
+  restaurantName?: string;
+  restaurantLocation?: string;
+  content?: string;
   rating: number;
-  visibility: {
+  liked?: string;
+  disliked?: string;
+  notes?: string;
+  visibility?: {
+    public: boolean;
+    followers: boolean;
+    circleIds: number[];
+  };
+  visibilitySettings?: {
     public: boolean;
     followers: boolean;
     circleIds: number[];
@@ -14,14 +24,18 @@ export interface CreatePostData {
   dishesTried?: string[];
   images?: string[];
   videos?: string[];
+  media?: any[];
   imageTags?: string[];
   tags?: string[];
+  taggedListIds?: number[];
   priceAssessment?: string;
   atmosphere?: string;
   serviceRating?: number;
   dietaryOptions?: string[];
-  postType: 'moment' | 'dish' | 'list';
+  postType?: 'moment' | 'dish' | 'restaurant';
   metadata?: Record<string, any>;
+  userId?: number;
+  postId?: number;
 }
 
 export interface UpdatePostData extends Partial<CreatePostData> {
@@ -44,15 +58,74 @@ export class PostService {
    */
   async createPost(postData: CreatePostData): Promise<any> {
     try {
+      // Handle unified data structure
+      const processedData = this.processPostData(postData);
+      
       const response = await apiRequest('/api/posts', {
         method: 'POST',
-        body: JSON.stringify(postData),
+        body: JSON.stringify(processedData),
       });
       return response;
     } catch (error) {
       console.error('Error creating post:', error);
       throw new Error('Failed to create post');
     }
+  }
+
+  /**
+   * Process post data to ensure consistent structure
+   */
+  processPostData(postData: CreatePostData): CreatePostData {
+    // Build content from structured fields if provided
+    let content = postData.content || '';
+    
+    if (postData.liked || postData.disliked || postData.notes) {
+      const parts: string[] = [];
+      
+      if (postData.liked) {
+        parts.push(`What I liked: ${postData.liked}`);
+      }
+      
+      if (postData.disliked) {
+        parts.push(`What I didn't like: ${postData.disliked}`);
+      }
+      
+      if (postData.notes) {
+        parts.push(`Additional notes: ${postData.notes}`);
+      }
+      
+      content = parts.join('\n\n');
+    }
+
+    // Handle visibility settings
+    const visibility = postData.visibilitySettings || postData.visibility || {
+      public: true,
+      followers: false,
+      circleIds: []
+    };
+
+    // Handle media files
+    const images = postData.images || [];
+    const videos = postData.videos || [];
+    
+    if (postData.media && Array.isArray(postData.media)) {
+      postData.media.forEach(item => {
+        if (item.type === 'image' || item.url?.includes('image')) {
+          images.push(item.url || item);
+        } else if (item.type === 'video' || item.url?.includes('video')) {
+          videos.push(item.url || item);
+        }
+      });
+    }
+
+    return {
+      ...postData,
+      content,
+      visibility,
+      images,
+      videos,
+      postType: postData.postType || 'moment'
+    };
   }
 
   /**
@@ -143,42 +216,7 @@ export class PostService {
     }
   }
 
-  /**
-   * Process form data into structured post data
-   */
-  processPostData(formData: any, selectedRestaurant: any): CreatePostData {
-    // Combine structured fields into content for current schema compatibility
-    const contentParts = [];
-    if (formData.liked?.trim()) contentParts.push(`What I liked: ${formData.liked.trim()}`);
-    if (formData.disliked?.trim()) contentParts.push(`What I didn't like: ${formData.disliked.trim()}`);
-    if (formData.notes?.trim()) contentParts.push(`Additional notes: ${formData.notes.trim()}`);
-    const content = contentParts.join('\n\n');
 
-    // Handle restaurant ID - if Google place, we need to create/find the restaurant first
-    if (selectedRestaurant.source === 'google') {
-      throw new Error('Google Places integration not yet implemented');
-    }
-
-    const restaurantId = selectedRestaurant.id.toString();
-
-    return {
-      restaurantId,
-      content,
-      rating: formData.rating,
-      visibility: formData.visibilitySettings,
-      images: formData.imageUrls || [],
-      videos: formData.videoUrls || [],
-      imageTags: formData.imageTags || [],
-      tags: formData.tags || [],
-      priceAssessment: formData.priceAssessment || null,
-      atmosphere: formData.atmosphere || null,
-      serviceRating: formData.serviceRating || null,
-      dietaryOptions: formData.dietaryOptions || [],
-      dishesTried: formData.dishesTried || [],
-      postType: 'moment', // Default to moment for now
-      metadata: {}
-    };
-  }
 
   /**
    * Validate post data before submission

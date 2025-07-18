@@ -5,7 +5,7 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { PostCard } from '@/components/home/PostCard';
-import { PostModal } from '@/components/post/PostModal';
+import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { Button } from '@/components/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Users, Home, Filter } from 'lucide-react';
@@ -292,7 +292,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
       <MobileNavigation />
       
       {/* Post Modal */}
-      <PostModal open={showPostModal} onOpenChange={setShowPostModal} />
+      <UnifiedPostModal open={showPostModal} onOpenChange={setShowPostModal} />
     </div>
   );
 }
