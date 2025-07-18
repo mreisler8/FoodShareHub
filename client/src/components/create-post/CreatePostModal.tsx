@@ -60,26 +60,37 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
         throw new Error('Restaurant, rating, and dish name are required');
       }
 
-      const postData = {
-        restaurantId: formData.restaurant.id.toString(),
-        content: formData.description || `${formData.dishName} - ${formData.tasteNotes.join(', ')}`,
+      // Use the centralized postService.processPostData for consistency
+      const processedData = postService.processPostData({
+        liked: formData.description || `${formData.dishName} - ${formData.tasteNotes.join(', ')}`,
+        disliked: '',
+        notes: '',
         rating: formData.rating,
-        visibility: {
+        dishesTried: [formData.dishName],
+        tags: formData.tasteNotes,
+        visibilitySettings: {
           public: true,
           followers: false,
           circleIds: []
         },
-        dishesTried: [formData.dishName],
-        tags: formData.tasteNotes,
-        postType: 'dish' as const,
-        metadata: {
-          dishName: formData.dishName,
-          category: formData.category,
-          tasteNotes: formData.tasteNotes
-        }
+        imageUrls: [],
+        videoUrls: [],
+        imageTags: [],
+        priceAssessment: null,
+        atmosphere: null,
+        serviceRating: null,
+        dietaryOptions: []
+      }, formData.restaurant);
+
+      // Add post-specific metadata
+      processedData.postType = 'dish';
+      processedData.metadata = {
+        dishName: formData.dishName,
+        category: formData.category,
+        tasteNotes: formData.tasteNotes
       };
 
-      return await postService.createPost(postData);
+      return await postService.createPost(processedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/feed'] });

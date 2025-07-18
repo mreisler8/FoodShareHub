@@ -199,6 +199,19 @@ export class PostService {
       errors.push('Rating must be between 1 and 5 stars');
     }
 
+    // Post type validation
+    const validPostTypes = ['moment', 'dish', 'list'];
+    if (!validPostTypes.includes(postData.postType)) {
+      errors.push(`Post type must be one of: ${validPostTypes.join(', ')}`);
+    }
+
+    // Post type specific validation
+    if (postData.postType === 'dish') {
+      if (!postData.metadata?.dishName?.trim()) {
+        errors.push('Dish name is required for dish posts');
+      }
+    }
+
     // Visibility validation
     if (!postData.visibility) {
       errors.push('Visibility settings are required');
@@ -213,6 +226,34 @@ export class PostService {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  /**
+   * Get post type specific validation rules
+   */
+  getPostTypeRequirements(postType: string): { required: string[]; optional: string[] } {
+    switch (postType) {
+      case 'dish':
+        return {
+          required: ['restaurantId', 'rating', 'content'],
+          optional: ['dishesTried', 'tags', 'metadata.dishName', 'metadata.category']
+        };
+      case 'moment':
+        return {
+          required: ['restaurantId', 'rating', 'content'],
+          optional: ['images', 'videos', 'tags']
+        };
+      case 'list':
+        return {
+          required: ['restaurantId', 'content'],
+          optional: ['rating', 'metadata.listContext']
+        };
+      default:
+        return {
+          required: ['restaurantId', 'content'],
+          optional: []
+        };
+    }
   }
 
 }
