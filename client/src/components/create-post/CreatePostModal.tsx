@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { X, ArrowLeft, Star, Upload } from 'lucide-react';
 import { RestaurantSearchInput } from './RestaurantSearchInput';
+import { postService } from '@/services/postService';
 
 interface CreatePostModalProps {
   open: boolean;
@@ -46,10 +47,36 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
     }));
   };
 
-  const handleSubmit = () => {
-    // Handle form submission
-    console.log('Form data:', formData);
-    onOpenChange(false);
+  const handleSubmit = async () => {
+    if (!formData.restaurant || !formData.rating || !formData.dishName.trim()) {
+      return;
+    }
+
+    try {
+      const postData = {
+        restaurantId: formData.restaurant.id,
+        content: formData.description || `${formData.dishName} - ${formData.tasteNotes.join(', ')}`,
+        rating: formData.rating,
+        visibility: {
+          public: true,
+          followers: false,
+          circleIds: []
+        },
+        dishesTried: [formData.dishName],
+        tags: formData.tasteNotes,
+        postType: 'dish' as const,
+        metadata: {
+          dishName: formData.dishName,
+          category: formData.category,
+          tasteNotes: formData.tasteNotes
+        }
+      };
+
+      await postService.createPost(postData);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to create post:', error);
+    }
   };
 
   return (
@@ -185,33 +212,7 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
             />
           </div>
 
-          {/* Your Rating (duplicate - appears twice in the form) */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Your Rating <span className="text-red-500">*</span>
-            </label>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => handleRatingClick(star)}
-                  className="p-1 hover:bg-gray-100 rounded"
-                >
-                  <Star
-                    className={`h-6 w-6 ${
-                      star <= formData.rating
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-gray-300'
-                    }`}
-                  />
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-gray-600">
-                Rate this dish
-              </span>
-            </div>
-          </div>
+          
 
           {/* Taste Notes */}
           <div>
