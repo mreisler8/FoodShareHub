@@ -113,6 +113,13 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 20, 2025: **Search Infrastructure Unification - COMPLETE**: Successfully unified search functionality between homepage and list creation to ensure consistent location-aware restaurant discovery:
+  - **Identical API Integration**: RestaurantSearchAndAdd component now uses same `/api/search/unified` endpoint with identical parameters as homepage UnifiedSearchModal
+  - **Location Services Parity**: Added LocationService integration to list creation search with automatic location detection, permission handling, and 10km radius search
+  - **Enhanced User Experience**: Added location enable button, location status indicators, and "near you" search placeholders matching homepage behavior
+  - **Consistent Debouncing**: Implemented 300ms debouncing pattern identical to homepage for optimal search performance
+  - **Unified Search Parameters**: Location data (lat/lng/radius) properly passed to backend API ensuring identical Google Places API integration
+  - **Status**: List creation search now provides identical functionality to homepage global search with proper location services integration
 - July 20, 2025: **Comprehensive List Creation Enhancement - COMPLETE**: Successfully implemented enterprise-grade smart list creation functionality with advanced UX features:
   - **Smart Template System**: Added quick template buttons for common list types (Best Pizza Places, Date Night Favorites, Hidden Gems, etc.) with emoji icons and auto-generated descriptions
   - **Progress Indicator**: Implemented visual progress tracking showing completion status across all three tabs (Details/Add Items/Finalize) with real-time updates

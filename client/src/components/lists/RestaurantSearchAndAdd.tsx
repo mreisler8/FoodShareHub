@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, MapPin, Star, Clock } from "lucide-react";
+import { Search, Plus, MapPin, Star, Clock, Navigation } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LocationService, type LocationData } from '@/services/locationService';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface Restaurant {
   id: number;
@@ -25,18 +27,55 @@ interface RestaurantSearchAndAddProps {
 export default function RestaurantSearchAndAdd({ onAddRestaurant, addedRestaurants }: RestaurantSearchAndAddProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
 
-  // Debounced search
+  const debouncedQuery = useDebounce(searchTerm, 300);
+
+  // Initialize location services like the homepage
+  useEffect(() => {
+    const initializeLocation = async () => {
+      try {
+        const permission = await LocationService.checkPermission();
+        setLocationPermission(permission);
+        
+        if (permission === 'granted') {
+          const location = await LocationService.getCurrentLocation();
+          if (location) {
+            setUserLocation(location);
+          }
+        }
+      } catch (error) {
+        console.error('Location initialization error:', error);
+        setLocationPermission('denied');
+      }
+    };
+
+    initializeLocation();
+  }, []);
+
+  // Location-aware search query - exactly like homepage
   const { data: searchResults, isLoading } = useQuery({
-    queryKey: ["/api/search/unified", searchTerm],
+    queryKey: ["/api/search/unified", debouncedQuery, userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
-      if (!searchTerm.trim()) return [];
+      if (!debouncedQuery.trim()) return [];
       
-      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(searchTerm)}`);
+      const params = new URLSearchParams({
+        q: debouncedQuery
+      });
+      
+      // Add location parameters if available (same as homepage)
+      if (userLocation?.lat && userLocation?.lng) {
+        params.append('lat', userLocation.lat.toString());
+        params.append('lng', userLocation.lng.toString());
+        params.append('radius', '10000'); // 10km radius
+      }
+      
+      const response = await fetch(`/api/search/unified?${params.toString()}`);
       const data = await response.json();
       return data.restaurants || [];
     },
-    enabled: searchTerm.length > 2,
+    enabled: debouncedQuery.length > 2,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -70,22 +109,62 @@ export default function RestaurantSearchAndAdd({ onAddRestaurant, addedRestauran
     }
   };
 
+  const requestLocation = async () => {
+    try {
+      const location = await LocationService.getCurrentLocation();
+      if (location) {
+        setUserLocation(location);
+        setLocationPermission('granted');
+      }
+    } catch (error) {
+      setLocationPermission('denied');
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search restaurants to add to your list..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setIsSearching(true);
-            if (e.target.value.trim()) {
-              saveRecentSearch(e.target.value.trim());
-            }
-          }}
-          className="pl-10"
-        />
+      <div className="space-y-3">
+        {/* Location Services Integration */}
+        {locationPermission !== 'granted' && (
+          <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Navigation className="h-4 w-4 text-blue-600" />
+              <span className="text-sm text-blue-800">Enable location for better results</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={requestLocation}
+              className="text-blue-600 border-blue-300 hover:bg-blue-100"
+            >
+              Enable
+            </Button>
+          </div>
+        )}
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={userLocation ? "Search restaurants near you..." : "Search restaurants to add to your list..."}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setIsSearching(true);
+              if (e.target.value.trim()) {
+                saveRecentSearch(e.target.value.trim());
+              }
+            }}
+            className="pl-10"
+          />
+          {userLocation && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                📍 Location enabled
+              </Badge>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Recent Searches */}
