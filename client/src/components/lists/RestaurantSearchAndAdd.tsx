@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Plus, MapPin, Star, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -22,7 +22,7 @@ interface RestaurantSearchAndAddProps {
   addedRestaurants: Restaurant[];
 }
 
-export function RestaurantSearchAndAdd({ onAddRestaurant, addedRestaurants }: RestaurantSearchAndAddProps) {
+export default function RestaurantSearchAndAdd({ onAddRestaurant, addedRestaurants }: RestaurantSearchAndAddProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 

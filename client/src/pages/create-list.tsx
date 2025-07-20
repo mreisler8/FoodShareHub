@@ -21,9 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
-// Temporarily disable problematic imports
-// import { RestaurantSearchAndAdd } from "@/components/lists/RestaurantSearchAndAdd";
-// import { DraggableRestaurantList } from "@/components/lists/DraggableRestaurantList";
+import RestaurantSearchAndAdd from "@/components/lists/RestaurantSearchAndAdd";
+import DraggableRestaurantList from "@/components/lists/DraggableRestaurantList";
 
 // Form Schema based on Robust List Creation user story
 const formSchema = z.object({
@@ -363,12 +362,13 @@ export default function CreateList() {
               <Card>
                 <CardHeader>
                   <CardTitle>Add Restaurants</CardTitle>
+                  <p className="text-sm text-muted-foreground">Search and add restaurants to your list</p>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>Restaurant search temporarily disabled</p>
-                    <p className="text-xs mt-1">Feature under maintenance</p>
-                  </div>
+                  <RestaurantSearchAndAdd 
+                    onAddRestaurant={handleAddRestaurant} 
+                    addedRestaurants={listItems.map(item => item.restaurant)}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -377,12 +377,23 @@ export default function CreateList() {
               <Card>
                 <CardHeader>
                   <CardTitle>Rank & Review Your List</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {listItems.length === 0 ? "Add restaurants first to start ranking" : `Drag to reorder your ${listItems.length} restaurant${listItems.length !== 1 ? 's' : ''}`}
+                  </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>Drag and drop ranking temporarily disabled</p>
-                    <p className="text-xs mt-1">Feature under maintenance</p>
-                  </div>
+                  {listItems.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No restaurants added yet</p>
+                      <p className="text-xs mt-1">Go to the "Add Restaurants" tab to get started</p>
+                    </div>
+                  ) : (
+                    <DraggableRestaurantList 
+                      items={listItems}
+                      onItemsChange={handleItemsChange}
+                      onRemoveItem={handleRemoveItem}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

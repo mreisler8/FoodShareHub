@@ -4,7 +4,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Star, MapPin, X, Edit } from "lucide-react";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -228,7 +228,7 @@ function SortableItem({ item, onUpdateItem, onRemoveItem, rank }: SortableItemPr
   );
 }
 
-export function DraggableRestaurantList({ items, onItemsChange, onRemoveItem }: DraggableRestaurantListProps) {
+export default function DraggableRestaurantList({ items, onItemsChange, onRemoveItem }: DraggableRestaurantListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
