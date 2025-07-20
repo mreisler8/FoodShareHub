@@ -401,45 +401,133 @@ export default function CreateList() {
                         )}
                       />
                       
-                      <FormField
-                        control={form.control}
-                        name="tags"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tags</FormLabel>
-                            <FormControl>
-                              <div>
-                                <Input 
-                                  placeholder="e.g., brunch, cheap-eats, date-night (comma separated)" 
-                                  {...field} 
-                                />
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {[
-                                    "brunch", "date-night", "cheap-eats", "family-friendly", 
-                                    "romantic", "casual", "fine-dining", "outdoor-seating"
-                                  ].map((tag) => (
-                                    <button
-                                      key={tag}
-                                      type="button"
-                                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-                                      onClick={() => {
-                                        const currentTags = field.value ? field.value.split(',').map(t => t.trim()) : [];
-                                        if (!currentTags.includes(tag)) {
-                                          const newTags = [...currentTags, tag].join(', ');
-                                          field.onChange(newTags);
-                                        }
-                                      }}
-                                    >
-                                      + {tag}
-                                    </button>
-                                  ))}
+                      {/* Enhanced Tags Section */}
+                      <div className="space-y-4 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-semibold text-gray-900 flex items-center">
+                            <span className="w-2 h-2 bg-primary rounded-full mr-2"></span>
+                            Add Tags
+                          </h3>
+                          <p className="text-xs text-gray-600">Help others discover your list with relevant tags</p>
+                        </div>
+                        
+                        <FormField
+                          control={form.control}
+                          name="tags"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="space-y-4">
+                                {/* Categorized Quick Tags */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Popular</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {['trending', 'must-try', 'hidden-gem', 'local-favorite'].map((tag) => (
+                                        <button
+                                          key={tag}
+                                          type="button"
+                                          onClick={() => {
+                                            const currentTags = field.value ? field.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+                                            if (!currentTags.includes(tag)) {
+                                              const newTags = [...currentTags, tag].join(', ');
+                                              field.onChange(newTags);
+                                            }
+                                          }}
+                                          className="px-2.5 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg border border-blue-200 transition-all hover:scale-105"
+                                        >
+                                          + {tag}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Occasion</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {['date-night', 'family-friendly', 'brunch', 'late-night'].map((tag) => (
+                                        <button
+                                          key={tag}
+                                          type="button"
+                                          onClick={() => {
+                                            const currentTags = field.value ? field.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+                                            if (!currentTags.includes(tag)) {
+                                              const newTags = [...currentTags, tag].join(', ');
+                                              field.onChange(newTags);
+                                            }
+                                          }}
+                                          className="px-2.5 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-800 rounded-lg border border-green-200 transition-all hover:scale-105"
+                                        >
+                                          + {tag}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Budget</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {['cheap-eats', 'mid-range', 'splurge-worthy'].map((tag) => (
+                                        <button
+                                          key={tag}
+                                          type="button"
+                                          onClick={() => {
+                                            const currentTags = field.value ? field.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+                                            if (!currentTags.includes(tag)) {
+                                              const newTags = [...currentTags, tag].join(', ');
+                                              field.onChange(newTags);
+                                            }
+                                          }}
+                                          className="px-2.5 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-800 rounded-lg border border-orange-200 transition-all hover:scale-105"
+                                        >
+                                          + {tag}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
                                 </div>
+                                
+                                <div className="border-t border-gray-300 pt-3">
+                                  <FormControl>
+                                    <div className="space-y-2">
+                                      <Label className="text-xs font-medium text-gray-700">Custom tags:</Label>
+                                      <Input
+                                        placeholder="Type your own tags (comma-separated)"
+                                        {...field}
+                                        className="text-sm bg-white border-gray-300 focus:border-primary"
+                                      />
+                                    </div>
+                                  </FormControl>
+                                </div>
+                                
+                                {/* Current Tags Display */}
+                                {field.value && field.value.trim() && (
+                                  <div className="space-y-2 bg-white p-3 rounded-lg border border-gray-200">
+                                    <p className="text-xs font-medium text-gray-700">Selected tags:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {field.value.split(',').map(tag => tag.trim()).filter(Boolean).map((tag, index) => (
+                                        <Badge key={index} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                          {tag}
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newTags = field.value.split(',').map(t => t.trim()).filter(t => t !== tag).join(', ');
+                                              field.onChange(newTags);
+                                            }}
+                                            className="ml-1.5 hover:text-red-600 transition-colors"
+                                          >
+                                            ×
+                                          </button>
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                       
                       <FormField
                         control={form.control}
