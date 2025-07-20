@@ -227,16 +227,44 @@ export default function CreateList() {
           </div>
         </div>
 
+        {/* Progress Indicator */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Progress</span>
+            <span className="text-xs text-gray-500">
+              {watchedName ? '1' : '0'}/3 steps completed
+            </span>
+          </div>
+          <div className="flex space-x-2">
+            <div className={`h-2 flex-1 rounded-full ${watchedName ? 'bg-green-500' : 'bg-gray-200'}`} />
+            <div className={`h-2 flex-1 rounded-full ${listItems.length > 0 ? 'bg-green-500' : 'bg-gray-200'}`} />
+            <div className={`h-2 flex-1 rounded-full ${listItems.length > 1 ? 'bg-green-500' : 'bg-gray-200'}`} />
+          </div>
+          <div className="flex justify-between mt-1 text-xs text-gray-500">
+            <span>Details</span>
+            <span>Add Items</span>
+            <span>Finalize</span>
+          </div>
+        </div>
+
         {/* Modern Tabbed Interface */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="details" className="flex items-center space-x-2">
+            <TabsTrigger value="details" className="flex items-center space-x-2 relative">
               <Utensils className="h-4 w-4" />
               <span>List Details</span>
+              {watchedName && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+              )}
             </TabsTrigger>
-            <TabsTrigger value="restaurants" className="flex items-center space-x-2">
+            <TabsTrigger value="restaurants" className="flex items-center space-x-2 relative">
               <Search className="h-4 w-4" />
               <span>Add Restaurants</span>
+              {listItems.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                  {listItems.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="ranking" className="flex items-center space-x-2">
               <Star className="h-4 w-4" />
@@ -261,7 +289,34 @@ export default function CreateList() {
                           <FormItem>
                             <FormLabel>List Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g., Best Brunch Spots" {...field} />
+                              <div className="relative">
+                                <Input placeholder="e.g., Best Brunch Spots" {...field} />
+                                {!field.value && (
+                                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-sm z-10">
+                                    <div className="p-2 text-xs text-muted-foreground border-b">
+                                      Quick suggestions:
+                                    </div>
+                                    <div className="p-1 space-y-1">
+                                      {[
+                                        "Best Pizza Places",
+                                        "Date Night Favorites", 
+                                        "Hidden Gems",
+                                        "Weekend Brunch Spots",
+                                        "Work Lunch Options"
+                                      ].map((suggestion) => (
+                                        <button
+                                          key={suggestion}
+                                          type="button"
+                                          className="w-full text-left px-2 py-1 text-sm hover:bg-gray-50 rounded"
+                                          onClick={() => field.onChange(suggestion)}
+                                        >
+                                          {suggestion}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -293,10 +348,33 @@ export default function CreateList() {
                           <FormItem>
                             <FormLabel>Tags</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="e.g., brunch, cheap-eats, date-night (comma separated)" 
-                                {...field} 
-                              />
+                              <div>
+                                <Input 
+                                  placeholder="e.g., brunch, cheap-eats, date-night (comma separated)" 
+                                  {...field} 
+                                />
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {[
+                                    "brunch", "date-night", "cheap-eats", "family-friendly", 
+                                    "romantic", "casual", "fine-dining", "outdoor-seating"
+                                  ].map((tag) => (
+                                    <button
+                                      key={tag}
+                                      type="button"
+                                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                                      onClick={() => {
+                                        const currentTags = field.value ? field.value.split(',').map(t => t.trim()) : [];
+                                        if (!currentTags.includes(tag)) {
+                                          const newTags = [...currentTags, tag].join(', ');
+                                          field.onChange(newTags);
+                                        }
+                                      }}
+                                    >
+                                      + {tag}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>

@@ -1,0 +1,38 @@
+Looking at your codebase and the current state, here's what you should share with your dev agent to complete tasks 1 and 2:
+
+Task 1: Re-enable RestaurantSearchAndAdd Component
+Current Issue: The component is temporarily disabled with import comments in create-list.tsx:
+
+// Temporarily disable problematic imports
+// import { RestaurantSearchAndAdd } from "@/components/lists/RestaurantSearchAndAdd";
+What to Share:
+
+Component exists and is functional - The RestaurantSearchAndAdd.tsx file is complete with proper search integration
+Import path is correct - The component should import from @/components/lists/RestaurantSearchAndAdd
+Integration point - The component should replace the maintenance message in the "Add Restaurants" tab
+Task 2: Re-enable DraggableRestaurantList Component
+Current Issue: Also disabled with import comments:
+
+// import { DraggableRestaurantList } from "@/components/lists/DraggableRestaurantList";
+What to Share:
+
+Component is fully implemented - The DraggableRestaurantList.tsx file includes drag-and-drop functionality with @dnd-kit
+Import inconsistency - There are two different import patterns in your codebase:
+create-list-new.tsx uses: import { DraggableRestaurantList } from "@/components/lists/DraggableRestaurantList";
+create-list.tsx uses: import DraggableRestaurantList from "@/components/lists/DraggableRestaurantList";
+Export format - The component uses export default, so the import should be without curly braces
+Instructions for Dev Agent:
+Priority 1: Re-enable both components in client/src/pages/create-list.tsx by:
+
+Uncommenting the import statements
+Fixing the DraggableRestaurantList import to use default import (without curly braces)
+Replacing the maintenance messages with the actual components
+Priority 2: Ensure proper data flow between components:
+
+RestaurantSearchAndAdd should call onAddRestaurant to add items to the list
+DraggableRestaurantList should receive the added restaurants and allow ranking
+Both components should integrate with the existing form state
+Expected Outcome: Users should be able to search for restaurants, add them to their list, and drag to reorder them in the "Add Restaurants" and "Rank & Review" tabs respectively.
+
+The React hook violations have been fixed, so these components should work properly once re-enabled.
+
