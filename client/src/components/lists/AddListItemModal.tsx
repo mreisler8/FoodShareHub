@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, X } from "lucide-react";
-import { RestaurantSearchComponent } from "../search/RestaurantSearchComponent";
-import { SmartTagInput } from "../SmartTagInput";
+import { RestaurantSearchComponent } from "../shared/RestaurantSearchComponent";
+import { SmartTagInput } from "./SmartTagInput";
 
 const restaurantFormSchema = z.object({
   name: z.string().min(1, "Restaurant name is required"),
