@@ -322,7 +322,6 @@ export default function CreateList() {
         {/* Step Content */}
         <div className="space-y-6">
           {activeTab === 'details' && (
-            {/* Step 1: List Basics */}
             <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold text-foreground">List Basics</h2>
@@ -509,8 +508,8 @@ export default function CreateList() {
                 </div>
               )}
 
-              {/* Step 2: Add Items */}
-              {activeTab === 'restaurants' && (
+          {/* Step 2: Add Items */}
+          {activeTab === 'restaurants' && (
                 <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
                   <div className="space-y-2">
                     <h2 className="text-lg font-semibold text-foreground">Add Your Favorite Places</h2>
@@ -544,8 +543,8 @@ export default function CreateList() {
                 </div>
               )}
 
-              {/* Step 3: Share & Finalize */}
-              {activeTab === 'ranking' && (
+          {/* Step 3: Share & Finalize */}
+          {activeTab === 'ranking' && (
                 <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
                   <div className="space-y-2">
                     <h2 className="text-lg font-semibold text-foreground">Share & Finalize</h2>
@@ -663,7 +662,7 @@ export default function CreateList() {
                   </div>
                 </div>
               )}
-            </div>
+        </div>
 
 
       </div>
