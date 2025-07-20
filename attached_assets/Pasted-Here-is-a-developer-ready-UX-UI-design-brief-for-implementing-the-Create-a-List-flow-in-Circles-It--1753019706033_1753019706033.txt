@@ -1,0 +1,174 @@
+Here is a developer-ready UX/UI design brief for implementing the Create a List flow in Circles. It is structured for immediate handoff to your Dev Agent and will fit within your current app architecture.
+
+✅ Developer Implementation Brief – Create a List Flow
+🧭 Objective
+Build a mobile-first, expressive list creation experience that allows users to:
+
+Mix restaurants and specific dishes
+
+Add personal notes, tags, and media
+
+Rank or unrank items
+
+Share privately, to profile, a Circle, or publicly
+
+🔧 COMPONENT OVERVIEW
+Component	Purpose	Key Props / Behaviors
+CreateListForm.tsx	Main entry point	Title, description, image, rank toggle
+AddListItemModal.tsx	Modal or drawer to add restaurant or dish	Type selector, search input, photo, notes
+ListItemPreview.tsx	Renders preview of added item in card format	type, title, restaurant, tags, notes, city, image
+ListItemsSortable.tsx	Optional drag-to-rank view	List of items with reorder logic
+ShareListDestinationPicker.tsx	Final step before publish	Dropdown with Profile / Circle / Public / Private
+ListPreviewCard.tsx	Full list preview (reused from feed layout)	Feed-like stylization of list
+PostSuccessModal.tsx	Confirmation after publishing	Destination info + CTA buttons
+
+📱 1. Create List Entry Screen
+tsx
+Copy
+Edit
+<CreateListForm
+  onSubmit={handleContinue}
+  fields={{
+    title: "",
+    description: "",
+    coverImage: null,
+    isRanked: false,
+  }}
+/>
+UX Details:
+✅ Title is required
+
+🖼 Optional cover image
+
+🔁 Toggle: “Rank this list?” switches layout logic (drag-handle shows in item preview)
+
+➕ “Add item to list” → opens AddListItemModal
+
+✏️ 2. Add List Item Modal
+Prompt: “What are you adding?”
+
+Select between:
+
+🏙 General Restaurant
+
+🍽 Specific Dish at a Restaurant
+
+Fields by type:
+
+Restaurant Only	Dish at Restaurant
+Name (search-enabled)	Dish name (required)
+City	Restaurant name (search-enabled)
+Tags	Tags
+Notes	Notes
+Photo	Photo
+–	City
+
+🔎 Search-powered inputs should support fallback:
+“Can’t find it? Add manually” state.
+
+🔁 After Save → show inline preview in parent list screen using ListItemPreview.tsx
+
+🧩 3. Item Preview Card
+tsx
+Copy
+Edit
+<ListItemPreview
+  type="dish"
+  title="Smash Burger"
+  restaurant="Burger Drops"
+  city="Toronto"
+  notes="Best smash patty in the city"
+  image="/uploads/burger.jpg"
+  rank={index}
+/>
+Visual consistency with homepage/feed cards
+
+If ranked: show index badge (e.g., “#1”)
+
+On tap: Show inline options:
+
+✏️ Edit
+
+❌ Delete
+
+↕️ Move (if ranked)
+
+📤 4. Share Destination Picker
+tsx
+Copy
+Edit
+<ShareListDestinationPicker
+  options={["Profile", "Circle", "Public", "Private"]}
+  selected={shareTo}
+  onChange={setShareTo}
+/>
+✅ Required to publish
+⚠️ Error state if not selected:
+
+“Choose where to share your list”
+
+If Circle selected, show dropdown of joined Circles
+If Public, check if user’s profile is public
+
+👁 5. Preview & Confirmation
+Show real-time feed-style preview using ListPreviewCard
+
+CTA: “Publish List” → triggers final validation
+
+On Success:
+tsx
+Copy
+Edit
+<PostSuccessModal
+  destination={shareTo}
+  options={{
+    view: `/lists/${listId}`,
+    new: "/create-list",
+    home: "/home"
+  }}
+/>
+🎨 UI + Styling Guidance
+Card-based layout (reuse Card.tsx or ListItemCard)
+
+Tailwind best practices:
+
+text-lg, font-medium, text-muted-foreground
+
+rounded-xl, shadow-sm, gap-4, p-4
+
+Buttons: min-h-[48px]
+
+Maintain modal/drawer interactions for mobile-first UX
+
+🔁 Interactions
+Action	UX Details
+Rank toggle	When active, enable drag-and-drop reordering via ListItemsSortable
+Add item	Opens modal, saves to list state, renders preview
+Edit/Delete	Tappable options per preview
+Share	Must select destination before publish
+Scroll	All modals should be max-h-screen with overflow-y-auto
+
+🧪 Edge Case Support
+No items added yet → Show:
+
+“Start with one place or dish”
+
+No results in search → Show:
+
+“Can’t find it? Add manually”
+
+No share destination selected → Block publish with inline alert
+
+🧱 Suggested Folder Structure
+bash
+Copy
+Edit
+/components/
+  lists/
+    CreateListForm.tsx
+    AddListItemModal.tsx
+    ListItemPreview.tsx
+    ListItemsSortable.tsx
+    ShareListDestinationPicker.tsx
+    ListPreviewCard.tsx
+    PostSuccessModal.tsx

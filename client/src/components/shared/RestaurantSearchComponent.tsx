@@ -1,199 +1,146 @@
-import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Star, Clock, Loader2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/use-auth';
-import { SearchService } from '@/services/searchService';
-import { Restaurant } from '@/types/restaurant';
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Search, MapPin, Star, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
-interface RestaurantSearchProps {
+interface Restaurant {
+  id: number;
+  name: string;
+  location: string;
+  category?: string;
+  priceRange?: string;
+  imageUrl?: string;
+  averageRating?: number;
+  totalPosts?: number;
+}
+
+interface RestaurantSearchComponentProps {
   onSelect: (restaurant: Restaurant) => void;
   placeholder?: string;
   className?: string;
-  showRecentSearches?: boolean;
-  initialValue?: string;
 }
 
-export function RestaurantSearchComponent({
-  onSelect,
+export function RestaurantSearchComponent({ 
+  onSelect, 
   placeholder = "Search for restaurants...",
-  className = "",
-  showRecentSearches = true,
-  initialValue = ""
-}: RestaurantSearchProps) {
-  const [searchQuery, setSearchQuery] = useState(initialValue);
+  className = ""
+}: RestaurantSearchComponentProps) {
+  const [searchTerm, setSearchTerm] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const { user } = useAuth();
 
-  // Get user location on mount
+  // Debounced search
+  const { data: searchResults, isLoading } = useQuery({
+    queryKey: ["/api/search/unified", searchTerm],
+    queryFn: async () => {
+      if (!searchTerm.trim()) return [];
+      
+      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(searchTerm)}`);
+      const data = await response.json();
+      return data.restaurants || [];
+    },
+    enabled: searchTerm.length > 2,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const handleSelect = (restaurant: Restaurant) => {
+    onSelect(restaurant);
+    setSearchTerm("");
+    setShowResults(false);
+  };
+
+  // Close results when clicking outside
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.log('Location access denied or unavailable');
-        }
-      );
-    }
+    const handleClickOutside = () => setShowResults(false);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Search restaurants with debouncing
-  const { data: searchResults = [], isLoading } = useQuery({
-    queryKey: ['/api/search/unified', searchQuery, userLocation],
-    queryFn: async () => {
-      if (!searchQuery.trim() || searchQuery.length < 2) return [];
-      
-      const searchService = SearchService.getInstance();
-      const results = await searchService.searchRestaurants(searchQuery.trim(), {
-        location: userLocation,
-        limit: 8
-      });
-      return results;
-    },
-    enabled: searchQuery.length >= 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Get recent searches
-  const { data: recentSearches = [] } = useQuery({
-    queryKey: ['/api/search/recent-searches'],
-    queryFn: async () => {
-      if (!user) return [];
-      const response = await apiRequest('/api/search/recent-searches');
-      return response.searches || [];
-    },
-    enabled: showRecentSearches && !!user && searchQuery.length === 0,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
-
-  const handleInputChange = (value: string) => {
-    setSearchQuery(value);
-    setShowResults(value.length >= 1);
-    if (value.length === 0) {
-      setSelectedRestaurant(null);
-      setShowResults(showRecentSearches);
-    }
-  };
-
-  const handleRestaurantSelect = (restaurant: Restaurant) => {
-    setSelectedRestaurant(restaurant);
-    setSearchQuery(restaurant.name);
-    setShowResults(false);
-    onSelect(restaurant);
-  };
-
-  const handleRecentSearchSelect = (searchTerm: string) => {
-    setSearchQuery(searchTerm);
-    setShowResults(true);
-  };
-
-  const renderRestaurantCard = (restaurant: Restaurant) => (
-    <div
-      key={`${restaurant.source}-${restaurant.id}`}
-      onClick={() => handleRestaurantSelect(restaurant)}
-      className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <h4 className="font-medium text-gray-900 text-sm">{restaurant.name}</h4>
-          <div className="flex items-center gap-2 mt-1">
-            <MapPin className="w-3 h-3 text-gray-400" />
-            <span className="text-xs text-gray-600">{restaurant.location}</span>
-          </div>
-          {restaurant.cuisine && (
-            <Badge variant="secondary" className="mt-1 text-xs">
-              {restaurant.cuisine}
-            </Badge>
-          )}
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          {restaurant.rating && (
-            <div className="flex items-center gap-1">
-              <Star className="w-3 h-3 text-yellow-500 fill-current" />
-              <span className="text-xs text-gray-600">{restaurant.rating}</span>
-            </div>
-          )}
-          {restaurant.source === 'google' && (
-            <Badge variant="outline" className="text-xs">Google</Badge>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderRecentSearches = () => (
-    <div className="p-3 border-b">
-      <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-        <Clock className="w-3 h-3" />
-        Recent Searches
-      </h5>
-      <div className="space-y-1">
-        {recentSearches.slice(0, 3).map((search: any, index: number) => (
-          <button
-            key={index}
-            onClick={() => handleRecentSearchSelect(search.query)}
-            className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-1"
-          >
-            {search.query}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} onClick={(e) => e.stopPropagation()}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          type="text"
           placeholder={placeholder}
-          value={searchQuery}
-          onChange={(e) => handleInputChange(e.target.value)}
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setShowResults(true);
+          }}
           onFocus={() => setShowResults(true)}
-          className="pl-10 pr-4"
+          className="pl-10"
         />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
-        )}
       </div>
 
-      {showResults && (
-        <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-80 overflow-y-auto shadow-lg">
-          <CardContent className="p-0">
-            {searchQuery.length === 0 && showRecentSearches && recentSearches.length > 0 && (
-              renderRecentSearches()
-            )}
-            
-            {searchQuery.length >= 2 && (
-              <>
-                {isLoading ? (
-                  <div className="p-4 text-center text-gray-500">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                    Searching restaurants...
+      {showResults && searchTerm.length > 2 && (
+        <Card className="absolute top-full left-0 right-0 z-50 mt-1 max-h-80 overflow-y-auto">
+          <CardContent className="p-2">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : searchResults?.length > 0 ? (
+              <div className="space-y-2">
+                {searchResults.map((restaurant: Restaurant) => (
+                  <div
+                    key={restaurant.id}
+                    onClick={() => handleSelect(restaurant)}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
+                    {restaurant.imageUrl ? (
+                      <img
+                        src={restaurant.imageUrl}
+                        alt={restaurant.name}
+                        className="w-12 h-12 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                        <MapPin className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">
+                        {restaurant.name}
+                      </h4>
+                      
+                      {restaurant.location && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                          <MapPin className="h-3 w-3" />
+                          {restaurant.location}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center gap-2 mt-1">
+                        {restaurant.averageRating && (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs">{restaurant.averageRating.toFixed(1)}</span>
+                          </div>
+                        )}
+                        
+                        {restaurant.category && (
+                          <Badge variant="outline" className="text-xs">
+                            {restaurant.category}
+                          </Badge>
+                        )}
+                        
+                        {restaurant.priceRange && (
+                          <span className="text-xs text-muted-foreground">
+                            {restaurant.priceRange}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                ) : searchResults.length > 0 ? (
-                  <div>
-                    {searchResults.map(renderRestaurantCard)}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-gray-500">
-                    <Search className="w-5 h-5 mx-auto mb-2 text-gray-400" />
-                    No restaurants found for "{searchQuery}"
-                  </div>
-                )}
-              </>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">No restaurants found</p>
+                <p className="text-xs mt-1">Try a different search term</p>
+              </div>
             )}
           </CardContent>
         </Card>

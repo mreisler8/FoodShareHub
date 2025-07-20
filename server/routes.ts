@@ -44,6 +44,7 @@ import locationRoutes from "./routes/location";
 import restaurantsRouter from "./routes/restaurants";
 import circleInvitesRouter from './routes/circle-invites';
 import postsRouter from './routes/posts';
+import tagsRouter from './routes/tags';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -1282,6 +1283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/users", usersStatsRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/restaurants", restaurantsRouter);
+  app.use("/api/tags", tagsRouter);
 
   // Enterprise-grade social network activity feed
   app.get('/api/social/activity', authenticate, async (req: any, res: any) => {
