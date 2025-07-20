@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus, Sparkles, Check, X } from "lucide-react";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { AddListItemModal } from "@/components/lists/AddListItemModal";
 import { ListItemPreview } from "@/components/lists/ListItemPreview";
-import { ListItemsSortable } from "@/components/lists/ListItemsSortable";
 import { ShareDestinationCards } from "@/components/lists/ShareDestinationCards";
 import { PostSuccessModal } from "@/components/lists/PostSuccessModal";
 import { apiRequest } from "@/lib/queryClient";
@@ -38,6 +39,15 @@ export interface ShareDestination {
   circleName?: string;
 }
 
+const QUICK_TEMPLATES = [
+  { emoji: "🍕", text: "Best Pizza Places", tags: ["pizza", "casual"] },
+  { emoji: "💕", text: "Date Night Favorites", tags: ["romantic", "date-night"] },
+  { emoji: "💎", text: "Hidden Gems", tags: ["hidden-gem", "local"] },
+  { emoji: "🥐", text: "Brunch Spots", tags: ["brunch", "weekend"] },
+  { emoji: "💰", text: "Budget Eats", tags: ["cheap-eats", "value"] },
+  { emoji: "🏆", text: "Must Try Places", tags: ["must-try", "popular"] }
+];
+
 export default function CreateListEnhanced() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -53,332 +63,451 @@ export default function CreateListEnhanced() {
   });
   const [listItems, setListItems] = useState<ListItem[]>([]);
   const [shareDestination, setShareDestination] = useState<ShareDestination>({ type: "private" });
-  const [createdListId, setCreatedListId] = useState<number>();
   
-  // Modal states
+  // UI state
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [editingItemId, setEditingItemId] = useState<string>();
+  const [createdListId, setCreatedListId] = useState<number | null>(null);
 
-  // Auto-save functionality
+  // Auto-save to localStorage
   useEffect(() => {
-    const saveData = {
+    const draftData = {
       listData,
       listItems,
       shareDestination,
       timestamp: Date.now()
     };
-    localStorage.setItem('create-list-draft', JSON.stringify(saveData));
+    localStorage.setItem('list-creation-draft', JSON.stringify(draftData));
   }, [listData, listItems, shareDestination]);
 
   // Load draft on mount
   useEffect(() => {
-    const saved = localStorage.getItem('create-list-draft');
+    const saved = localStorage.getItem('list-creation-draft');
     if (saved) {
       try {
-        const { listData: savedListData, listItems: savedItems, shareDestination: savedDestination, timestamp } = JSON.parse(saved);
-        // Only restore if less than 24 hours old
-        if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-          setListData(savedListData);
-          setListItems(savedItems || []);
-          setShareDestination(savedDestination || { type: "private" });
+        const draft = JSON.parse(saved);
+        const isRecent = Date.now() - draft.timestamp < 24 * 60 * 60 * 1000; // 24 hours
+        if (isRecent && (draft.listData.title || draft.listItems.length > 0)) {
+          setListData(draft.listData);
+          setListItems(draft.listItems);
+          setShareDestination(draft.shareDestination);
         }
-      } catch (error) {
-        console.error('Failed to restore draft:', error);
+      } catch (e) {
+        // Invalid draft data
       }
     }
   }, []);
 
-  // Handle form changes
-  const handleTitleChange = (value: string) => {
-    setListData(prev => ({ ...prev, title: value }));
-  };
-
-  const handleDescriptionChange = (value: string) => {
-    setListData(prev => ({ ...prev, description: value }));
-  };
-
-  const handleRankedToggle = (checked: boolean) => {
-    setListData(prev => ({ ...prev, isRanked: checked }));
-    // Update items with ranks if enabling ranking
-    if (checked) {
-      const rankedItems = listItems.map((item, index) => ({
-        ...item,
-        rank: index + 1,
-      }));
-      setListItems(rankedItems);
-    }
-  };
-
-  // Add Items
-  const handleAddItem = (item: ListItemData) => {
-    const newItem: ListItem = {
-      ...item,
-      id: `item-${Date.now()}-${Math.random()}`,
-      rank: listData.isRanked ? listItems.length + 1 : undefined,
-    };
-    setListItems([...listItems, newItem]);
-    setShowAddItemModal(false);
-  };
-
-  const handleDeleteItem = (itemId: string) => {
-    const updatedItems = listItems.filter(item => item.id !== itemId);
-    
-    // Update ranks if ranked list
-    if (listData.isRanked) {
-      const rerankedItems = updatedItems.map((item, index) => ({
-        ...item,
-        rank: index + 1,
-      }));
-      setListItems(rerankedItems);
-    } else {
-      setListItems(updatedItems);
-    }
-  };
-
-  const handleMoveItem = (itemId: string, direction: "up" | "down") => {
-    const currentIndex = listItems.findIndex(item => item.id === itemId);
-    if (currentIndex === -1) return;
-
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= listItems.length) return;
-
-    const newItems = [...listItems];
-    [newItems[currentIndex], newItems[newIndex]] = [newItems[newIndex], newItems[currentIndex]];
-    
-    // Update ranks
-    const rerankedItems = newItems.map((item, index) => ({
-      ...item,
-      rank: index + 1,
-    }));
-    
-    setListItems(rerankedItems);
-  };
-
-  const handleItemsChange = (newItems: ListItem[]) => {
-    setListItems(newItems);
-  };
-
-  // Publishing
-  const canPublish = listData.title.trim() && listItems.length > 0;
-
-  // Create list mutation
   const createListMutation = useMutation({
-    mutationFn: async () => {
-      if (!shareDestination) throw new Error("No share destination selected");
-
-      // Prepare list data for API
-      const payload = {
-        name: listData.title,
-        description: listData.description || null,
-        tags: listData.tags,
-        coverImage: listData.coverImage || null,
-        isRanked: listData.isRanked,
-        audience: shareDestination.type,
-        circleId: shareDestination.circleId || null,
-        items: listItems.map((item, index) => ({
-          type: item.type,
-          restaurantId: item.restaurant?.id || null,
-          restaurantName: item.restaurant?.name || "",
-          restaurantLocation: item.restaurant?.location || "",
-          dishName: item.dish?.name || null,
-          notes: item.notes || "",
-          tags: item.tags || [],
-          photo: item.photo || null,
-          rank: listData.isRanked ? (item.rank || index + 1) : null,
-        })),
-      };
-
+    mutationFn: async (data: any) => {
       const response = await apiRequest("/api/lists", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(data),
       });
-
       return response;
     },
     onSuccess: (data) => {
       setCreatedListId(data.id);
       setShowSuccessModal(true);
-      clearDraft();
-      
+      localStorage.removeItem('list-creation-draft');
       toast({
-        title: "List created successfully!",
-        description: `"${listData.title}" has been published.`,
+        title: "Success!",
+        description: "Your list has been created successfully.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
-        title: "Failed to create list",
-        description: error.message,
+        title: "Error",
+        description: "Failed to create list. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const handlePublish = () => {
-    if (!canPublish) return;
-    createListMutation.mutate();
+  const handleQuickTemplate = (template: typeof QUICK_TEMPLATES[0]) => {
+    setListData(prev => ({
+      ...prev,
+      title: template.text,
+      tags: template.tags,
+      description: `A curated collection of ${template.text.toLowerCase()}`
+    }));
   };
 
-  // Clear draft after successful creation
-  const clearDraft = () => {
-    localStorage.removeItem('create-list-draft');
+  const handleAddListItem = (item: ListItemData) => {
+    const newItem: ListItem = {
+      ...item,
+      id: `temp-${Date.now()}`,
+      rank: listItems.length + 1
+    };
+    setListItems(prev => [...prev, newItem]);
+    setShowAddItemModal(false);
   };
+
+  const handleRemoveItem = (itemId: string) => {
+    setListItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handleSubmit = () => {
+    if (!listData.title.trim()) {
+      toast({
+        title: "Title Required",
+        description: "Please enter a title for your list.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (listItems.length === 0) {
+      toast({
+        title: "Add Items",
+        description: "Please add at least one restaurant or dish to your list.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const submitData = {
+      name: listData.title,
+      description: listData.description,
+      tags: listData.tags,
+      isRanked: listData.isRanked,
+      shareWithCircle: shareDestination.type === "circle",
+      makePublic: shareDestination.type === "public",
+      circleId: shareDestination.circleId,
+      restaurants: listItems.map((item, index) => ({
+        name: item.restaurant?.name || "",
+        location: item.restaurant?.location || "",
+        notes: item.notes || "",
+        tags: item.tags || [],
+        dishName: item.dish?.name,
+        rank: listData.isRanked ? index + 1 : undefined
+      }))
+    };
+
+    createListMutation.mutate(submitData);
+  };
+
+  const getCompletionStatus = () => {
+    const hasTitle = listData.title.trim().length > 0;
+    const hasItems = listItems.length > 0;
+    const hasDestination = shareDestination.type !== "private" || true; // Private is always valid
+    
+    return {
+      title: hasTitle,
+      items: hasItems,
+      destination: hasDestination,
+      complete: hasTitle && hasItems && hasDestination
+    };
+  };
+
+  const status = getCompletionStatus();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DesktopSidebar />
-      
-      <div className="lg:pl-64">
-        <div className="container mx-auto px-4 pb-20 lg:pb-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/lists")}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              
-              <div>
-                <h1 className="text-xl font-semibold flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-orange-500" />
-                  Let's build your list
-                </h1>
-                <p className="text-sm text-gray-500">Start with one place or dish — you can always add more later</p>
+      {/* Desktop Layout */}
+      <div className="hidden lg:flex">
+        <DesktopSidebar />
+        <main className="flex-1 ml-64">
+          <div className="max-w-4xl mx-auto px-6 py-8">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/")}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Let's build your list</h1>
+                  <p className="text-gray-600">Start with one place or dish — you can always add more later</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {status.title && <Badge variant="secondary" className="bg-green-100 text-green-800">Title ✓</Badge>}
+                {status.items && <Badge variant="secondary" className="bg-green-100 text-green-800">{listItems.length} Items ✓</Badge>}
               </div>
             </div>
-          </div>
 
-          {/* Single Flow Content */}
-          <div className="max-w-2xl mx-auto space-y-6">
-            {/* List Details Section */}
-            <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
-              <Input
-                placeholder="List title (e.g. Toronto Date Night)"
-                value={listData.title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                className="text-lg font-medium border-0 bg-transparent px-0 focus-visible:ring-0 placeholder:text-gray-400"
-              />
-              
-              <Textarea
-                placeholder="Optional: What's this list about?"
-                value={listData.description || ""}
-                onChange={(e) => handleDescriptionChange(e.target.value)}
-                className="border-0 bg-transparent px-0 focus-visible:ring-0 placeholder:text-gray-400 resize-none"
-                rows={2}
-              />
-              
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+            {/* Quick Templates */}
+            {!listData.title && (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-blue-600" />
+                    Quick Start Templates
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {QUICK_TEMPLATES.map((template, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        onClick={() => handleQuickTemplate(template)}
+                        className="h-auto p-4 text-left flex flex-col items-start gap-1"
+                      >
+                        <span className="text-lg">{template.emoji}</span>
+                        <span className="font-medium">{template.text}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* List Details Form */}
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>List Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label htmlFor="title">List Title *</Label>
+                  <Input
+                    id="title"
+                    value={listData.title}
+                    onChange={(e) => setListData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="e.g., Best Pizza in Toronto"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description (optional)</Label>
+                  <Textarea
+                    id="description"
+                    value={listData.description}
+                    onChange={(e) => setListData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Tell people what makes this list special..."
+                    rows={3}
+                    className="mt-1"
+                  />
+                </div>
+
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="ranking-toggle"
+                    id="ranked"
                     checked={listData.isRanked}
-                    onCheckedChange={handleRankedToggle}
+                    onCheckedChange={(checked) => setListData(prev => ({ ...prev, isRanked: checked }))}
                   />
-                  <Label htmlFor="ranking-toggle" className="text-sm font-medium">
-                    Rank this list?
-                  </Label>
+                  <Label htmlFor="ranked">Make this a ranked list (1st, 2nd, 3rd...)</Label>
                 </div>
-                
-                <Button
-                  onClick={() => setShowAddItemModal(true)}
-                  disabled={!listData.title.trim()}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add your first item
-                </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Live Preview - Items */}
-            {listItems.length > 0 && (
-              <div className="space-y-4">
+            {/* List Items */}
+            <Card className="mb-8">
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Your List</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddItemModal(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add item
+                  <CardTitle>Your List ({listItems.length} items)</CardTitle>
+                  <Button onClick={() => setShowAddItemModal(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
                   </Button>
                 </div>
-
-                {listData.isRanked ? (
-                  <ListItemsSortable
-                    items={listItems}
-                    onItemsChange={handleItemsChange}
-                    onDelete={handleDeleteItem}
-                  />
+              </CardHeader>
+              <CardContent>
+                {listItems.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <div className="text-4xl mb-4">🍽️</div>
+                    <p className="text-lg mb-2">No items yet</p>
+                    <p>Click "Add Item" to start building your list</p>
+                  </div>
                 ) : (
-                  <div className="space-y-3">
-                    {listItems.map((item) => (
-                      <ListItemPreview
-                        key={item.id}
-                        item={item}
-                        isRanked={listData.isRanked}
-                        totalItems={listItems.length}
-                        onDelete={handleDeleteItem}
-                        onMove={handleMoveItem}
-                      />
+                  <div className="space-y-4">
+                    {listItems.map((item, index) => (
+                      <div key={item.id} className="relative">
+                        <ListItemPreview 
+                          item={item} 
+                          rank={listData.isRanked ? index + 1 : undefined}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="absolute top-2 right-2 h-8 w-8 p-0 hover:bg-red-100"
+                        >
+                          <X className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 )}
-              </div>
-            )}
+              </CardContent>
+            </Card>
 
-            {/* Share Destination Cards */}
-            {listItems.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-4">
+            {/* Share Destination */}
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Share With</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <ShareDestinationCards
                   selected={shareDestination}
-                  onChange={setShareDestination}
+                  onSelect={setShareDestination}
                 />
-              </div>
-            )}
+              </CardContent>
+            </Card>
 
-            {/* Publish Button */}
-            {listItems.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-4">
-                <Button
-                  onClick={handlePublish}
-                  disabled={!canPublish || createListMutation.isPending}
-                  className="w-full h-12 text-lg font-medium bg-blue-600 hover:bg-blue-700"
-                >
-                  {createListMutation.isPending ? (
-                    "Publishing..."
-                  ) : (
-                    `Publish "${listData.title}"`
-                  )}
-                </Button>
-                
-                {!canPublish && (
-                  <p className="text-sm text-gray-500 mt-2 text-center">
-                    {!listData.title.trim() ? "Add a title to continue" : "Add at least one item to publish"}
-                  </p>
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <Button
+                onClick={handleSubmit}
+                disabled={!status.complete || createListMutation.isPending}
+                size="lg"
+                className="min-w-[200px]"
+              >
+                {createListMutation.isPending ? (
+                  "Creating List..."
+                ) : status.complete ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Create List
+                  </>
+                ) : (
+                  `Create List (${!status.title ? 'Add title' : !status.items ? 'Add items' : 'Ready'})`
                 )}
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden">
+        <div className="px-4 py-6 pb-24">
+          {/* Mobile Header */}
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/")}
+              size="sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold">Let's build your list</h1>
+              <p className="text-sm text-gray-600">Start with one place or dish</p>
+            </div>
+          </div>
+
+          {/* Mobile Content - Same structure but condensed */}
+          {/* Quick Templates */}
+          {!listData.title && (
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-2 gap-2">
+                  {QUICK_TEMPLATES.slice(0, 4).map((template, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      onClick={() => handleQuickTemplate(template)}
+                      className="h-auto p-3 text-left"
+                      size="sm"
+                    >
+                      <span className="text-sm">{template.emoji} {template.text}</span>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Mobile Form */}
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="mobile-title">List Title *</Label>
+              <Input
+                id="mobile-title"
+                value={listData.title}
+                onChange={(e) => setListData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="e.g., Best Pizza in Toronto"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="mobile-description">Description</Label>
+              <Textarea
+                id="mobile-description"
+                value={listData.description}
+                onChange={(e) => setListData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="What makes this list special..."
+                rows={2}
+                className="mt-1"
+              />
+            </div>
+
+            {/* Mobile List Items */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <Label>Items ({listItems.length})</Label>
+                <Button onClick={() => setShowAddItemModal(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
               </div>
-            )}
+              
+              {listItems.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No items yet - tap Add to start</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {listItems.map((item, index) => (
+                    <div key={item.id} className="relative">
+                      <ListItemPreview 
+                        item={item} 
+                        rank={listData.isRanked ? index + 1 : undefined}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="absolute top-1 right-1 h-6 w-6 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Share Options */}
+            <div>
+              <Label className="mb-4 block">Share With</Label>
+              <ShareDestinationCards
+                selected={shareDestination}
+                onSelect={setShareDestination}
+              />
+            </div>
+
+            {/* Mobile Submit */}
+            <Button
+              onClick={handleSubmit}
+              disabled={!status.complete || createListMutation.isPending}
+              className="w-full"
+              size="lg"
+            >
+              {createListMutation.isPending ? "Creating..." : "Create List"}
+            </Button>
           </div>
         </div>
+        <MobileNavigation />
       </div>
 
       {/* Modals */}
       <AddListItemModal
         open={showAddItemModal}
         onOpenChange={setShowAddItemModal}
-        onSave={handleAddItem}
+        onSave={handleAddListItem}
       />
 
-      {shareDestination && (
+      {createdListId && (
         <PostSuccessModal
           open={showSuccessModal}
           onOpenChange={setShowSuccessModal}
@@ -387,8 +516,8 @@ export default function CreateListEnhanced() {
           destination={shareDestination}
           options={{
             view: `/lists/${createdListId}`,
-            new: "/create-list-enhanced",
-            home: "/",
+            new: "/create-list",
+            home: "/"
           }}
           onNavigate={(path) => {
             setShowSuccessModal(false);
@@ -396,8 +525,6 @@ export default function CreateListEnhanced() {
           }}
         />
       )}
-
-      <MobileNavigation />
     </div>
   );
 }
