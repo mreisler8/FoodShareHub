@@ -138,9 +138,10 @@ export default function CreateList() {
         description: "Restaurant list created successfully!",
       });
       
-      // Clear form
+      // Clear form and draft
       form.reset();
       setListItems([]);
+      localStorage.removeItem('draft-list');
       queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
       
       // Navigate to the list detail page
@@ -177,12 +178,64 @@ export default function CreateList() {
   // Watch form values at the top level to avoid hook violations
   const watchedAudience = form.watch("audience");
   const watchedName = form.watch("name");
+  const watchedDescription = form.watch("description");
+
+  // Smart description suggestions based on restaurants added
+  const generateSmartDescription = () => {
+    if (listItems.length === 0) return "";
+    
+    const cuisines = [...new Set(listItems.map(item => item.restaurant.category))];
+    const locations = [...new Set(listItems.map(item => item.restaurant.location.split(',')[0]))];
+    
+    if (cuisines.length === 1) {
+      return `My favorite ${cuisines[0].toLowerCase()} spots`;
+    } else if (locations.length === 1) {
+      return `Best restaurants in ${locations[0]}`;
+    } else if (listItems.length <= 3) {
+      return "A curated selection of my go-to restaurants";
+    } else {
+      return "My comprehensive guide to great dining";
+    }
+  };
   
   // Handle form submission
   const onSubmit = (values: FormValues) => {
     createList.mutate(values);
   };
   
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    const formData = form.watch();
+    if (formData.name || formData.description || formData.tags || listItems.length > 0) {
+      localStorage.setItem('draft-list', JSON.stringify({
+        formData,
+        listItems,
+        timestamp: Date.now()
+      }));
+    }
+  }, [form.watch, listItems]);
+
+  // Load draft on mount
+  useEffect(() => {
+    const draft = localStorage.getItem('draft-list');
+    if (draft) {
+      try {
+        const { formData, listItems: draftItems, timestamp } = JSON.parse(draft);
+        // Only load if draft is less than 24 hours old
+        if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+          if (formData.name || formData.description || formData.tags) {
+            form.reset(formData);
+          }
+          if (draftItems && draftItems.length > 0) {
+            setListItems(draftItems);
+          }
+        }
+      } catch (error) {
+        console.log('Failed to load draft:', error);
+      }
+    }
+  }, []);
+
   // Set page title
   useEffect(() => {
     document.title = "Create New List | Circles";
@@ -282,6 +335,35 @@ export default function CreateList() {
                 <CardContent className="space-y-6">
                   <Form {...form}>
                     <div className="space-y-6">
+                      {/* Quick Templates */}
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-gray-700">Quick Templates</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {[
+                            { name: "Best Pizza Places", desc: "Top pizza spots", emoji: "🍕" },
+                            { name: "Date Night Favorites", desc: "Romantic dining", emoji: "❤️" },
+                            { name: "Hidden Gems", desc: "Underrated places", emoji: "💎" },
+                            { name: "Weekend Brunch", desc: "Perfect for brunch", emoji: "🥞" },
+                            { name: "Work Lunch Options", desc: "Quick lunch spots", emoji: "💼" },
+                            { name: "Family Friendly", desc: "Great for families", emoji: "👨‍👩‍👧‍👦" }
+                          ].map((template) => (
+                            <button
+                              key={template.name}
+                              type="button"
+                              className="p-3 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+                              onClick={() => {
+                                form.setValue('name', template.name);
+                                form.setValue('description', template.desc);
+                              }}
+                            >
+                              <div className="text-lg mb-1">{template.emoji}</div>
+                              <div className="text-sm font-medium">{template.name}</div>
+                              <div className="text-xs text-gray-500">{template.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <FormField
                         control={form.control}
                         name="name"
@@ -289,34 +371,7 @@ export default function CreateList() {
                           <FormItem>
                             <FormLabel>List Name</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <Input placeholder="e.g., Best Brunch Spots" {...field} />
-                                {!field.value && (
-                                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-sm z-10">
-                                    <div className="p-2 text-xs text-muted-foreground border-b">
-                                      Quick suggestions:
-                                    </div>
-                                    <div className="p-1 space-y-1">
-                                      {[
-                                        "Best Pizza Places",
-                                        "Date Night Favorites", 
-                                        "Hidden Gems",
-                                        "Weekend Brunch Spots",
-                                        "Work Lunch Options"
-                                      ].map((suggestion) => (
-                                        <button
-                                          key={suggestion}
-                                          type="button"
-                                          className="w-full text-left px-2 py-1 text-sm hover:bg-gray-50 rounded"
-                                          onClick={() => field.onChange(suggestion)}
-                                        >
-                                          {suggestion}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                              <Input placeholder="e.g., Best Brunch Spots" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -330,11 +385,22 @@ export default function CreateList() {
                           <FormItem>
                             <FormLabel>Description</FormLabel>
                             <FormControl>
-                              <Textarea 
-                                placeholder="Describe your list (optional)" 
-                                className="min-h-24" 
-                                {...field} 
-                              />
+                              <div>
+                                <Textarea 
+                                  placeholder="Describe your list (optional)" 
+                                  className="min-h-24" 
+                                  {...field} 
+                                />
+                                {!field.value && listItems.length > 0 && (
+                                  <button
+                                    type="button"
+                                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                                    onClick={() => field.onChange(generateSmartDescription())}
+                                  >
+                                    ✨ Generate smart description
+                                  </button>
+                                )}
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -466,11 +532,52 @@ export default function CreateList() {
                       <p className="text-xs mt-1">Go to the "Add Restaurants" tab to get started</p>
                     </div>
                   ) : (
-                    <DraggableRestaurantList 
-                      items={listItems}
-                      onItemsChange={handleItemsChange}
-                      onRemoveItem={handleRemoveItem}
-                    />
+                    <div className="space-y-4">
+                      {/* Ranking Instructions */}
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <h4 className="text-sm font-medium text-blue-900 mb-1">Ranking Tips</h4>
+                        <ul className="text-xs text-blue-700 space-y-1">
+                          <li>• Drag restaurants to reorder from best (#1) to least favorite</li>
+                          <li>• Add personal ratings and notes to remember why you love each place</li>
+                          <li>• Your #1 spot will be featured prominently when shared</li>
+                        </ul>
+                      </div>
+                      
+                      <DraggableRestaurantList 
+                        items={listItems}
+                        onItemsChange={handleItemsChange}
+                        onRemoveItem={handleRemoveItem}
+                      />
+                      
+                      {/* List Summary */}
+                      <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                        <h4 className="text-sm font-medium mb-2">List Summary</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Total Restaurants:</span>
+                            <span className="ml-2 font-medium">{listItems.length}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">With Ratings:</span>
+                            <span className="ml-2 font-medium">
+                              {listItems.filter(item => item.personalRating > 0).length}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Cuisines:</span>
+                            <span className="ml-2 font-medium">
+                              {[...new Set(listItems.map(item => item.restaurant.category))].length}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Locations:</span>
+                            <span className="ml-2 font-medium">
+                              {[...new Set(listItems.map(item => item.restaurant.location.split(',')[0]))].length}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -480,14 +587,26 @@ export default function CreateList() {
 
         {/* Create Button */}
         <div className="mt-8 flex justify-center">
-          <Button 
-            onClick={() => form.handleSubmit(onSubmit)()}
-            disabled={createList.isPending || !watchedName.trim()}
-            size="lg"
-            className="px-8"
-          >
-            {createList.isPending ? "Creating..." : "Create List"}
-          </Button>
+          <div className="text-center">
+            {!watchedName.trim() && (
+              <p className="text-sm text-muted-foreground mb-3">
+                Add a list name to continue
+              </p>
+            )}
+            {watchedName.trim() && listItems.length === 0 && (
+              <p className="text-sm text-muted-foreground mb-3">
+                Consider adding restaurants to make your list more valuable
+              </p>
+            )}
+            <Button 
+              onClick={() => form.handleSubmit(onSubmit)()}
+              disabled={createList.isPending || !watchedName.trim()}
+              size="lg"
+              className="px-8"
+            >
+              {createList.isPending ? "Creating..." : watchedName.trim() ? "Create List" : "Enter List Name First"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

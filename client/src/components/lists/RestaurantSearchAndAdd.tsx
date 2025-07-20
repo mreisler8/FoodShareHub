@@ -50,6 +50,26 @@ export default function RestaurantSearchAndAdd({ onAddRestaurant, addedRestauran
     return addedRestaurants.some(r => r.id === restaurantId);
   };
 
+  // Get recent searches from localStorage
+  const getRecentSearches = () => {
+    try {
+      const recent = localStorage.getItem('recent-restaurant-searches');
+      return recent ? JSON.parse(recent).slice(0, 5) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveRecentSearch = (term: string) => {
+    try {
+      const recent = getRecentSearches();
+      const updated = [term, ...recent.filter(s => s !== term)].slice(0, 10);
+      localStorage.setItem('recent-restaurant-searches', JSON.stringify(updated));
+    } catch (error) {
+      // Ignore localStorage errors
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -60,10 +80,36 @@ export default function RestaurantSearchAndAdd({ onAddRestaurant, addedRestauran
           onChange={(e) => {
             setSearchTerm(e.target.value);
             setIsSearching(true);
+            if (e.target.value.trim()) {
+              saveRecentSearch(e.target.value.trim());
+            }
           }}
           className="pl-10"
         />
       </div>
+
+      {/* Recent Searches */}
+      {!isSearching && !searchTerm && getRecentSearches().length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Recent Searches</h4>
+          <div className="flex flex-wrap gap-2">
+            {getRecentSearches().map((term, index) => (
+              <button
+                key={index}
+                type="button"
+                className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                onClick={() => {
+                  setSearchTerm(term);
+                  setIsSearching(true);
+                }}
+              >
+                <Clock className="h-3 w-3 inline mr-1" />
+                {term}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isSearching && searchTerm.length > 2 && (
         <Card>
