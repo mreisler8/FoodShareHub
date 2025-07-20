@@ -175,6 +175,10 @@ export default function CreateList() {
     },
   });
   
+  // Watch form values at the top level to avoid hook violations
+  const watchedAudience = form.watch("audience");
+  const watchedName = form.watch("name");
+  
   // Handle form submission
   const onSubmit = (values: FormValues) => {
     createList.mutate(values);
@@ -323,7 +327,7 @@ export default function CreateList() {
                         )}
                       />
 
-                      {form.watch("audience") === "circle" && (
+                      {watchedAudience === "circle" && (
                         <FormField
                           control={form.control}
                           name="circleId"
@@ -389,7 +393,7 @@ export default function CreateList() {
         <div className="mt-8 flex justify-center">
           <Button 
             onClick={() => form.handleSubmit(onSubmit)()}
-            disabled={createList.isPending || !form.watch("name").trim()}
+            disabled={createList.isPending || !watchedName.trim()}
             size="lg"
             className="px-8"
           >
