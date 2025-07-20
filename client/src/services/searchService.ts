@@ -23,6 +23,9 @@ export interface SearchResult {
   address?: string;
   googlePlaceId?: string;
   source?: 'database' | 'google';
+  // Exact match and relevance fields
+  isExactMatch?: boolean;
+  relevanceScore?: number;
   // Metadata for additional information
   metadata?: {
     category?: string;
@@ -107,9 +110,13 @@ export class SearchService {
 
     const results = await response.json();
 
-    // Sort by relevance first, then rating as secondary
+    // Sort by exact match first, then relevance, then rating
     if (results.restaurants) {
       results.restaurants.sort((a: SearchResult, b: SearchResult) => {
+        // Check for exact matches first
+        if (a.isExactMatch && !b.isExactMatch) return -1;
+        if (!a.isExactMatch && b.isExactMatch) return 1;
+
         // Calculate relevance score based on name matching
         const getRelevanceScore = (restaurant: SearchResult, query: string) => {
           const name = restaurant.name.toLowerCase();
@@ -121,8 +128,8 @@ export class SearchService {
           return 70;
         };
 
-        const aRelevance = getRelevanceScore(a, query);
-        const bRelevance = getRelevanceScore(b, query);
+        const aRelevance = a.relevanceScore || getRelevanceScore(a, query);
+        const bRelevance = b.relevanceScore || getRelevanceScore(b, query);
 
         // Sort by relevance first, then by rating
         if (aRelevance !== bRelevance) {

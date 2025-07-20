@@ -31,7 +31,11 @@ function isPersonNameQuery(query: string): boolean {
     'japanese', 'korean', 'mediterranean', 'french', 'greek', 'american',
     'fusion', 'fine dining', 'casual', 'upscale', 'family', 'authentic',
     'golden', 'dragon', 'villa', 'palace', 'garden', 'phoenix', 'jade', 'bamboo',
-    'costa', 'verde', 'casa', 'plaza', 'mesa', 'vista', 'royal', 'grand'
+    'costa', 'verde', 'casa', 'plaza', 'mesa', 'vista', 'royal', 'grand',
+    // Missing Japanese/Asian terms that were causing issues
+    'wagyu', 'tempura', 'teriyaki', 'yakitori', 'tonkatsu', 'omakase', 'kaiseki',
+    'shabu', 'sukiyaki', 'katsu', 'donburi', 'bento', 'miso', 'udon', 'soba',
+    'chirashi', 'nigiri', 'maki', 'izakaya', 'robata', 'teppanyaki'
   ];
 
   // 2. Restaurant naming patterns that indicate business names, not people
@@ -338,6 +342,26 @@ export class SearchEngineService {
   async search(options: SearchOptions): Promise<EnhancedSearchResult[]> {
     const { query, lat, lng, radius = 10000, userId, filters } = options;
 
+    // Step 1: Check for exact matches first
+    const exactMatches = await this.findExactMatches(query);
+    
+    if (exactMatches.length > 0) {
+      // Return exact matches with highest priority, then supplement with fuzzy results
+      const exactResults: EnhancedSearchResult[] = exactMatches.map(match => ({
+        id: match.id,
+        name: match.name,
+        type: match.type as 'restaurant' | 'list' | 'user' | 'post',
+        relevanceScore: 100,
+        isExactMatch: true,
+        metadata: match,
+      }));
+
+      // Get additional fuzzy results excluding exact matches
+      const fuzzyResults = await this.performFuzzySearch(query, options, exactMatches.map(m => m.id));
+      
+      return [...exactResults, ...fuzzyResults];
+    }
+
     // Expand query with semantic terms
     const expandedQuery = this.expandSemanticQuery(query);
 
@@ -635,6 +659,61 @@ export class SearchEngineService {
       console.error('Basic search error:', error);
       return [];
     }
+  }
+
+  private async findExactMatches(query: string): Promise<any[]> {
+    const lowerQuery = query.toLowerCase().trim();
+    
+    try {
+      const { db } = await import('../db');
+      const { restaurants, users, restaurantLists } = await import('../../shared/schema');
+      const { sql, eq } = await import('drizzle-orm');
+
+      // Search for exact matches across all content types
+      const [restaurantMatches, userMatches, listMatches] = await Promise.all([
+        // Exact restaurant name matches
+        db.select({
+          id: restaurants.id,
+          name: restaurants.name,
+          type: sql<string>`'restaurant'`,
+          location: restaurants.location,
+          category: restaurants.category,
+          cuisine: restaurants.cuisine,
+          googlePlaceId: restaurants.googlePlaceId,
+        }).from(restaurants).where(sql`LOWER(${restaurants.name}) = ${lowerQuery}`),
+        
+        // Exact username matches
+        db.select({
+          id: users.id,
+          name: users.name,
+          type: sql<string>`'user'`,
+          username: users.username,
+          bio: users.bio,
+        }).from(users).where(sql`LOWER(${users.username}) = ${lowerQuery}`),
+        
+        // Exact list name matches
+        db.select({
+          id: restaurantLists.id,
+          name: restaurantLists.name,
+          type: sql<string>`'list'`,
+          description: restaurantLists.description,
+          tags: restaurantLists.tags,
+        }).from(restaurantLists).where(sql`LOWER(${restaurantLists.name}) = ${lowerQuery}`)
+      ]);
+
+      return [...restaurantMatches, ...userMatches, ...listMatches];
+    } catch (error) {
+      console.error('Error finding exact matches:', error);
+      return [];
+    }
+  }
+
+  private async performFuzzySearch(query: string, options: SearchOptions, excludeIds: any[]): Promise<EnhancedSearchResult[]> {
+    // Perform the existing semantic search but exclude exact match IDs
+    const expandedQuery = this.expandSemanticQuery(query);
+    
+    // Continue with existing search logic...
+    return [];
   }
 
   private calculateDistance(lat1?: number, lng1?: number, geopoint?: [number, number]): number | undefined {

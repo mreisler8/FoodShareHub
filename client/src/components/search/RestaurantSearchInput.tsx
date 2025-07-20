@@ -34,7 +34,7 @@ export function RestaurantSearchInput({
   const [showResults, setShowResults] = useState(false);
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -100,7 +100,7 @@ export function RestaurantSearchInput({
         avgRating: typeof restaurant.avgRating === 'number' && !isNaN(restaurant.avgRating) ? restaurant.avgRating : 4.0,
         source: restaurant.source || 'database'
       }));
-      
+
       return restaurants;
     },
     enabled: debouncedQuery.length >= 2,
@@ -111,11 +111,11 @@ export function RestaurantSearchInput({
     await requestLocation();
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
     setShowResults(value.length >= 2);
-    
+
     // Clear selected restaurant if user starts typing again
     if (selectedRestaurant && value !== selectedRestaurant.name) {
       onSelect(null as any);
@@ -153,28 +153,28 @@ export function RestaurantSearchInput({
           </span>
         </div>
       )}
-      
+
       {locationPermission === 'denied' && (
         <div className="flex items-center gap-2 text-xs text-orange-600 mb-3">
           <Navigation className="h-3 w-3" />
           <span>Enable location for better local results</span>
         </div>
       )}
-      
+
       {locationPermission === 'prompt' && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
           <Navigation className="h-3 w-3 animate-pulse" />
           <span>Requesting location access...</span>
         </div>
       )}
-      
+
       {!locationPermission && (
         <div className="flex items-center gap-2 text-xs text-orange-600 mb-3">
           <Navigation className="h-3 w-3" />
           <span>Enable location for better local results</span>
         </div>
       )}
-      
+
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
         <Input
@@ -187,7 +187,7 @@ export function RestaurantSearchInput({
           className="pl-10 pr-12"
           required={required}
         />
-        
+
         {/* Simplified location button - only when needed */}
         {locationPermission !== 'granted' && (
           <Button
