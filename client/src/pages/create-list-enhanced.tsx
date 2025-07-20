@@ -230,7 +230,7 @@ export default function CreateListEnhanced() {
       <DesktopSidebar />
       
       <div className="lg:pl-64">
-        <div className="container mx-auto px-4 py-6 pb-20 lg:pb-6">
+        <div className="container mx-auto px-4 pb-20 lg:pb-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">

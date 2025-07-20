@@ -145,8 +145,8 @@
   }
 
   body {
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
     color: hsl(var(--foreground));
     background: hsl(var(--background));
     font-feature-settings: "rlig" 1, "calt" 1;
