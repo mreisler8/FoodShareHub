@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/Button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { CreateListForm } from "@/components/lists/CreateListForm";
 import { AddListItemModal } from "@/components/lists/AddListItemModal";
 import { ListItemPreview } from "@/components/lists/ListItemPreview";
 import { ListItemsSortable } from "@/components/lists/ListItemsSortable";
-import { ShareListDestinationPicker, ShareDestination } from "@/components/lists/ShareListDestinationPicker";
-import { ListPreviewCard } from "@/components/lists/ListPreviewCard";
+import { ShareDestinationCards } from "@/components/lists/ShareDestinationCards";
 import { PostSuccessModal } from "@/components/lists/PostSuccessModal";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -30,7 +32,11 @@ interface ListItem extends ListItemData {
   rank?: number;
 }
 
-type Step = "details" | "items" | "share" | "preview" | "success";
+export interface ShareDestination {
+  type: "profile" | "circle" | "public" | "private";
+  circleId?: number;
+  circleName?: string;
+}
 
 export default function CreateListEnhanced() {
   const [, navigate] = useLocation();
@@ -38,7 +44,6 @@ export default function CreateListEnhanced() {
   const { user } = useAuth();
   
   // Form state
-  const [currentStep, setCurrentStep] = useState<Step>("details");
   const [listData, setListData] = useState<ListFormData>({
     title: "",
     description: "",
@@ -47,7 +52,7 @@ export default function CreateListEnhanced() {
     tags: [],
   });
   const [listItems, setListItems] = useState<ListItem[]>([]);
-  const [shareDestination, setShareDestination] = useState<ShareDestination>();
+  const [shareDestination, setShareDestination] = useState<ShareDestination>({ type: "private" });
   const [createdListId, setCreatedListId] = useState<number>();
   
   // Modal states
@@ -55,13 +60,57 @@ export default function CreateListEnhanced() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string>();
 
-  // Step 1: List Details
-  const handleListDetailsSubmit = (data: ListFormData) => {
-    setListData(data);
-    setCurrentStep("items");
+  // Auto-save functionality
+  useEffect(() => {
+    const saveData = {
+      listData,
+      listItems,
+      shareDestination,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('create-list-draft', JSON.stringify(saveData));
+  }, [listData, listItems, shareDestination]);
+
+  // Load draft on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('create-list-draft');
+    if (saved) {
+      try {
+        const { listData: savedListData, listItems: savedItems, shareDestination: savedDestination, timestamp } = JSON.parse(saved);
+        // Only restore if less than 24 hours old
+        if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+          setListData(savedListData);
+          setListItems(savedItems || []);
+          setShareDestination(savedDestination || { type: "private" });
+        }
+      } catch (error) {
+        console.error('Failed to restore draft:', error);
+      }
+    }
+  }, []);
+
+  // Handle form changes
+  const handleTitleChange = (value: string) => {
+    setListData(prev => ({ ...prev, title: value }));
   };
 
-  // Step 2: Add Items
+  const handleDescriptionChange = (value: string) => {
+    setListData(prev => ({ ...prev, description: value }));
+  };
+
+  const handleRankedToggle = (checked: boolean) => {
+    setListData(prev => ({ ...prev, isRanked: checked }));
+    // Update items with ranks if enabling ranking
+    if (checked) {
+      const rankedItems = listItems.map((item, index) => ({
+        ...item,
+        rank: index + 1,
+      }));
+      setListItems(rankedItems);
+    }
+  };
+
+  // Add Items
   const handleAddItem = (item: ListItemData) => {
     const newItem: ListItem = {
       ...item,
@@ -110,10 +159,8 @@ export default function CreateListEnhanced() {
     setListItems(newItems);
   };
 
-  // Step 3: Share Destination
-  const handleShareDestinationContinue = () => {
-    setCurrentStep("preview");
-  };
+  // Publishing
+  const canPublish = listData.title.trim() && listItems.length > 0;
 
   // Create list mutation
   const createListMutation = useMutation({
@@ -151,8 +198,8 @@ export default function CreateListEnhanced() {
     },
     onSuccess: (data) => {
       setCreatedListId(data.id);
-      setCurrentStep("success");
       setShowSuccessModal(true);
+      clearDraft();
       
       toast({
         title: "List created successfully!",
@@ -168,76 +215,18 @@ export default function CreateListEnhanced() {
     },
   });
 
-  // Navigation helpers
-  const handleBack = () => {
-    switch (currentStep) {
-      case "items":
-        setCurrentStep("details");
-        break;
-      case "share":
-        setCurrentStep("items");
-        break;
-      case "preview":
-        setCurrentStep("share");
-        break;
-      default:
-        navigate("/lists");
-    }
+  const handlePublish = () => {
+    if (!canPublish) return;
+    createListMutation.mutate();
   };
 
-  const handleNext = () => {
-    switch (currentStep) {
-      case "items":
-        setCurrentStep("share");
-        break;
-      case "share":
-        setCurrentStep("preview");
-        break;
-      case "preview":
-        createListMutation.mutate();
-        break;
-    }
-  };
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case "details":
-        return listData.title.trim().length > 0;
-      case "items":
-        return listItems.length > 0;
-      case "share":
-        return shareDestination && (shareDestination.type !== "circle" || shareDestination.circleId);
-      case "preview":
-        return true;
-      default:
-        return false;
-    }
-  };
-
-  const getStepTitle = () => {
-    switch (currentStep) {
-      case "details": return "List Details";
-      case "items": return "Add Items";
-      case "share": return "Share Settings";
-      case "preview": return "Preview & Publish";
-      default: return "";
-    }
-  };
-
-  // Prepare preview data
-  const previewData = {
-    title: listData.title,
-    description: listData.description,
-    coverImage: listData.coverImage,
-    tags: listData.tags,
-    items: listItems,
-    isRanked: listData.isRanked,
-    shareDestination: shareDestination || { type: "private" as const },
-    author: user ? { name: user.name, avatar: user.profilePicture } : undefined,
+  // Clear draft after successful creation
+  const clearDraft = () => {
+    localStorage.removeItem('create-list-draft');
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <DesktopSidebar />
       
       <div className="lg:pl-64">
@@ -248,7 +237,7 @@ export default function CreateListEnhanced() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleBack}
+                onClick={() => navigate("/lists")}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -256,135 +245,126 @@ export default function CreateListEnhanced() {
               </Button>
               
               <div>
-                <h1 className="text-2xl font-bold">Create List</h1>
-                <p className="text-muted-foreground">{getStepTitle()}</p>
+                <h1 className="text-xl font-semibold flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-orange-500" />
+                  Let's build your list
+                </h1>
+                <p className="text-sm text-gray-500">Start with one place or dish — you can always add more later</p>
               </div>
-            </div>
-
-            {/* Step Indicator */}
-            <div className="hidden md:flex items-center space-x-2">
-              {["details", "items", "share", "preview"].map((step, index) => (
-                <div
-                  key={step}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    currentStep === step
-                      ? "bg-primary text-primary-foreground"
-                      : index < ["details", "items", "share", "preview"].indexOf(currentStep)
-                      ? "bg-primary/20 text-primary"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {index + 1}
-                </div>
-              ))}
             </div>
           </div>
 
-          {/* Step Content */}
-          <div className="max-w-4xl mx-auto">
-            {currentStep === "details" && (
-              <CreateListForm
-                onSubmit={handleListDetailsSubmit}
-                initialValues={listData}
+          {/* Single Flow Content */}
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* List Details Section */}
+            <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
+              <Input
+                placeholder="List title (e.g. Toronto Date Night)"
+                value={listData.title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                className="text-lg font-medium border-0 bg-transparent px-0 focus-visible:ring-0 placeholder:text-gray-400"
               />
-            )}
+              
+              <Textarea
+                placeholder="Optional: What's this list about?"
+                value={listData.description || ""}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                className="border-0 bg-transparent px-0 focus-visible:ring-0 placeholder:text-gray-400 resize-none"
+                rows={2}
+              />
+              
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="ranking-toggle"
+                    checked={listData.isRanked}
+                    onCheckedChange={handleRankedToggle}
+                  />
+                  <Label htmlFor="ranking-toggle" className="text-sm font-medium">
+                    Rank this list?
+                  </Label>
+                </div>
+                
+                <Button
+                  onClick={() => setShowAddItemModal(true)}
+                  disabled={!listData.title.trim()}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add your first item
+                </Button>
+              </div>
+            </div>
 
-            {currentStep === "items" && (
-              <div className="space-y-6">
+            {/* Live Preview - Items */}
+            {listItems.length > 0 && (
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold">{listData.title}</h2>
-                    <p className="text-muted-foreground">
-                      Add restaurants and dishes to your list
-                    </p>
-                  </div>
-                  <Button onClick={() => setShowAddItemModal(true)}>
-                    Add Item
+                  <h3 className="text-lg font-semibold">Your List</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddItemModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add item
                   </Button>
                 </div>
 
-                {listItems.length === 0 ? (
-                  <div className="text-center py-12 bg-muted/20 rounded-lg">
-                    <p className="text-lg text-muted-foreground mb-4">
-                      Start with one place or dish
-                    </p>
-                    <Button onClick={() => setShowAddItemModal(true)}>
-                      Add Your First Item
-                    </Button>
-                  </div>
-                ) : listData.isRanked ? (
+                {listData.isRanked ? (
                   <ListItemsSortable
                     items={listItems}
                     onItemsChange={handleItemsChange}
                     onDelete={handleDeleteItem}
                   />
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {listItems.map((item) => (
                       <ListItemPreview
                         key={item.id}
                         item={item}
+                        isRanked={listData.isRanked}
+                        totalItems={listItems.length}
                         onDelete={handleDeleteItem}
                         onMove={handleMoveItem}
-                        totalItems={listItems.length}
                       />
                     ))}
                   </div>
                 )}
-
-                <div className="flex justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowAddItemModal(true)}
-                  >
-                    Add Another Item
-                  </Button>
-                  <Button
-                    onClick={handleNext}
-                    disabled={listItems.length === 0}
-                    className="flex items-center gap-2"
-                  >
-                    Continue
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
             )}
 
-            {currentStep === "share" && (
-              <ShareListDestinationPicker
-                selected={shareDestination}
-                onChange={setShareDestination}
-                onContinue={handleShareDestinationContinue}
-                showContinueButton={true}
-              />
+            {/* Share Destination Cards */}
+            {listItems.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <ShareDestinationCards
+                  selected={shareDestination}
+                  onChange={setShareDestination}
+                />
+              </div>
             )}
 
-            {currentStep === "preview" && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-xl font-semibold mb-2">Preview Your List</h2>
-                  <p className="text-muted-foreground">
-                    This is how your list will appear to others
+            {/* Publish Button */}
+            {listItems.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <Button
+                  onClick={handlePublish}
+                  disabled={!canPublish || createListMutation.isPending}
+                  className="w-full h-12 text-lg font-medium bg-blue-600 hover:bg-blue-700"
+                >
+                  {createListMutation.isPending ? (
+                    "Publishing..."
+                  ) : (
+                    `Publish "${listData.title}"`
+                  )}
+                </Button>
+                
+                {!canPublish && (
+                  <p className="text-sm text-gray-500 mt-2 text-center">
+                    {!listData.title.trim() ? "Add a title to continue" : "Add at least one item to publish"}
                   </p>
-                </div>
-
-                <div className="flex justify-center">
-                  <ListPreviewCard listData={previewData} />
-                </div>
-
-                <div className="flex justify-center space-x-4">
-                  <Button variant="outline" onClick={handleBack}>
-                    Make Changes
-                  </Button>
-                  <Button
-                    onClick={() => createListMutation.mutate()}
-                    disabled={createListMutation.isPending}
-                    className="min-h-[48px] px-8"
-                  >
-                    {createListMutation.isPending ? "Publishing..." : "Publish List"}
-                  </Button>
-                </div>
+                )}
               </div>
             )}
           </div>

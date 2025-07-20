@@ -29,15 +29,15 @@ export function ListItemPreview({
   const canMoveDown = isRanked && item.rank && item.rank < totalItems;
 
   return (
-    <Card className="hover:shadow-md transition-all duration-200">
+    <Card className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
       <CardContent className="p-4">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-start space-x-4">
           {/* Rank Badge (if ranked) */}
           {isRanked && item.rank && (
-            <div className="flex-shrink-0">
-              <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+            <div className="flex-shrink-0 mt-1">
+              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
                 #{item.rank}
-              </Badge>
+              </div>
             </div>
           )}
 
@@ -47,7 +47,7 @@ export function ListItemPreview({
               <img
                 src={item.photo}
                 alt={item.type === "dish" ? item.dish?.name : item.restaurant?.name}
-                className="w-16 h-16 object-cover rounded-lg"
+                className="w-20 h-20 object-cover rounded-xl"
                 onError={() => setImageError(true)}
               />
             </div>
@@ -56,57 +56,39 @@ export function ListItemPreview({
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                {/* Title */}
-                <div className="flex items-center gap-2 mb-1">
-                  {item.type === "dish" ? (
-                    <ChefHat className="h-4 w-4 text-primary flex-shrink-0" />
-                  ) : (
-                    <Utensils className="h-4 w-4 text-primary flex-shrink-0" />
-                  )}
-                  <h3 className="font-medium text-lg truncate">
-                    {item.type === "dish" ? item.dish?.name : item.restaurant?.name}
-                  </h3>
-                </div>
-
-                {/* Restaurant name for dishes */}
-                {item.type === "dish" && item.restaurant?.name && (
-                  <p className="text-sm text-muted-foreground mb-1">
-                    at {item.restaurant.name}
-                  </p>
-                )}
-
-                {/* Location */}
-                {item.restaurant?.location && (
-                  <div className="flex items-center gap-1 mb-2">
-                    <MapPin className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {item.restaurant.location}
-                    </span>
+              <div className="flex-1">
+                {item.type === "dish" ? (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-lg">{item.dish?.name}</h4>
+                    <p className="text-gray-600 flex items-center gap-1 mt-1">
+                      <Utensils className="h-4 w-4" />
+                      {item.restaurant?.name}
+                    </p>
                   </div>
-                )}
-
-                {/* Tags */}
-                {item.tags && item.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {item.tags.slice(0, 3).map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {item.tags.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{item.tags.length - 3} more
-                      </Badge>
-                    )}
+                ) : (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-lg">{item.restaurant?.name}</h4>
+                    <p className="text-gray-600 flex items-center gap-1 mt-1">
+                      <MapPin className="h-4 w-4" />
+                      {item.restaurant?.location || item.restaurant?.city || "Location not specified"}
+                    </p>
                   </div>
                 )}
 
                 {/* Notes */}
                 {item.notes && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.notes}
-                  </p>
+                  <p className="text-gray-700 mt-2 text-sm leading-relaxed">{item.notes}</p>
+                )}
+
+                {/* Tags */}
+                {item.tags && item.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-3">
+                    {item.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs px-2 py-1 bg-gray-100 text-gray-700">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -145,10 +127,10 @@ export function ListItemPreview({
                   {onDelete && (
                     <DropdownMenuItem 
                       onClick={() => onDelete(item.id)}
-                      className="text-destructive focus:text-destructive"
+                      className="text-red-600 focus:text-red-600"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
+                      Remove
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
