@@ -1,0 +1,100 @@
+Based on your UX audit and the current codebase, I can see several critical issues that need systematic addressing. Your analysis is spot-on - the current create-list flow has significant UX friction and isn't following the search best practices we've established elsewhere in the app.
+
+Critical Implementation Issues Identified
+1. Search Inconsistency Problem
+The create-list page isn't using our standardized search infrastructure that we've built for the homepage and post creation. Looking at your codebase:
+
+✅ Good: Homepage uses /api/search/unified with proper location services
+✅ Good: Post creation uses RestaurantSearchInput component
+❌ Problem: Create-list is using outdated/inconsistent search patterns
+2. Component Architecture Misalignment
+Your current create-list.tsx has disabled the key search components:
+
+// Temporarily disable problematic imports
+// import { RestaurantSearchAndAdd } from "@/components/lists/RestaurantSearchAndAdd";
+// import { DraggableRestaurantList } from "@/components/lists/DraggableRestaurantList";
+Recommended Implementation Strategy
+Phase 1: Search Infrastructure Alignment (Priority 1)
+Re-enable and Update RestaurantSearchAndAdd Component
+
+Integrate with the same searchService.ts that homepage uses
+Use /api/search/unified endpoint consistently
+Apply location services integration pattern from RestaurantSearchInput.tsx
+Ensure proper error handling and "Add manually" fallback
+Fix DraggableRestaurantList Integration
+
+Resolve the import/export conflicts
+Use default export pattern consistently
+Ensure proper data flow between search → add → rank components
+Phase 2: UX Flow Redesign (Following Your Audit)
+Convert Tabs → Progressive Steps
+
+// Replace current tab system with:
+enum CreateListStep {
+  DETAILS = 'details',     // Step 1: List basics
+  ITEMS = 'items',         // Step 2: Add/rank items  
+  SHARE = 'share'          // Step 3: Share destination
+}
+Implement Real-time Preview
+
+Create ListFeedPreview.tsx component
+Show live preview alongside form (desktop) or toggle view (mobile)
+Use existing ListItemCard.tsx patterns for consistency
+Add Auto-save Draft Logic
+
+Implement localStorage persistence
+Recovery on page refresh
+Backend draft API integration
+Phase 3: Component Modularization
+Create New Components Per Your Brief
+/components/lists/
+├── CreateListStepper.tsx        // Main flow controller
+├── ListDetailsForm.tsx          // Step 1 form
+├── AddListItemModal.tsx         // Enhanced item adding
+├── ListItemPreview.tsx          // Real-time previews
+├── ShareListDestinationPicker.tsx // Step 3 sharing
+└── PostSuccessModal.tsx         // Confirmation
+Phase 4: Visual Design System Alignment
+Apply Consistent Design Patterns
+Use card-based layout (bg-white p-4 rounded-xl shadow-sm)
+Implement proper text hierarchy (text-lg font-semibold)
+Add friendly microcopy and brand voice
+Ensure mobile-first responsive design
+Critical Technical Fixes Required
+Search Service Integration
+// Update create-list.tsx to use:
+import { SearchService } from '@/services/searchService';
+import { LocationService } from '@/services/locationService';
+// Apply same patterns as homepage UnifiedSearchModal
+Component Import Standardization
+// Fix import consistency:
+import { RestaurantSearchAndAdd } from "@/components/lists/RestaurantSearchAndAdd";
+import DraggableRestaurantList from "@/components/lists/DraggableRestaurantList"; // Default import
+API Endpoint Alignment
+Ensure create-list uses the same search endpoints:
+
+/api/search/unified for restaurant search
+/api/search/restaurants for dedicated restaurant lookup
+Proper location services integration
+Development Approach
+Week 1: Foundation Fixes
+
+Fix search service integration
+Re-enable disabled components
+Resolve import/export issues
+Week 2: UX Flow Redesign
+
+Implement step-based progression
+Add real-time preview
+Create component modularization
+Week 3: Polish & Testing
+
+Apply design system consistency
+Add auto-save functionality
+Mobile optimization
+Key Success Metrics
+Search consistency: Create-list search behaves identically to homepage
+User friction reduction: Users can start with one item and build
+Visual hierarchy: Clear step progression with proper spacing
+Mobile experience: Touch-friendly, responsive design
+Preview feedback: Real-time list preview as users build

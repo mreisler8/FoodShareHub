@@ -8,7 +8,7 @@ import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Button } from "@/components/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Utensils, Search, Plus, Star, ArrowLeft } from "lucide-react";
+import { Utensils, Search, Plus, Star, ArrowLeft, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -280,59 +280,54 @@ export default function CreateList() {
           </div>
         </div>
 
-        {/* Progress Indicator */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Progress</span>
-            <span className="text-xs text-gray-500">
-              {watchedName ? '1' : '0'}/3 steps completed
+        {/* Step-Based Progress Indicator */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-foreground">Create Your List</h2>
+            <span className="text-sm text-muted-foreground">
+              Step {activeTab === 'details' ? '1' : activeTab === 'restaurants' ? '2' : '3'} of 3
             </span>
           </div>
-          <div className="flex space-x-2">
-            <div className={`h-2 flex-1 rounded-full ${watchedName ? 'bg-green-500' : 'bg-gray-200'}`} />
-            <div className={`h-2 flex-1 rounded-full ${listItems.length > 0 ? 'bg-green-500' : 'bg-gray-200'}`} />
-            <div className={`h-2 flex-1 rounded-full ${listItems.length > 1 ? 'bg-green-500' : 'bg-gray-200'}`} />
-          </div>
-          <div className="flex justify-between mt-1 text-xs text-gray-500">
-            <span>Details</span>
-            <span>Add Items</span>
-            <span>Finalize</span>
+          
+          {/* Step Navigation */}
+          <div className="flex items-center space-x-4 mb-6">
+            {[
+              { key: 'details', label: 'List Basics', icon: Utensils, completed: watchedName },
+              { key: 'restaurants', label: 'Add Items', icon: Search, completed: listItems.length > 0 },
+              { key: 'ranking', label: 'Share', icon: Star, completed: false }
+            ].map((step, index) => (
+              <div key={step.key} className="flex items-center">
+                <button
+                  onClick={() => setActiveTab(step.key)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                    activeTab === step.key 
+                      ? 'bg-primary text-primary-foreground shadow-sm' 
+                      : step.completed 
+                        ? 'bg-green-50 text-green-700 hover:bg-green-100' 
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <step.icon className="h-4 w-4" />
+                  <span className="text-sm font-medium">{step.label}</span>
+                  {step.completed && <div className="w-2 h-2 bg-green-500 rounded-full" />}
+                </button>
+                {index < 2 && (
+                  <div className={`w-8 h-0.5 mx-2 ${step.completed ? 'bg-green-500' : 'bg-gray-200'}`} />
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Modern Tabbed Interface */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="details" className="flex items-center space-x-2 relative">
-              <Utensils className="h-4 w-4" />
-              <span>List Details</span>
-              {watchedName && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="restaurants" className="flex items-center space-x-2 relative">
-              <Search className="h-4 w-4" />
-              <span>Add Restaurants</span>
-              {listItems.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                  {listItems.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="ranking" className="flex items-center space-x-2">
-              <Star className="h-4 w-4" />
-              <span>Rank & Review</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Tab Content */}
-          <div className="mt-6">
-            <TabsContent value="details">
-              <Card>
-                <CardHeader>
-                  <CardTitle>List Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
+        {/* Step Content */}
+        <div className="space-y-6">
+          {activeTab === 'details' && (
+            {/* Step 1: List Basics */}
+            <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold text-foreground">List Basics</h2>
+                <p className="text-sm text-muted-foreground">Start with just one place or dish — you can always edit later.</p>
+              </div>
                   <Form {...form}>
                     <div className="space-y-6">
                       {/* Quick Templates */}
@@ -498,116 +493,179 @@ export default function CreateList() {
                       )}
                     </div>
                   </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  
+                  {/* Quick Actions */}
+                  <div className="flex justify-between pt-4 border-t">
+                    <div />
+                    <Button 
+                      onClick={() => setActiveTab('restaurants')}
+                      disabled={!watchedName.trim()}
+                      className="flex items-center space-x-2"
+                    >
+                      <span>Next: Add Items</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-            <TabsContent value="restaurants">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Add Restaurants</CardTitle>
-                  <p className="text-sm text-muted-foreground">Search and add restaurants to your list</p>
-                </CardHeader>
-                <CardContent>
+              {/* Step 2: Add Items */}
+              {activeTab === 'restaurants' && (
+                <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-semibold text-foreground">Add Your Favorite Places</h2>
+                    <p className="text-sm text-muted-foreground">Tell us what made it memorable! Search for restaurants or add them manually.</p>
+                  </div>
+                  
                   <RestaurantSearchAndAdd 
                     onAddRestaurant={handleAddRestaurant} 
                     addedRestaurants={listItems.map(item => item.restaurant)}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  
+                  {/* Quick Actions */}
+                  <div className="flex justify-between pt-4 border-t">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setActiveTab('details')}
+                      className="flex items-center space-x-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back: List Basics</span>
+                    </Button>
+                    <Button 
+                      onClick={() => setActiveTab('ranking')}
+                      disabled={listItems.length === 0}
+                      className="flex items-center space-x-2"
+                    >
+                      <span>Next: Share & Finalize</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-            <TabsContent value="ranking">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Rank & Review Your List</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {listItems.length === 0 ? "Add restaurants first to start ranking" : `Drag to reorder your ${listItems.length} restaurant${listItems.length !== 1 ? 's' : ''}`}
-                  </p>
-                </CardHeader>
-                <CardContent>
+              {/* Step 3: Share & Finalize */}
+              {activeTab === 'ranking' && (
+                <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-semibold text-foreground">Share & Finalize</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {listItems.length === 0 ? "Add restaurants first to finalize your list" : `Review and share your ${listItems.length} restaurant${listItems.length !== 1 ? 's' : ''}`}
+                    </p>
+                  </div>
+
                   {listItems.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No restaurants added yet</p>
-                      <p className="text-xs mt-1">Go to the "Add Restaurants" tab to get started</p>
+                      <p className="text-xs mt-1">Go back to add some restaurants first</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {/* Ranking Instructions */}
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <h4 className="text-sm font-medium text-blue-900 mb-1">Ranking Tips</h4>
-                        <ul className="text-xs text-blue-700 space-y-1">
-                          <li>• Drag restaurants to reorder from best (#1) to least favorite</li>
-                          <li>• Add personal ratings and notes to remember why you love each place</li>
-                          <li>• Your #1 spot will be featured prominently when shared</li>
-                        </ul>
-                      </div>
-                      
-                      <DraggableRestaurantList 
-                        items={listItems}
-                        onItemsChange={handleItemsChange}
-                        onRemoveItem={handleRemoveItem}
-                      />
-                      
-                      {/* List Summary */}
-                      <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                        <h4 className="text-sm font-medium mb-2">List Summary</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Total Restaurants:</span>
-                            <span className="ml-2 font-medium">{listItems.length}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">With Ratings:</span>
-                            <span className="ml-2 font-medium">
-                              {listItems.filter(item => item.personalRating > 0).length}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Cuisines:</span>
-                            <span className="ml-2 font-medium">
-                              {[...new Set(listItems.map(item => item.restaurant.category))].length}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Locations:</span>
-                            <span className="ml-2 font-medium">
-                              {[...new Set(listItems.map(item => item.restaurant.location.split(',')[0]))].length}
-                            </span>
-                          </div>
+                    <div className="space-y-6">
+                      {/* Share Destination with Icons */}
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-medium text-foreground">Share Destination</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => form.setValue('audience', 'profile')}
+                            className={`p-4 border rounded-lg text-left transition-all ${
+                              watchedAudience === 'profile' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                👤
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm">Private</div>
+                                <div className="text-xs text-muted-foreground">Only me</div>
+                              </div>
+                            </div>
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => form.setValue('audience', 'circle')}
+                            className={`p-4 border rounded-lg text-left transition-all ${
+                              watchedAudience === 'circle' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                🫶
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm">Circle</div>
+                                <div className="text-xs text-muted-foreground">My circles only</div>
+                              </div>
+                            </div>
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => form.setValue('audience', 'public')}
+                            className={`p-4 border rounded-lg text-left transition-all ${
+                              watchedAudience === 'public' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                🔒
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm">Public</div>
+                                <div className="text-xs text-muted-foreground">Everyone</div>
+                              </div>
+                            </div>
+                          </button>
                         </div>
+                      </div>
+
+                      {/* List Preview */}
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-medium text-foreground">Your List Preview</h3>
+                        <DraggableRestaurantList 
+                          items={listItems}
+                          onItemsChange={handleItemsChange}
+                          onRemoveItem={handleRemoveItem}
+                        />
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </div>
-        </Tabs>
+                  
+                  {/* Final Actions */}
+                  <div className="flex justify-between pt-6 border-t">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setActiveTab('restaurants')}
+                      className="flex items-center space-x-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back: Add Items</span>
+                    </Button>
+                    <div className="text-center">
+                      {!watchedName.trim() && (
+                        <p className="text-sm text-muted-foreground mb-3">Add a list name to continue</p>
+                      )}
+                      {watchedName.trim() && listItems.length === 0 && (
+                        <p className="text-sm text-muted-foreground mb-3">Consider adding restaurants to make your list more valuable</p>
+                      )}
+                      <Button 
+                        onClick={() => form.handleSubmit(onSubmit)()}
+                        disabled={createList.isPending || !watchedName.trim() || !watchedAudience}
+                        size="lg"
+                        className="px-8"
+                      >
+                        {createList.isPending ? "Creating..." : "Create List"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-        {/* Create Button */}
-        <div className="mt-8 flex justify-center">
-          <div className="text-center">
-            {!watchedName.trim() && (
-              <p className="text-sm text-muted-foreground mb-3">
-                Add a list name to continue
-              </p>
-            )}
-            {watchedName.trim() && listItems.length === 0 && (
-              <p className="text-sm text-muted-foreground mb-3">
-                Consider adding restaurants to make your list more valuable
-              </p>
-            )}
-            <Button 
-              onClick={() => form.handleSubmit(onSubmit)()}
-              disabled={createList.isPending || !watchedName.trim()}
-              size="lg"
-              className="px-8"
-            >
-              {createList.isPending ? "Creating..." : watchedName.trim() ? "Create List" : "Enter List Name First"}
-            </Button>
-          </div>
-        </div>
+
       </div>
     </div>
   );

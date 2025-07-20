@@ -1,0 +1,139 @@
+✅ Circles – Sprint Brief: Create a List (Redesigned)
+🎯 Objective
+Redesign the Create a List flow to feel expressive, modern, and mobile-first — empowering users to organize food memories quickly, beautifully, and share them with trust. This must be lightweight to use, emotionally engaging, and consistent with our brand tone.
+
+👤 User Story
+As a Circles user, I want to easily build a personalized list of restaurants or dishes I love, so I can remember my experiences and share them with friends, Circles, or the public.
+
+🧠 Core UX Shifts (vs. current version)
+Problem	New Direction
+Tabbed interface feels rigid	Use a 3-step progressive flow (Details → Items → Share)
+Overwhelming form fields	Let users start with just one item, then build
+No feedback or preview	Real-time list preview updates as items are added
+Inconsistent visual tone	Use card-based layout, friendly copy, and soft design
+Broken or missing search	Integrate global restaurant/dish search + fallback “Add manually”
+
+🔧 Required UI & Interaction Features
+Step 1: 📝 List Details
+Title (required)
+
+Optional: Description, Cover Image
+
+Toggle: “Rank this list?” → Enables drag-to-rank later
+
+CTA: “Next: Add Items”
+
+💡 Use visual hierarchy with text-lg font-semibold, grouped spacing
+
+Step 2: ➕ Add Items to List
+Prompt: “What are you adding?”
+
+Choose type: 🍽 Dish @ Restaurant OR 🏙 Restaurant
+
+Restaurant name (search-enabled, fallback = add manually)
+
+Dish name (if applicable)
+
+Optional: City, Tags, Notes, Photo
+
+✔ Each item added appears in a preview below, using ListItemCard.tsx
+✔ If “Rank list” is enabled, preview shows drag handles
+
+UX Notes:
+
+Show prompt if list is empty:
+
+“Start with one place or dish — you can always add more.”
+
+Show visual feedback when item is saved
+
+Support edit/delete inline on each preview
+
+Step 3: 📤 Share & Preview
+Prompt: “Who should see this list?”
+
+Options:
+
+🔒 Keep Private
+
+👤 My Profile (followers)
+
+🫶 A Circle (dropdown of joined Circles)
+
+🌍 Public Feed (if profile is public)
+
+Below:
+
+Full real-time list preview (mobile toggle: “Preview List”)
+
+CTA: “Publish List”
+
+If no share destination selected → error message:
+
+“Please choose where to share this list.”
+
+🧪 Edge Case UX
+Case	UX Behavior
+Location off	Show “Enable location for better suggestions” + link
+Search returns nothing	Show “Can’t find it? Add manually”
+No items added yet	Show empty state encouragement
+Try to publish without destination	Block + inline alert
+User wants to reorder items	Drag-and-drop enabled when "Rank list" is toggled on
+
+🎨 Visual & Interaction Standards
+Card-based list item preview (ListItemPreview.tsx)
+
+Tailwind spacing: p-4, rounded-xl, shadow-sm, space-y-4
+
+Text hierarchy:
+
+text-xl font-semibold → Page headers
+
+text-sm text-muted-foreground → Notes, descriptions
+
+Tappable buttons ≥ min-h-[48px]
+
+Modal/Sheet drawers are overflow-y-auto max-h-screen
+
+📁 Recommended Component Breakdown
+pgsql
+Copy
+Edit
+/components/lists/
+  CreateListStepper.tsx        ← parent flow logic (step 1–3)
+  ListDetailsForm.tsx          ← step 1
+  AddListItemModal.tsx         ← inline modal for items
+  ListItemPreview.tsx          ← preview card per item
+  ListItemsSortable.tsx        ← drag-to-rank handler (step 2)
+  ShareListPicker.tsx          ← step 3 share destination
+  ListFeedPreview.tsx          ← real-time final preview
+  PostSuccessModal.tsx         ← confirmation after publish
+📦 Dev Handoff Notes
+Reuse patterns from:
+
+CreateCircleForm.tsx → for page structure and modal integration
+
+ListCard.tsx / feed layout → for list previews
+
+Prioritize auto-save draft logic and graceful recovery from refresh
+
+Ensure global search is integrated for both dish and restaurant inputs
+
+✅ Deliverables
+Modular React components (one per step + modal/preview)
+
+Mobile-first layout with soft shadows and friendly UX
+
+Backend-ready submission with full metadata:
+
+ts
+Copy
+Edit
+{
+  title,
+  description,
+  coverImage,
+  isRanked,
+  items: [{ type, dishName, restaurant, notes, tags, city }],
+  shareDestination: "profile" | "circle" | "public" | "private"
+}
