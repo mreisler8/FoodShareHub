@@ -21,8 +21,9 @@ import { Badge } from "@/components/ui/badge";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
-import { RestaurantSearchAndAdd } from "@/components/lists/RestaurantSearchAndAdd";
-import { DraggableRestaurantList } from "@/components/lists/DraggableRestaurantList";
+// Temporarily disable problematic imports
+// import { RestaurantSearchAndAdd } from "@/components/lists/RestaurantSearchAndAdd";
+// import { DraggableRestaurantList } from "@/components/lists/DraggableRestaurantList";
 
 // Form Schema based on Robust List Creation user story
 const formSchema = z.object({
@@ -360,10 +361,10 @@ export default function CreateList() {
                   <CardTitle>Add Restaurants</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RestaurantSearchAndAdd 
-                    onAddRestaurant={handleAddRestaurant}
-                    addedRestaurants={listItems.map(item => item.restaurant)}
-                  />
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Restaurant search temporarily disabled</p>
+                    <p className="text-xs mt-1">Feature under maintenance</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -374,11 +375,10 @@ export default function CreateList() {
                   <CardTitle>Rank & Review Your List</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DraggableRestaurantList 
-                    items={listItems}
-                    onItemsChange={handleItemsChange}
-                    onRemoveItem={handleRemoveItem}
-                  />
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Drag and drop ranking temporarily disabled</p>
+                    <p className="text-xs mt-1">Feature under maintenance</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
