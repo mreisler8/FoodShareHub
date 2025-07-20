@@ -51,6 +51,7 @@ function Router() {
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/lists" component={Lists} />
       <ProtectedRoute path="/lists/create" component={CreateList} />
+      <ProtectedRoute path="/create-list" component={CreateList} />
       {/* <ProtectedRoute path="/create-list-enhanced" component={CreateListEnhanced} /> */}
       <ProtectedRoute path="/lists/:id" component={ListDetails} />
       <ProtectedRoute path="/posts/:id" component={PostDetails} />
