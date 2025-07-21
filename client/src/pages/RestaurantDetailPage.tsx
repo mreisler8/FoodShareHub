@@ -19,6 +19,7 @@ import {
   ExternalLink,
   ChefHat
 } from 'lucide-react';
+import QuickRateButton from '@/components/ratings/QuickRateButton';
 
 interface RestaurantDetails {
   id: string;
@@ -505,6 +506,16 @@ export default function RestaurantDetailPage() {
                 <CardContent className="p-4">
                   <h4 className="font-medium mb-3">Quick Actions</h4>
                   <div className="space-y-2">
+                    <QuickRateButton
+                      restaurant={{
+                        id: restaurant.id === "google_" + restaurant.googlePlaceId ? undefined : parseInt(restaurant.id),
+                        googlePlaceId: restaurant.googlePlaceId,
+                        name: restaurant.name,
+                        location: restaurant.location,
+                        address: restaurant.address
+                      }}
+                      className="w-full"
+                    />
                     <Button variant="outline" size="sm" className="w-full">
                       Write Review
                     </Button>
