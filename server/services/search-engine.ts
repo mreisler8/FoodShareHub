@@ -1,6 +1,38 @@
 import { Client } from 'typesense';
 import { Restaurant, User, RestaurantList } from '@shared/schema';
 
+// Memoization for search relevance calculations
+const relevanceCache = new Map<string, number>();
+
+// Memoized relevance score calculation
+function getRelevanceScore(restaurantName: string, query: string): number {
+  const cacheKey = `${restaurantName.toLowerCase()}-${query.toLowerCase()}`;
+  
+  if (relevanceCache.has(cacheKey)) {
+    return relevanceCache.get(cacheKey)!;
+  }
+  
+  const name = restaurantName.toLowerCase();
+  const searchTerm = query.toLowerCase();
+  
+  let score: number;
+  if (name === searchTerm) score = 100;
+  else if (name.startsWith(searchTerm)) score = 90;
+  else if (name.includes(searchTerm)) score = 80;
+  else score = 70;
+  
+  // Cache the result for future use
+  relevanceCache.set(cacheKey, score);
+  
+  // Prevent cache from growing too large
+  if (relevanceCache.size > 1000) {
+    const firstKey = relevanceCache.keys().next().value;
+    relevanceCache.delete(firstKey);
+  }
+  
+  return score;
+}
+
 // Initialize Typesense client
 const typesense = new Client({
   nodes: [

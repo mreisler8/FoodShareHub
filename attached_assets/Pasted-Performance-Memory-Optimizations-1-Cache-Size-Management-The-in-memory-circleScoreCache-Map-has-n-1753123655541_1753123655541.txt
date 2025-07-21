@@ -1,0 +1,137 @@
+Performance & Memory Optimizations
+1. Cache Size Management
+The in-memory circleScoreCache Map has no size limits and could lead to memory bloat:
+
+// Add to CircleScorePreCalculator class
+private readonly MAX_CACHE_SIZE = 10000;
+private readonly CACHE_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+private cleanupCache(): void {
+  if (circleScoreCache.size > this.MAX_CACHE_SIZE) {
+    // Remove oldest entries (LRU-style cleanup)
+    const entries = Array.from(circleScoreCache.entries());
+    entries.sort((a, b) => a[1].calculatedAt.getTime() - b[1].calculatedAt.getTime());
+    
+    const toRemove = entries.slice(0, Math.floor(this.MAX_CACHE_SIZE * 0.2));
+    toRemove.forEach(([key]) => circleScoreCache.delete(key));
+  }
+}
+2. Database Query Optimization
+The popularity check makes separate queries that could be combined:
+
+async isPopularRestaurant(restaurantId: number | null, googlePlaceId: string | null): Promise<boolean> {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+    // Single query with multiple counts
+    const [popularityMetrics] = await db
+      .select({
+        recentRatings: sql<number>`count(distinct r.id)`,
+        listPlacements: sql<number>`count(distinct rli.id)`
+      })
+      .from(ratings.as('r'))
+      .leftJoin(restaurantListItems.as('rli'), 
+        restaurantId 
+          ? eq(rli.restaurantId, restaurantId)
+          : eq(rli.googlePlaceId, googlePlaceId!)
+      )
+      .where(
+        restaurantId
+          ? eq(ratings.restaurantId, restaurantId)
+          : eq(ratings.googlePlaceId, googlePlaceId!)
+      );
+      
+    return (popularityMetrics.recentRatings > 10) || (popularityMetrics.listPlacements > 5);
+  } catch (error) {
+    console.error('Error checking restaurant popularity:', error);
+    return false;
+  }
+}
+3. Batch Processing Optimization
+Replace the serial processing in preCalculateForPopularRestaurants:
+
+async preCalculateForPopularRestaurants(restaurantId: number | null, googlePlaceId: string | null): Promise<void> {
+  try {
+    const isPopular = await this.isPopularRestaurant(restaurantId, googlePlaceId);
+    if (!isPopular) return;
+    const activeUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(gte(users.lastLoginAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))
+      .limit(50);
+    // Batch process in chunks of 10 to avoid overwhelming the system
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < activeUsers.length; i += BATCH_SIZE) {
+      const batch = activeUsers.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(
+        batch.map(user => this.preCalculateForUser(restaurantId, googlePlaceId, user.id))
+      );
+      
+      // Small delay between batches to prevent resource exhaustion
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  } catch (error) {
+    console.error('Error pre-calculating popular restaurant scores:', error);
+  }
+}
+4. Search Service Sorting Optimization
+The current sorting logic recalculates relevance scores multiple times:
+
+// Add to SearchService class
+private getRelevanceScore = memoize((restaurant: SearchResult, query: string) => {
+  const name = restaurant.name.toLowerCase();
+  const searchTerm = query.toLowerCase();
+  if (name === searchTerm) return 100;
+  if (name.startsWith(searchTerm)) return 90;
+  if (name.includes(searchTerm)) return 80;
+  return 70;
+});
+5. Error Handling & Circuit Breaker Pattern
+Add circuit breaker for Circle Score calculations to prevent cascade failures:
+
+class CircuitBreaker {
+  private failures = 0;
+  private lastFailTime = 0;
+  private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
+  
+  constructor(
+    private threshold = 5,
+    private timeout = 30000 // 30 seconds
+  ) {}
+  
+  async execute<T>(operation: () => Promise<T>): Promise<T | null> {
+    if (this.state === 'OPEN') {
+      if (Date.now() - this.lastFailTime < this.timeout) {
+        return null; // Fast fail
+      }
+      this.state = 'HALF_OPEN';
+    }
+    
+    try {
+      const result = await operation();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+  
+  private onSuccess() {
+    this.failures = 0;
+    this.state = 'CLOSED';
+  }
+  
+  private onFailure() {
+    this.failures++;
+    this.lastFailTime = Date.now();
+    if (this.failures >= this.threshold) {
+      this.state = 'OPEN';
+    }
+  }
+}
+Additional Recommendations
+Add Redis for Production: Replace in-memory cache with Redis for multi-instance deployments
+Implement Background Job Queue: Use Bull/Agenda for better job processing
+Add Monitoring: Track cache hit rates, calculation times, and error rates
+Database Indexing: Ensure indexes on restaurantId, googlePlaceId, createdAt, and lastLoginAt columns
+Rate Limiting: Add rate limiting to batch Circle Score API to prevent abuse

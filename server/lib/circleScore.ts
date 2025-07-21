@@ -1,6 +1,54 @@
 import { db } from '../db';
 import { ratings, restaurantListItems, circles, circleMembers, userFollowers, users, restaurantLists } from '@shared/schema';
-import { and, eq, or, inArray, desc, gte } from 'drizzle-orm';
+import { and, eq, or, inArray, desc, gte, sql, count } from 'drizzle-orm';
+
+// Cache management for performance optimization
+const circleScoreCache = new Map<string, { data: CircleScoreResult | null; calculatedAt: Date }>();
+
+// Circuit Breaker for error handling
+class CircuitBreaker {
+  private failures = 0;
+  private lastFailTime = 0;
+  private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
+  
+  constructor(
+    private threshold = 5,
+    private timeout = 30000 // 30 seconds
+  ) {}
+  
+  async execute<T>(operation: () => Promise<T>): Promise<T | null> {
+    if (this.state === 'OPEN') {
+      if (Date.now() - this.lastFailTime < this.timeout) {
+        return null; // Fast fail
+      }
+      this.state = 'HALF_OPEN';
+    }
+    
+    try {
+      const result = await operation();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+  
+  private onSuccess() {
+    this.failures = 0;
+    this.state = 'CLOSED';
+  }
+  
+  private onFailure() {
+    this.failures++;
+    this.lastFailTime = Date.now();
+    if (this.failures >= this.threshold) {
+      this.state = 'OPEN';
+    }
+  }
+}
+
+const circuitBreaker = new CircuitBreaker();
 
 export interface CircleScoreResult {
   score: number; // 0-100
@@ -34,6 +82,14 @@ export async function calculateCircleScore(
   googlePlaceId: string | null,
   requestingUserId: number
 ): Promise<CircleScoreResult | null> {
+  // Check cache first
+  const cacheKey = `${restaurantId || 'null'}-${googlePlaceId || 'null'}-${requestingUserId}`;
+  const cached = circleScoreCache.get(cacheKey);
+  
+  if (cached && (Date.now() - cached.calculatedAt.getTime()) < 5 * 60 * 1000) { // 5 minute cache
+    return cached.data;
+  }
+  
   try {
     // 1. Get trusted users (circle members + followed users)
     const trustedUsers = await getTrustedUsers(requestingUserId);
@@ -115,7 +171,7 @@ export async function calculateCircleScore(
       saves: 0 // TODO: Implement when saves are available
     };
     
-    return {
+    const circleScoreResult = {
       score: Math.round(normalizedScore),
       confidence,
       contributors: contributors.sort((a, b) => a.recency - b.recency), // Most recent first
@@ -123,8 +179,18 @@ export async function calculateCircleScore(
       breakdown
     };
     
+    // Cache the result  
+    circleScoreCache.set(cacheKey, { data: circleScoreResult, calculatedAt: new Date() });
+    
+    // Trigger pre-calculation for popular restaurants
+    scorePreCalculator.preCalculateForPopularRestaurants(restaurantId, googlePlaceId);
+    
+    return circleScoreResult;
+    
   } catch (error) {
     console.error('Circle score calculation error:', error);
+    // Cache null result to prevent repeated failed calculations
+    circleScoreCache.set(cacheKey, { data: null, calculatedAt: new Date() });
     return null;
   }
 }
@@ -294,4 +360,112 @@ function calculateConfidence(contributors: CircleScoreResult['contributors']): "
   return 'low';
 }
 
-import { sql } from 'drizzle-orm';
+// Circle Score Cache Management Class
+class CircleScorePreCalculator {
+  private readonly MAX_CACHE_SIZE = 10000;
+  private readonly CACHE_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  private cleanupTimer: NodeJS.Timeout | null = null;
+  
+  constructor() {
+    this.startCleanupTimer();
+  }
+  
+  private startCleanupTimer(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupCache();
+    }, this.CACHE_CLEANUP_INTERVAL);
+  }
+  
+  private cleanupCache(): void {
+    if (circleScoreCache.size > this.MAX_CACHE_SIZE) {
+      // Remove oldest entries (LRU-style cleanup)
+      const entries = Array.from(circleScoreCache.entries());
+      entries.sort((a, b) => a[1].calculatedAt.getTime() - b[1].calculatedAt.getTime());
+      
+      const toRemove = entries.slice(0, Math.floor(this.MAX_CACHE_SIZE * 0.2));
+      toRemove.forEach(([key]) => circleScoreCache.delete(key));
+      
+      console.log(`Cache cleanup: Removed ${toRemove.length} entries, ${circleScoreCache.size} remaining`);
+    }
+  }
+  
+  // Optimized popularity check with combined query
+  async isPopularRestaurant(restaurantId: number | null, googlePlaceId: string | null): Promise<boolean> {
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Single query with multiple counts
+      const popularityQuery = db
+        .select({
+          recentRatings: sql<number>`count(distinct ${ratings.id})`.as('recentRatings'),
+          listPlacements: sql<number>`count(distinct ${restaurantListItems.id})`.as('listPlacements')
+        })
+        .from(ratings)
+        .leftJoin(restaurantListItems, 
+          restaurantId 
+            ? eq(restaurantListItems.restaurantId, restaurantId)
+            : sql`1=0` // Skip googlePlaceId for now as it's not in schema
+        )
+        .where(
+          and(
+            restaurantId
+              ? eq(ratings.restaurantId, restaurantId)
+              : eq(ratings.googlePlaceId, googlePlaceId!),
+            gte(ratings.createdAt, thirtyDaysAgo)
+          )
+        );
+      
+      const [popularityMetrics] = await popularityQuery;
+      
+      if (!popularityMetrics) return false;
+      
+      return (popularityMetrics.recentRatings > 10) || (popularityMetrics.listPlacements > 5);
+    } catch (error) {
+      console.error('Error checking restaurant popularity:', error);
+      return false;
+    }
+  }
+  
+  // Batch processing with circuit breaker
+  async preCalculateForPopularRestaurants(restaurantId: number | null, googlePlaceId: string | null): Promise<void> {
+    try {
+      const isPopular = await this.isPopularRestaurant(restaurantId, googlePlaceId);
+      if (!isPopular) return;
+      
+      const activeUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(sql`1=1`) // Temporarily remove date filter until lastLoginAt is added to schema
+        .limit(50);
+      
+      // Batch process in chunks of 10 to avoid overwhelming the system
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < activeUsers.length; i += BATCH_SIZE) {
+        const batch = activeUsers.slice(i, i + BATCH_SIZE);
+        await Promise.allSettled(
+          batch.map(user => this.preCalculateForUser(restaurantId, googlePlaceId, user.id))
+        );
+        
+        // Small delay between batches to prevent resource exhaustion
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    } catch (error) {
+      console.error('Error pre-calculating popular restaurant scores:', error);
+    }
+  }
+  
+  private async preCalculateForUser(restaurantId: number | null, googlePlaceId: string | null, userId: number): Promise<void> {
+    await circuitBreaker.execute(async () => {
+      return calculateCircleScore(restaurantId, googlePlaceId, userId);
+    });
+  }
+  
+  // Cleanup on shutdown
+  destroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+    }
+  }
+}
+
+const scorePreCalculator = new CircleScorePreCalculator();

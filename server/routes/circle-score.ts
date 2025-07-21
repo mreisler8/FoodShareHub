@@ -1,8 +1,23 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { calculateCircleScore } from '../lib/circleScore';
-import { circleScorePreCalculator } from '../lib/circleScoreCache';
 
 const router = express.Router();
+
+// Rate limiting for Circle Score API
+const circleScoreRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    error: 'Too many Circle Score requests',
+    resetTime: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply rate limiting to all Circle Score routes
+router.use(circleScoreRateLimit);
 
 // GET /api/circle-score/:id - Get Circle Score for a restaurant
 router.get('/:id', async (req, res) => {
@@ -26,20 +41,8 @@ router.get('/:id', async (req, res) => {
       }
     }
     
-    // Try to get cached score first
-    let circleScore = circleScorePreCalculator.getCachedScore(restaurantId, googlePlaceId, req.user.id);
-    
-    // If not cached, calculate fresh
-    if (!circleScore) {
-      circleScore = await calculateCircleScore(restaurantId, googlePlaceId, req.user.id);
-      
-      // Trigger background pre-calculation for popular restaurants
-      if (circleScore) {
-        setImmediate(() => {
-          circleScorePreCalculator.preCalculateForPopularRestaurants(restaurantId, googlePlaceId);
-        });
-      }
-    }
+    // Calculate Circle Score with built-in caching
+    const circleScore = await calculateCircleScore(restaurantId, googlePlaceId, req.user.id);
     
     if (!circleScore) {
       return res.status(404).json({ 

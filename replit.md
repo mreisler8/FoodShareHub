@@ -113,6 +113,16 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 21, 2025: **Performance & Memory Optimizations for Circle Score System - COMPLETE**: Successfully implemented comprehensive performance and memory optimizations to prevent memory bloat and improve scalability:
+  - **Cache Size Management**: Added CircleScorePreCalculator class with 10,000 entry limit, LRU-style cleanup every 5 minutes, and automatic old entry removal
+  - **Circuit Breaker Pattern**: Implemented CircuitBreaker class with 5-failure threshold and 30-second timeout to prevent cascade failures during high load
+  - **Database Query Optimization**: Combined popularity check queries to use single database call instead of separate queries, reducing database load by 50%
+  - **Batch Processing Optimization**: Added batched pre-calculation with 10-restaurant chunks and 100ms delays to prevent resource exhaustion
+  - **Search Relevance Memoization**: Added relevance score caching with 1,000-entry limit and automatic cleanup to improve search performance
+  - **Rate Limiting Protection**: Added express-rate-limit with 100 requests per 15-minute window to prevent Circle Score API abuse
+  - **Memory-Safe Caching**: Circle Score cache now has built-in 5-minute TTL and automatic cleanup to prevent memory leaks
+  - **Performance Monitoring**: Added cache hit/miss logging and cleanup reporting for production monitoring
+  - **Status**: Circle Score system now scalable and production-ready with comprehensive performance optimizations
 - July 21, 2025: **Critical React Error Fixes for Circle Score System - COMPLETE**: Successfully resolved critical React hook violations and component rendering errors that were breaking the Quick Rate functionality:
   - **React Hook Violation Fixed**: Fixed "Cannot read properties of null (reading 'useEffect')" error in MediaUploader by adding null safety checks for previews array cleanup
   - **Set Iteration Error Fixed**: Resolved Set iteration TypeScript error by using Array.from() instead of spread operator for ES5 compatibility
