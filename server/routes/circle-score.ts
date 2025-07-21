@@ -1,5 +1,6 @@
 import express from 'express';
 import { calculateCircleScore } from '../lib/circleScore';
+import { circleScorePreCalculator } from '../lib/circleScoreCache';
 
 const router = express.Router();
 
@@ -25,7 +26,20 @@ router.get('/:id', async (req, res) => {
       }
     }
     
-    const circleScore = await calculateCircleScore(restaurantId, googlePlaceId, req.user.id);
+    // Try to get cached score first
+    let circleScore = circleScorePreCalculator.getCachedScore(restaurantId, googlePlaceId, req.user.id);
+    
+    // If not cached, calculate fresh
+    if (!circleScore) {
+      circleScore = await calculateCircleScore(restaurantId, googlePlaceId, req.user.id);
+      
+      // Trigger background pre-calculation for popular restaurants
+      if (circleScore) {
+        setImmediate(() => {
+          circleScorePreCalculator.preCalculateForPopularRestaurants(restaurantId, googlePlaceId);
+        });
+      }
+    }
     
     if (!circleScore) {
       return res.status(404).json({ 

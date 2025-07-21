@@ -50,6 +50,7 @@ export interface SearchOptions {
   radius?: number;
   limit?: number;
   includeLocation?: boolean;
+  sortBy?: 'relevance' | 'rating' | 'circleScore';
 }
 
 export class SearchService {
@@ -110,12 +111,26 @@ export class SearchService {
 
     const results = await response.json();
 
-    // Sort by exact match first, then relevance, then rating
+    // Sort by exact match first, then by specified sort option
     if (results.restaurants) {
       results.restaurants.sort((a: SearchResult, b: SearchResult) => {
         // Check for exact matches first
         if (a.isExactMatch && !b.isExactMatch) return -1;
         if (!a.isExactMatch && b.isExactMatch) return 1;
+
+        // Apply sorting based on options
+        if (options.sortBy === 'circleScore') {
+          // Prioritize restaurants with Circle Scores
+          const aHasCircleScore = a.metadata?.circleScore !== undefined;
+          const bHasCircleScore = b.metadata?.circleScore !== undefined;
+          
+          if (aHasCircleScore && !bHasCircleScore) return -1;
+          if (!aHasCircleScore && bHasCircleScore) return 1;
+          
+          if (aHasCircleScore && bHasCircleScore) {
+            return (b.metadata?.circleScore || 0) - (a.metadata?.circleScore || 0);
+          }
+        }
 
         // Calculate relevance score based on name matching
         const getRelevanceScore = (restaurant: SearchResult, query: string) => {
@@ -131,9 +146,15 @@ export class SearchService {
         const aRelevance = a.relevanceScore || getRelevanceScore(a, query);
         const bRelevance = b.relevanceScore || getRelevanceScore(b, query);
 
-        // Sort by relevance first, then by rating
+        // Sort by relevance first, then by rating/circle score
         if (aRelevance !== bRelevance) {
           return bRelevance - aRelevance;
+        }
+
+        if (options.sortBy === 'circleScore') {
+          const aScore = a.metadata?.circleScore || 0;
+          const bScore = b.metadata?.circleScore || 0;
+          return bScore - aScore;
         }
 
         const aRating = typeof a.avgRating === 'number' ? a.avgRating : 0;

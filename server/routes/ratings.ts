@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { ratings, insertRatingSchema, restaurants, circles, circleMembers } from '../../shared/schema';
 import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
+import { onNewRating } from '../lib/circleScoreJobs';
 
 const router = Router();
 
@@ -25,21 +26,21 @@ router.get('/', async (req, res) => {
 
   try {
     const { restaurantId, googlePlaceId, sharedOnly, limit = 50, offset = 0 } = req.query;
-    
+
     let whereConditions = [eq(ratings.userId, req.user.id)];
-    
+
     if (restaurantId) {
       whereConditions.push(eq(ratings.restaurantId, parseInt(restaurantId as string)));
     }
-    
+
     if (googlePlaceId) {
       whereConditions.push(eq(ratings.googlePlaceId, googlePlaceId as string));
     }
-    
+
     if (sharedOnly === 'true') {
       whereConditions.push(eq(ratings.sharedWithCircle, true));
     }
-    
+
     const userRatings = await db.select()
       .from(ratings)
       .where(and(...whereConditions))
@@ -62,7 +63,7 @@ router.get('/restaurant/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { type = 'restaurant' } = req.query; // 'restaurant' or 'google_place'
-    
+
     let rating;
     if (type === 'google_place') {
       rating = await db.select().from(ratings)
@@ -99,16 +100,16 @@ router.post('/', async (req, res) => {
 
   try {
     const validatedData = createRatingSchema.parse(req.body);
-    
+
     // Validate circle access if sharing with circles
     if (validatedData.sharedWithCircle && validatedData.circleIds?.length) {
       const userCircles = await db.select()
         .from(circleMembers)
         .where(eq(circleMembers.userId, req.user.id));
-      
+
       const userCircleIds = userCircles.map(cm => cm.circleId);
       const invalidCircles = validatedData.circleIds.filter(cId => !userCircleIds.includes(cId));
-      
+
       if (invalidCircles.length > 0) {
         return res.status(403).json({ 
           error: 'Cannot share to circles you are not a member of' 
@@ -154,6 +155,11 @@ router.post('/', async (req, res) => {
         .returning();
     }
 
+    // Trigger circle score calculation
+    if (rating && rating.length > 0) {
+        await onNewRating(rating[0].restaurantId, rating[0].googlePlaceId);
+    }
+
     res.status(201).json(rating[0]);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -162,7 +168,7 @@ router.post('/', async (req, res) => {
         details: error.errors 
       });
     }
-    
+
     console.error('Create rating error:', error);
     res.status(500).json({ error: 'Failed to create rating' });
   }
@@ -195,10 +201,10 @@ router.put('/:id', async (req, res) => {
       const userCircles = await db.select()
         .from(circleMembers)
         .where(eq(circleMembers.userId, req.user.id));
-      
+
       const userCircleIds = userCircles.map(cm => cm.circleId);
       const invalidCircles = validatedData.circleIds.filter(cId => !userCircleIds.includes(cId));
-      
+
       if (invalidCircles.length > 0) {
         return res.status(403).json({ 
           error: 'Cannot share to circles you are not a member of' 
@@ -225,7 +231,7 @@ router.put('/:id', async (req, res) => {
         details: error.errors 
       });
     }
-    
+
     console.error('Update rating error:', error);
     res.status(500).json({ error: 'Failed to update rating' });
   }
@@ -253,7 +259,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     await db.delete(ratings).where(eq(ratings.id, ratingId));
-    
+
     res.json({ message: 'Rating deleted successfully' });
   } catch (error) {
     console.error('Delete rating error:', error);

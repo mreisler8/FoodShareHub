@@ -13,7 +13,8 @@ import {
   Star, 
   UserPlus, 
   UserCheck,
-  Clock
+  Clock,
+  ArrowUpDown
 } from 'lucide-react';
 import { SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,9 @@ interface SearchResultsListProps {
   highlightedIndex?: number;
   className?: string;
   enableDirectNavigation?: boolean;
+  showSortOptions?: boolean;
+  sortBy?: 'relevance' | 'rating' | 'circleScore';
+  onSortChange?: (sortBy: 'relevance' | 'rating' | 'circleScore') => void;
 }
 
 // Circle Score Display Component for Search Results
@@ -66,7 +70,10 @@ export function SearchResultsList({
   showFollowButton = false,
   highlightedIndex = -1,
   className,
-  enableDirectNavigation = false
+  enableDirectNavigation = false,
+  showSortOptions = false,
+  sortBy = 'relevance',
+  onSortChange
 }: SearchResultsListProps) {
   const [, setLocation] = useLocation();
 
@@ -148,6 +155,25 @@ export function SearchResultsList({
 
   return (
     <div className={cn("space-y-2", className)}>
+      {showSortOptions && results.length > 0 && (
+        <div className="flex items-center justify-between px-2 py-1 border-b">
+          <span className="text-sm text-muted-foreground">
+            {results.length} results
+          </span>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+            <select 
+              value={sortBy} 
+              onChange={(e) => onSortChange?.(e.target.value as any)}
+              className="text-xs border rounded px-2 py-1 bg-background"
+            >
+              <option value="relevance">Relevance</option>
+              <option value="rating">Rating</option>
+              <option value="circleScore">Circle Score</option>
+            </select>
+          </div>
+        </div>
+      )}
       {results.map((result, index) => (
         <Card 
           key={result.id}
