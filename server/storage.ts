@@ -17,10 +17,11 @@ import {
   contentReports, type ContentReport, type InsertContentReport,
   postListItems, type PostListItem, type InsertPostListItem,
   searchAnalytics, type SearchAnalytics, type InsertSearchAnalytics,
-  userSearchPreferences, type UserSearchPreferences, type InsertUserSearchPreferences
+  userSearchPreferences, type UserSearchPreferences, type InsertUserSearchPreferences,
+  listReactions, type ListReaction, type InsertListReaction
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, like, desc, gt, or, not, inArray } from "drizzle-orm";
+import { eq, and, like, desc, gt, or, not, inArray, count, sql } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -120,6 +121,12 @@ export interface IStorage {
   deleteSavedList(listId: number, userId: number): Promise<void>;
   getSavedListsByUser(userId: number): Promise<any[]>; // with list details
   isListSavedByUser(listId: number, userId: number): Promise<boolean>;
+
+  // List reactions operations
+  createListReaction(listId: number, userId: number, reactionType: string): Promise<any>;
+  deleteListReaction(listId: number, userId: number): Promise<void>;
+  getUserListReaction(listId: number, userId: number): Promise<any>;
+  getListReactionCounts(listId: number): Promise<number>;
 
   // Story operations
   createStory(story: InsertStory): Promise<Story>;
@@ -881,6 +888,62 @@ export class DatabaseStorage implements IStorage {
       )
     );
     return !!savedList;
+  }
+
+  // List reactions operations
+  async createListReaction(listId: number, userId: number, reactionType: string): Promise<any> {
+    // First check if reaction already exists
+    const existingReaction = await this.getUserListReaction(listId, userId);
+    if (existingReaction) {
+      throw new Error('User has already reacted to this list');
+    }
+
+    const [reaction] = await db.insert(listReactions).values({
+      listId,
+      userId,
+      reactionType,
+      createdAt: new Date()
+    }).returning();
+
+    // Update reaction count on the list
+    const [countResult] = await db.select({ count: count() }).from(listReactions).where(eq(listReactions.listId, listId));
+    await db.update(restaurantLists).set({
+      reactionCount: countResult.count
+    }).where(eq(restaurantLists.id, listId));
+
+    return reaction;
+  }
+
+  async deleteListReaction(listId: number, userId: number): Promise<void> {
+    await db.delete(listReactions).where(
+      and(
+        eq(listReactions.listId, listId),
+        eq(listReactions.userId, userId)
+      )
+    );
+
+    // Update reaction count on the list
+    const [countResult] = await db.select({ count: count() }).from(listReactions).where(eq(listReactions.listId, listId));
+    await db.update(restaurantLists).set({
+      reactionCount: countResult.count
+    }).where(eq(restaurantLists.id, listId));
+  }
+
+  async getUserListReaction(listId: number, userId: number): Promise<any> {
+    const [reaction] = await db.select().from(listReactions).where(
+      and(
+        eq(listReactions.listId, listId),
+        eq(listReactions.userId, userId)
+      )
+    );
+    return reaction || null;
+  }
+
+  async getListReactionCounts(listId: number): Promise<number> {
+    const [result] = await db.select({ 
+      count: count() 
+    }).from(listReactions).where(eq(listReactions.listId, listId));
+    return result?.count || 0;
   }
 
   // Story operations

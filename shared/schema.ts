@@ -349,6 +349,25 @@ export const insertSavedListSchema = createInsertSchema(savedLists).pick({
   userId: true,
 });
 
+// List Reactions model (for reacting to lists)
+export const listReactions = pgTable("list_reactions", {
+  id: serial("id").primaryKey(),
+  listId: integer("list_id")
+    .references(() => restaurantLists.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
+  reactionType: text("reaction_type").notNull().default("like"), // "like", "love", "fire", etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertListReactionSchema = createInsertSchema(listReactions).pick({
+  listId: true,
+  userId: true,
+  reactionType: true,
+});
+
 // Story model
 export const stories = pgTable("stories", {
   id: serial("id").primaryKey(),
@@ -396,6 +415,7 @@ export const restaurantLists = pgTable("restaurant_lists", {
   // Tracking fields
   viewCount: integer("view_count").default(0),
   saveCount: integer("save_count").default(0),
+  reactionCount: integer("reaction_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -556,6 +576,9 @@ export type InsertSavedRestaurant = z.infer<typeof insertSavedRestaurantSchema>;
 
 export type SavedList = typeof savedLists.$inferSelect;
 export type InsertSavedList = z.infer<typeof insertSavedListSchema>;
+
+export type ListReaction = typeof listReactions.$inferSelect;
+export type InsertListReaction = z.infer<typeof insertListReactionSchema>;
 
 export type Story = typeof stories.$inferSelect;
 export type InsertStory = z.infer<typeof insertStorySchema>;

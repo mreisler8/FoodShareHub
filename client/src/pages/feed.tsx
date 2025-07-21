@@ -5,6 +5,7 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { PostCard } from '@/components/home/PostCard';
+import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { Button } from '@/components/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,13 +21,34 @@ interface FeedPageProps {
   circleId?: string;
 }
 
-interface PaginatedFeedResponse {
-  posts: PostWithDetails[];
+interface FeedItem extends PostWithDetails {
+  feedType: 'post' | 'list';
+  // List-specific fields
+  name?: string;
+  description?: string;
+  coverImage?: string;
+  tags?: string[];
+  type?: 'restaurant' | 'dish';
+  audience?: 'profile' | 'circle' | 'public';
+  shareWithCircle?: boolean;
+  makePublic?: boolean;
+  viewCount?: number;
+  saveCount?: number;
+  reactionCount?: number;
+  creator?: {
+    id: number;
+    name: string;
+    username: string;
+    profilePicture?: string;
+  };
+}
+
+interface UnifiedFeedResponse {
+  items: FeedItem[];
   pagination: {
     page: number;
     limit: number;
     total: number;
-    totalPages: number;
     hasMore: boolean;
   };
 }
@@ -35,7 +57,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [page, setPage] = useState(1);
-  const [allPosts, setAllPosts] = useState<PostWithDetails[]>([]);
+  const [allItems, setAllItems] = useState<FeedItem[]>([]);
   const [showPostModal, setShowPostModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'feed' | 'circle'>(scope);
   const [hasMore, setHasMore] = useState(true);
@@ -49,16 +71,16 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
     enabled: !!user,
   });
 
-  // Reset posts when scope or filters change
+  // Reset items when scope or filters change
   useEffect(() => {
-    setAllPosts([]);
+    setAllItems([]);
     setPage(1);
     setHasMore(true);
   }, [activeTab, circleId, selectedPostTypes]);
 
-  // Fetch posts based on current scope and page
-  const { data: feedData, isLoading, error } = useQuery<PaginatedFeedResponse>({
-    queryKey: ['/api/feed', { 
+  // Fetch unified feed (posts + lists) based on current scope and page
+  const { data: feedData, isLoading, error } = useQuery<UnifiedFeedResponse>({
+    queryKey: ['/api/unified-feed', { 
       scope: activeTab, 
       circleId: activeTab === 'circle' ? circleId : undefined, 
       page,
@@ -73,20 +95,20 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
     enabled: !!user,
   });
 
-  // Accumulate posts for infinite scroll
+  // Accumulate feed items for infinite scroll
   useEffect(() => {
-    if (feedData?.posts) {
+    if (feedData?.items) {
       if (page === 1) {
-        setAllPosts(feedData.posts);
+        setAllItems(feedData.items);
       } else {
-        setAllPosts(prev => [...prev, ...feedData.posts]);
+        setAllItems(prev => [...prev, ...feedData.items]);
       }
       setHasMore(feedData.pagination?.hasMore ?? false);
     }
   }, [feedData, page]);
 
-  // Fetch more posts for infinite scroll
-  const fetchMorePosts = () => {
+  // Fetch more feed items for infinite scroll
+  const fetchMoreItems = () => {
     if (hasMore && !isLoading) {
       setPage(prev => prev + 1);
     }
@@ -95,7 +117,12 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   // Handle errors for infinite scroll
   const handleError = () => {
     // You could add toast notification here
-    console.error('Failed to load more posts');
+    console.error('Failed to load more feed items');
+  };
+
+  // Handle list click - navigate to list detail page
+  const handleListClick = (listId: number) => {
+    setLocation(`/lists/${listId}`);
   };
 
 
@@ -183,7 +210,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             <TabsContent value="feed" className="mt-6">
               <div className="space-y-4">
                 <p className="text-muted-foreground">
-                  Posts from people you follow where visibility includes feed
+                  Posts and lists from people you follow
                 </p>
                 
                 {isLoading && page === 1 ? (
@@ -194,10 +221,10 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   <div className="text-center p-8">
                     <p className="text-red-500">Failed to load feed posts</p>
                   </div>
-                ) : allPosts.length > 0 ? (
+                ) : allItems.length > 0 ? (
                   <InfiniteScroll
-                    dataLength={allPosts.length}
-                    next={fetchMorePosts}
+                    dataLength={allItems.length}
+                    next={fetchMoreItems}
                     hasMore={hasMore}
                     loader={
                       <div className="flex justify-center py-6">
@@ -211,21 +238,53 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     }
                   >
                     <div className="space-y-6">
-                      {allPosts.map((post) => (
-                        <PostCard key={post.id} post={post} />
+                      {allItems.map((item) => (
+                        item.feedType === 'list' ? (
+                          <ListFeedCard 
+                            key={`list-${item.id}`} 
+                            list={{
+                              id: item.id,
+                              name: item.name || 'Untitled List',
+                              description: item.description,
+                              coverImage: item.coverImage,
+                              tags: item.tags,
+                              type: item.type || 'restaurant',
+                              audience: item.audience || 'public',
+                              shareWithCircle: item.shareWithCircle,
+                              makePublic: item.makePublic,
+                              viewCount: item.viewCount || 0,
+                              saveCount: item.saveCount || 0,
+                              reactionCount: item.reactionCount || 0,
+                              createdAt: item.createdAt,
+                              updatedAt: item.updatedAt,
+                              createdById: item.createdById || item.userId,
+                              creator: item.creator
+                            }}
+                            onListClick={handleListClick}
+                          />
+                        ) : (
+                          <PostCard key={`post-${item.id}`} post={item} />
+                        )
                       ))}
                     </div>
                   </InfiniteScroll>
                 ) : (
                   <div className="text-center p-8">
-                    <p className="text-muted-foreground">No posts in your feed yet</p>
-                    <Button 
-                      onClick={() => setShowPostModal(true)}
-                      className="mt-4"
-                      variant="outline"
-                    >
-                      Create your first post
-                    </Button>
+                    <p className="text-muted-foreground">No posts or lists in your feed yet</p>
+                    <div className="flex gap-2 mt-4 justify-center">
+                      <Button 
+                        onClick={() => setShowPostModal(true)}
+                        variant="outline"
+                      >
+                        Create your first post
+                      </Button>
+                      <Button 
+                        onClick={() => setLocation('/create-list')}
+                        variant="outline"
+                      >
+                        Create your first list
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -243,7 +302,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 ) : (
                   <>
                     <p className="text-muted-foreground">
-                      Posts shared with your circles
+                      Posts and lists shared with your circles
                     </p>
                     
                     {isLoading && page === 1 ? (
@@ -254,10 +313,10 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       <div className="text-center p-8">
                         <p className="text-red-500">Failed to load circle posts</p>
                       </div>
-                    ) : allPosts.length > 0 ? (
+                    ) : allItems.length > 0 ? (
                       <InfiniteScroll
-                        dataLength={allPosts.length}
-                        next={fetchMorePosts}
+                        dataLength={allItems.length}
+                        next={fetchMoreItems}
                         hasMore={hasMore}
                         loader={
                           <div className="flex justify-center py-6">
@@ -271,14 +330,53 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                         }
                       >
                         <div className="space-y-6">
-                          {allPosts.map((post) => (
-                            <PostCard key={post.id} post={post} />
+                          {allItems.map((item) => (
+                            item.feedType === 'list' ? (
+                              <ListFeedCard 
+                                key={`circle-list-${item.id}`} 
+                                list={{
+                                  id: item.id,
+                                  name: item.name || 'Untitled List',
+                                  description: item.description,
+                                  coverImage: item.coverImage,
+                                  tags: item.tags,
+                                  type: item.type || 'restaurant',
+                                  audience: item.audience || 'public',
+                                  shareWithCircle: item.shareWithCircle,
+                                  makePublic: item.makePublic,
+                                  viewCount: item.viewCount || 0,
+                                  saveCount: item.saveCount || 0,
+                                  reactionCount: item.reactionCount || 0,
+                                  createdAt: item.createdAt,
+                                  updatedAt: item.updatedAt,
+                                  createdById: item.createdById || item.userId,
+                                  creator: item.creator
+                                }}
+                                onListClick={handleListClick}
+                              />
+                            ) : (
+                              <PostCard key={`circle-post-${item.id}`} post={item} />
+                            )
                           ))}
                         </div>
                       </InfiniteScroll>
                     ) : (
                       <div className="text-center p-8">
-                        <p className="text-muted-foreground">No posts shared with your circles yet</p>
+                        <p className="text-muted-foreground">No posts or lists shared with your circles yet</p>
+                        <div className="flex gap-2 mt-4 justify-center">
+                          <Button 
+                            onClick={() => setShowPostModal(true)}
+                            variant="outline"
+                          >
+                            Create a post
+                          </Button>
+                          <Button 
+                            onClick={() => setLocation('/create-list')}
+                            variant="outline"
+                          >
+                            Create a list
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </>

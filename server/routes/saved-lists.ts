@@ -69,4 +69,22 @@ router.get('/:listId/status', authenticate, async (req, res) => {
   }
 });
 
+// Check if user has saved a specific list
+router.get('/:listId/status', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const listId = parseInt(req.params.listId);
+
+    if (isNaN(listId)) {
+      return res.status(400).json({ error: 'Invalid list ID' });
+    }
+
+    const isSaved = await storage.isListSavedByUser(listId, userId);
+    res.json({ isSaved });
+  } catch (error) {
+    console.error('Error checking saved status:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

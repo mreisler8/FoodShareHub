@@ -36,6 +36,7 @@ import usersRouter from './routes/users';
 import usersStatsRouter from './routes/users-stats';
 import analyticsRouter from './routes/analytics';
 import savedListsRouter from './routes/saved-lists';
+import listReactionsRouter from './routes/list-reactions';
 // import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
 import { userFollowers, posts, restaurants, users } from "@shared/schema";
@@ -1272,6 +1273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.use("/api/lists", listsRouter);
   app.use("/api/saved-lists", savedListsRouter);
+  app.use("/api/list-reactions", listReactionsRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/list-item-comments", listItemCommentsRouter);
   app.use("/api/follow", followRoutes);
@@ -1284,6 +1286,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/restaurants", restaurantsRouter);
   app.use("/api/tags", tagsRouter);
+
+  // Unified Feed API - Lists and Posts together
+  app.get('/api/unified-feed', authenticate, async (req: any, res: any) => {
+    try {
+      const userId = req.user!.id;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+      const scope = req.query.scope as string || 'feed';
+      const circleId = req.query.circleId ? parseInt(req.query.circleId as string) : undefined;
+      
+      // Get posts from feed
+      const posts = await storage.getFeedPosts({
+        offset,
+        limit: Math.floor(limit / 2), // Half for posts
+        userId,
+        scope: scope as 'feed' | 'circle',
+        circleId
+      });
+
+      // Get lists - for now, get recent lists from user's circles or public lists
+      const listsQuery = db.select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        coverImage: restaurantLists.coverImage,
+        tags: restaurantLists.tags,
+        type: restaurantLists.type,
+        audience: restaurantLists.audience,
+        shareWithCircle: restaurantLists.shareWithCircle,
+        makePublic: restaurantLists.makePublic,
+        viewCount: restaurantLists.viewCount,
+        saveCount: restaurantLists.saveCount,
+        reactionCount: restaurantLists.reactionCount,
+        createdAt: restaurantLists.createdAt,
+        updatedAt: restaurantLists.updatedAt,
+        createdById: restaurantLists.createdById,
+        // Creator info
+        creator: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture
+        }
+      })
+      .from(restaurantLists)
+      .leftJoin(users, eq(restaurantLists.createdById, users.id))
+      .where(
+        or(
+          eq(restaurantLists.makePublic, true),
+          eq(restaurantLists.shareWithCircle, true),
+          eq(restaurantLists.createdById, userId)
+        )
+      )
+      .orderBy(desc(restaurantLists.createdAt))
+      .limit(Math.floor(limit / 2)) // Half for lists
+      .offset(offset);
+
+      const lists = await listsQuery;
+
+      // Combine and sort by creation date
+      const feedItems = [
+        ...posts.map(post => ({ ...post, feedType: 'post' })),
+        ...lists.map(list => ({ ...list, feedType: 'list' }))
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+       .slice(0, limit);
+
+      const hasMorePosts = posts.length === Math.floor(limit / 2);
+      const hasMoreLists = lists.length === Math.floor(limit / 2);
+      
+      res.json({
+        items: feedItems,
+        pagination: {
+          page,
+          limit,
+          hasMore: hasMorePosts || hasMoreLists,
+          total: feedItems.length
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching unified feed:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 
   // Enterprise-grade social network activity feed
   app.get('/api/social/activity', authenticate, async (req: any, res: any) => {
