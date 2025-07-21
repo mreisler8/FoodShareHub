@@ -21,13 +21,15 @@ import {
 } from 'lucide-react';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
-import CircleScoreCard from '@/components/circle-score/CircleScoreCard';
+
 import { useCircleScore } from '@/hooks/useCircleScore';
 
 // New modular components for the redesign
-import TrustScoreSection from '@/components/restaurant/TrustScoreSection';
-import ListMentionsSection from '@/components/restaurant/ListMentionsSection';
-import SocialActivityFeed from '@/components/restaurant/SocialActivityFeed';
+import { HeaderCard } from '@/components/restaurant/HeaderCard';
+import { CircleScoreCard } from '@/components/restaurant/CircleScoreCard';
+import { YourRatingCard } from '@/components/restaurant/YourRatingCard';
+import { ListMentionsCard } from '@/components/restaurant/ListMentionsCard';
+import { PostMentionsCard } from '@/components/restaurant/PostMentionsCard';
 import RestaurantActionBar from '@/components/restaurant/RestaurantActionBar';
 
 interface RestaurantDetails {
@@ -365,6 +367,14 @@ export default function RestaurantDetailPage() {
 
       {/* Main Content - Mobile-first modular layout */}
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-6">
+        {/* Header Section */}
+        <HeaderCard
+          name={restaurant.name}
+          cuisine={restaurant.cuisine}
+          location={restaurant.location}
+          address={restaurant.address}
+        />
+
         {/* Dual Score Display - Google vs Circle Score (Rotten Tomatoes Style) */}
         <div className="flex justify-center items-center gap-12 mb-6 bg-white rounded-xl p-6 shadow-sm border">
           <div className="text-center">
@@ -402,8 +412,8 @@ export default function RestaurantDetailPage() {
           </div>
         </div>
 
-        {/* Enhanced Trust Score Section - Detailed view */}
-        <TrustScoreSection 
+        {/* Circle Score Section */}
+        <CircleScoreCard
           circleScore={circleScore ?? null}
           isLoading={isCircleScoreLoading}
         />
@@ -427,49 +437,51 @@ export default function RestaurantDetailPage() {
           </Card>
         )}
 
-        {/* Your Rating Section - Condensed for mobile */}
-        {userRating ? (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-lg">Your Rating</h3>
-                <QuickRateButton
-                  restaurant={{
-                    id: queryMethod === 'id' ? Number(restaurantId) : undefined,
-                    googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
-                    name: restaurant.name,
-                    location: restaurant.location,
-                    address: restaurant.address
-                  }}
-                  existingRating={userRating}
-                  variant="compact"
-                />
-              </div>
-              <RatingDisplay
-                rating={userRating}
-                restaurant={{
-                  name: restaurant.name,
-                  location: restaurant.location
-                }}
-                compact={true}
-                showRestaurant={false}
-              />
-            </CardContent>
-          </Card>
-        ) : null}
+        {/* Quick Action Bar - Desktop inline */}
+        <div className="hidden md:block">
+          <RestaurantActionBar
+            restaurant={{
+              id: queryMethod === 'id' ? Number(restaurantId) : undefined,
+              googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
+              name: restaurant.name,
+              location: restaurant.location,
+              address: restaurant.address
+            }}
+            userRating={userRating}
+            isSaved={false} // TODO: fetch from API
+            variant="desktop"
+          />
+        </div>
 
-        {/* List Mentions Section */}
-        <ListMentionsSection
-          lists={mockLists}
-          restaurantName={restaurant.name}
-          isLoading={false}
+        {/* Your Activity Section */}
+        <YourRatingCard 
+          userRating={userRating}
+          onRate={(rating, note, tags) => {
+            console.log('Rating updated:', { rating, note, tags });
+            // TODO: Implement rating save
+          }}
         />
 
-        {/* Social Activity Feed */}
-        <SocialActivityFeed
+        {/* Lists Mentioned In Section */}
+        <ListMentionsCard 
+          lists={mockLists}
+          onViewList={(listId) => {
+            console.log('View list:', listId);
+            // TODO: Navigate to list detail
+          }}
+        />
+
+        {/* Post Mentions Section */}
+        <PostMentionsCard 
           posts={mockPosts}
-          restaurantName={restaurant.name}
-          isLoading={false}
+          onViewPost={(postId) => {
+            console.log('View post:', postId);
+            // TODO: Navigate to post detail
+          }}
+          onViewProfile={(userId) => {
+            console.log('View profile:', userId);
+            // TODO: Navigate to user profile
+          }}
         />
 
         {/* Tabbed Navigation - Simplified for mobile */}
@@ -793,6 +805,22 @@ export default function RestaurantDetailPage() {
           isSaved={false} // TODO: fetch from API
           variant="mobile"
           className="md:hidden" // Only show on mobile
+        />
+      </div>
+
+      {/* Mobile Action Bar - Fixed at bottom */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg pb-safe">
+        <RestaurantActionBar
+          restaurant={{
+            id: queryMethod === 'id' ? Number(restaurantId) : undefined,
+            googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
+            name: restaurant.name,
+            location: restaurant.location,
+            address: restaurant.address
+          }}
+          userRating={userRating}
+          isSaved={false} // TODO: fetch from API
+          variant="mobile"
         />
       </div>
     </div>
