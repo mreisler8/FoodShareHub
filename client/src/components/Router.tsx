@@ -28,6 +28,7 @@ import Lists from "./Lists";
 import RestaurantDetailPage from "../pages/RestaurantDetailPage";
 import UserDiscovery from "../pages/user-discovery";
 import SocialDashboardPage from "../pages/social-dashboard";
+import QuickRatingsPage from "../pages/quick-ratings";
 
 function Router() {
   // Add native app class to body for CSS targeting if running in native app
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/restaurants/google/:placeId" component={RestaurantDetailPage} />
       <ProtectedRoute path="/user-discovery" component={UserDiscovery} />
       <ProtectedRoute path="/social-dashboard" component={SocialDashboardPage} />
+      <ProtectedRoute path="/quick-ratings" component={QuickRatingsPage} />
 
       <Route path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/settings" component={Settings} />

@@ -732,5 +732,41 @@ export type InsertUserSearchPreferences = z.infer<
   typeof insertUserSearchPreferencesSchema
 >;
 
+// Quick Ratings model for lightweight restaurant feedback
+export const ratings = pgTable("ratings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  restaurantId: integer("restaurant_id")
+    .references(() => restaurants.id),
+  googlePlaceId: text("google_place_id"), // For Google Places restaurants not in our DB
+  restaurantName: text("restaurant_name").notNull(), // Store name for reference
+  ratingValue: integer("rating_value").notNull(), // 1-5 star rating
+  note: text("note"), // Optional 140-char note
+  tags: text("tags").array().default([]), // Quick tags like "Perfect for brunch", "Great value"
+  sharedWithCircle: boolean("shared_with_circle").default(false),
+  circleIds: integer("circle_ids").array().default([]), // Which circles to share with
+  isPrivate: boolean("is_private").default(true), // Default private
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRatingSchema = createInsertSchema(ratings).pick({
+  userId: true,
+  restaurantId: true,
+  googlePlaceId: true,
+  restaurantName: true,
+  ratingValue: true,
+  note: true,
+  tags: true,
+  sharedWithCircle: true,
+  circleIds: true,
+  isPrivate: true,
+});
+
+export type Rating = typeof ratings.$inferSelect;
+export type InsertRating = z.infer<typeof insertRatingSchema>;
+
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations

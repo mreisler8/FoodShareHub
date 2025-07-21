@@ -46,6 +46,7 @@ import restaurantsRouter from "./routes/restaurants";
 import circleInvitesRouter from './routes/circle-invites';
 import postsRouter from './routes/posts';
 import tagsRouter from './routes/tags';
+import ratingsRouter from './routes/ratings';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -1285,6 +1286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/users", usersStatsRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/restaurants", restaurantsRouter);
+  app.use("/api/ratings", ratingsRouter);
   app.use("/api/tags", tagsRouter);
 
   // Unified Feed API - Lists and Posts together
