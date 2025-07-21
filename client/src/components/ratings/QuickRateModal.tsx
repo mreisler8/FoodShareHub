@@ -25,7 +25,7 @@ interface QuickRateModalProps {
 
 // Using SmartTagInput component for consistency with list creation
 
-export default function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRateModalProps) {
+function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRateModalProps) {
   const [rating, setRating] = useState(existingRating?.ratingValue || 0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [note, setNote] = useState(existingRating?.note || '');
@@ -283,3 +283,5 @@ export default function QuickRateModal({ isOpen, onClose, restaurant, existingRa
     </div>
   );
 }
+
+export default QuickRateModal;

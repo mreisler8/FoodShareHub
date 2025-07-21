@@ -93,8 +93,13 @@ export function SmartTagInput({
 
     defaultTags.forEach(tag => suggestions.add(tag));
 
-    // Add popular tags from backend
-    popularTags.forEach((tag: string) => suggestions.add(tag));
+    // Add popular tags from backend - ensure we handle both strings and objects
+    if (Array.isArray(popularTags)) {
+      popularTags.forEach((tag: any) => {
+        const tagName = typeof tag === 'string' ? tag : (tag?.name || tag?.value || String(tag));
+        if (tagName) suggestions.add(tagName);
+      });
+    }
 
     // Filter out already selected tags and convert to array
     return Array.from(suggestions).filter(tag => 
