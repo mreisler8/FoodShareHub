@@ -1,0 +1,89 @@
+🧩 EPIC: Quick Ratings – Lightweight Restaurant Feedback for Everyone
+Objective: Let users quickly rate restaurants without needing to create a list or post. This opens participation to non-creators, strengthens Circle Score data, and reinforces daily utility.
+
+👤 USER STORY 1: Quick Rate a Restaurant
+As Tracker Taylor, I want to give a quick 1–5 rating to a restaurant I visited, so I can capture my experience without needing to create a full post or list.
+
+✅ Acceptance Criteria:
+Entry point on restaurant cards and search results
+
+Rating interface (star or emoji scale, touch-safe)
+
+Optional: add short note (max 140 chars)
+
+Optional: select quick tags (e.g., “Perfect for brunch”, “Overrated”)
+
+Default is private; toggle: [ ] Share with my Circle
+
+Submit with single tap
+
+Confirmation: “Thanks! Your rating has been saved.”
+
+👤 USER STORY 2: View or Update My Ratings
+As a returning user, I want to update a previous rating I left on a restaurant, so I can reflect a better or worse visit over time.
+
+✅ Acceptance Criteria:
+If user has already rated:
+
+Show existing rating on restaurant view
+
+Allow edit (replace previous rating)
+
+Stored in “Your Ratings” on profile (future)
+
+👤 USER STORY 3: Feed Ratings into Circle Score (Data Only)
+As the system, I want to include quick ratings in Circle Score calculations, so that each user’s input improves trust signals for their community.
+
+✅ Acceptance Criteria:
+Rating stored with:
+
+user_id, restaurant_id, rating_value, tags, note, shared_with_circle
+
+Data is queryable by Circle
+
+Do not calculate Circle Score yet—this is data collection step
+
+🧠 Dev Notes:
+Keep rating as its own table (ratings)
+
+Must only allow one rating per user per restaurant
+
+Mobile-first form, use Tailwind for buttons/spacing
+
+Reuse search logic from global search
+
+Now, onto part two:
+
+🔍 Mini UX Audit – List Experience Gaps (Final Polish Check)
+✅ What’s Working
+List creation and sharing works
+
+Ranked/unranked toggle supported
+
+Lists show in profile, feeds
+
+Items can include restaurants or dishes
+
+❌ Gaps to Flag / Refine
+UX Gap	Fix Recommendation
+🧭 No breadcrumb or location context	On list view, show where it was shared (“Shared to: Toronto Brunch Circle”)
+📍 No map or city grouping	Optional: group items by city or neighborhood visually
+📝 Notes don’t display prominently	On list view, show user notes inline under each item
+🧮 No list interaction summary	On published list: “Saved by 6 people”, “Reacted by 3”
+📩 No CTA to “Follow Creator”	Add to list footer or floating action under avatar
+🎛 No sorting options for saved lists	On profile: allow user to filter by tag, most saved, or most recent
+💬 No light engagement (comments/emoji)	You already added reactions—consider a way to show how others responded
+
+🎯 Recommendation
+No blockers to rollout
+
+Suggest polishing list view UI with:
+
+Location tag
+
+Notes preview
+
+Simple engagement stats
+
+Clear save/share/follow CTAs
+
