@@ -42,7 +42,9 @@ router.get("/", authenticate, async (req, res) => {
         cuisine: placeDetails.cuisine || 'Restaurant',
         priceRange: placeDetails.priceRange || '$$',
         rating: placeDetails.rating || 4.0,
-        imageUrl: null,
+        imageUrl: placeDetails.photos && placeDetails.photos.length > 0 
+          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${placeDetails.photos[0].photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
+          : null,
         description: null,
         googlePlaceId: googlePlaceId,
         source: 'google',

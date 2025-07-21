@@ -272,8 +272,12 @@ export default function RestaurantDetailPage() {
     ? Math.round((restaurant.communityInsights.followersAverageRating / 5) * 100)
     : 0;
 
-  // Get restaurant image URL (removed Google Places photo API due to API access limitations)
-  const heroImageUrl = restaurant.imageUrl || null;
+  // Get restaurant image URL - try multiple sources
+  const heroImageUrl = restaurant.imageUrl || 
+                       restaurant.images?.[0] || 
+                       (restaurant.googlePlaces?.photos?.[0] ? 
+                        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${restaurant.googlePlaces.photos[0].photo_reference}&key=${import.meta.env.VITE_GOOGLE_PLACES_API_KEY}` : 
+                        null);
 
   // Mock data for lists and posts - in production, fetch from API
   const mockLists = [
@@ -325,12 +329,18 @@ export default function RestaurantDetailPage() {
             src={heroImageUrl} 
             alt={restaurant.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              // Show fallback
+              const fallback = target.nextElementSibling as HTMLElement;
+              if (fallback) fallback.style.display = 'flex';
+            }}
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
-            <ChefHat className="h-12 w-12 md:h-16 md:w-16 text-gray-600" />
-          </div>
-        )}
+        ) : null}
+        <div className={`w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center ${heroImageUrl ? 'hidden' : ''}`}>
+          <ChefHat className="h-12 w-12 md:h-16 md:w-16 text-gray-600" />
+        </div>
         
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/40" />
@@ -355,7 +365,44 @@ export default function RestaurantDetailPage() {
 
       {/* Main Content - Mobile-first modular layout */}
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-6">
-        {/* Enhanced Trust Score Section */}
+        {/* Dual Score Display - Google vs Circle Score (Rotten Tomatoes Style) */}
+        <div className="flex justify-center items-center gap-12 mb-6 bg-white rounded-xl p-6 shadow-sm border">
+          <div className="text-center">
+            <div className="w-24 h-24 rounded-full bg-green-50 border-4 border-green-500 flex items-center justify-center mb-3 relative overflow-hidden">
+              <div 
+                className="absolute bottom-0 left-0 right-0 bg-green-500 transition-all duration-500"
+                style={{ height: `${googleScore}%` }}
+              />
+              <div className="relative z-10 bg-white rounded-full w-16 h-16 flex items-center justify-center shadow-sm">
+                <span className="text-xl font-bold text-green-600">{googleScore}</span>
+              </div>
+            </div>
+            <div className="text-sm font-bold text-gray-800">Google Score</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {restaurant.googlePlaces?.reviewCount || 0} reviews
+            </div>
+          </div>
+          
+          <div className="h-16 w-px bg-gray-200"></div>
+          
+          <div className="text-center">
+            <div className="w-24 h-24 rounded-full bg-orange-50 border-4 border-orange-500 flex items-center justify-center mb-3 relative overflow-hidden">
+              <div 
+                className="absolute bottom-0 left-0 right-0 bg-orange-500 transition-all duration-500"
+                style={{ height: `${circlesScore}%` }}
+              />
+              <div className="relative z-10 bg-white rounded-full w-16 h-16 flex items-center justify-center shadow-sm">
+                <span className="text-xl font-bold text-orange-600">{circlesScore || 'N/A'}</span>
+              </div>
+            </div>
+            <div className="text-sm font-bold text-gray-800">Circle Score</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {circleScore?.totalContributors || 0} in your network
+            </div>
+          </div>
+        </div>
+
+        {/* Enhanced Trust Score Section - Detailed view */}
         <TrustScoreSection 
           circleScore={circleScore ?? null}
           isLoading={isCircleScoreLoading}
