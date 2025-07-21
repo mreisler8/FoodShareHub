@@ -113,6 +113,16 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 21, 2025: **Circle Score Trust-Based Rating System Integration - COMPLETE**: Successfully implemented and integrated comprehensive Circle Score functionality throughout search results and restaurant detail pages:
+  - **Backend Scoring Engine**: Completed circleScore.ts with trust-based algorithms calculating personalized restaurant scores from user's social network (circles + followers)
+  - **API Routes Implementation**: Created complete circle-score API routes with single restaurant and batch scoring endpoints
+  - **Frontend Integration**: Added CircleScoreCard component and useCircleScore hook with proper React Query caching
+  - **Search Results Enhancement**: Integrated Circle Score display into SearchResultsList.tsx alongside Quick Rate buttons for personalized trust indicators
+  - **Restaurant Detail Pages**: Added comprehensive Circle Score section to RestaurantDetailPage.tsx with detailed trust metrics and contributor breakdown
+  - **Database Compatibility**: Proper handling of both database restaurant IDs and Google Places IDs with unified scoring system
+  - **Performance Optimization**: Implemented 5-minute stale time and 10-minute GC time for optimal query performance
+  - **Trust Algorithm**: Weighted scoring system with recency decay, relationship strength, and action type weighting (Quick Ratings: 3x, List Placements: position-based)
+  - **Status**: Complete Circle Score Trust-Based Rating System fully operational across all restaurant discovery touchpoints
 - July 20, 2025: **Search Infrastructure Unification - COMPLETE**: Successfully unified search functionality between homepage and list creation to ensure consistent location-aware restaurant discovery:
   - **Identical API Integration**: RestaurantSearchAndAdd component now uses same `/api/search/unified` endpoint with identical parameters as homepage UnifiedSearchModal
   - **Location Services Parity**: Added LocationService integration to list creation search with automatic location detection, permission handling, and 10km radius search
