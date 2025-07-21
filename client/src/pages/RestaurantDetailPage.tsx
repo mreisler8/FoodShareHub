@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,12 @@ import QuickRateButton from '@/components/ratings/QuickRateButton';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
 import CircleScoreCard from '@/components/circle-score/CircleScoreCard';
 import { useCircleScore } from '@/hooks/useCircleScore';
+
+// New modular components for the redesign
+import TrustScoreSection from '@/components/restaurant/TrustScoreSection';
+import ListMentionsSection from '@/components/restaurant/ListMentionsSection';
+import SocialActivityFeed from '@/components/restaurant/SocialActivityFeed';
+import RestaurantActionBar from '@/components/restaurant/RestaurantActionBar';
 
 interface RestaurantDetails {
   id: string;
@@ -269,8 +275,36 @@ export default function RestaurantDetailPage() {
   // Get restaurant image URL (removed Google Places photo API due to API access limitations)
   const heroImageUrl = restaurant.imageUrl || null;
 
+  // Mock data for lists and posts - in production, fetch from API
+  const mockLists = [
+    {
+      id: 1,
+      name: "Best Brunch in Toronto",
+      description: "Weekend brunch spots that never disappoint",
+      owner: { id: 2, name: "Riley Chen", username: "rileyeats" },
+      itemCount: 12,
+      isPublic: true,
+      ranking: 2,
+      tags: ["brunch", "toronto", "weekend"],
+      createdAt: "2025-01-15T10:00:00Z"
+    },
+    {
+      id: 2,
+      name: "Hidden Gems",
+      description: "Underrated spots worth visiting",
+      owner: { id: 3, name: "Jason Bloom", username: "jasonbloom" },
+      itemCount: 8,
+      isPublic: false,
+      ranking: 1,
+      tags: ["hidden", "local"],
+      createdAt: "2025-01-10T15:30:00Z"
+    }
+  ];
+
+  const mockPosts = restaurant.communityInsights?.recentPosts || [];
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
       {/* Back Button */}
       <div className="absolute top-4 left-4 z-10">
         <Button
@@ -284,8 +318,8 @@ export default function RestaurantDetailPage() {
         </Button>
       </div>
 
-      {/* Hero Section */}
-      <div className="relative h-64 md:h-80 w-full overflow-hidden">
+      {/* Hero Section with enhanced mobile-first design */}
+      <div className="relative h-48 md:h-64 w-full overflow-hidden">
         {heroImageUrl ? (
           <img 
             src={heroImageUrl} 
@@ -294,57 +328,61 @@ export default function RestaurantDetailPage() {
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
-            <ChefHat className="h-16 w-16 text-gray-600" />
+            <ChefHat className="h-12 w-12 md:h-16 md:w-16 text-gray-600" />
           </div>
         )}
         
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/40" />
         
-        {/* Restaurant name overlay */}
-        <div className="absolute bottom-6 left-6">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+        {/* Restaurant info overlay - mobile optimized */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">
             {restaurant.name}
           </h1>
-          <div className="flex items-center text-white/90">
-            <MapPin className="h-4 w-4 mr-1" />
-            <span className="text-sm">{restaurant.location}</span>
+          <div className="flex flex-wrap items-center gap-2 text-white/90 text-sm">
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              <span>{restaurant.location}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <UtensilsCrossed className="h-3 w-3" />
+              <span>{restaurant.cuisine}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Dual Score Display */}
-        <div className="flex justify-center gap-8 mb-8">
-          <CircularProgress
-            percentage={googleScore}
-            label="Google Score"
-            color="#10B981"
-            size={100}
-          />
-          <CircularProgress
-            percentage={circlesScore}
-            label="Circles Score"
-            color="#F59E0B"
-            size={100}
-          />
-        </div>
+      {/* Main Content - Mobile-first modular layout */}
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-6">
+        {/* Enhanced Trust Score Section */}
+        <TrustScoreSection 
+          circleScore={circleScore ?? null}
+          isLoading={isCircleScoreLoading}
+        />
 
-        {/* Top Mentions */}
+        {/* Top Mentions - Enhanced with better mobile display */}
         {restaurant.communityInsights?.topDishes && restaurant.communityInsights.topDishes.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {restaurant.communityInsights.topDishes.slice(0, 3).map((dish, index) => (
-              <Badge key={index} variant="secondary" className="px-3 py-1">
-                {dish.dish}
-              </Badge>
-            ))}
-          </div>
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <Star className="h-5 w-5 text-yellow-500" />
+                Popular Dishes
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {restaurant.communityInsights.topDishes.slice(0, 6).map((dish, index) => (
+                  <Badge key={index} variant="secondary" className="px-3 py-1">
+                    {dish.dish} {dish.mentions > 1 && `(${dish.mentions})`}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Your Rating Section */}
+        {/* Your Rating Section - Condensed for mobile */}
         {userRating ? (
-          <Card className="mb-6">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-lg">Your Rating</h3>
@@ -366,48 +404,32 @@ export default function RestaurantDetailPage() {
                   name: restaurant.name,
                   location: restaurant.location
                 }}
-                compact={false}
+                compact={true}
                 showRestaurant={false}
               />
             </CardContent>
           </Card>
-        ) : (
-          <Card className="mb-6">
-            <CardContent className="p-4">
-              <div className="text-center">
-                <h3 className="font-semibold text-lg mb-2">Share Your Experience</h3>
-                <p className="text-muted-foreground mb-4">Rate this restaurant to help others discover great food</p>
-                <QuickRateButton
-                  restaurant={{
-                    id: queryMethod === 'id' ? Number(restaurantId) : undefined,
-                    googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
-                    name: restaurant.name,
-                    location: restaurant.location,
-                    address: restaurant.address
-                  }}
-                  variant="default"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        ) : null}
 
-        {/* Circle Score Section - Always show with N/A state when no data */}
-        <div className="mb-6">
-          <CircleScoreCard 
-            data={circleScore ?? null} 
-            variant="detailed" 
-            showTrend={true}
-            isLoading={isCircleScoreLoading}
-          />
-        </div>
+        {/* List Mentions Section */}
+        <ListMentionsSection
+          lists={mockLists}
+          restaurantName={restaurant.name}
+          isLoading={false}
+        />
 
-        {/* Tabbed Navigation */}
+        {/* Social Activity Feed */}
+        <SocialActivityFeed
+          posts={mockPosts}
+          restaurantName={restaurant.name}
+          isLoading={false}
+        />
+
+        {/* Tabbed Navigation - Simplified for mobile */}
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="menu">Menu</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="menu">Menu & Contact</TabsTrigger>
           </TabsList>
 
           {/* Details Tab */}
@@ -701,149 +723,31 @@ export default function RestaurantDetailPage() {
                   
                   {!restaurant.website && (
                     <div className="text-center py-4">
-                      <p className="text-gray-500 text-sm">
-                        For the most up-to-date menu, we recommend calling the restaurant directly at {restaurant.phone || 'their listed phone number'}.
-                      </p>
+                      <p className="text-gray-500 text-sm">No direct menu available online.</p>
+                      <p className="text-xs text-gray-400 mt-1">Try calling the restaurant at {restaurant.phone} for menu details.</p>
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Reviews Tab */}
-          <TabsContent value="reviews" className="space-y-6">
-            <div className="grid gap-6">
-              {/* Circles Reviews */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-lg">Circles Reviews</h3>
-                    <Badge variant="outline">
-                      {restaurant.communityInsights?.followersReviewCount || 0} reviews
-                    </Badge>
-                  </div>
-                  {restaurant.communityInsights?.recentPosts && restaurant.communityInsights.recentPosts.length > 0 ? (
-                    <div className="space-y-4">
-                      {restaurant.communityInsights.recentPosts.slice(0, 3).map((post) => (
-                        <div key={post.id} className="border-b pb-4 last:border-b-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{post.author.name}</span>
-                              <div className="flex items-center">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star 
-                                    key={i} 
-                                    className={`h-4 w-4 ${
-                                      i < post.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                    }`} 
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <span className="text-sm text-gray-500">
-                              {new Date(post.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-gray-700">{post.content}</p>
-                          {post.dishesTried && post.dishesTried.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {post.dishesTried.map((dish, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {dish}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No reviews from your circles yet.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Google Reviews */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-lg">Google Reviews</h3>
-                    <Badge variant="outline">
-                      {restaurant.googlePlaces?.reviewCount || 0} reviews
-                    </Badge>
-                  </div>
-                  {restaurant.googlePlaces?.reviews && restaurant.googlePlaces.reviews.length > 0 ? (
-                    <div className="space-y-4">
-                      {restaurant.googlePlaces.reviews.slice(0, 3).map((review, index) => (
-                        <div key={index} className="border-b pb-4 last:border-b-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{review.authorName}</span>
-                              <div className="flex items-center">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star 
-                                    key={i} 
-                                    className={`h-4 w-4 ${
-                                      i < review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                    }`} 
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <span className="text-sm text-gray-500">
-                              {new Date(review.time * 1000).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-gray-700">{review.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No Google reviews available.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
         </Tabs>
+        
+        {/* Mobile Action Bar */}
+        <RestaurantActionBar
+          restaurant={{
+            id: queryMethod === 'id' ? Number(restaurantId) : undefined,
+            googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
+            name: restaurant.name,
+            location: restaurant.location,
+            address: restaurant.address
+          }}
+          userRating={userRating}
+          isSaved={false} // TODO: fetch from API
+          variant="mobile"
+          className="md:hidden" // Only show on mobile
+        />
       </div>
-
-      {/* Action Bar - Sticky on Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 md:relative md:bg-transparent md:border-t-0 md:shadow-none md:p-0 md:mt-8">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <Button className="flex-1 md:flex-none" size="lg">
-            <Share2 className="h-4 w-4 mr-2" />
-            Share Experience
-          </Button>
-          <Button variant="outline" className="flex-1 md:flex-none" size="lg">
-            <Plus className="h-4 w-4 mr-2" />
-            Add to List
-          </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1 md:flex-none" 
-            size="lg"
-            onClick={() => {
-              if (restaurant.googlePlaceId) {
-                window.open(`https://www.google.com/maps/place/?q=place_id:${restaurant.googlePlaceId}`, '_blank');
-              } else if (restaurant.address) {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`, '_blank');
-              }
-            }}
-          >
-            <MapPin className="h-4 w-4 mr-2" />
-            View on Maps
-          </Button>
-        </div>
-      </div>
-
-      {/* Add bottom padding on mobile to account for sticky action bar */}
-      <div className="h-20 md:h-0" />
     </div>
   );
 }
