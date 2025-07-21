@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
+import CircleScoreCard from '@/components/circle-score/CircleScoreCard';
+import { useCircleScore } from '@/hooks/useCircleScore';
 
 interface RestaurantDetails {
   id: string;
@@ -194,6 +196,13 @@ export default function RestaurantDetailPage() {
       }
       return response.json();
     },
+  });
+
+  // Fetch Circle Score for this restaurant
+  const { data: circleScore } = useCircleScore({ 
+    restaurantId: queryMethod === 'id' ? parseInt(restaurantId!) : undefined,
+    googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : undefined,
+    enabled: !!restaurantId
   });
 
   // Fetch user's rating for this restaurant
@@ -381,6 +390,17 @@ export default function RestaurantDetailPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Circle Score Section */}
+        {circleScore && (
+          <div className="mb-6">
+            <CircleScoreCard 
+              data={circleScore} 
+              variant="detailed" 
+              showTrend={true}
+            />
+          </div>
         )}
 
         {/* Tabbed Navigation */}

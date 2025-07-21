@@ -18,6 +18,8 @@ import {
 import { SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
+import CircleScoreCard from '@/components/circle-score/CircleScoreCard';
+import { useCircleScore } from '@/hooks/useCircleScore';
 
 interface SearchResultsListProps {
   results: SearchResult[];
@@ -30,6 +32,28 @@ interface SearchResultsListProps {
   highlightedIndex?: number;
   className?: string;
   enableDirectNavigation?: boolean;
+}
+
+// Circle Score Display Component for Search Results
+function CircleScoreDisplay({ restaurantId, googlePlaceId }: { 
+  restaurantId?: number; 
+  googlePlaceId?: string; 
+}) {
+  const { data: circleScore } = useCircleScore({ 
+    restaurantId, 
+    googlePlaceId, 
+    enabled: !!(restaurantId || googlePlaceId) 
+  });
+
+  if (!circleScore) return null;
+
+  return (
+    <CircleScoreCard 
+      data={circleScore} 
+      variant="compact" 
+      className="text-xs"
+    />
+  );
 }
 
 export function SearchResultsList({
@@ -208,6 +232,14 @@ export function SearchResultsList({
                       <Badge variant="outline" className="text-xs">
                         {result.priceRange}
                       </Badge>
+                    )}
+
+                    {/* Circle Score for restaurants */}
+                    {result.type === 'restaurant' && (
+                      <CircleScoreDisplay 
+                        restaurantId={typeof result.id === 'string' && result.id.startsWith('google_') ? undefined : Number(result.id)}
+                        googlePlaceId={typeof result.id === 'string' && result.id.startsWith('google_') ? result.id.replace('google_', '') : result.metadata?.googlePlaceId}
+                      />
                     )}
 
                     {/* Quick Rate Button for restaurants */}
