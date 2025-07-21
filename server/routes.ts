@@ -1294,74 +1294,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
-      const scope = req.query.scope as string || 'feed';
-      const circleId = req.query.circleId ? parseInt(req.query.circleId as string) : undefined;
       
       // Get posts from feed
       const posts = await storage.getFeedPosts({
-        offset,
+        offset: 0,
         limit: Math.floor(limit / 2), // Half for posts
-        userId,
-        scope: scope as 'feed' | 'circle',
-        circleId
+        userId
       });
 
-      // Get lists - for now, get recent lists from user's circles or public lists
-      const listsQuery = db.select({
-        id: restaurantLists.id,
-        name: restaurantLists.name,
-        description: restaurantLists.description,
-        coverImage: restaurantLists.coverImage,
-        tags: restaurantLists.tags,
-        type: restaurantLists.type,
-        audience: restaurantLists.audience,
-        shareWithCircle: restaurantLists.shareWithCircle,
-        makePublic: restaurantLists.makePublic,
-        viewCount: restaurantLists.viewCount,
-        saveCount: restaurantLists.saveCount,
-        reactionCount: restaurantLists.reactionCount,
-        createdAt: restaurantLists.createdAt,
-        updatedAt: restaurantLists.updatedAt,
-        createdById: restaurantLists.createdById,
-        // Creator info
-        creator: {
-          id: users.id,
-          name: users.name,
-          username: users.username,
-          profilePicture: users.profilePicture
-        }
-      })
-      .from(restaurantLists)
-      .leftJoin(users, eq(restaurantLists.createdById, users.id))
-      .where(
-        or(
-          eq(restaurantLists.makePublic, true),
-          eq(restaurantLists.shareWithCircle, true),
-          eq(restaurantLists.createdById, userId)
-        )
-      )
-      .orderBy(desc(restaurantLists.createdAt))
-      .limit(Math.floor(limit / 2)) // Half for lists
-      .offset(offset);
-
-      const lists = await listsQuery;
+      // Get lists using existing storage methods
+      const publicLists = await storage.getPublicRestaurantLists();
+      const userLists = await storage.getRestaurantListsByUser(userId);
+      const allLists = [...publicLists, ...userLists];
+      
+      // Remove duplicates and slice for pagination
+      const uniqueLists = allLists.filter((list, index, self) => 
+        index === self.findIndex(l => l.id === list.id)
+      );
+      const lists = uniqueLists
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, Math.floor(limit / 2)); // Half for lists
 
       // Combine and sort by creation date
       const feedItems = [
         ...posts.map(post => ({ ...post, feedType: 'post' })),
         ...lists.map(list => ({ ...list, feedType: 'list' }))
       ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-       .slice(0, limit);
-
-      const hasMorePosts = posts.length === Math.floor(limit / 2);
-      const hasMoreLists = lists.length === Math.floor(limit / 2);
+       .slice(offset, offset + limit);
       
       res.json({
         items: feedItems,
         pagination: {
           page,
           limit,
-          hasMore: hasMorePosts || hasMoreLists,
+          hasMore: feedItems.length === limit,
           total: feedItems.length
         }
       });

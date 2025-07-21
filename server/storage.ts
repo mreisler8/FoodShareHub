@@ -142,6 +142,7 @@ export interface IStorage {
   getRestaurantListsByCircle(circleId: number): Promise<RestaurantList[]>;
   getRestaurantListsByUser(userId: number): Promise<RestaurantList[]>;
   getPublicRestaurantLists(): Promise<RestaurantList[]>;
+  getLists(): Promise<RestaurantList[]>;
 
   // Restaurant List Item operations
   addRestaurantToList(item: InsertRestaurantListItem): Promise<RestaurantListItem>;
@@ -448,26 +449,23 @@ export class DatabaseStorage implements IStorage {
       // For now, get all posts and filter by visibility (simplified)
       allPosts = await db.select().from(posts)
         .orderBy(desc(posts.createdAt))
-        .where(eq(posts.visibility, 'public')); // Simplified: assuming circle posts are public
+        .limit(options?.limit || 10)
+        .offset(options?.offset || 0);
     } else {
       // Default feed - get posts by followed users where visibility includes feed
-      // For now, get all public posts (would need user following implementation for full functionality)
+      // For now, get all posts (would need user following implementation for full functionality)
       allPosts = await db.select().from(posts)
         .orderBy(desc(posts.createdAt))
-        .where(eq(posts.visibility, 'public'));
+        .limit(options?.limit || 10)
+        .offset(options?.offset || 0);
     }
 
-    // Apply offset and limit if options are provided
-    const offset = options?.offset || 0;
-    const limit = options?.limit || allPosts.length;
+    // Posts are already paginated from the query
     const userId = options?.userId;
-
-    // Get paginated posts
-    const paginatedPosts = allPosts.slice(offset, offset + limit);
 
     // Process posts with details efficiently
     const postsWithDetails = await Promise.all(
-      paginatedPosts.map(async (post) => {
+      allPosts.map(async (post) => {
         // Fetch related data
         const [author] = await db.select().from(users).where(eq(users.id, post.userId));
         const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, post.restaurantId));
@@ -483,7 +481,6 @@ export class DatabaseStorage implements IStorage {
           restaurant,
           likeCount,
           commentCount: comments.length,
-          totalPosts: allPosts.length,
           comments: [] // Empty array to be populated if needed
         };
 
@@ -491,26 +488,7 @@ export class DatabaseStorage implements IStorage {
       })
     );
 
-    // Add pagination metadata directly as an object
-    // rather than trying to modify the posts
-    const paginationMeta = {
-      total: allPosts.length,
-      offset,
-      limit,
-      hasMore: offset + limit < allPosts.length
-    };
-
-    // Create a paginated result
-    const result: any[] = [...postsWithDetails];
-
-    // Add pagination info as a special field on the array
-    Object.defineProperty(result, 'pagination', {
-      value: paginationMeta,
-      enumerable: false // Makes it not show up in JSON.stringify
-    });
-
-    // Return the result with the pagination property
-    return result;
+    return postsWithDetails;
   }
 
   // Comment operations
@@ -1005,7 +983,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPublicRestaurantLists(): Promise<RestaurantList[]> {
-    return await db.select().from(restaurantLists).where(eq(restaurantLists.visibility, 'public'));
+    try {
+      return await db.select().from(restaurantLists).where(eq(restaurantLists.makePublic, true));
+    } catch (error) {
+      console.error("Error getting public restaurant lists:", error);
+      return [];
+    }
+  }
+
+  async getLists(): Promise<RestaurantList[]> {
+    return await db.select().from(restaurantLists).orderBy(desc(restaurantLists.createdAt));
   }
 
   async updateRestaurantList(id: number, updates: Partial<RestaurantList>): Promise<RestaurantList> {
