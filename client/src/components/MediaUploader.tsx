@@ -207,7 +207,7 @@ export function MediaUploader({ onChange, onTagsChange }: MediaUploaderProps) {
 
   const updateImageTags = (files: MediaFile[]) => {
     const allTags = files.flatMap(file => file.tags || []);
-    const uniqueTags = [...new Set(allTags)];
+    const uniqueTags = Array.from(new Set(allTags));
     onTagsChange?.(uniqueTags);
   };
 
@@ -236,11 +236,13 @@ export function MediaUploader({ onChange, onTagsChange }: MediaUploaderProps) {
       }
 
       // Clean up any preview URLs to prevent memory leaks
-      previews.forEach(preview => {
-        if (preview.url && preview.url.startsWith('blob:')) {
-          URL.revokeObjectURL(preview.url);
-        }
-      });
+      if (previews && Array.isArray(previews)) {
+        previews.forEach(preview => {
+          if (preview.url && preview.url.startsWith('blob:')) {
+            URL.revokeObjectURL(preview.url);
+          }
+        });
+      }
     };
   }, []); // Remove previews dependency to avoid recreation on every preview change
 

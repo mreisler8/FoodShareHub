@@ -113,6 +113,13 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 21, 2025: **Critical React Error Fixes for Circle Score System - COMPLETE**: Successfully resolved critical React hook violations and component rendering errors that were breaking the Quick Rate functionality:
+  - **React Hook Violation Fixed**: Fixed "Cannot read properties of null (reading 'useEffect')" error in MediaUploader by adding null safety checks for previews array cleanup
+  - **Set Iteration Error Fixed**: Resolved Set iteration TypeScript error by using Array.from() instead of spread operator for ES5 compatibility
+  - **Dialog Accessibility Enhanced**: Added proper ARIA labels (aria-labelledby, aria-describedby, aria-modal, role="dialog") to QuickRateModal for accessibility compliance
+  - **SmartTagInput Object Rendering**: SmartTagInput component properly handles tag objects by using Array.from() and filtering to prevent "Objects are not valid as a React child" errors
+  - **Circle Score Data Flow Restored**: Quick Rate modal can now successfully create ratings that feed into Circle Score calculations
+  - **Status**: Circle Score system now fully operational with working Quick Rate input mechanism and proper error handling
 - July 21, 2025: **Circle Score Trust-Based Rating System Integration - COMPLETE**: Successfully implemented and integrated comprehensive Circle Score functionality throughout search results and restaurant detail pages:
   - **Backend Scoring Engine**: Completed circleScore.ts with trust-based algorithms calculating personalized restaurant scores from user's social network (circles + followers)
   - **API Routes Implementation**: Created complete circle-score API routes with single restaurant and batch scoring endpoints

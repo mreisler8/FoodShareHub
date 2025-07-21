@@ -123,15 +123,21 @@ export default function QuickRateModal({ isOpen, onClose, restaurant, existingRa
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quick-rate-modal-title"
+      aria-describedby="quick-rate-modal-description"
+    >
       <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold">
+            <h2 id="quick-rate-modal-title" className="text-lg font-semibold">
               {existingRating ? 'Update Rating' : 'Rate Restaurant'}
             </h2>
-            <div className="flex items-center text-sm text-gray-600 mt-1">
+            <div id="quick-rate-modal-description" className="flex items-center text-sm text-gray-600 mt-1">
               <MapPin className="h-3 w-3 mr-1" />
               <span className="font-medium">{restaurant.name}</span>
               {restaurant.location && (
@@ -139,7 +145,7 @@ export default function QuickRateModal({ isOpen, onClose, restaurant, existingRa
               )}
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close modal">
             <X className="h-5 w-5" />
           </Button>
         </div>
