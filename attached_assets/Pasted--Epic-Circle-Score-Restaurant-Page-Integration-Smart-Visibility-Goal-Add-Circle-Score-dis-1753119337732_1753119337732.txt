@@ -1,0 +1,67 @@
+📦 Epic: Circle Score – Restaurant Page Integration (Smart Visibility)
+🎯 Goal:
+Add Circle Score display to restaurant detail pages with intelligent content thresholds and N/A state handling.
+
+✅ Scope of Work
+🎨 UX/UI Design Principles
+Smart Visibility: Show Circle Score as "N/A" with helpful copy when no data exists yet
+Quality First: Display meaningful Circle Scores when available, graceful fallback otherwise
+Consistent Placement: Integrate into existing Circle Score section on restaurant pages
+Progressive Enhancement: Build foundation for later expansion to feeds/lists/explore
+🔧 Technical Requirements
+1. Content Display Logic
+Circle Score should display in these states:
+
+// State 1: No data available
+"Circle Score: N/A"
+"No ratings from your trusted network yet"
+// State 2: Low confidence data  
+"Circle Score: 45 (Limited data)"
+"Based on 1 rating from your circles"
+// State 3: Quality data
+"Circle Score: 89"
+"Based on 6 ratings from your trusted network"
+2. 🏪 Restaurant Detail Page Integration
+Files: client/src/pages/RestaurantDetailPage.tsx
+
+Implementation:
+
+Enhance existing Circle Score section to show N/A state with helpful messaging
+Use existing CircleScoreCard component with enhanced variant handling
+Maintain current placement in restaurant detail layout
+Ensure proper loading states and error handling
+3. 🔧 CircleScoreCard Enhancement
+Files: client/src/components/circle-score/CircleScoreCard.tsx
+
+Implementation:
+
+Add N/A state handling with informative copy
+Maintain existing detailed/compact variants
+Show confidence levels clearly (High/Moderate/Limited/N/A)
+Include contributor count and trust network context
+4. 🎣 useCircleScore Hook Enhancement
+Files: client/src/hooks/useCircleScore.ts
+
+Implementation:
+
+Handle null/404 responses gracefully (don't treat as errors)
+Return consistent data structure for N/A states
+Maintain existing React Query caching behavior
+Provide loading and error states
+📊 Quality Gates
+Circle Score always shows (either data or N/A with helpful text)
+Fast loading times using existing API infrastructure
+Consistent visual design with existing restaurant page elements
+Clear user education about what Circle Scores represent
+🚀 Implementation Priority
+First: Enhance CircleScoreCard to handle N/A states elegantly
+Second: Update useCircleScore hook for graceful null handling
+Third: Ensure RestaurantDetailPage integration shows all states properly
+Fourth: Test with restaurants that have no Circle Score data
+🎯 Success Metrics
+Circle Score section always visible on restaurant pages
+Clear user understanding of trust network concept
+Foundation ready for expansion to other discovery surfaces
+No performance regressions on restaurant detail loading
+Key Constraint: Every restaurant page should show Circle Score context - either with data or educational N/A messaging. This builds user familiarity with the trust network concept before expanding to feeds/lists/explore.
+

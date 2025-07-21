@@ -39,19 +39,19 @@ function CircleScoreDisplay({ restaurantId, googlePlaceId }: {
   restaurantId?: number; 
   googlePlaceId?: string; 
 }) {
-  const { data: circleScore } = useCircleScore({ 
+  const { data: circleScore, isLoading } = useCircleScore({ 
     restaurantId, 
     googlePlaceId, 
     enabled: !!(restaurantId || googlePlaceId) 
   });
 
-  if (!circleScore) return null;
-
+  // Always show Circle Score (either data, loading, or N/A state)
   return (
     <CircleScoreCard 
       data={circleScore} 
       variant="compact" 
       className="text-xs"
+      isLoading={isLoading}
     />
   );
 }

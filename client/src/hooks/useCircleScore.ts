@@ -16,7 +16,7 @@ export function useCircleScore({
     ? ['/api/circle-score', googlePlaceId, 'google_place']
     : ['/api/circle-score', restaurantId, 'restaurant'];
     
-  return useQuery<CircleScoreData>({
+  return useQuery<CircleScoreData | null>({
     queryKey,
     enabled: enabled && (!!restaurantId || !!googlePlaceId),
     queryFn: async () => {
@@ -32,15 +32,18 @@ export function useCircleScore({
       
       const response = await fetch(url);
       
+      // Handle 404 responses gracefully (not an error - just no data)
+      if (response.status === 404) {
+        return null; // No circle score available - this is expected and not an error
+      }
+      
       if (!response.ok) {
-        if (response.status === 404) {
-          return null; // No circle score available
-        }
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to fetch Circle Score');
       }
       
-      return response.json();
+      const data = await response.json();
+      return data || null; // Ensure we return null for falsy data
     },
     // Stale time of 5 minutes for circle scores
     staleTime: 5 * 60 * 1000,

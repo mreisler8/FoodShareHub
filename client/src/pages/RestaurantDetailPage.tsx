@@ -199,7 +199,7 @@ export default function RestaurantDetailPage() {
   });
 
   // Fetch Circle Score for this restaurant
-  const { data: circleScore } = useCircleScore({ 
+  const { data: circleScore, isLoading: isCircleScoreLoading } = useCircleScore({ 
     restaurantId: queryMethod === 'id' ? parseInt(restaurantId!) : undefined,
     googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : undefined,
     enabled: !!restaurantId
@@ -392,16 +392,15 @@ export default function RestaurantDetailPage() {
           </Card>
         )}
 
-        {/* Circle Score Section */}
-        {circleScore && (
-          <div className="mb-6">
-            <CircleScoreCard 
-              data={circleScore} 
-              variant="detailed" 
-              showTrend={true}
-            />
-          </div>
-        )}
+        {/* Circle Score Section - Always show with N/A state when no data */}
+        <div className="mb-6">
+          <CircleScoreCard 
+            data={circleScore ?? null} 
+            variant="detailed" 
+            showTrend={true}
+            isLoading={isCircleScoreLoading}
+          />
+        </div>
 
         {/* Tabbed Navigation */}
         <Tabs defaultValue="details" className="w-full">

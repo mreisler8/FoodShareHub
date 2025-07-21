@@ -27,17 +27,19 @@ export interface CircleScoreData {
 }
 
 interface CircleScoreCardProps {
-  data: CircleScoreData;
+  data: CircleScoreData | null; // Allow null for N/A states
   variant?: 'compact' | 'detailed';
   showTrend?: boolean;
   className?: string;
+  isLoading?: boolean;
 }
 
 export default function CircleScoreCard({ 
   data, 
   variant = 'detailed', 
   showTrend = false,
-  className 
+  className,
+  isLoading = false
 }: CircleScoreCardProps) {
   const getConfidenceColor = (confidence: string) => {
     switch (confidence) {
@@ -66,10 +68,100 @@ export default function CircleScoreCard({
 
   const formatContributorText = (contributors: CircleScoreData['contributors']) => {
     if (contributors.length === 0) return "No data from your circle";
-    if (contributors.length === 1) return `Rated by ${contributors[0].name}`;
-    if (contributors.length === 2) return `Rated by ${contributors[0].name} and ${contributors[1].name}`;
-    return `Rated by ${contributors[0].name} and ${contributors.length - 1} others in your circle`;
+    if (contributors.length === 1) return `Based on ${contributors.length} rating from your trusted network`;
+    return `Based on ${contributors.length} ratings from your trusted network`;
   };
+
+  // Handle loading state
+  if (isLoading) {
+    if (variant === 'compact') {
+      return (
+        <div className={cn("flex items-center gap-2", className)}>
+          <div className="animate-pulse bg-gray-200 rounded px-3 py-1 w-32 h-6"></div>
+        </div>
+      );
+    }
+    
+    return (
+      <Card className={cn("", className)}>
+        <CardContent className="p-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-gray-200 rounded w-48"></div>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gray-200 rounded"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Handle N/A state (no data)
+  if (!data) {
+    if (variant === 'compact') {
+      return (
+        <div className={cn("flex items-center gap-2", className)}>
+          <Badge variant="outline" className="px-2 py-1 text-gray-600 bg-gray-50">
+            Circle Score: N/A
+          </Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-xs text-gray-500 bg-gray-50">
+                  No data
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-sm">No ratings from your trusted network yet</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      );
+    }
+
+    return (
+      <Card className={cn("", className)}>
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Your Circle's Take</h3>
+            </div>
+
+            {/* N/A Score Display */}
+            <div className="flex items-center gap-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-gray-400">
+                  N/A
+                </div>
+                <div className="text-sm text-muted-foreground">Circle Score</div>
+              </div>
+              
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className="text-xs text-gray-600 bg-gray-50">
+                    No data
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  No ratings from your trusted network yet
+                </p>
+                <p className="text-xs text-gray-500">
+                  Circle Scores show ratings from people you follow and circles you're in. 
+                  As your network grows and rates restaurants, you'll see personalized scores here.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (variant === 'compact') {
     return (
