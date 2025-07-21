@@ -10,13 +10,15 @@ interface SmartTagInputProps {
   onTagsChange: (tags: string[]) => void;
   listTitle?: string;
   contextRestaurants?: Array<{ cuisine?: string; location?: string }>;
+  maxTags?: number;
 }
 
 export function SmartTagInput({ 
   selectedTags, 
   onTagsChange, 
   listTitle = "",
-  contextRestaurants = []
+  contextRestaurants = [],
+  maxTags = 10
 }: SmartTagInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
@@ -103,7 +105,7 @@ export function SmartTagInput({
   const smartSuggestions = getSmartSuggestions();
 
   const handleAddTag = (tag: string) => {
-    if (!selectedTags.includes(tag) && tag.trim()) {
+    if (!selectedTags.includes(tag) && tag.trim() && selectedTags.length < maxTags) {
       onTagsChange([...selectedTags, tag.trim()]);
     }
   };
@@ -160,21 +162,27 @@ export function SmartTagInput({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleInputKeyDown}
-          placeholder="Add custom tag..."
+          placeholder={selectedTags.length >= maxTags ? `Maximum ${maxTags} tags reached` : "Add custom tag..."}
           className="flex-1"
+          disabled={selectedTags.length >= maxTags}
         />
         <Button
           type="button"
           onClick={handleInputSubmit}
-          disabled={!inputValue.trim()}
+          disabled={!inputValue.trim() || selectedTags.length >= maxTags}
           size="sm"
         >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
+      {selectedTags.length >= maxTags && (
+        <p className="text-xs text-amber-600 mt-1">
+          Maximum {maxTags} tags selected
+        </p>
+      )}
 
       {/* Smart Suggestions */}
-      {showSuggestions && smartSuggestions.length > 0 && (
+      {showSuggestions && smartSuggestions.length > 0 && selectedTags.length < maxTags && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
@@ -202,6 +210,7 @@ export function SmartTagInput({
                   setShowSuggestions(smartSuggestions.length > 1);
                 }}
                 className="text-xs h-7"
+                disabled={selectedTags.length >= maxTags}
               >
                 + {suggestion}
               </Button>

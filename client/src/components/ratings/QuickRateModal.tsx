@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { X, Star, Check, MapPin } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { SmartTagInput } from '@/components/lists/SmartTagInput';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -22,18 +23,7 @@ interface QuickRateModalProps {
   existingRating?: any;
 }
 
-const QUICK_TAGS = [
-  'Perfect for date night',
-  'Great value',
-  'Amazing service',
-  'Hidden gem',
-  'Must try!',
-  'Perfect for brunch',
-  'Family friendly',
-  'Quick bite',
-  'Late night',
-  'Great atmosphere'
-];
+// Using SmartTagInput component for consistency with list creation
 
 export default function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRateModalProps) {
   const [rating, setRating] = useState(existingRating?.ratingValue || 0);
@@ -206,36 +196,21 @@ export default function QuickRateModal({ isOpen, onClose, restaurant, existingRa
             </div>
           </div>
 
-          {/* Quick Tags */}
+          {/* Quick Tags using SmartTagInput */}
           <div>
             <Label className="text-sm font-medium mb-2 block">
               Quick tags (max 5)
             </Label>
-            <div className="flex flex-wrap gap-2">
-              {QUICK_TAGS.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant={selectedTags.includes(tag) ? "default" : "secondary"}
-                  className={cn(
-                    "cursor-pointer transition-colors text-xs px-2 py-1",
-                    selectedTags.includes(tag) 
-                      ? "bg-green-100 text-green-800 hover:bg-green-200" 
-                      : "hover:bg-gray-200"
-                  )}
-                  onClick={() => handleTagToggle(tag)}
-                >
-                  {selectedTags.includes(tag) && (
-                    <Check className="h-3 w-3 mr-1" />
-                  )}
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-            {selectedTags.length >= 5 && (
-              <p className="text-xs text-amber-600 mt-1">
-                Maximum 5 tags selected
-              </p>
-            )}
+            <SmartTagInput
+              selectedTags={selectedTags}
+              onTagsChange={setSelectedTags}
+              maxTags={5}
+              listTitle="" // Empty since this is for ratings, not lists
+              contextRestaurants={[{
+                location: restaurant.location || '',
+                cuisine: '' // Restaurant cuisine would be ideal here
+              }]}
+            />
           </div>
 
           {/* Privacy Controls */}
