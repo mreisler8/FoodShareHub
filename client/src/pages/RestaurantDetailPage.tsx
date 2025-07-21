@@ -20,6 +20,7 @@ import {
   ChefHat
 } from 'lucide-react';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
+import RatingDisplay from '@/components/ratings/RatingDisplay';
 
 interface RestaurantDetails {
   id: string;
@@ -195,6 +196,29 @@ export default function RestaurantDetailPage() {
     },
   });
 
+  // Fetch user's rating for this restaurant
+  const { data: userRating, refetch: refetchRating } = useQuery({
+    queryKey: [`/api/ratings/restaurant`, restaurantId, queryMethod],
+    enabled: !!restaurantId,
+    queryFn: async () => {
+      if (!restaurantId) return null;
+      
+      let url: string;
+      if (queryMethod === 'googlePlaceId') {
+        url = `/api/ratings/restaurant/${encodeURIComponent(restaurantId)}?type=google_place`;
+      } else {
+        url = `/api/ratings/restaurant/${restaurantId}?type=restaurant`;
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        if (response.status === 404) return null; // No rating found
+        throw new Error('Failed to fetch user rating');
+      }
+      return response.json();
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -307,6 +331,56 @@ export default function RestaurantDetailPage() {
               </Badge>
             ))}
           </div>
+        )}
+
+        {/* Your Rating Section */}
+        {userRating ? (
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-lg">Your Rating</h3>
+                <QuickRateButton
+                  restaurant={{
+                    id: queryMethod === 'id' ? Number(restaurantId) : undefined,
+                    googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
+                    name: restaurant.name,
+                    location: restaurant.location,
+                    address: restaurant.address
+                  }}
+                  existingRating={userRating}
+                  variant="compact"
+                />
+              </div>
+              <RatingDisplay
+                rating={userRating}
+                restaurant={{
+                  name: restaurant.name,
+                  location: restaurant.location
+                }}
+                compact={false}
+                showRestaurant={false}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="text-center">
+                <h3 className="font-semibold text-lg mb-2">Share Your Experience</h3>
+                <p className="text-muted-foreground mb-4">Rate this restaurant to help others discover great food</p>
+                <QuickRateButton
+                  restaurant={{
+                    id: queryMethod === 'id' ? Number(restaurantId) : undefined,
+                    googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
+                    name: restaurant.name,
+                    location: restaurant.location,
+                    address: restaurant.address
+                  }}
+                  variant="default"
+                />
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Tabbed Navigation */}

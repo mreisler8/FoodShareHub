@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
+import QuickRateButton from '@/components/ratings/QuickRateButton';
 
 interface SearchResultsListProps {
   results: SearchResult[];
@@ -207,6 +208,22 @@ export function SearchResultsList({
                       <Badge variant="outline" className="text-xs">
                         {result.priceRange}
                       </Badge>
+                    )}
+
+                    {/* Quick Rate Button for restaurants */}
+                    {result.type === 'restaurant' && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <QuickRateButton
+                          restaurant={{
+                            id: typeof result.id === 'string' && result.id.startsWith('google_') ? undefined : Number(result.id),
+                            googlePlaceId: typeof result.id === 'string' && result.id.startsWith('google_') ? result.id.replace('google_', '') : result.metadata?.googlePlaceId,
+                            name: result.name,
+                            location: result.location || result.subtitle || '',
+                            address: result.metadata?.address || result.subtitle || ''
+                          }}
+                          variant="compact"
+                        />
+                      </div>
                     )}
 
                     {showFollowButton && result.type === 'user' && onFollowToggle && (

@@ -54,6 +54,7 @@ export default function QuickRateModal({ isOpen, onClose, restaurant, existingRa
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
       queryClient.invalidateQueries({ queryKey: ['/api/restaurants'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant'] });
       onClose();
     }
   });
@@ -69,6 +70,7 @@ export default function QuickRateModal({ isOpen, onClose, restaurant, existingRa
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
       queryClient.invalidateQueries({ queryKey: ['/api/restaurants'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant'] });
       onClose();
     }
   });

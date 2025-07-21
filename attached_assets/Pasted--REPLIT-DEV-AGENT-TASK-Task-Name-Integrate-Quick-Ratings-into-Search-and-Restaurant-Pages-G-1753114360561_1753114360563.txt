@@ -1,0 +1,79 @@
+🚀 REPLIT DEV AGENT TASK
+📦 Task Name: Integrate Quick Ratings into Search and Restaurant Pages
+🎯 Goal: Surface the new Quick Rating functionality at high-intent user interaction points: search results and restaurant detail views. Boosts participation, trust signals, and data density for future Circle Score.
+
+✅ Part 1: Add Rating Button to Search Results
+📍 Location: components/search/SearchResultsList.tsx
+
+Requirements:
+
+For each restaurant result, render the RatingButton component
+
+Pass:
+
+id or googlePlaceId
+
+name, cuisine, address if available
+
+Button should use:
+
+variant="outline"
+
+size="sm"
+
+showRating={true}
+
+UX Behavior:
+
+If the user has rated: show their rating (e.g., “4/5”)
+
+If not: show a “Rate” button
+
+Clicking opens the QuickRatingModal
+
+✅ Part 2: Display Existing Rating on Restaurant Detail Page
+📍 Location: pages/RestaurantDetailPage.tsx
+
+Requirements:
+
+Use existing /api/ratings/restaurant/:id logic to fetch current user's rating
+
+If a rating exists:
+
+Show RatingDisplay component in a "Your Rating" section
+
+Include: rating stars, tags, note, timestamp
+
+Also show RatingButton above or beside it (to update)
+
+Design Notes:
+
+Use mobile-optimized layout
+
+Place in a card block after the main restaurant info (e.g., below map or image)
+
+🔁 Reusability & UX Consistency
+Use the same rating fetch/query logic from RatingButton already used in profile
+
+Confirm components (QuickRatingModal, RatingDisplay) reuse shared styles and fit your new UI framework
+
+No regressions to list sharing or post experiences
+
+🔒 NFRs to Maintain
+All actions should be behind auth
+
+Don’t allow multiple ratings per user/restaurant
+
+Rating should be stored in ratings table and indexed properly
+
+🧪 Acceptance Criteria
+✅ Search results include working Rate button
+
+✅ Restaurant detail page shows user’s past rating, if exists
+
+✅ UX is mobile-first and consistent with Circles brand
+
+✅ New ratings show immediately after submission (optimistic UI preferred)
+
+✅ No impact to existing list, feed, or search functionality
+
