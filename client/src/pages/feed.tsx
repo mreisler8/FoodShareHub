@@ -35,6 +35,8 @@ interface FeedItem extends PostWithDetails {
   viewCount?: number;
   saveCount?: number;
   reactionCount?: number;
+  updatedAt?: string;
+  createdById?: number;
   creator?: {
     id: number;
     name: string;
@@ -255,8 +257,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                               viewCount: item.viewCount || 0,
                               saveCount: item.saveCount || 0,
                               reactionCount: item.reactionCount || 0,
-                              createdAt: item.createdAt,
-                              updatedAt: item.updatedAt,
+                              createdAt: typeof item.createdAt === 'string' ? item.createdAt : item.createdAt.toISOString(),
+                              updatedAt: item.updatedAt || (typeof item.createdAt === 'string' ? item.createdAt : item.createdAt.toISOString()),
                               createdById: item.createdById || item.userId,
                               creator: item.creator
                             }}
@@ -347,8 +349,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                                   viewCount: item.viewCount || 0,
                                   saveCount: item.saveCount || 0,
                                   reactionCount: item.reactionCount || 0,
-                                  createdAt: item.createdAt,
-                                  updatedAt: item.updatedAt,
+                                  createdAt: typeof item.createdAt === 'string' ? item.createdAt : item.createdAt.toISOString(),
+                                  updatedAt: item.updatedAt || (typeof item.createdAt === 'string' ? item.createdAt : item.createdAt.toISOString()),
                                   createdById: item.createdById || item.userId,
                                   creator: item.creator
                                 }}
