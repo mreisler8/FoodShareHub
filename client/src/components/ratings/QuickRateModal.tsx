@@ -55,7 +55,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
     },
     onSuccess: (data) => {
       // Update the local rating state immediately
-      if (data) {
+      if (data && typeof data === 'object' && 'ratingValue' in data) {
         // Invalidate rating queries to refetch the new rating
         queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
         queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant', restaurant.googlePlaceId || restaurant.id] });
@@ -65,7 +65,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
         // Show success message
         toast({
           title: "Rating saved!",
-          description: `Your ${data.ratingValue}-star rating has been saved and will contribute to Circle Score calculations.`
+          description: `Your ${(data as any).ratingValue}-star rating has been saved and will contribute to Circle Score calculations.`
         });
       }
       onClose();
@@ -82,7 +82,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
     },
     onSuccess: (data) => {
       // Update the local rating state immediately
-      if (data) {
+      if (data && typeof data === 'object' && 'ratingValue' in data) {
         // Invalidate rating queries to refetch the updated rating
         queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
         queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant', restaurant.googlePlaceId || restaurant.id] });
@@ -92,7 +92,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
         // Show success message
         toast({
           title: "Rating updated!",
-          description: `Your rating has been updated to ${data.ratingValue} stars and will be reflected in Circle Score calculations.`
+          description: `Your rating has been updated to ${(data as any).ratingValue} stars and will be reflected in Circle Score calculations.`
         });
       }
       onClose();

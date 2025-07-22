@@ -217,28 +217,8 @@ export default function RestaurantDetailPage() {
     enabled: !!restaurantId
   });
 
-  // Fetch user's rating for this restaurant
-  const { data: userRating, refetch: refetchRating } = useQuery({
-    queryKey: [`/api/ratings/restaurant`, restaurantId, queryMethod],
-    enabled: !!restaurantId,
-    queryFn: async () => {
-      if (!restaurantId) return null;
-
-      let url: string;
-      if (queryMethod === 'googlePlaceId') {
-        url = `/api/ratings/restaurant/${encodeURIComponent(restaurantId)}?type=google_place`;
-      } else {
-        url = `/api/ratings/restaurant/${restaurantId}?type=restaurant`;
-      }
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        if (response.status === 404) return null; // No rating found
-        throw new Error('Failed to fetch user rating');
-      }
-      return response.json();
-    },
-  });
+  // Fetch user's rating for this restaurant - using new consistent rating state hook
+  // Remove this duplicate query since RestaurantActionBar already handles rating state
 
   if (isLoading) {
     return (

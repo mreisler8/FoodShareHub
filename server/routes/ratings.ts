@@ -62,14 +62,12 @@ router.get('/restaurant/:id', async (req, res) => {
 
   try {
     const { id } = req.params;
-    console.log('Rating API - Fetching rating for ID:', id, 'User:', req.user.id);
-    
-    // Determine if this is a Google Place ID or database restaurant ID
-    const isGooglePlaceId = id.startsWith('ChIJ') || id.includes('google_');
-    console.log('Is Google Place ID:', isGooglePlaceId);
+    const type = req.query.type as string; // 'google_place' or 'database'
+    console.log('Rating API - Fetching rating for ID:', id, 'User:', req.user.id, 'Type:', type);
     
     let rating;
-    if (isGooglePlaceId) {
+    
+    if (type === 'google_place' || (!type && (id.startsWith('ChIJ') || id.length > 10))) {
       // Handle Google Place ID
       const cleanId = id.replace('google_', ''); // Remove google_ prefix if present
       console.log('Clean Google Place ID:', cleanId);
@@ -79,7 +77,7 @@ router.get('/restaurant/:id', async (req, res) => {
           eq(ratings.googlePlaceId, cleanId)
         ))
         .limit(1);
-    } else {
+    } else if (type === 'database' || (!type && !isNaN(parseInt(id)))) {
       // Handle numeric restaurant ID
       const numericId = parseInt(id);
       console.log('Parsing numeric ID:', id, 'Result:', numericId);
@@ -93,6 +91,8 @@ router.get('/restaurant/:id', async (req, res) => {
           eq(ratings.restaurantId, numericId)
         ))
         .limit(1);
+    } else {
+      return res.status(400).json({ error: 'Invalid restaurant identifier' });
     }
     
     console.log('Rating query result:', rating);

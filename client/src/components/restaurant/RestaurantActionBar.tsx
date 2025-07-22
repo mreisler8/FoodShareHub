@@ -66,8 +66,7 @@ export default function RestaurantActionBar({
   const { toast } = useToast();
   
   // Get restaurant ID for rating state
-  const restaurantId = restaurant.googlePlaceId || restaurant.id?.toString() || '';
-  const { rating, hasRated, label, isLoading } = useRestaurantRatingState(restaurantId);
+  const { rating, hasRated, label, isLoading } = useRestaurantRatingState(restaurant);
 
   // Mock circles data - in real app, fetch from API
   const userCircles: Circle[] = [
