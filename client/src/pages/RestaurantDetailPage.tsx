@@ -276,11 +276,41 @@ export default function RestaurantDetailPage() {
     ? Math.round((restaurant.communityInsights.followersAverageRating / 5) * 100)
     : 0;
 
-  // Get restaurant image URL - try multiple sources
-  const heroImageUrl = restaurant.imageUrl || 
-                       (restaurant.googlePlaces?.photos?.[0] ? 
-                        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${restaurant.googlePlaces.photos[0].reference}&key=${import.meta.env.VITE_GOOGLE_PLACES_API_KEY}` : 
-                        null);
+  // Get optimized restaurant image URL with responsive sources
+  const getHeroImageData = () => {
+    // Priority: heroPhoto > first regular photo > fallback
+    if (restaurant.googlePlaces?.heroPhoto) {
+      return {
+        src: restaurant.googlePlaces.heroPhoto.urls.large,
+        srcSet: `
+          ${restaurant.googlePlaces.heroPhoto.urls.medium} 768w,
+          ${restaurant.googlePlaces.heroPhoto.urls.large} 1200w,
+          ${restaurant.googlePlaces.heroPhoto.urls.hero} 1600w
+        `,
+        aspectRatio: restaurant.googlePlaces.heroPhoto.dimensions.aspectRatio
+      };
+    }
+    
+    if (restaurant.googlePlaces?.photos?.[0]) {
+      const photo = restaurant.googlePlaces.photos[0];
+      return {
+        src: photo.urls.large,
+        srcSet: `
+          ${photo.urls.medium} 768w,
+          ${photo.urls.large} 1200w
+        `,
+        aspectRatio: photo.aspectRatio
+      };
+    }
+    
+    if (restaurant.imageUrl) {
+      return { src: restaurant.imageUrl };
+    }
+    
+    return null;
+  };
+
+  const heroImageData = getHeroImageData();
 
   // Mock data for lists and posts - in production, fetch from API
   const mockLists = [
@@ -327,11 +357,14 @@ export default function RestaurantDetailPage() {
 
       {/* Hero Section with enhanced mobile-first design */}
       <div className="relative h-48 md:h-64 w-full overflow-hidden">
-        {heroImageUrl ? (
+        {heroImageData ? (
           <img 
-            src={heroImageUrl} 
+            src={heroImageData.src}
+            srcSet={heroImageData.srcSet}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1200px"
             alt={restaurant.name}
             className="w-full h-full object-cover"
+            loading="eager"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
@@ -809,6 +842,20 @@ export default function RestaurantDetailPage() {
           </TabsContent>
         </Tabs>
         
+        {/* Mobile Action Bar */}
+        <RestaurantActionBar
+          restaurant={{
+            id: queryMethod === 'id' ? Number(restaurantId) : undefined,
+            googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
+            name: restaurant.name,
+            location: restaurant.location,
+            address: restaurant.address
+          }}
+          userRating={userRating}
+          isSaved={false} // TODO: fetch from API
+          variant="mobile"
+          className="md:hidden" // Only show on mobile
+        />
       </div>
 
       {/* Mobile Action Bar - Fixed at bottom */}

@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { Restaurant } from '@shared/schema';
 
@@ -180,7 +179,7 @@ const SEMANTIC_QUERY_MAPPINGS = {
   'dessert': 'dessert restaurants bakery ice cream sweets',
   'delivery': 'restaurants delivery takeout food delivery service',
   'takeout': 'takeout restaurants pickup fast food quick service',
-  
+
   // Cuisine-specific semantic mappings
   'korean': 'korean restaurants bbq kimchi bulgogi',
   'japanese': 'japanese restaurants sushi ramen sashimi',
@@ -194,7 +193,7 @@ const SEMANTIC_QUERY_MAPPINGS = {
   'vietnamese': 'vietnamese restaurants pho banh mi',
   'greek': 'greek restaurants gyros souvlaki',
   'middle eastern': 'middle eastern restaurants kebab shawarma',
-  
+
   // Restaurant name corrections and expansions
   'oddseoul': 'odd seoul korean restaurant toronto',
   'oddseol': 'odd seoul korean restaurant toronto',
@@ -204,7 +203,7 @@ const SEMANTIC_QUERY_MAPPINGS = {
   'tacoronto': 'tacos toronto mexican',
   'gusto': 'gusto restaurant toronto',
   'badiali': 'pizzeria badiali toronto',
-  
+
   // Common typos and corrections
   'pizzza': 'pizza',
   'resturant': 'restaurant',
@@ -226,7 +225,7 @@ const SEMANTIC_QUERY_MAPPINGS = {
 // Generic restaurant search optimization - works for any restaurant name
 function performSemanticSearch(query: string): string {
   const lowerQuery = query.toLowerCase().trim();
-  
+
   // Layer 1: Only enhance generic food/dining terms, not specific restaurant names
   const genericTerms = {
     'pizza': 'pizza restaurant',
@@ -249,13 +248,13 @@ function performSemanticSearch(query: string): string {
     'mediterranean': 'mediterranean restaurant',
     'vietnamese': 'vietnamese restaurant',
   };
-  
+
   // Only enhance if query matches generic terms exactly
   if (genericTerms[lowerQuery]) {
     console.log(`Generic cuisine match: ${lowerQuery} -> ${genericTerms[lowerQuery]}`);
     return genericTerms[lowerQuery];
   }
-  
+
   // Layer 2: Handle common typos only
   const typoCorrections = {
     'pizzza': 'pizza',
@@ -265,12 +264,12 @@ function performSemanticSearch(query: string): string {
     'suchi': 'sushi',
     'borger': 'burger',
   };
-  
+
   if (typoCorrections[lowerQuery]) {
     console.log(`Typo correction: ${lowerQuery} -> ${typoCorrections[lowerQuery]}`);
     return typoCorrections[lowerQuery];
   }
-  
+
   // Layer 3: For restaurant names, return as-is to preserve exact matching
   // This ensures "Gusto", "Badiali", etc. search for themselves, not enhanced terms
   console.log(`Preserving restaurant name: ${lowerQuery}`);
@@ -304,7 +303,7 @@ function calculatePhoneticSimilarity(str1: string, str2: string): number {
     'ai': 'a',
     'ay': 'a',
   };
-  
+
   function toPhonetic(str: string): string {
     let phonetic = str.toLowerCase();
     for (const [pattern, replacement] of Object.entries(phoneticMap)) {
@@ -312,47 +311,47 @@ function calculatePhoneticSimilarity(str1: string, str2: string): number {
     }
     return phonetic;
   }
-  
+
   const phonetic1 = toPhonetic(str1);
   const phonetic2 = toPhonetic(str2);
-  
+
   return calculateSimilarity(phonetic1, phonetic2);
 }
 
 // Enhanced location-based query optimization with semantic intelligence
 function enhanceQueryForGoogle(query: string, location?: { lat: number; lng: number }): string {
   const lowerQuery = query.toLowerCase().trim();
-  
+
   // Remove redundant words but preserve important location terms
   let enhancedQuery = lowerQuery
     .replace(/\b(near me|nearby|around here|close to me)\b/gi, '')
     .trim();
-  
+
   // Apply minimal semantic enhancement only for generic terms
   const semanticResult = performSemanticSearch(enhancedQuery);
   if (semanticResult !== enhancedQuery) {
     enhancedQuery = semanticResult;
   }
-  
+
   // Handle natural language phrases
   if (lowerQuery.includes('best') && lowerQuery.includes('in')) {
     // "best dinner in Toronto" -> keep original structure
     enhancedQuery = lowerQuery;
   }
-  
+
   // Preserve specific restaurant names in quotes
   if (lowerQuery.includes('"') || lowerQuery.match(/^[A-Z][a-z]+\s[A-Z][a-z]+/)) {
     enhancedQuery = lowerQuery;
   }
-  
+
   // Add restaurant context only if not already implied
   const restaurantTerms = ['restaurant', 'bar', 'cafe', 'bistro', 'eatery', 'diner', 'grill', 'kitchen'];
   const hasRestaurantContext = restaurantTerms.some(term => enhancedQuery.includes(term));
-  
+
   if (!hasRestaurantContext && !enhancedQuery.match(/^[A-Z][a-z]+/)) {
     enhancedQuery += ' restaurant';
   }
-  
+
   return enhancedQuery;
 }
 
@@ -360,22 +359,22 @@ function enhanceQueryForGoogle(query: string, location?: { lat: number; lng: num
 function calculateRelevanceScore(restaurantName: string, searchQuery: string): number {
   const name = restaurantName.toLowerCase().trim();
   const query = searchQuery.toLowerCase().trim();
-  
+
   // Exact match gets highest priority
   if (name === query) {
     return 100;
   }
-  
+
   // Name starts with search term
   if (name.startsWith(query)) {
     return 90;
   }
-  
+
   // Name contains search term
   if (name.includes(query)) {
     return 80;
   }
-  
+
   // Check if any word in the name starts with the query
   const nameWords = name.split(/\s+/);
   for (const word of nameWords) {
@@ -383,14 +382,14 @@ function calculateRelevanceScore(restaurantName: string, searchQuery: string): n
       return 70;
     }
   }
-  
+
   // Check if any word in the name contains the query
   for (const word of nameWords) {
     if (word.includes(query)) {
       return 60;
     }
   }
-  
+
   // Default score for no match
   return 0;
 }
@@ -399,12 +398,12 @@ function calculateCategoryRelevance(category: string, cuisine: string, searchQue
   const query = searchQuery.toLowerCase().trim();
   const cat = category?.toLowerCase() || '';
   const cui = cuisine?.toLowerCase() || '';
-  
+
   // Category/cuisine matches
   if (cat.includes(query) || cui.includes(query)) {
     return 70;
   }
-  
+
   return 0;
 }
 
@@ -412,19 +411,19 @@ function calculateCategoryRelevance(category: string, cuisine: string, searchQue
 function calculateSimilarity(str1: string, str2: string): number {
   const longer = str1.length > str2.length ? str1 : str2;
   const shorter = str1.length > str2.length ? str2 : str1;
-  
+
   if (longer.length === 0) return 1.0;
-  
+
   // Levenshtein distance similarity
   const editDistance = levenshteinDistance(longer, shorter);
   const levenshteinSimilarity = (longer.length - editDistance) / longer.length;
-  
+
   // Jaro-Winkler similarity for better prefix matching
   const jaroSimilarity = calculateJaroSimilarity(str1, str2);
-  
+
   // Substring matching bonus
   const substringBonus = shorter.length > 2 && longer.includes(shorter) ? 0.2 : 0;
-  
+
   // Combined similarity score
   return Math.max(levenshteinSimilarity, jaroSimilarity) + substringBonus;
 }
@@ -432,24 +431,24 @@ function calculateSimilarity(str1: string, str2: string): number {
 // Jaro similarity implementation
 function calculateJaroSimilarity(str1: string, str2: string): number {
   if (str1 === str2) return 1.0;
-  
+
   const len1 = str1.length;
   const len2 = str2.length;
-  
+
   if (len1 === 0 || len2 === 0) return 0.0;
-  
+
   const matchDistance = Math.floor(Math.max(len1, len2) / 2) - 1;
   const str1Matches = new Array(len1).fill(false);
   const str2Matches = new Array(len2).fill(false);
-  
+
   let matches = 0;
   let transpositions = 0;
-  
+
   // Find matches
   for (let i = 0; i < len1; i++) {
     const start = Math.max(0, i - matchDistance);
     const end = Math.min(i + matchDistance + 1, len2);
-    
+
     for (let j = start; j < end; j++) {
       if (str2Matches[j] || str1[i] !== str2[j]) continue;
       str1Matches[i] = true;
@@ -458,9 +457,9 @@ function calculateJaroSimilarity(str1: string, str2: string): number {
       break;
     }
   }
-  
+
   if (matches === 0) return 0.0;
-  
+
   // Find transpositions
   let k = 0;
   for (let i = 0; i < len1; i++) {
@@ -469,16 +468,16 @@ function calculateJaroSimilarity(str1: string, str2: string): number {
     if (str1[i] !== str2[k]) transpositions++;
     k++;
   }
-  
+
   return (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3.0;
 }
 
 function levenshteinDistance(str1: string, str2: string): number {
   const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
-  
+
   for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
   for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
-  
+
   for (let j = 1; j <= str2.length; j++) {
     for (let i = 1; i <= str1.length; i++) {
       const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
@@ -489,13 +488,13 @@ function levenshteinDistance(str1: string, str2: string): number {
       );
     }
   }
-  
+
   return matrix[str2.length][str1.length];
 }
 
 function determineSearchStrategy(query: string, location?: { lat: number; lng: number; radius?: number }) {
   const lowerQuery = query.toLowerCase();
-  
+
   // Use Nearby Search for location-specific queries with coordinates
   if (location && (
     lowerQuery.includes('near me') ||
@@ -505,7 +504,7 @@ function determineSearchStrategy(query: string, location?: { lat: number; lng: n
   )) {
     return 'nearby';
   }
-  
+
   // Use Text Search for complex semantic queries or specific restaurant names
   return 'text';
 }
@@ -526,7 +525,7 @@ function getCachedResults(cacheKey: string): Restaurant[] | null {
 
 function setCachedResults(cacheKey: string, data: Restaurant[], location?: string): void {
   searchCache.set(cacheKey, { data, timestamp: Date.now(), location });
-  
+
   // Clean up old cache entries (keep last 100)
   if (searchCache.size > 100) {
     const oldestKey = searchCache.keys().next().value;
@@ -537,6 +536,26 @@ function setCachedResults(cacheKey: string, data: Restaurant[], location?: strin
 // Enhanced photo URL generator
 function getPhotoUrl(photoReference: string, maxWidth: number = 400): string {
   return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${GOOGLE_MAPS_API_KEY}`;
+}
+
+// Function to generate multiple photo URLs with different sizes
+function getPhotoUrls(photoReference: string): { small: string; medium: string; large: string } {
+  return {
+    small: getPhotoUrl(photoReference, 400),
+    medium: getPhotoUrl(photoReference, 800),
+    large: getPhotoUrl(photoReference, 1200),
+  };
+}
+
+// Function to select the best header photo
+function selectBestHeaderPhoto(photos: Array<{ photo_reference: string; width: number; height: number }>): any {
+  if (!photos || photos.length === 0) return null;
+
+  // Sort photos by width in descending order
+  const sortedPhotos = photos.sort((a, b) => b.width - a.width);
+
+  // Return the first photo (largest width)
+  return sortedPhotos[0];
 }
 
 export const searchGooglePlaces = async (query: string, location?: { lat: number; lng: number; radius?: number }): Promise<Restaurant[]> => {
@@ -561,18 +580,18 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
     const searchStrategy = determineSearchStrategy(query, location);
     let response: any;
     let allResults: GooglePlaceResult[] = [];
-    
+
     console.log(`Using ${searchStrategy} search strategy for query: "${enhancedQuery}"`);
-    
+
     // Apply semantic search and typo correction
     let correctedQuery = enhancedQuery;
-    
+
     // Check if semantic search found a better match
     if (enhancedQuery !== query.toLowerCase().trim()) {
       correctedQuery = enhancedQuery;
       console.log(`Applied semantic search enhancement: ${query} -> ${correctedQuery}`);
     }
-    
+
     if (searchStrategy === 'nearby' && location) {
       // Use Nearby Search API for location-based searches
       const nearbyParams = {
@@ -599,17 +618,17 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
           timeout: API_TIMEOUT,
         }
       );
-      
+
       allResults = response.data.results || [];
-      
+
       // Handle pagination for nearby search (up to 3 pages)
       let nextPageToken = response.data.next_page_token;
       let pageCount = 1;
-      
+
       while (nextPageToken && pageCount < 3 && allResults.length < 40) {
         // Wait 2 seconds before requesting next page (Google requirement)
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
+
         try {
           const nextResponse = await axios.get<PlacesSearchResponse>(
             'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
@@ -621,7 +640,7 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
               timeout: API_TIMEOUT,
             }
           );
-          
+
           if (nextResponse.data.status === 'OK' && nextResponse.data.results) {
             allResults.push(...nextResponse.data.results);
             nextPageToken = nextResponse.data.next_page_token;
@@ -634,7 +653,7 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
           break;
         }
       }
-      
+
     } else {
       // Use Text Search API for general searches
       const textParams = {
@@ -658,34 +677,34 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
           timeout: API_TIMEOUT,
         }
       );
-      
+
       allResults = response.data.results || [];
     }
 
     if (response.data.status !== 'OK') {
       console.error('Google Places API error:', response.data.status, response.data.error_message);
-      
+
       // Handle specific error cases
       if (response.data.status === 'ZERO_RESULTS') {
         console.log(`No results found for query: "${query}"`);
         return [];
       }
-      
+
       if (response.data.status === 'INVALID_REQUEST') {
         console.error('Invalid request parameters for query:', query);
         return [];
       }
-      
+
       if (response.data.status === 'OVER_QUERY_LIMIT') {
         console.error('Google Places API quota exceeded');
         throw new Error('Search service temporarily unavailable');
       }
-      
+
       if (response.data.status === 'REQUEST_DENIED') {
         console.error('Google Places API request denied');
         throw new Error('Search service authentication failed');
       }
-      
+
       return [];
     }
 
@@ -701,7 +720,7 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
         if (place.permanently_closed || place.business_status === 'CLOSED_PERMANENTLY') {
           return false;
         }
-        
+
         // Filter out results that don't seem like restaurants
         if (place.types && !place.types.some(type => 
           type.includes('restaurant') || 
@@ -713,7 +732,7 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
         )) {
           return false;
         }
-        
+
         return true;
       })
       .map(place => {
@@ -727,7 +746,7 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
             // Take the city and province/state: "Toronto, ON"
             const cityPart = parts[parts.length - 3]?.trim();
             const statePart = parts[parts.length - 2]?.trim();
-            
+
             if (cityPart && statePart && !cityPart.match(/^\d/)) {
               // Remove postal code from state part if present
               const stateWithoutPostal = statePart.replace(/\s+[A-Z0-9]{3,}\s*$/, '');
@@ -740,10 +759,24 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
           }
         }
 
-        // Enhanced image URL from photos
+        // Enhanced image URL from photos with multiple sizes
         let imageUrl = null;
+        let photoData = null;
+
         if (place.photos && place.photos.length > 0) {
-          imageUrl = getPhotoUrl(place.photos[0].photo_reference, 600);
+          const bestPhoto = selectBestHeaderPhoto(place.photos);
+          if (bestPhoto) {
+            imageUrl = getPhotoUrl(bestPhoto.photo_reference, 600);
+            photoData = {
+              reference: bestPhoto.photo_reference,
+              urls: getPhotoUrls(bestPhoto.photo_reference),
+              dimensions: {
+                width: bestPhoto.width,
+                height: bestPhoto.height,
+                aspectRatio: bestPhoto.width / bestPhoto.height
+              }
+            };
+          }
         }
 
         return {
@@ -785,7 +818,7 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
         const nameRelevance = calculateRelevanceScore(restaurant.name, query);
         const categoryRelevance = calculateCategoryRelevance(restaurant.category, restaurant.cuisine, query);
         const totalRelevance = Math.max(nameRelevance, categoryRelevance);
-        
+
         return {
           ...restaurant,
           relevanceScore: totalRelevance,
@@ -796,14 +829,14 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
         if (a.relevanceScore !== b.relevanceScore) {
           return b.relevanceScore - a.relevanceScore;
         }
-        
+
         // Secondary sort: Rating (higher is better)
         const aRating = a.rating || 0;
         const bRating = b.rating || 0;
         if (aRating !== bRating) {
           return bRating - aRating;
         }
-        
+
         // Tertiary sort: Review count (higher is better)
         const aReviewCount = a.reviewCount || 0;
         const bReviewCount = b.reviewCount || 0;
@@ -812,10 +845,10 @@ export const searchGooglePlaces = async (query: string, location?: { lat: number
       .slice(0, 25); // Limit to top 25 results
 
     console.log(`Google Places search for "${query}" returned ${restaurants.length} results`);
-    
+
     // Cache the results
     setCachedResults(cacheKey, restaurants, location ? `${location.lat},${location.lng}` : undefined);
-    
+
     return restaurants;
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -876,10 +909,24 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
 
     const place = response.data.result;
 
-    // Enhanced image URL from photos
+    // Enhanced image URL from photos with multiple sizes
     let imageUrl = null;
+    let photoData = null;
+
     if (place.photos && place.photos.length > 0) {
-      imageUrl = getPhotoUrl(place.photos[0].photo_reference, 800);
+      const bestPhoto = selectBestHeaderPhoto(place.photos);
+      if (bestPhoto) {
+        imageUrl = getPhotoUrl(bestPhoto.photo_reference, 800);
+        photoData = {
+          reference: bestPhoto.photo_reference,
+          urls: getPhotoUrls(bestPhoto.photo_reference),
+          dimensions: {
+            width: bestPhoto.width,
+            height: bestPhoto.height,
+            aspectRatio: bestPhoto.width / bestPhoto.height
+          }
+        };
+      }
     }
 
     const details = {
@@ -923,7 +970,7 @@ export const getPlaceDetails = async (placeId: string): Promise<Partial<Restaura
 
     // Cache the results
     detailsCache.set(placeId, { data: details, timestamp: Date.now() });
-    
+
     // Clean up old cache entries
     if (detailsCache.size > 200) {
       const oldestKey = detailsCache.keys().next().value;
