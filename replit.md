@@ -117,7 +117,7 @@ The application uses a comprehensive PostgreSQL schema including:
   - **Header Enhancement**: Moved key restaurant info (cuisine · city · price) directly beneath restaurant name in hero section for immediate visibility
   - **OrderOptionsCard Component**: Created new OrderOptionsCard.tsx component matching ReservationCard styling with "View Menu" and "Order Online" buttons
   - **Removed Redundant Sections**: Eliminated complex "Details + Menu" tabbed navigation section and consolidated into simplified single "Contact & Details" card
-  - **Sidebar Organization**: Positioned OrderOptionsCard alongside ReservationCard in 2-column grid layout for better mobile stacking
+  - **Sidebar Organization**: Positioned OrderOptionsCard alongside ReservationCard and MoreRestaurantActions in 3-column grid layout with equal visual weighting for better mobile stacking
   - **Code Consolidation**: Removed duplicate reservation and menu functionality, streamlined component structure for better maintainability
   - **Mobile-First Layout**: Ensured proper responsive stacking of sidebar cards and consistent spacing (text-sm, rounded-lg, shadow-sm)
   - **Preserved Functionality**: Maintained all existing Circle Score, Quick Rating, and Restaurant Action Bar functionality while improving layout efficiency

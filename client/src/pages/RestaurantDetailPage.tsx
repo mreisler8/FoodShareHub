@@ -465,8 +465,8 @@ export default function RestaurantDetailPage() {
           variant="desktop"
         />
 
-        {/* Sidebar Cards Section */}
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Sidebar Cards Section - Equal weighting layout */}
+        <div className="grid md:grid-cols-3 gap-6">
           {/* Make a Reservation */}
           <ReservationCard 
             restaurant={{
@@ -482,18 +482,18 @@ export default function RestaurantDetailPage() {
               location: restaurant.location,
               website: restaurant.website
             }}
-            menuUrl={restaurant.website} // Use website as menu URL for now
-            orderUrl={undefined} // TODO: Add orderUrl field to restaurant data
+            menuUrl={restaurant.website}
+            orderUrl={undefined}
+          />
+          
+          {/* More Actions */}
+          <MoreRestaurantActions 
+            restaurant={{
+              name: restaurant.name,
+              location: restaurant.location
+            }}
           />
         </div>
-        
-        {/* More Actions - Only if needed */}
-        <MoreRestaurantActions 
-          restaurant={{
-            name: restaurant.name,
-            location: restaurant.location
-          }}
-        />
 
         {/* Your Activity Section */}
         <YourRatingCard 

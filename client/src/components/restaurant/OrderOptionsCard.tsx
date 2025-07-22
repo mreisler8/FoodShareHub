@@ -17,11 +17,6 @@ interface OrderOptionsCardProps {
 export default function OrderOptionsCard({ restaurant, menuUrl, orderUrl }: OrderOptionsCardProps) {
   const { toast } = useToast();
 
-  // Don't render if no menu or order options available
-  if (!menuUrl && !orderUrl) {
-    return null;
-  }
-
   const handleViewMenu = () => {
     const targetUrl = menuUrl || restaurant.website;
     if (targetUrl) {
@@ -29,6 +24,14 @@ export default function OrderOptionsCard({ restaurant, menuUrl, orderUrl }: Orde
       toast({
         title: "Opening Menu",
         description: "Viewing restaurant menu"
+      });
+    } else {
+      // Fallback to Google search for menu
+      const searchQuery = encodeURIComponent(`${restaurant.name} ${restaurant.location} menu`);
+      window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
+      toast({
+        title: "Searching for Menu",
+        description: "Looking for menu online"
       });
     }
   };
@@ -39,6 +42,14 @@ export default function OrderOptionsCard({ restaurant, menuUrl, orderUrl }: Orde
       toast({
         title: "Opening Order Platform",
         description: "Redirecting to online ordering"
+      });
+    } else {
+      // Fallback to Uber Eats search
+      const searchQuery = encodeURIComponent(`${restaurant.name} ${restaurant.location}`);
+      window.open(`https://www.ubereats.com/ca/search?q=${searchQuery}`, '_blank');
+      toast({
+        title: "Searching for Delivery",
+        description: "Looking for delivery options"
       });
     }
   };
@@ -52,27 +63,23 @@ export default function OrderOptionsCard({ restaurant, menuUrl, orderUrl }: Orde
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {(menuUrl || restaurant.website) && (
-          <Button 
-            variant="outline" 
-            className="w-full justify-start gap-2"
-            onClick={handleViewMenu}
-          >
-            <ExternalLink className="h-4 w-4" />
-            View Menu
-          </Button>
-        )}
+        <Button 
+          variant="outline" 
+          className="w-full justify-start gap-2"
+          onClick={handleViewMenu}
+        >
+          <ExternalLink className="h-4 w-4" />
+          View Menu
+        </Button>
         
-        {orderUrl && (
-          <Button 
-            variant="outline" 
-            className="w-full justify-start gap-2"
-            onClick={handleOrderOnline}
-          >
-            <ExternalLink className="h-4 w-4" />
-            Order Online
-          </Button>
-        )}
+        <Button 
+          variant="outline" 
+          className="w-full justify-start gap-2"
+          onClick={handleOrderOnline}
+        >
+          <ExternalLink className="h-4 w-4" />
+          Order Online
+        </Button>
       </CardContent>
     </Card>
   );

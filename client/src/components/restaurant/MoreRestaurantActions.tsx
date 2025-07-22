@@ -45,7 +45,7 @@ export default function MoreRestaurantActions({ restaurant }: MoreRestaurantActi
           onClick={handleWriteReview}
         >
           <PenTool className="h-4 w-4" />
-          ✍️ Write Review
+          Write Review
         </Button>
         
         <Button 
@@ -54,7 +54,7 @@ export default function MoreRestaurantActions({ restaurant }: MoreRestaurantActi
           onClick={handleAddPhotos}
         >
           <Camera className="h-4 w-4" />
-          📸 Add Photos
+          Add Photos
         </Button>
       </CardContent>
     </Card>
