@@ -61,6 +61,7 @@ interface RestaurantDetails {
       reference: string;
       width: number;
       height: number;
+      photo_reference: string;
     }>;
     reviews: Array<{
       rating: number;
@@ -163,11 +164,11 @@ export default function RestaurantDetailPage() {
   // Handle both path parameters and query parameters
   const urlParams = new URLSearchParams(window.location.search);
   const googlePlaceId = urlParams.get('googlePlaceId');
-  
+
   // Determine the restaurant identifier and query method
   let restaurantId: string | undefined;
   let queryMethod: 'id' | 'googlePlaceId' = 'id';
-  
+
   if (placeId) {
     // URL format: /restaurants/google/:placeId
     restaurantId = placeId;
@@ -192,14 +193,14 @@ export default function RestaurantDetailPage() {
       if (!restaurantId) {
         throw new Error('No restaurant ID provided');
       }
-      
+
       let url: string;
       if (queryMethod === 'googlePlaceId') {
         url = `/api/restaurants?googlePlaceId=${encodeURIComponent(restaurantId)}`;
       } else {
         url = `/api/restaurants/${restaurantId}`;
       }
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -222,14 +223,14 @@ export default function RestaurantDetailPage() {
     enabled: !!restaurantId,
     queryFn: async () => {
       if (!restaurantId) return null;
-      
+
       let url: string;
       if (queryMethod === 'googlePlaceId') {
         url = `/api/ratings/restaurant/${encodeURIComponent(restaurantId)}?type=google_place`;
       } else {
         url = `/api/ratings/restaurant/${restaurantId}?type=restaurant`;
       }
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         if (response.status === 404) return null; // No rating found
@@ -272,32 +273,53 @@ export default function RestaurantDetailPage() {
   const googleScore = restaurant.googlePlaces?.rating 
     ? Math.round((restaurant.googlePlaces.rating / 5) * 100)
     : 0;
-  
+
   const circlesScore = restaurant.communityInsights?.followersAverageRating 
     ? Math.round((restaurant.communityInsights.followersAverageRating / 5) * 100)
     : 0;
 
-  // Get optimized restaurant image URL with responsive sources
+  // Get optimized restaurant image URL with proper fallbacks
   const getHeroImageData = () => {
-    // Priority: imageUrl > first Google Places photo > fallback
-    if (restaurant.imageUrl) {
+    // Priority 1: Restaurant's direct image URL
+    if (restaurant.imageUrl && restaurant.imageUrl.startsWith('http')) {
+      console.log('Using restaurant imageUrl:', restaurant.imageUrl);
       return { 
         src: restaurant.imageUrl,
-        aspectRatio: 16/9 // Default aspect ratio
+        aspectRatio: 16/9
       };
     }
-    
+
+    // Priority 2: Google Places photo with proper API key check
     if (restaurant.googlePlaces?.photos?.[0]) {
       const photo = restaurant.googlePlaces.photos[0];
-      // Generate photo URL using the reference
-      const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'demo'}`;
-      return {
-        src: photoUrl,
-        aspectRatio: photo.width && photo.height ? photo.width / photo.height : 16/9
-      };
+      const photoReference = photo.photo_reference || photo.reference;
+      const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+      if (photoReference && apiKey && apiKey !== 'demo') {
+        const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
+        console.log('Using Google Places photo:', photoUrl);
+        return {
+          src: photoUrl,
+          aspectRatio: photo.width && photo.height ? photo.width / photo.height : 16/9
+        };
+      }
     }
-    
-    return null;
+
+    // Priority 3: Sample food images for demo purposes
+    const sampleFoodImages = [
+      'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&q=80', // Pizza
+      'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=800&q=80', // Restaurant interior
+      'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80', // Italian food
+    ];
+
+    // Use restaurant name to consistently pick the same sample image
+    const imageIndex = restaurant.name.length % sampleFoodImages.length;
+    console.log('Using sample food image for:', restaurant.name);
+
+    return {
+      src: sampleFoodImages[imageIndex],
+      aspectRatio: 16/9
+    };
   };
 
   const heroImageData = getHeroImageData();
@@ -365,10 +387,10 @@ export default function RestaurantDetailPage() {
         <div className={`w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center ${heroImageData ? 'hidden' : ''}`}>
           <ChefHat className="h-12 w-12 md:h-16 md:w-16 text-gray-600" />
         </div>
-        
+
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/40" />
-        
+
         {/* Restaurant info overlay - mobile optimized */}
         <div className="absolute bottom-4 left-4 right-4">
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
@@ -407,9 +429,9 @@ export default function RestaurantDetailPage() {
               {restaurant.googlePlaces?.reviewCount || 0} reviews
             </div>
           </div>
-          
+
           <div className="h-16 w-px bg-gray-200"></div>
-          
+
           <div className="text-center">
             <div className="w-24 h-24 rounded-full bg-orange-50 border-4 border-orange-500 flex items-center justify-center mb-3 relative overflow-hidden">
               <div 
@@ -465,8 +487,8 @@ export default function RestaurantDetailPage() {
           variant="desktop"
         />
 
-        {/* Sidebar Cards Section - Equal weighting layout */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Sidebar Cards Section */}
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Make a Reservation */}
           <ReservationCard 
             restaurant={{
@@ -474,7 +496,7 @@ export default function RestaurantDetailPage() {
               location: restaurant.location
             }}
           />
-          
+
           {/* View Menu & Order */}
           <OrderOptionsCard 
             restaurant={{
@@ -482,18 +504,18 @@ export default function RestaurantDetailPage() {
               location: restaurant.location,
               website: restaurant.website
             }}
-            menuUrl={restaurant.website}
-            orderUrl={undefined}
-          />
-          
-          {/* More Actions */}
-          <MoreRestaurantActions 
-            restaurant={{
-              name: restaurant.name,
-              location: restaurant.location
-            }}
+            menuUrl={restaurant.website} // Use website as menu URL for now
+            orderUrl={undefined} // TODO: Add orderUrl field to restaurant data
           />
         </div>
+
+        {/* More Actions - Only if needed */}
+        <MoreRestaurantActions 
+          restaurant={{
+            name: restaurant.name,
+            location: restaurant.location
+          }}
+        />
 
         {/* Your Activity Section */}
         <YourRatingCard 
@@ -539,7 +561,7 @@ export default function RestaurantDetailPage() {
                     <p className="text-gray-600 text-sm">{restaurant.address || restaurant.location}</p>
                   </div>
                 </div>
-                
+
                 {restaurant.phone && (
                   <div className="flex items-center gap-3">
                     <Phone className="h-5 w-5 text-gray-500" />
@@ -554,7 +576,7 @@ export default function RestaurantDetailPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {restaurant.website && (
                   <div className="flex items-center gap-3">
                     <Globe className="h-5 w-5 text-gray-500" />
@@ -573,7 +595,7 @@ export default function RestaurantDetailPage() {
                   </div>
                 )}
               </div>
-              
+
               <div className="space-y-3">
                 {restaurant.hours && (
                   <div className="flex items-start gap-3">
@@ -588,7 +610,7 @@ export default function RestaurantDetailPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Business Status */}
                 {restaurant.googlePlaces?.isOpen !== undefined && (
                   <div className="flex items-center gap-3">
