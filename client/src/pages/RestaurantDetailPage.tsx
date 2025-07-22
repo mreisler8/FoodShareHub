@@ -296,23 +296,23 @@ export default function RestaurantDetailPage() {
       };
     }
 
-    // Priority 2: Google Places photo from backend (already includes API key)
+    // Priority 2: Google Places photo with proper API key check
     if (restaurant.googlePlaces?.photos?.[0]) {
       const photo = restaurant.googlePlaces.photos[0];
       const photoReference = photo.photo_reference || photo.reference;
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-      console.log('Google Places photo data:', { photo, photoReference });
+      console.log('Google Places photo data:', { photo, photoReference, hasApiKey: !!apiKey });
 
-      if (photoReference) {
-        // Use backend API endpoint that securely handles the API key
-        const photoUrl = `/api/restaurants/photo/${photoReference}`;
-        console.log('Using Google Places photo via backend:', photoUrl);
+      if (photoReference && apiKey && apiKey !== 'demo') {
+        const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
+        console.log('Using Google Places photo:', photoUrl);
         return {
           src: photoUrl,
           aspectRatio: photo.width && photo.height ? photo.width / photo.height : 16/9
         };
       } else {
-        console.log('Cannot use Google Places photo - missing photo reference');
+        console.log('Cannot use Google Places photo - missing API key or photo reference');
       }
     }
 
@@ -491,17 +491,7 @@ export default function RestaurantDetailPage() {
                 </div>
               )}
 
-              {restaurant.hours && (
-                <div className="flex items-start gap-2">
-                  <Clock className="h-4 w-4 text-gray-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-medium text-gray-700">Hours</p>
-                    <p className="text-xs text-gray-600">
-                      {restaurant.hours.split('\n')[0]}
-                    </p>
-                  </div>
-                </div>
-              )}
+              
 
               {/* Business Status */}
               {restaurant.googlePlaces?.isOpen !== undefined && (
@@ -655,24 +645,7 @@ export default function RestaurantDetailPage() {
           }}
         />
 
-        {/* Additional Details - Only show if there are extra details */}
-        {restaurant.hours && restaurant.hours.split('\n').length > 1 && (
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-semibold text-lg mb-4">Full Hours</h3>
-              <div className="flex items-start gap-3">
-                <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
-                <div>
-                  <div className="text-gray-600 space-y-1">
-                    {restaurant.hours.split('\n').map((line, index) => (
-                      <p key={index} className="text-sm">{line}</p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        
       </div>
 
       {/* Mobile Action Bar - Fixed at bottom */}
