@@ -404,13 +404,99 @@ export default function RestaurantDetailPage() {
 
       {/* Main Content - Mobile-first modular layout */}
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-6">
-        {/* Header Section */}
-        <HeaderCard
-          name={restaurant.name}
-          cuisine={restaurant.cuisine}
-          location={restaurant.location}
-          address={restaurant.address}
-        />
+        {/* Header Section with Contact Details */}
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              {restaurant.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <UtensilsCrossed className="h-4 w-4" />
+                <span>{restaurant.cuisine}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                <span>{restaurant.location}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                <span>{restaurant.priceRange}</span>
+              </div>
+            </div>
+            
+            {/* Key Contact Info */}
+            <div className="grid md:grid-cols-2 gap-3 pt-2 border-t">
+              {restaurant.address && restaurant.address !== restaurant.location && (
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">Address</p>
+                    <p className="text-xs text-gray-600">{restaurant.address}</p>
+                  </div>
+                </div>
+              )}
+
+              {restaurant.phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">Phone</p>
+                    <a 
+                      href={`tel:${restaurant.phone}`}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      {restaurant.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {restaurant.website && (
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-gray-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">Website</p>
+                    <a 
+                      href={restaurant.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                      Visit Website
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {restaurant.hours && (
+                <div className="flex items-start gap-2">
+                  <Clock className="h-4 w-4 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">Hours</p>
+                    <p className="text-xs text-gray-600">
+                      {restaurant.hours.split('\n')[0]}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Business Status */}
+              {restaurant.googlePlaces?.isOpen !== undefined && (
+                <div className="flex items-center gap-2">
+                  <div className={`h-3 w-3 rounded-full ${restaurant.googlePlaces.isOpen ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">Status</p>
+                    <p className={`text-xs font-medium ${restaurant.googlePlaces.isOpen ? 'text-green-600' : 'text-red-600'}`}>
+                      {restaurant.googlePlaces.isOpen ? 'Open Now' : 'Closed'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Dual Score Display - Google vs Circle Score (Rotten Tomatoes Style) */}
         <div className="flex justify-center items-center gap-12 mb-6 bg-white rounded-xl p-6 shadow-sm border">
@@ -548,85 +634,24 @@ export default function RestaurantDetailPage() {
           }}
         />
 
-        {/* Contact Information - Simplified single card */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-lg mb-4">Contact & Details</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Address</p>
-                    <p className="text-gray-600 text-sm">{restaurant.address || restaurant.location}</p>
+        {/* Additional Details - Only show if there are extra details */}
+        {restaurant.hours && restaurant.hours.split('\n').length > 1 && (
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="font-semibold text-lg mb-4">Full Hours</h3>
+              <div className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
+                <div>
+                  <div className="text-gray-600 space-y-1">
+                    {restaurant.hours.split('\n').map((line, index) => (
+                      <p key={index} className="text-sm">{line}</p>
+                    ))}
                   </div>
                 </div>
-
-                {restaurant.phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="font-medium">Phone</p>
-                      <a 
-                        href={`tel:${restaurant.phone}`}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        {restaurant.phone}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {restaurant.website && (
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="font-medium">Website</p>
-                      <a 
-                        href={restaurant.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
-                      >
-                        Visit Website
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  </div>
-                )}
               </div>
-
-              <div className="space-y-3">
-                {restaurant.hours && (
-                  <div className="flex items-start gap-3">
-                    <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Hours</p>
-                      <div className="text-gray-600 space-y-1">
-                        {restaurant.hours.split('\n').slice(0, 3).map((line, index) => (
-                          <p key={index} className="text-sm">{line}</p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Business Status */}
-                {restaurant.googlePlaces?.isOpen !== undefined && (
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${restaurant.googlePlaces.isOpen ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <div>
-                      <p className="font-medium">Status</p>
-                      <p className={`text-sm font-medium ${restaurant.googlePlaces.isOpen ? 'text-green-600' : 'text-red-600'}`}>
-                        {restaurant.googlePlaces.isOpen ? 'Open Now' : 'Closed'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Mobile Action Bar - Fixed at bottom */}
