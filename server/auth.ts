@@ -158,6 +158,9 @@ export function setupAuth(app: Express) {
   // User login endpoint
   app.post("/api/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
+    console.log("Session before login:", req.sessionID);
+    console.log("Current session data:", req.session);
+    
     passport.authenticate("local", (err: Error, user: Express.User, info: any) => {
       if (err) {
         console.log("Login error:", err);
@@ -174,10 +177,21 @@ export function setupAuth(app: Express) {
           console.log("Session creation error:", err);
           return next(err);
         }
-        // Return user without password
-        const { password, ...userWithoutPassword } = user;
-        console.log("Login successful:", userWithoutPassword);
-        return res.status(200).json(userWithoutPassword);
+        
+        // Force session save and ensure cookie is set
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.log("Session save error:", saveErr);
+          }
+          
+          // Return user without password
+          const { password, ...userWithoutPassword } = user;
+          console.log("Login successful for user:", userWithoutPassword.username);
+          console.log("Session after login:", req.sessionID);
+          console.log("Setting cookie for domain:", req.get('host'));
+          
+          return res.status(200).json(userWithoutPassword);
+        });
       });
     })(req, res, next);
   });
