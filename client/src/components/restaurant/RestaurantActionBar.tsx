@@ -16,7 +16,9 @@ import {
   Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import QuickRateButton from '@/components/ratings/QuickRateButton';
+import QuickRateModal from '@/components/ratings/QuickRateModal';
+import AddToListModal from './AddToListModal';
+import SaveRestaurantModal from './SaveRestaurantModal';
 import ActionButton from './ActionButton';
 import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
 import { useAuth } from '@/hooks/use-auth';
@@ -57,6 +59,8 @@ export default function RestaurantActionBar({
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showCircleShare, setShowCircleShare] = useState(false);
   const [showQuickRateModal, setShowQuickRateModal] = useState(false);
+  const [showAddToListModal, setShowAddToListModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [localSaved, setLocalSaved] = useState(isSaved);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -117,11 +121,7 @@ export default function RestaurantActionBar({
   };
 
   const handleSave = () => {
-    setLocalSaved(!localSaved);
-    toast({
-      title: localSaved ? "Removed from saved" : "Saved to your profile",
-      description: localSaved ? "Restaurant removed from your saved list" : "You can access this restaurant anytime"
-    });
+    setShowSaveModal(true);
     onSave?.();
   };
 
@@ -130,10 +130,7 @@ export default function RestaurantActionBar({
   };
 
   const handleAddToList = () => {
-    toast({
-      title: "Add to List",
-      description: "Feature coming soon - list management in development"
-    });
+    setShowAddToListModal(true);
     onAddToList?.();
   };
 
@@ -199,15 +196,27 @@ export default function RestaurantActionBar({
         </div>
         
         {/* Quick Rate Modal */}
-        {showQuickRateModal && (
-          <QuickRateButton
-            restaurant={restaurant}
-            existingRating={rating}
-            variant="default"
-            onSuccess={handleRatingSuccess}
-            onClose={() => setShowQuickRateModal(false)}
-          />
-        )}
+        <QuickRateModal
+          isOpen={showQuickRateModal}
+          onClose={() => setShowQuickRateModal(false)}
+          restaurant={restaurant}
+          existingRating={rating}
+        />
+
+        {/* Add to List Modal */}
+        <AddToListModal
+          isOpen={showAddToListModal}
+          onClose={() => setShowAddToListModal(false)}
+          restaurant={restaurant}
+        />
+
+        {/* Save Restaurant Modal */}
+        <SaveRestaurantModal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          restaurant={restaurant}
+          isSaved={localSaved}
+        />
         
         {/* Add bottom padding to page content to avoid action bar overlap */}
         <div className="h-20" />
@@ -254,15 +263,27 @@ export default function RestaurantActionBar({
       </div>
 
       {/* Quick Rate Modal */}
-      {showQuickRateModal && (
-        <QuickRateButton
-          restaurant={restaurant}
-          existingRating={rating}
-          variant="default"
-          onSuccess={handleRatingSuccess}
-          onClose={() => setShowQuickRateModal(false)}
-        />
-      )}
+      <QuickRateModal
+        isOpen={showQuickRateModal}
+        onClose={() => setShowQuickRateModal(false)}
+        restaurant={restaurant}
+        existingRating={rating}
+      />
+
+      {/* Add to List Modal */}
+      <AddToListModal
+        isOpen={showAddToListModal}
+        onClose={() => setShowAddToListModal(false)}
+        restaurant={restaurant}
+      />
+
+      {/* Save Restaurant Modal */}
+      <SaveRestaurantModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        restaurant={restaurant}
+        isSaved={localSaved}
+      />
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>

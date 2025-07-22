@@ -8,7 +8,7 @@ import { onNewRating } from '../lib/circleScoreJobs';
 const router = Router();
 
 // Validation schemas
-const createRatingSchema = insertRatingSchema.extend({
+const createRatingSchema = insertRatingSchema.omit({ userId: true }).extend({
   ratingValue: z.number().min(1).max(5),
   note: z.string().max(140).optional(),
   tags: z.array(z.string()).max(5).optional(),
@@ -62,24 +62,40 @@ router.get('/restaurant/:id', async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { type = 'restaurant' } = req.query; // 'restaurant' or 'google_place'
-
+    console.log('Rating API - Fetching rating for ID:', id, 'User:', req.user.id);
+    
+    // Determine if this is a Google Place ID or database restaurant ID
+    const isGooglePlaceId = id.startsWith('ChIJ') || id.includes('google_');
+    console.log('Is Google Place ID:', isGooglePlaceId);
+    
     let rating;
-    if (type === 'google_place') {
+    if (isGooglePlaceId) {
+      // Handle Google Place ID
+      const cleanId = id.replace('google_', ''); // Remove google_ prefix if present
+      console.log('Clean Google Place ID:', cleanId);
       rating = await db.select().from(ratings)
         .where(and(
           eq(ratings.userId, req.user.id),
-          eq(ratings.googlePlaceId, id)
+          eq(ratings.googlePlaceId, cleanId)
         ))
         .limit(1);
     } else {
+      // Handle numeric restaurant ID
+      const numericId = parseInt(id);
+      console.log('Parsing numeric ID:', id, 'Result:', numericId);
+      if (isNaN(numericId)) {
+        console.error('Invalid restaurant ID format:', id);
+        return res.status(400).json({ error: 'Invalid restaurant ID format' });
+      }
       rating = await db.select().from(ratings)
         .where(and(
           eq(ratings.userId, req.user.id),
-          eq(ratings.restaurantId, parseInt(id))
+          eq(ratings.restaurantId, numericId)
         ))
         .limit(1);
     }
+    
+    console.log('Rating query result:', rating);
 
     if (rating.length === 0) {
       return res.status(404).json({ error: 'Rating not found' });
@@ -99,7 +115,9 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    console.log('Create/Update rating request:', req.body);
     const validatedData = createRatingSchema.parse(req.body);
+    console.log('Validated rating data:', validatedData);
 
     // Validate circle access if sharing with circles
     if (validatedData.sharedWithCircle && validatedData.circleIds?.length) {
@@ -144,12 +162,14 @@ router.post('/', async (req, res) => {
     let rating;
     if (existingRating && existingRating.length > 0) {
       // Update existing rating
+      console.log('Updating existing rating:', existingRating[0].id);
       rating = await db.update(ratings)
         .set(ratingData)
         .where(eq(ratings.id, existingRating[0].id))
         .returning();
     } else {
       // Create new rating
+      console.log('Creating new rating');
       rating = await db.insert(ratings)
         .values(ratingData)
         .returning();
