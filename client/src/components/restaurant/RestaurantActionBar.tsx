@@ -12,10 +12,12 @@ import {
   MessageCircle,
   Copy,
   ExternalLink,
-  Send
+  Send,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
+import ActionButton from './ActionButton';
 import { useToast } from '@/hooks/use-toast';
 
 interface Restaurant {
@@ -54,6 +56,8 @@ export default function RestaurantActionBar({
 }: RestaurantActionBarProps) {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showCircleShare, setShowCircleShare] = useState(false);
+  const [showQuickRateModal, setShowQuickRateModal] = useState(false);
+  const [localSaved, setLocalSaved] = useState(isSaved);
   const { toast } = useToast();
 
   // Mock circles data - in real app, fetch from API
@@ -107,6 +111,34 @@ export default function RestaurantActionBar({
     }
   };
 
+  const handleSave = () => {
+    setLocalSaved(!localSaved);
+    toast({
+      title: localSaved ? "Removed from saved" : "Saved to your profile",
+      description: localSaved ? "Restaurant removed from your saved list" : "You can access this restaurant anytime"
+    });
+    onSave?.();
+  };
+
+  const handleQuickRate = () => {
+    setShowQuickRateModal(true);
+  };
+
+  const handleAddToList = () => {
+    toast({
+      title: "Add to List",
+      description: "Feature coming soon - list management in development"
+    });
+    onAddToList?.();
+  };
+
+  const handleSendToFriend = () => {
+    toast({
+      title: "Send to Friend",
+      description: "Feature coming soon - friend sharing in development"
+    });
+  };
+
   const handleShareToCircle = (circleId: number, circleName: string) => {
     // In real app, make API call to share to circle
     toast({
@@ -114,6 +146,14 @@ export default function RestaurantActionBar({
       description: `Restaurant shared to ${circleName}`
     });
     setShowCircleShare(false);
+  };
+
+  // Get rating label
+  const getRatingLabel = () => {
+    if (userRating?.ratingValue) {
+      return `Rated ${userRating.ratingValue}⭐`;
+    }
+    return "Quick Rate";
   };
 
   if (variant === 'mobile') {
@@ -126,44 +166,38 @@ export default function RestaurantActionBar({
           className
         )}>
           <div className="flex gap-2 max-w-sm mx-auto">
-            <Button 
-              variant={isSaved ? "default" : "outline"}
-              size="sm" 
-              className="flex-1 min-h-[48px]"
-              onClick={onSave}
-            >
-              <Bookmark className={cn("h-4 w-4 mr-2", isSaved && "fill-current")} />
-              {isSaved ? 'Saved' : 'Save'}
-            </Button>
-            
-            <QuickRateButton
-              restaurant={restaurant}
-              existingRating={userRating}
-              variant="compact"
-              className="flex-1"
+            <ActionButton 
+              icon="bookmark" 
+              label={localSaved ? "Saved" : "Save"} 
+              active={localSaved}
+              onClick={handleSave}
             />
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 min-h-[48px]"
-              onClick={onAddToList}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              List
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 min-h-[48px]"
+            <ActionButton 
+              icon="zap" 
+              label={getRatingLabel()} 
+              primary 
+              onClick={handleQuickRate}
+            />
+            <ActionButton 
+              icon="plus" 
+              label="Add to List" 
+              onClick={handleAddToList}
+            />
+            <ActionButton 
+              icon="share-2" 
+              label="Share" 
               onClick={handleNativeShare}
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
+            />
           </div>
         </div>
+        
+        {/* Quick Rate Modal */}
+        <QuickRateButton
+          restaurant={restaurant}
+          existingRating={userRating}
+          variant="default"
+          className={showQuickRateModal ? "" : "hidden"}
+        />
         
         {/* Add bottom padding to page content to avoid action bar overlap */}
         <div className="h-20" />
@@ -171,43 +205,49 @@ export default function RestaurantActionBar({
     );
   }
 
-  // Desktop: Inline action bar
+  // Desktop: Horizontal action bar
   return (
     <>
-      <Card className={cn("", className)}>
-        <CardContent className="p-4">
-          <div className="flex gap-3 justify-center">
-            <Button 
-              variant={isSaved ? "default" : "outline"}
-              onClick={onSave}
-            >
-              <Bookmark className={cn("h-4 w-4 mr-2", isSaved && "fill-current")} />
-              {isSaved ? 'Saved' : 'Save'}
-            </Button>
-            
-            <QuickRateButton
-              restaurant={restaurant}
-              existingRating={userRating}
-              variant="default"
-            />
-            
-            <Button variant="outline" onClick={onAddToList}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add to List
-            </Button>
-            
-            <Button variant="outline" onClick={() => setShowCircleShare(true)}>
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Share to Circle
-            </Button>
-            
-            <Button variant="outline" onClick={handleNativeShare}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className={cn(
+        "flex flex-wrap gap-3 justify-start items-center px-4 py-3 border rounded-lg bg-white shadow-sm",
+        className
+      )}>
+        <ActionButton 
+          icon="bookmark" 
+          label={localSaved ? "Saved" : "Save"} 
+          active={localSaved}
+          onClick={handleSave}
+        />
+        <ActionButton 
+          icon="zap" 
+          label={getRatingLabel()} 
+          primary 
+          onClick={handleQuickRate}
+        />
+        <ActionButton 
+          icon="plus" 
+          label="Add to List" 
+          onClick={handleAddToList}
+        />
+        <ActionButton 
+          icon="send" 
+          label="Send to Friend" 
+          onClick={handleSendToFriend}
+        />
+        <ActionButton 
+          icon="share-2" 
+          label="Share Restaurant" 
+          onClick={handleNativeShare}
+        />
+      </div>
+
+      {/* Quick Rate Modal */}
+      <QuickRateButton
+        restaurant={restaurant}
+        existingRating={userRating}
+        variant="default"
+        className={showQuickRateModal ? "" : "hidden"}
+      />
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>

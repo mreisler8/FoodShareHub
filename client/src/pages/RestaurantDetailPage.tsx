@@ -31,6 +31,8 @@ import { YourRatingCard } from '@/components/restaurant/YourRatingCard';
 import { ListMentionsCard } from '@/components/restaurant/ListMentionsCard';
 import { PostMentionsCard } from '@/components/restaurant/PostMentionsCard';
 import RestaurantActionBar from '@/components/restaurant/RestaurantActionBar';
+import ReservationCard from '@/components/restaurant/ReservationCard';
+import MoreRestaurantActions from '@/components/restaurant/MoreRestaurantActions';
 
 interface RestaurantDetails {
   id: string;
@@ -276,9 +278,8 @@ export default function RestaurantDetailPage() {
 
   // Get restaurant image URL - try multiple sources
   const heroImageUrl = restaurant.imageUrl || 
-                       restaurant.images?.[0] || 
                        (restaurant.googlePlaces?.photos?.[0] ? 
-                        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${restaurant.googlePlaces.photos[0].photo_reference}&key=${import.meta.env.VITE_GOOGLE_PLACES_API_KEY}` : 
+                        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${restaurant.googlePlaces.photos[0].reference}&key=${import.meta.env.VITE_GOOGLE_PLACES_API_KEY}` : 
                         null);
 
   // Mock data for lists and posts - in production, fetch from API
@@ -437,19 +438,36 @@ export default function RestaurantDetailPage() {
           </Card>
         )}
 
-        {/* Quick Action Bar - Desktop inline */}
-        <div className="hidden md:block">
-          <RestaurantActionBar
+        {/* Top Horizontal Action Bar */}
+        <RestaurantActionBar
+          restaurant={{
+            id: queryMethod === 'id' ? Number(restaurantId) : undefined,
+            googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
+            name: restaurant.name,
+            location: restaurant.location,
+            address: restaurant.address
+          }}
+          userRating={userRating}
+          isSaved={false} // TODO: fetch from API
+          variant="desktop"
+        />
+
+        {/* Sidebar Cards Section */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Make a Reservation */}
+          <ReservationCard 
             restaurant={{
-              id: queryMethod === 'id' ? Number(restaurantId) : undefined,
-              googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
               name: restaurant.name,
-              location: restaurant.location,
-              address: restaurant.address
+              location: restaurant.location
             }}
-            userRating={userRating}
-            isSaved={false} // TODO: fetch from API
-            variant="desktop"
+          />
+          
+          {/* More Actions */}
+          <MoreRestaurantActions 
+            restaurant={{
+              name: restaurant.name,
+              location: restaurant.location
+            }}
           />
         </div>
 
@@ -809,7 +827,7 @@ export default function RestaurantDetailPage() {
       </div>
 
       {/* Mobile Action Bar - Fixed at bottom */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg pb-safe">
+      <div className="md:hidden">
         <RestaurantActionBar
           restaurant={{
             id: queryMethod === 'id' ? Number(restaurantId) : undefined,
