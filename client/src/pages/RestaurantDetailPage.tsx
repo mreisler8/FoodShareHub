@@ -280,6 +280,13 @@ export default function RestaurantDetailPage() {
 
   // Get optimized restaurant image URL with proper fallbacks
   const getHeroImageData = () => {
+    console.log('getHeroImageData called for restaurant:', restaurant.name);
+    console.log('Restaurant data:', {
+      imageUrl: restaurant.imageUrl,
+      googlePlaces: restaurant.googlePlaces,
+      photos: restaurant.googlePlaces?.photos
+    });
+
     // Priority 1: Restaurant's direct image URL
     if (restaurant.imageUrl && restaurant.imageUrl.startsWith('http')) {
       console.log('Using restaurant imageUrl:', restaurant.imageUrl);
@@ -293,7 +300,9 @@ export default function RestaurantDetailPage() {
     if (restaurant.googlePlaces?.photos?.[0]) {
       const photo = restaurant.googlePlaces.photos[0];
       const photoReference = photo.photo_reference || photo.reference;
-      const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+      console.log('Google Places photo data:', { photo, photoReference, hasApiKey: !!apiKey });
 
       if (photoReference && apiKey && apiKey !== 'demo') {
         const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
@@ -302,6 +311,8 @@ export default function RestaurantDetailPage() {
           src: photoUrl,
           aspectRatio: photo.width && photo.height ? photo.width / photo.height : 16/9
         };
+      } else {
+        console.log('Cannot use Google Places photo - missing API key or photo reference');
       }
     }
 
@@ -314,7 +325,7 @@ export default function RestaurantDetailPage() {
 
     // Use restaurant name to consistently pick the same sample image
     const imageIndex = restaurant.name.length % sampleFoodImages.length;
-    console.log('Using sample food image for:', restaurant.name);
+    console.log('Using sample food image for:', restaurant.name, 'index:', imageIndex, 'url:', sampleFoodImages[imageIndex]);
 
     return {
       src: sampleFoodImages[imageIndex],
@@ -369,24 +380,34 @@ export default function RestaurantDetailPage() {
 
       {/* Hero Section with enhanced mobile-first design */}
       <div className="relative h-48 md:h-64 w-full overflow-hidden">
-        {heroImageData ? (
-          <img 
-            src={heroImageData.src}
-            alt={restaurant.name}
-            className="w-full h-full object-cover"
-            loading="eager"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              // Show fallback
-              const fallback = target.nextElementSibling as HTMLElement;
-              if (fallback) fallback.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        <div className={`w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center ${heroImageData ? 'hidden' : ''}`}>
-          <ChefHat className="h-12 w-12 md:h-16 md:w-16 text-gray-600" />
-        </div>
+        {heroImageData && heroImageData.src ? (
+          <>
+            <img 
+              src={heroImageData.src}
+              alt={restaurant.name}
+              className="w-full h-full object-cover"
+              loading="eager"
+              onError={(e) => {
+                console.log('Image failed to load:', heroImageData.src);
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                // Show fallback
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+              onLoad={() => {
+                console.log('Image loaded successfully:', heroImageData.src);
+              }}
+            />
+            <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center hidden">
+              <ChefHat className="h-12 w-12 md:h-16 md:w-16 text-gray-600" />
+            </div>
+          </>
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+            <ChefHat className="h-12 w-12 md:h-16 md:w-16 text-gray-600" />
+          </div>
+        )}
 
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/40" />
