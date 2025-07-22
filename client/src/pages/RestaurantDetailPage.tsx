@@ -288,8 +288,10 @@ export default function RestaurantDetailPage() {
     
     if (restaurant.googlePlaces?.photos?.[0]) {
       const photo = restaurant.googlePlaces.photos[0];
+      // Generate photo URL using the reference
+      const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'demo'}`;
       return {
-        src: photo.url,
+        src: photoUrl,
         aspectRatio: photo.width && photo.height ? photo.width / photo.height : 16/9
       };
     }
