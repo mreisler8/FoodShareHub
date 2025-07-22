@@ -8,35 +8,11 @@ interface UserRating {
   createdAt?: string;
 }
 
-interface RestaurantIdentifier {
-  id?: number;
-  googlePlaceId?: string;
-  name?: string;
-}
-
-function getRatingEndpoint(identifier: string | RestaurantIdentifier): string {
-  // Handle string input (from URL params)
-  if (typeof identifier === 'string') {
-    // Google Place IDs typically start with 'ChIJ' or are longer than 10 chars
-    if (identifier.startsWith('ChIJ') || identifier.length > 10) {
-      return `/api/ratings/restaurant/${encodeURIComponent(identifier)}?type=google_place`;
-    } else {
-      // Assume database ID
-      return `/api/ratings/restaurant/${identifier}?type=database`;
-    }
-  }
-  
-  // Handle object input (restaurant data)
-  if (identifier.googlePlaceId) {
-    return `/api/ratings/restaurant/${encodeURIComponent(identifier.googlePlaceId)}?type=google_place`;
-  } else if (identifier.id) {
-    return `/api/ratings/restaurant/${identifier.id}?type=database`;
-  }
-  
-  throw new Error('Invalid restaurant identifier');
-}
-
-export function useRestaurantRatingState(restaurantIdentifier: string | RestaurantIdentifier) {
+/**
+ * UNIVERSAL RATING STATE HOOK
+ * Works with any restaurant from any source (search, database, Google Places)
+ */
+export function useRestaurantRatingState(restaurant: any) {
   const { user } = useAuth();
   const [rating, setRating] = useState<UserRating | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,14 +20,35 @@ export function useRestaurantRatingState(restaurantIdentifier: string | Restaura
 
   useEffect(() => {
     async function fetchRating() {
-      if (!user?.id || !restaurantIdentifier) return;
+      if (!user?.id || !restaurant) return;
       
       setIsLoading(true);
       setError(null);
       
       try {
-        const endpoint = getRatingEndpoint(restaurantIdentifier);
-        console.log('Fetching rating from endpoint:', endpoint);
+        // Universal endpoint determination
+        let endpoint: string;
+        if (restaurant.id && typeof restaurant.id === 'number') {
+          // Database restaurant
+          endpoint = `/api/ratings/restaurant/${restaurant.id}?type=database`;
+        } else if (restaurant.googlePlaceId) {
+          // Google Places restaurant
+          endpoint = `/api/ratings/restaurant/${encodeURIComponent(restaurant.googlePlaceId)}?type=google_place`;
+        } else if (typeof restaurant.id === 'string' && restaurant.id.startsWith('ChIJ')) {
+          // Google Place ID as string
+          endpoint = `/api/ratings/restaurant/${encodeURIComponent(restaurant.id)}?type=google_place`;
+        } else {
+          console.warn('Cannot determine rating endpoint for restaurant:', restaurant);
+          setRating(null);
+          return;
+        }
+        
+        console.log('UNIVERSAL Rating fetch:', {
+          restaurantName: restaurant.name,
+          endpoint,
+          hasDbId: !!restaurant.id,
+          hasGoogleId: !!restaurant.googlePlaceId
+        });
         
         const response = await fetch(endpoint, {
           credentials: 'include'
@@ -79,7 +76,7 @@ export function useRestaurantRatingState(restaurantIdentifier: string | Restaura
     }
 
     fetchRating();
-  }, [user?.id, restaurantIdentifier]);
+  }, [user?.id, restaurant?.id, restaurant?.googlePlaceId, restaurant?.name]);
 
   const updateRating = (newRating: UserRating) => {
     setRating(newRating);

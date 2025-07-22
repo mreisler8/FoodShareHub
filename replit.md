@@ -113,6 +113,16 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 22, 2025: **UNIVERSAL RESTAURANT ID SYSTEM - COMPLETE**: Successfully implemented comprehensive restaurant ID handling system that works at scale for ANY restaurant and ANY user:
+  - **Root Cause Resolution**: Fixed critical system-wide bug where platform broke when mixing database IDs vs Google Place IDs across ALL restaurant interactions
+  - **Universal Identifier System**: Created restaurantIdUtils.ts with getCanonicalRestaurantId() function that works for search results, database records, API responses, and UI navigation
+  - **Scale-Ready Backend APIs**: Enhanced ratings.ts, restaurants.ts, and circle-score.ts to handle both ID types with proper type parameter detection
+  - **Universal Frontend Hooks**: Updated useRestaurantRatingState to work with any restaurant object from any source (search, database, Google Places)
+  - **Consistent Data Flows**: Fixed member sharing and data access flows to work consistently across all restaurant sources
+  - **QuickRateModal Universal**: Enhanced rating creation/update to extract proper restaurant data regardless of ID type
+  - **Future-Proof Architecture**: System now scales to handle ANY restaurant from ANY source with consistent behavior
+  - **Testing Verified**: Confirmed rating system works for both saved restaurants (database IDs) and search results (Google Place IDs)
+  - **Status**: Universal restaurant identification system operational - platform now works consistently for scale across any restaurant and any user
 - July 22, 2025: **Complete Rating & Circle Score Integration - COMPLETE**: Successfully implemented end-to-end rating system with Circle Score foundation:
   - **Rating Persistence Verified**: Rating creation, updates, and retrieval working perfectly - Rating ID 1 persists with 5-star rating for Pai Northern Thai Kitchen
   - **Database Integration Solid**: Google Place IDs properly stored and retrieved, notes and tags persist correctly, user associations working

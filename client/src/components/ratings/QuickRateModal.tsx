@@ -47,9 +47,19 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
 
   const createRatingMutation = useMutation({
     mutationFn: async (ratingData: any) => {
+      // Universal restaurant data extraction
+      const universalData = {
+        ...ratingData,
+        restaurantId: restaurant.id && typeof restaurant.id === 'number' ? restaurant.id : null,
+        googlePlaceId: restaurant.googlePlaceId || (typeof restaurant.id === 'string' ? restaurant.id : null),
+        restaurantName: restaurant.name || 'Unknown Restaurant'
+      };
+      
+      console.log('UNIVERSAL Rating creation:', universalData);
+      
       return apiRequest('/api/ratings', {
         method: 'POST',
-        body: JSON.stringify(ratingData),
+        body: JSON.stringify(universalData),
         headers: { 'Content-Type': 'application/json' }
       });
     },
@@ -74,9 +84,20 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
 
   const updateRatingMutation = useMutation({
     mutationFn: async (ratingData: any) => {
-      return apiRequest(`/api/ratings/${existingRating.id}`, {
+      // Universal restaurant data extraction for updates
+      const universalData = {
+        ...ratingData,
+        id: existingRating.id,
+        restaurantId: restaurant.id && typeof restaurant.id === 'number' ? restaurant.id : null,
+        googlePlaceId: restaurant.googlePlaceId || (typeof restaurant.id === 'string' ? restaurant.id : null),
+        restaurantName: restaurant.name || 'Unknown Restaurant'
+      };
+      
+      console.log('UNIVERSAL Rating update:', universalData);
+      
+      return apiRequest('/api/ratings', {
         method: 'PUT',
-        body: JSON.stringify(ratingData),
+        body: JSON.stringify(universalData),
         headers: { 'Content-Type': 'application/json' }
       });
     },
