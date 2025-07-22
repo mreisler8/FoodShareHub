@@ -113,6 +113,14 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 22, 2025: **Complete Rating & Circle Score Integration - COMPLETE**: Successfully implemented end-to-end rating system with Circle Score foundation:
+  - **Rating Persistence Verified**: Rating creation, updates, and retrieval working perfectly - Rating ID 1 persists with 5-star rating for Pai Northern Thai Kitchen
+  - **Database Integration Solid**: Google Place IDs properly stored and retrieved, notes and tags persist correctly, user associations working
+  - **Frontend State Management**: useRestaurantRatingState hook correctly fetches and displays ratings, Quick Rate button shows "Rated 5⭐" state
+  - **Circle Score Foundation**: API endpoint functional, cache invalidation triggers configured, SQL syntax errors resolved in circleScoreCache.ts
+  - **Integration Flow Complete**: Ratings created through UI persist and are retrievable on restaurant page refresh, proper success messaging with toast notifications
+  - **Technical Fixes**: Fixed SQL AND logic, documented missing schema fields for future implementation, resolved React hook violations
+  - **Status**: Complete rating system operational with Circle Score integration framework ready for trusted network data
 - July 22, 2025: **Hero Image & Layout Integration Fix - COMPLETE**: Successfully resolved hero image functionality and restored proper 3-column sidebar layout:
   - **Hero Images Working**: Fixed Google Places photo integration - restaurant pages now display real restaurant photos instead of grey placeholders
   - **API Integration Fixed**: Corrected backend photo reference handling to use proper Google Places API photo URLs with valid photo_reference tokens

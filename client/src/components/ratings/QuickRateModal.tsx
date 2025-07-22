@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { X, Star, Check, MapPin } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { SmartTagInput } from '@/components/lists/SmartTagInput';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,6 +35,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
   const [sharedWithCircle, setSharedWithCircle] = useState(existingRating?.sharedWithCircle || false);
   
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Get user's circles for sharing options
   const { data: circles = [] } = useQuery({
@@ -51,10 +53,21 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
         headers: { 'Content-Type': 'application/json' }
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/restaurants'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant'] });
+    onSuccess: (data) => {
+      // Update the local rating state immediately
+      if (data) {
+        // Invalidate rating queries to refetch the new rating
+        queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant', restaurant.googlePlaceId || restaurant.id] });
+        // Invalidate Circle Score to trigger recalculation
+        queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
+        
+        // Show success message
+        toast({
+          title: "Rating saved!",
+          description: `Your ${data.ratingValue}-star rating has been saved and will contribute to Circle Score calculations.`
+        });
+      }
       onClose();
     }
   });
@@ -67,10 +80,21 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
         headers: { 'Content-Type': 'application/json' }
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/restaurants'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant'] });
+    onSuccess: (data) => {
+      // Update the local rating state immediately
+      if (data) {
+        // Invalidate rating queries to refetch the updated rating
+        queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant', restaurant.googlePlaceId || restaurant.id] });
+        // Invalidate Circle Score to trigger recalculation
+        queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
+        
+        // Show success message
+        toast({
+          title: "Rating updated!",
+          description: `Your rating has been updated to ${data.ratingValue} stars and will be reflected in Circle Score calculations.`
+        });
+      }
       onClose();
     }
   });

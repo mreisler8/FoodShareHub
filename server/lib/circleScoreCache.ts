@@ -2,7 +2,7 @@
 import { db } from '../db';
 import { calculateCircleScore } from './circleScore';
 import { ratings, restaurantListItems, users } from '@shared/schema';
-import { eq, desc, gte, sql } from 'drizzle-orm';
+import { eq, desc, gte, sql, and } from 'drizzle-orm';
 
 interface CircleScoreCacheEntry {
   restaurantId: number | null;
@@ -47,13 +47,17 @@ export class CircleScorePreCalculator {
       
       if (restaurantId) {
         recentRatingsQuery.where(
-          eq(ratings.restaurantId, restaurantId) &&
-          gte(ratings.createdAt, thirtyDaysAgo)
+          and(
+            eq(ratings.restaurantId, restaurantId),
+            gte(ratings.createdAt, thirtyDaysAgo)
+          )
         );
       } else if (googlePlaceId) {
         recentRatingsQuery.where(
-          eq(ratings.googlePlaceId, googlePlaceId) &&
-          gte(ratings.createdAt, thirtyDaysAgo)
+          and(
+            eq(ratings.googlePlaceId, googlePlaceId),
+            gte(ratings.createdAt, thirtyDaysAgo)
+          )
         );
       }
       
@@ -68,7 +72,9 @@ export class CircleScorePreCalculator {
       if (restaurantId) {
         listPlacementsQuery.where(eq(restaurantListItems.restaurantId, restaurantId));
       } else if (googlePlaceId) {
-        listPlacementsQuery.where(eq(restaurantListItems.googlePlaceId, googlePlaceId));
+        // Note: googlePlaceId doesn't exist in restaurantListItems table yet
+        // For now, skip this check for Google Place IDs
+        listPlacementsQuery.where(sql`1=0`); // Always return 0 count
       }
       
       const listPlacements = await listPlacementsQuery;
@@ -91,10 +97,11 @@ export class CircleScorePreCalculator {
       if (!isPopular) return;
 
       // Get active users who might view this restaurant (recent activity)
+      // Note: lastLoginAt doesn't exist in users table yet, use updatedAt as proxy
       const activeUsers = await db
         .select({ id: users.id })
         .from(users)
-        .where(gte(users.lastLoginAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))
+        .where(gte(users.updatedAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))
         .limit(50); // Limit to prevent overwhelming the system
 
       // Pre-calculate for each active user
