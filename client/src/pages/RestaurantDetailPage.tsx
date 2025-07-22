@@ -33,6 +33,7 @@ import { PostMentionsCard } from '@/components/restaurant/PostMentionsCard';
 import RestaurantActionBar from '@/components/restaurant/RestaurantActionBar';
 import ReservationCard from '@/components/restaurant/ReservationCard';
 import MoreRestaurantActions from '@/components/restaurant/MoreRestaurantActions';
+import OrderOptionsCard from '@/components/restaurant/OrderOptionsCard';
 
 interface RestaurantDetails {
   id: string;
@@ -370,19 +371,12 @@ export default function RestaurantDetailPage() {
         
         {/* Restaurant info overlay - mobile optimized */}
         <div className="absolute bottom-4 left-4 right-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
             {restaurant.name}
           </h1>
-          <div className="flex flex-wrap items-center gap-2 text-white/90 text-sm">
-            <div className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              <span>{restaurant.location}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <UtensilsCrossed className="h-3 w-3" />
-              <span>{restaurant.cuisine}</span>
-            </div>
-          </div>
+          <p className="text-sm text-white/90">
+            {restaurant.cuisine} · {restaurant.location} · {restaurant.priceRange}
+          </p>
         </div>
       </div>
 
@@ -481,14 +475,25 @@ export default function RestaurantDetailPage() {
             }}
           />
           
-          {/* More Actions */}
-          <MoreRestaurantActions 
+          {/* View Menu & Order */}
+          <OrderOptionsCard 
             restaurant={{
               name: restaurant.name,
-              location: restaurant.location
+              location: restaurant.location,
+              website: restaurant.website
             }}
+            menuUrl={restaurant.website} // Use website as menu URL for now
+            orderUrl={undefined} // TODO: Add orderUrl field to restaurant data
           />
         </div>
+        
+        {/* More Actions - Only if needed */}
+        <MoreRestaurantActions 
+          restaurant={{
+            name: restaurant.name,
+            location: restaurant.location
+          }}
+        />
 
         {/* Your Activity Section */}
         <YourRatingCard 
@@ -521,328 +526,85 @@ export default function RestaurantDetailPage() {
           }}
         />
 
-        {/* Tabbed Navigation - Simplified for mobile */}
-        <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="menu">Menu & Contact</TabsTrigger>
-          </TabsList>
-
-          {/* Details Tab */}
-          <TabsContent value="details" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Contact Information */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg mb-4">Contact & Location</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Address</p>
-                        <p className="text-gray-600">{restaurant.address || restaurant.location}</p>
-                      </div>
-                    </div>
-                    
-                    {restaurant.phone && (
-                      <div className="flex items-center gap-3">
-                        <Phone className="h-5 w-5 text-gray-500" />
-                        <div>
-                          <p className="font-medium">Phone</p>
-                          <a 
-                            href={`tel:${restaurant.phone}`}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            {restaurant.phone}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {restaurant.website && (
-                      <div className="flex items-center gap-3">
-                        <Globe className="h-5 w-5 text-gray-500" />
-                        <div>
-                          <p className="font-medium">Website</p>
-                          <a 
-                            href={restaurant.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                          >
-                            Visit Website
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </div>
-                      </div>
-                    )}
-
-
+        {/* Contact Information - Simplified single card */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="font-semibold text-lg mb-4">Contact & Details</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Address</p>
+                    <p className="text-gray-600 text-sm">{restaurant.address || restaurant.location}</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Restaurant Information */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg mb-4">Restaurant Details</h3>
-                  <div className="space-y-3">
-                    {restaurant.hours && (
-                      <div className="flex items-start gap-3">
-                        <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Hours</p>
-                          <div className="text-gray-600 space-y-1">
-                            {restaurant.hours.split('\n').map((line, index) => (
-                              <p key={index} className="text-sm">{line}</p>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium">Price Range</p>
-                        <p className="text-gray-600">{restaurant.priceRange}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <UtensilsCrossed className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium">Cuisine</p>
-                        <p className="text-gray-600">{restaurant.cuisine}</p>
-                      </div>
-                    </div>
-
-                    {/* Category */}
-                    <div className="flex items-center gap-3">
-                      <Badge variant="secondary">{restaurant.category}</Badge>
-                    </div>
-                    
-                    {/* Business Status */}
-                    {restaurant.googlePlaces?.isOpen !== undefined && (
-                      <div className="flex items-center gap-3">
-                        <div className={`h-3 w-3 rounded-full ${restaurant.googlePlaces.isOpen ? 'bg-green-500' : 'bg-red-500'}`} />
-                        <div>
-                          <p className="font-medium">Status</p>
-                          <p className={`text-sm font-medium ${restaurant.googlePlaces.isOpen ? 'text-green-600' : 'text-red-600'}`}>
-                            {restaurant.googlePlaces.isOpen ? 'Open Now' : 'Closed'}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Rating Summary */}
-                    <div className="border-t pt-3 mt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium">Ratings Summary</p>
-                      </div>
-                      <div className="space-y-2">
-                        {restaurant.googlePlaces?.rating && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Google Rating</span>
-                            <div className="flex items-center gap-1">
-                              <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                              <span className="text-sm font-medium">{restaurant.googlePlaces.rating}</span>
-                              <span className="text-xs text-gray-500">({restaurant.googlePlaces.reviewCount} reviews)</span>
-                            </div>
-                          </div>
-                        )}
-                        {restaurant.communityInsights?.followersAverageRating && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Community Rating</span>
-                            <div className="flex items-center gap-1">
-                              <Star className="h-4 w-4 text-orange-500 fill-current" />
-                              <span className="text-sm font-medium">{restaurant.communityInsights.followersAverageRating}</span>
-                              <span className="text-xs text-gray-500">({restaurant.communityInsights.followersReviewCount} reviews)</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Additional Information Cards */}
-            <div className="grid md:grid-cols-3 gap-4">
-              {/* Reservation Options */}
-              <Card>
-                <CardContent className="p-4">
-                  <h4 className="font-medium mb-3">Make a Reservation</h4>
-                  <div className="space-y-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => window.open(`https://www.opentable.com/s/?text=${encodeURIComponent(restaurant.name + ' ' + restaurant.location)}`, '_blank')}
-                    >
-                      OpenTable
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => window.open(`https://resy.com/cities/new-york-ny?query=${encodeURIComponent(restaurant.name)}`, '_blank')}
-                    >
-                      Resy
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Social Actions */}
-              <Card>
-                <CardContent className="p-4">
-                  <h4 className="font-medium mb-3">Share & Save</h4>
-                  <div className="space-y-2">
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Share Restaurant
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Save for Later
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Actions */}
-              <Card>
-                <CardContent className="p-4">
-                  <h4 className="font-medium mb-3">Quick Actions</h4>
-                  <div className="space-y-2">
-                    <QuickRateButton
-                      restaurant={{
-                        id: restaurant.id === "google_" + restaurant.googlePlaceId ? undefined : parseInt(restaurant.id),
-                        googlePlaceId: restaurant.googlePlaceId,
-                        name: restaurant.name,
-                        location: restaurant.location,
-                        address: restaurant.address
-                      }}
-                      className="w-full"
-                    />
-                    <Button variant="outline" size="sm" className="w-full">
-                      Write Review
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full">
-                      Add Photos
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Menu Tab */}
-          <TabsContent value="menu" className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center mb-6">
-                  <UtensilsCrossed className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="font-semibold text-lg mb-2">Menu</h3>
                 </div>
                 
-                <div className="space-y-4">
-                  {restaurant.website && (
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Restaurant Website</h4>
-                      <p className="text-gray-600 text-sm mb-3">View the full menu and current specials on the restaurant's official website.</p>
-                      <Button 
-                        onClick={() => window.open(restaurant.website, '_blank')}
-                        className="flex items-center gap-2 w-full"
+                {restaurant.phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="font-medium">Phone</p>
+                      <a 
+                        href={`tel:${restaurant.phone}`}
+                        className="text-blue-600 hover:text-blue-800 text-sm"
                       >
-                        <ExternalLink className="h-4 w-4" />
-                        Visit {restaurant.name}
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <div className="border rounded-lg p-4">
-                    <h4 className="font-medium mb-2">Order Online</h4>
-                    <p className="text-gray-600 text-sm mb-3">Find menu and delivery options on popular food delivery platforms.</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => window.open(`https://www.ubereats.com/ca/search?q=${encodeURIComponent(restaurant.name + ' ' + restaurant.address)}`, '_blank')}
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Uber Eats
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => window.open(`https://www.doordash.com/search/store/${encodeURIComponent(restaurant.name)}`, '_blank')}
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        DoorDash
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => window.open(`https://www.grubhub.com/search?searchTerm=${encodeURIComponent(restaurant.name)}`, '_blank')}
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Grubhub
-                      </Button>
+                        {restaurant.phone}
+                      </a>
                     </div>
                   </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <h4 className="font-medium mb-2">Search for Menu</h4>
-                    <p className="text-gray-600 text-sm mb-3">Search for user-uploaded menus and reviews on popular platforms.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(restaurant.name + ' menu ' + restaurant.address)}`, '_blank')}
-                        className="flex items-center gap-2"
+                )}
+                
+                {restaurant.website && (
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="font-medium">Website</p>
+                      <a 
+                        href={restaurant.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
                       >
-                        <ExternalLink className="h-4 w-4" />
-                        Google Search
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => window.open(`https://www.yelp.com/search?find_desc=${encodeURIComponent(restaurant.name)}&find_loc=${encodeURIComponent(restaurant.address)}`, '_blank')}
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Yelp
-                      </Button>
+                        Visit Website
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
                     </div>
                   </div>
-                  
-                  {!restaurant.website && (
-                    <div className="text-center py-4">
-                      <p className="text-gray-500 text-sm">No direct menu available online.</p>
-                      <p className="text-xs text-gray-400 mt-1">Try calling the restaurant at {restaurant.phone} for menu details.</p>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                {restaurant.hours && (
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Hours</p>
+                      <div className="text-gray-600 space-y-1">
+                        {restaurant.hours.split('\n').slice(0, 3).map((line, index) => (
+                          <p key={index} className="text-sm">{line}</p>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Mobile Action Bar */}
-        <RestaurantActionBar
-          restaurant={{
-            id: queryMethod === 'id' ? Number(restaurantId) : undefined,
-            googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
-            name: restaurant.name,
-            location: restaurant.location,
-            address: restaurant.address
-          }}
-          userRating={userRating}
-          isSaved={false} // TODO: fetch from API
-          variant="mobile"
-          className="md:hidden" // Only show on mobile
-        />
+                  </div>
+                )}
+                
+                {/* Business Status */}
+                {restaurant.googlePlaces?.isOpen !== undefined && (
+                  <div className="flex items-center gap-3">
+                    <div className={`h-3 w-3 rounded-full ${restaurant.googlePlaces.isOpen ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <div>
+                      <p className="font-medium">Status</p>
+                      <p className={`text-sm font-medium ${restaurant.googlePlaces.isOpen ? 'text-green-600' : 'text-red-600'}`}>
+                        {restaurant.googlePlaces.isOpen ? 'Open Now' : 'Closed'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Mobile Action Bar - Fixed at bottom */}
