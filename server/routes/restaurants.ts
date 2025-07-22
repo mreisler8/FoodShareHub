@@ -54,6 +54,14 @@ router.get("/", authenticate, async (req, res) => {
         });
       }
 
+      console.log('🖼️ Place details:', {
+        name: placeDetails.name,
+        hasImageUrl: !!placeDetails.imageUrl,
+        imageUrl: placeDetails.imageUrl,
+        photoCount: placeDetails.photos?.length || 0,
+        hasApiKey: !!process.env.GOOGLE_MAPS_API_KEY
+      });
+
       // Format Google Places details to match our restaurant format
       const restaurantDetails = {
         id: `google_${googlePlaceId}`,
@@ -67,9 +75,7 @@ router.get("/", authenticate, async (req, res) => {
         cuisine: placeDetails.cuisine || 'Restaurant',
         priceRange: placeDetails.priceRange || '$$',
         rating: placeDetails.rating || 4.0,
-        imageUrl: placeDetails.photos && placeDetails.photos.length > 0 
-          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${placeDetails.photos[0].photo_reference}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-          : null,
+        imageUrl: placeDetails.imageUrl || null,
         description: null,
         googlePlaceId: googlePlaceId,
         source: 'google',

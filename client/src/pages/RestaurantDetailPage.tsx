@@ -280,52 +280,28 @@ export default function RestaurantDetailPage() {
 
   // Get optimized restaurant image URL with proper fallbacks
   const getHeroImageData = () => {
-    console.log('getHeroImageData called for restaurant:', restaurant.name);
-    console.log('Restaurant data:', {
-      imageUrl: restaurant.imageUrl,
-      googlePlaces: restaurant.googlePlaces,
-      photos: restaurant.googlePlaces?.photos
-    });
+    console.log('🖼️ Getting hero image for:', restaurant.name);
+    console.log('🖼️ Restaurant imageUrl:', restaurant.imageUrl);
+    console.log('🖼️ Google Places photos:', restaurant.googlePlaces?.photos?.length || 0);
 
-    // Priority 1: Restaurant's direct image URL
+    // Priority 1: Backend-provided image URL (includes Google Places photos with API key)
     if (restaurant.imageUrl && restaurant.imageUrl.startsWith('http')) {
-      console.log('Using restaurant imageUrl:', restaurant.imageUrl);
+      console.log('✅ Using backend imageUrl:', restaurant.imageUrl);
       return { 
         src: restaurant.imageUrl,
         aspectRatio: 16/9
       };
     }
 
-    // Priority 2: Google Places photo with proper API key check
-    if (restaurant.googlePlaces?.photos?.[0]) {
-      const photo = restaurant.googlePlaces.photos[0];
-      const photoReference = photo.photo_reference || photo.reference;
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-      console.log('Google Places photo data:', { photo, photoReference, hasApiKey: !!apiKey });
-
-      if (photoReference && apiKey && apiKey !== 'demo') {
-        const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
-        console.log('Using Google Places photo:', photoUrl);
-        return {
-          src: photoUrl,
-          aspectRatio: photo.width && photo.height ? photo.width / photo.height : 16/9
-        };
-      } else {
-        console.log('Cannot use Google Places photo - missing API key or photo reference');
-      }
-    }
-
-    // Priority 3: Sample food images for demo purposes
+    // Priority 2: Fallback to beautiful food images
     const sampleFoodImages = [
       'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&q=80', // Pizza
       'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=800&q=80', // Restaurant interior
       'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80', // Italian food
     ];
 
-    // Use restaurant name to consistently pick the same sample image
     const imageIndex = restaurant.name.length % sampleFoodImages.length;
-    console.log('Using sample food image for:', restaurant.name, 'index:', imageIndex, 'url:', sampleFoodImages[imageIndex]);
+    console.log('🎨 Using fallback image:', sampleFoodImages[imageIndex]);
 
     return {
       src: sampleFoodImages[imageIndex],
@@ -584,8 +560,8 @@ export default function RestaurantDetailPage() {
           variant="desktop"
         />
 
-        {/* Sidebar Cards Section */}
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Sidebar Cards Section - 3 Column Grid as per Development Brief */}
+        <div className="grid md:grid-cols-3 gap-6">
           {/* Make a Reservation */}
           <ReservationCard 
             restaurant={{
@@ -601,18 +577,18 @@ export default function RestaurantDetailPage() {
               location: restaurant.location,
               website: restaurant.website
             }}
-            menuUrl={restaurant.website} // Use website as menu URL for now
-            orderUrl={undefined} // TODO: Add orderUrl field to restaurant data
+            menuUrl={restaurant.website}
+            orderUrl={undefined}
+          />
+
+          {/* More Restaurant Actions */}
+          <MoreRestaurantActions 
+            restaurant={{
+              name: restaurant.name,
+              location: restaurant.location
+            }}
           />
         </div>
-
-        {/* More Actions - Only if needed */}
-        <MoreRestaurantActions 
-          restaurant={{
-            name: restaurant.name,
-            location: restaurant.location
-          }}
-        />
 
         {/* Your Activity Section */}
         <YourRatingCard 
