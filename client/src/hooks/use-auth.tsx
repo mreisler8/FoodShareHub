@@ -69,13 +69,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedToken && storedUserData) {
             try {
               const userData = JSON.parse(storedUserData);
-              
+
               // Validate user data structure
               if (userData && typeof userData === 'object' && 
                   userData.id && typeof userData.id === 'number' &&
                   userData.username && typeof userData.username === 'string' &&
                   userData.name && typeof userData.name === 'string') {
-                
+
                 setUser(userData);
                 setError(null);
                 setIsLoading(false);
@@ -104,13 +104,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (response.ok) {
           const userData = await response.json();
-          
+
           // Validate API response structure
           if (userData && typeof userData === 'object' && 
               userData.id && typeof userData.id === 'number' &&
               userData.username && typeof userData.username === 'string' &&
               userData.name && typeof userData.name === 'string') {
-            
+
             setUser(userData);
             setError(null);
           } else {
@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Authentication check error:', err);
         setError('Network error during authentication check');
         setUser(null);
-        
+
         // Clear potentially corrupted data on network errors
         if (typeof window !== 'undefined') {
           localStorage.removeItem('authToken');
@@ -153,13 +153,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const cleanup = listenForNativeAuthEvents((event) => {
         if (event.detail && event.detail.user) {
           const userData = event.detail.user;
-          
+
           // Validate event data structure
           if (userData && typeof userData === 'object' && 
               userData.id && typeof userData.id === 'number' &&
               userData.username && typeof userData.username === 'string' &&
               userData.name && typeof userData.name === 'string') {
-            
+
             setUser(userData);
             setError(null);
           } else {
@@ -176,17 +176,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      console.log("Login attempt with credentials:", credentials);
-      const res = await apiRequest("POST", "/api/login", credentials);
-      console.log("Login response status:", res.status, res.statusText);
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.log("Login error:", errorData);
-        throw new Error(errorData.error || "Login failed");
+      try {
+        console.log("Attempting login for:", credentials.username);
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(credentials),
+          credentials: "include",
+        });
+
+        console.log("Login response status:", response.status);
+        console.log("Login response headers:", Object.fromEntries(response.headers));
+
+        if (!response.ok) {
+          const contentType = response.headers.get("content-type");
+          console.log("Error response content-type:", contentType);
+
+          let errorMessage = "Login failed";
+
+          if (contentType && contentType.includes("application/json")) {
+            try {
+              const error = await response.json();
+              errorMessage = error.message || error.error || "Login failed";
+            } catch (parseError) {
+              console.error("Failed to parse error JSON:", parseError);
+              errorMessage = `Server error (${response.status})`;
+            }
+          } else {
+            // If we're getting HTML instead of JSON, log it for debugging
+            const textResponse = await response.text();
+            console.error("Received HTML response instead of JSON:", textResponse.substring(0, 500));
+            errorMessage = `Server error: received HTML instead of JSON (${response.status})`;
+          }
+
+          throw new Error(errorMessage);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const textResponse = await response.text();
+          console.error("Success response is not JSON:", textResponse.substring(0, 500));
+          throw new Error("Server returned invalid response format");
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("Login mutation error:", error);
+        throw error;
       }
-      const userData = await res.json();
-      console.log("Login success, user data:", userData);
-      return userData;
     },
     onSuccess: (userData: SelectUser) => {
       setUser(userData);

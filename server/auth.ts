@@ -157,13 +157,18 @@ export function setupAuth(app: Express) {
 
   // User login endpoint
   app.post("/api/login", (req, res, next) => {
-    console.log("Login attempt:", req.body.username);
-    console.log("Session before login:", req.sessionID);
-    console.log("Current session data:", req.session);
+    console.log("=== LOGIN REQUEST DEBUG ===");
+    console.log("Request method:", req.method);
+    console.log("Request path:", req.path);
+    console.log("Request headers:", req.headers);
+    console.log("Request body:", req.body);
+    console.log("Session ID before login:", req.sessionID);
+    console.log("Session data before login:", req.session);
+    console.log("Is authenticated before login:", req.isAuthenticated());
     
     passport.authenticate("local", (err: Error, user: Express.User, info: any) => {
       if (err) {
-        console.log("Login error:", err);
+        console.log("Login authentication error:", err);
         return next(err);
       }
       if (!user) {
@@ -182,14 +187,22 @@ export function setupAuth(app: Express) {
         req.session.save((saveErr) => {
           if (saveErr) {
             console.log("Session save error:", saveErr);
+            return next(saveErr);
           }
           
           // Return user without password
           const { password, ...userWithoutPassword } = user;
-          console.log("Login successful for user:", userWithoutPassword.username);
-          console.log("Session after login:", req.sessionID);
-          console.log("Setting cookie for domain:", req.get('host'));
+          console.log("=== LOGIN SUCCESS ===");
+          console.log("User logged in:", userWithoutPassword.username);
+          console.log("Session ID after login:", req.sessionID);
+          console.log("Session data after login:", req.session);
+          console.log("Response headers will include:", {
+            'Content-Type': 'application/json',
+            'Set-Cookie': req.session.cookie
+          });
           
+          // Ensure we're sending JSON response
+          res.setHeader('Content-Type', 'application/json');
           return res.status(200).json(userWithoutPassword);
         });
       });
