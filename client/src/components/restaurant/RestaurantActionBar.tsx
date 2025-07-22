@@ -66,7 +66,7 @@ export default function RestaurantActionBar({
   const { toast } = useToast();
   
   // Get restaurant ID for rating state
-  const { rating, hasRated, label, isLoading } = useRestaurantRatingState(restaurant);
+  const { rating, hasRated, label, isLoading, error } = useRestaurantRatingState(restaurant);
 
   // Mock circles data - in real app, fetch from API
   const userCircles: Circle[] = [
@@ -179,6 +179,7 @@ export default function RestaurantActionBar({
               primary 
               active={hasRated}
               disabled={isLoading}
+            className={error ? 'border-red-200 text-red-600' : ''}
               onClick={handleQuickRate}
             />
             <ActionButton 

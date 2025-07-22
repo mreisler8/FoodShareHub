@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
-import { X, Star, Check, MapPin } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import React, { useState, useCallback, useEffect } from 'react';
+import { X, Star, Check, MapPin, AlertCircle, RefreshCw } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
 import { SmartTagInput } from '@/components/lists/SmartTagInput';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,18 +24,49 @@ interface QuickRateModalProps {
   existingRating?: any;
 }
 
-// Using SmartTagInput component for consistency with list creation
-
 function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRateModalProps) {
-  const [rating, setRating] = useState(existingRating?.ratingValue || 0);
+  // Use enhanced rating state hook
+  const { 
+    rating: currentRating, 
+    isSubmitting, 
+    error: ratingError, 
+    submitRating, 
+    retry 
+  } = useRestaurantRatingState(restaurant);
+  
+  // Form state
+  const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [note, setNote] = useState(existingRating?.note || '');
-  const [selectedTags, setSelectedTags] = useState<string[]>(existingRating?.tags || []);
-  const [isPrivate, setIsPrivate] = useState(existingRating?.isPrivate ?? true);
-  const [sharedWithCircle, setSharedWithCircle] = useState(existingRating?.sharedWithCircle || false);
+  const [note, setNote] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [sharedWithCircle, setSharedWithCircle] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Initialize form with existing rating
+  useEffect(() => {
+    if (isOpen) {
+      const source = existingRating || currentRating;
+      if (source) {
+        setRating(source.ratingValue || 0);
+        setNote(source.note || '');
+        setSelectedTags(source.tags || []);
+        setIsPrivate(source.isPrivate ?? true);
+        setSharedWithCircle(source.sharedWithCircle || false);
+      } else {
+        // Reset form for new rating
+        setRating(0);
+        setNote('');
+        setSelectedTags([]);
+        setIsPrivate(true);
+        setSharedWithCircle(false);
+      }
+      setShowSuccess(false);
+    }
+  }, [isOpen, existingRating, currentRating]);
 
   // Get user's circles for sharing options
   const { data: circles = [] } = useQuery({
@@ -45,80 +76,51 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
 
   const circlesArray = Array.isArray(circles) ? circles : [];
 
-  const createRatingMutation = useMutation({
-    mutationFn: async (ratingData: any) => {
-      // Universal restaurant data extraction
-      const universalData = {
-        ...ratingData,
-        restaurantId: restaurant.id && typeof restaurant.id === 'number' ? restaurant.id : null,
-        googlePlaceId: restaurant.googlePlaceId || (typeof restaurant.id === 'string' ? restaurant.id : null),
-        restaurantName: restaurant.name || 'Unknown Restaurant'
-      };
-      
-      console.log('UNIVERSAL Rating creation:', universalData);
-      
-      return apiRequest('/api/ratings', {
-        method: 'POST',
-        body: JSON.stringify(universalData),
-        headers: { 'Content-Type': 'application/json' }
+  // Handle rating submission
+  const handleSubmit = useCallback(async () => {
+    if (rating === 0) {
+      toast({
+        title: "Please select a rating",
+        description: "Choose a star rating from 1-5 stars.",
+        variant: "destructive"
       });
-    },
-    onSuccess: (data) => {
-      // Update the local rating state immediately
-      if (data && typeof data === 'object' && 'ratingValue' in data) {
-        // Invalidate rating queries to refetch the new rating
-        queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant', restaurant.googlePlaceId || restaurant.id] });
-        // Invalidate Circle Score to trigger recalculation
-        queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
-        
-        // Show success message
-        toast({
-          title: "Rating saved!",
-          description: `Your ${(data as any).ratingValue}-star rating has been saved and will contribute to Circle Score calculations.`
-        });
-      }
-      onClose();
+      return;
     }
-  });
 
-  const updateRatingMutation = useMutation({
-    mutationFn: async (ratingData: any) => {
-      // Universal restaurant data extraction for updates
-      const universalData = {
-        ...ratingData,
-        id: existingRating.id,
-        restaurantId: restaurant.id && typeof restaurant.id === 'number' ? restaurant.id : null,
-        googlePlaceId: restaurant.googlePlaceId || (typeof restaurant.id === 'string' ? restaurant.id : null),
-        restaurantName: restaurant.name || 'Unknown Restaurant'
-      };
-      
-      console.log('UNIVERSAL Rating update:', universalData);
-      
-      return apiRequest('/api/ratings', {
-        method: 'PUT',
-        body: JSON.stringify(universalData),
-        headers: { 'Content-Type': 'application/json' }
+    try {
+      await submitRating({
+        ratingValue: rating,
+        note: note.trim() || undefined,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        isPrivate,
+        sharedWithCircle
       });
-    },
-    onSuccess: (data) => {
-      // Update the local rating state immediately
-      if (data && typeof data === 'object' && 'ratingValue' in data) {
-        // Invalidate rating queries to refetch the updated rating
-        queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/ratings/restaurant', restaurant.googlePlaceId || restaurant.id] });
-        // Invalidate Circle Score to trigger recalculation
-        queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
-        
-        // Show success message
-        toast({
-          title: "Rating updated!",
-          description: `Your rating has been updated to ${(data as any).ratingValue} stars and will be reflected in Circle Score calculations.`
-        });
-      }
+
+      // Show success animation
+      setShowSuccess(true);
+      
+      // Invalidate relevant queries for Circle Score recalculation
+      queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
+      
+      // Close modal after success animation
+      setTimeout(() => {
+        onClose();
+        setShowSuccess(false);
+      }, 2000);
+
+    } catch (error) {
+      // Error handling is done in the hook
+      console.error('Rating submission failed:', error);
+    }
+  }, [rating, note, selectedTags, isPrivate, sharedWithCircle, submitRating, queryClient, onClose, toast]);
+
+  // Handle modal close
+  const handleClose = useCallback(() => {
+    if (!isSubmitting) {
       onClose();
     }
-  });
+  }, [isSubmitting, onClose]);
 
   const handleStarClick = useCallback((starRating: number) => {
     setRating(starRating);
@@ -128,48 +130,30 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
     setHoveredRating(starRating);
   }, []);
 
-  const handleTagToggle = useCallback((tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag].slice(0, 5) // Max 5 tags
-    );
-  }, []);
-
-  const handleSubmit = useCallback(async () => {
-    if (rating === 0) return;
-
-    const ratingData = {
-      restaurantId: restaurant.id || null,
-      googlePlaceId: restaurant.googlePlaceId || null,
-      restaurantName: restaurant.name,
-      ratingValue: rating,
-      note: note.trim() || null,
-      tags: selectedTags,
-      isPrivate,
-      sharedWithCircle,
-      circleIds: sharedWithCircle && circlesArray.length > 0 ? [circlesArray[0].id] : []
-    };
-
-    try {
-      if (existingRating) {
-        await updateRatingMutation.mutateAsync(ratingData);
-      } else {
-        await createRatingMutation.mutateAsync(ratingData);
-      }
-    } catch (error) {
-      console.error('Rating submission error:', error);
-    }
-  }, [rating, restaurant, note, selectedTags, isPrivate, sharedWithCircle, circlesArray, existingRating, createRatingMutation, updateRatingMutation]);
-
   const isValid = rating > 0;
-  const isLoading = createRatingMutation.isPending || updateRatingMutation.isPending;
 
   if (!isOpen) return null;
 
+  // Success animation overlay
+  if (showSuccess) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-8 text-center max-w-sm w-full mx-4">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="h-8 w-8 text-green-600" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Rating Saved!</h3>
+          <p className="text-gray-600 text-sm">
+            Your {rating}-star rating has been saved and will contribute to Circle Score calculations.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-rate-modal-title"
@@ -190,13 +174,31 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
               )}
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close modal">
+          <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Close modal">
             <X className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Content */}
         <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+          {/* Error display */}
+          {ratingError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <div className="flex-1">
+                <p className="text-sm text-red-700">{ratingError.message}</p>
+                {ratingError.retryable && (
+                  <button
+                    onClick={retry}
+                    className="text-sm text-red-600 underline hover:no-underline mt-1"
+                  >
+                    Try again
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Star Rating */}
           <div className="text-center">
             <div className="flex justify-center space-x-1 mb-2">
@@ -258,10 +260,10 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
               selectedTags={selectedTags}
               onTagsChange={setSelectedTags}
               maxTags={5}
-              listTitle="" // Empty since this is for ratings, not lists
+              listTitle=""
               contextRestaurants={[{
                 location: restaurant.location || '',
-                cuisine: '' // Restaurant cuisine would be ideal here
+                cuisine: ''
               }]}
             />
           </div>
@@ -307,11 +309,14 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
         <div className="border-t p-4">
           <Button
             onClick={handleSubmit}
-            disabled={!isValid || isLoading}
+            disabled={!isValid || isSubmitting}
             className="w-full"
           >
-            {isLoading ? (
-              "Submitting..."
+            {isSubmitting ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Submitting...
+              </>
             ) : existingRating ? (
               "Update Rating"
             ) : (
