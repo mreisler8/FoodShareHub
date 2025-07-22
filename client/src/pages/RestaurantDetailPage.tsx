@@ -296,23 +296,23 @@ export default function RestaurantDetailPage() {
       };
     }
 
-    // Priority 2: Google Places photo with proper API key check
+    // Priority 2: Google Places photo from backend (already includes API key)
     if (restaurant.googlePlaces?.photos?.[0]) {
       const photo = restaurant.googlePlaces.photos[0];
       const photoReference = photo.photo_reference || photo.reference;
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-      console.log('Google Places photo data:', { photo, photoReference, hasApiKey: !!apiKey });
+      console.log('Google Places photo data:', { photo, photoReference });
 
-      if (photoReference && apiKey && apiKey !== 'demo') {
-        const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoReference}&key=${apiKey}`;
-        console.log('Using Google Places photo:', photoUrl);
+      if (photoReference) {
+        // Use backend API endpoint that securely handles the API key
+        const photoUrl = `/api/restaurants/photo/${photoReference}`;
+        console.log('Using Google Places photo via backend:', photoUrl);
         return {
           src: photoUrl,
           aspectRatio: photo.width && photo.height ? photo.width / photo.height : 16/9
         };
       } else {
-        console.log('Cannot use Google Places photo - missing API key or photo reference');
+        console.log('Cannot use Google Places photo - missing photo reference');
       }
     }
 

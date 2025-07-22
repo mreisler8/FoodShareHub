@@ -7,6 +7,31 @@ import { getPlaceDetails } from "../services/google-places";
 
 const router = Router();
 
+// Serve Google Places photos securely
+router.get("/photo/:photoReference", async (req, res) => {
+  try {
+    const { photoReference } = req.params;
+    const { maxwidth = "800" } = req.query;
+
+    if (!photoReference) {
+      return res.status(400).json({ error: "Photo reference is required" });
+    }
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: "Google Maps API key not configured" });
+    }
+
+    const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxwidth}&photoreference=${photoReference}&key=${apiKey}`;
+    
+    // Redirect to the actual Google photo URL
+    res.redirect(photoUrl);
+  } catch (error) {
+    console.error("Error serving Google Places photo:", error);
+    res.status(500).json({ error: "Failed to serve photo" });
+  }
+});
+
 // Get restaurant details by googlePlaceId parameter
 router.get("/", authenticate, async (req, res) => {
   try {
@@ -43,7 +68,7 @@ router.get("/", authenticate, async (req, res) => {
         priceRange: placeDetails.priceRange || '$$',
         rating: placeDetails.rating || 4.0,
         imageUrl: placeDetails.photos && placeDetails.photos.length > 0 
-          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${placeDetails.photos[0].photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
+          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${placeDetails.photos[0].photo_reference}&key=${process.env.GOOGLE_MAPS_API_KEY}`
           : null,
         description: null,
         googlePlaceId: googlePlaceId,
