@@ -809,20 +809,6 @@ export default function RestaurantDetailPage() {
           </TabsContent>
         </Tabs>
         
-        {/* Mobile Action Bar */}
-        <RestaurantActionBar
-          restaurant={{
-            id: queryMethod === 'id' ? Number(restaurantId) : undefined,
-            googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId,
-            name: restaurant.name,
-            location: restaurant.location,
-            address: restaurant.address
-          }}
-          userRating={userRating}
-          isSaved={false} // TODO: fetch from API
-          variant="mobile"
-          className="md:hidden" // Only show on mobile
-        />
       </div>
 
       {/* Mobile Action Bar - Fixed at bottom */}
