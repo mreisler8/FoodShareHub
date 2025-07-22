@@ -572,7 +572,7 @@ export default function RestaurantDetailPage() {
 
         {/* Your Activity Section */}
         <YourRatingCard 
-          userRating={userRating}
+          userRating={null} // Rating state handled by RestaurantActionBar
           onRate={(rating, note, tags) => {
             console.log('Rating updated:', { rating, note, tags });
             // TODO: Implement rating save
