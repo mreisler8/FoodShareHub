@@ -278,33 +278,20 @@ export default function RestaurantDetailPage() {
 
   // Get optimized restaurant image URL with responsive sources
   const getHeroImageData = () => {
-    // Priority: heroPhoto > first regular photo > fallback
-    if (restaurant.googlePlaces?.heroPhoto) {
-      return {
-        src: restaurant.googlePlaces.heroPhoto.urls.large,
-        srcSet: `
-          ${restaurant.googlePlaces.heroPhoto.urls.medium} 768w,
-          ${restaurant.googlePlaces.heroPhoto.urls.large} 1200w,
-          ${restaurant.googlePlaces.heroPhoto.urls.hero} 1600w
-        `,
-        aspectRatio: restaurant.googlePlaces.heroPhoto.dimensions.aspectRatio
+    // Priority: imageUrl > first Google Places photo > fallback
+    if (restaurant.imageUrl) {
+      return { 
+        src: restaurant.imageUrl,
+        aspectRatio: 16/9 // Default aspect ratio
       };
     }
     
     if (restaurant.googlePlaces?.photos?.[0]) {
       const photo = restaurant.googlePlaces.photos[0];
       return {
-        src: photo.urls.large,
-        srcSet: `
-          ${photo.urls.medium} 768w,
-          ${photo.urls.large} 1200w
-        `,
-        aspectRatio: photo.aspectRatio
+        src: photo.url,
+        aspectRatio: photo.width && photo.height ? photo.width / photo.height : 16/9
       };
-    }
-    
-    if (restaurant.imageUrl) {
-      return { src: restaurant.imageUrl };
     }
     
     return null;
@@ -360,8 +347,6 @@ export default function RestaurantDetailPage() {
         {heroImageData ? (
           <img 
             src={heroImageData.src}
-            srcSet={heroImageData.srcSet}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1200px"
             alt={restaurant.name}
             className="w-full h-full object-cover"
             loading="eager"
@@ -374,7 +359,7 @@ export default function RestaurantDetailPage() {
             }}
           />
         ) : null}
-        <div className={`w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center ${heroImageUrl ? 'hidden' : ''}`}>
+        <div className={`w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center ${heroImageData ? 'hidden' : ''}`}>
           <ChefHat className="h-12 w-12 md:h-16 md:w-16 text-gray-600" />
         </div>
         
