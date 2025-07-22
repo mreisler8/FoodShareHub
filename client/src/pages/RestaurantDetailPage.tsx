@@ -447,7 +447,6 @@ export default function RestaurantDetailPage() {
             location: restaurant.location,
             address: restaurant.address
           }}
-          userRating={userRating}
           isSaved={false} // TODO: fetch from API
           variant="desktop"
         />
@@ -836,7 +835,6 @@ export default function RestaurantDetailPage() {
             location: restaurant.location,
             address: restaurant.address
           }}
-          userRating={userRating}
           isSaved={false} // TODO: fetch from API
           variant="mobile"
         />

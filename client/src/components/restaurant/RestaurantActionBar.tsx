@@ -18,6 +18,8 @@ import {
 import { cn } from '@/lib/utils';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import ActionButton from './ActionButton';
+import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 
 interface Restaurant {
@@ -37,7 +39,6 @@ interface Circle {
 
 interface RestaurantActionBarProps {
   restaurant: Restaurant;
-  userRating?: any;
   isSaved?: boolean;
   onSave?: () => void;
   onAddToList?: () => void;
@@ -47,7 +48,6 @@ interface RestaurantActionBarProps {
 
 export default function RestaurantActionBar({
   restaurant,
-  userRating,
   isSaved = false,
   onSave,
   onAddToList,
@@ -58,7 +58,12 @@ export default function RestaurantActionBar({
   const [showCircleShare, setShowCircleShare] = useState(false);
   const [showQuickRateModal, setShowQuickRateModal] = useState(false);
   const [localSaved, setLocalSaved] = useState(isSaved);
+  const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Get restaurant ID for rating state
+  const restaurantId = restaurant.googlePlaceId || restaurant.id?.toString() || '';
+  const { rating, hasRated, label, isLoading } = useRestaurantRatingState(restaurantId);
 
   // Mock circles data - in real app, fetch from API
   const userCircles: Circle[] = [
@@ -148,12 +153,12 @@ export default function RestaurantActionBar({
     setShowCircleShare(false);
   };
 
-  // Get rating label
-  const getRatingLabel = () => {
-    if (userRating?.ratingValue) {
-      return `Rated ${userRating.ratingValue}⭐`;
-    }
-    return "Quick Rate";
+  const handleRatingSuccess = (newRating: any) => {
+    toast({
+      title: "Thanks! Your rating was saved",
+      description: `You rated ${restaurant.name} ${newRating.ratingValue}⭐`
+    });
+    setShowQuickRateModal(false);
   };
 
   if (variant === 'mobile') {
@@ -174,8 +179,10 @@ export default function RestaurantActionBar({
             />
             <ActionButton 
               icon="zap" 
-              label={getRatingLabel()} 
+              label={label} 
               primary 
+              active={hasRated}
+              disabled={isLoading}
               onClick={handleQuickRate}
             />
             <ActionButton 
@@ -192,12 +199,15 @@ export default function RestaurantActionBar({
         </div>
         
         {/* Quick Rate Modal */}
-        <QuickRateButton
-          restaurant={restaurant}
-          existingRating={userRating}
-          variant="default"
-          className={showQuickRateModal ? "" : "hidden"}
-        />
+        {showQuickRateModal && (
+          <QuickRateButton
+            restaurant={restaurant}
+            existingRating={rating}
+            variant="default"
+            onSuccess={handleRatingSuccess}
+            onClose={() => setShowQuickRateModal(false)}
+          />
+        )}
         
         {/* Add bottom padding to page content to avoid action bar overlap */}
         <div className="h-20" />
@@ -220,8 +230,10 @@ export default function RestaurantActionBar({
         />
         <ActionButton 
           icon="zap" 
-          label={getRatingLabel()} 
+          label={label} 
           primary 
+          active={hasRated}
+          disabled={isLoading}
           onClick={handleQuickRate}
         />
         <ActionButton 
@@ -242,12 +254,15 @@ export default function RestaurantActionBar({
       </div>
 
       {/* Quick Rate Modal */}
-      <QuickRateButton
-        restaurant={restaurant}
-        existingRating={userRating}
-        variant="default"
-        className={showQuickRateModal ? "" : "hidden"}
-      />
+      {showQuickRateModal && (
+        <QuickRateButton
+          restaurant={restaurant}
+          existingRating={rating}
+          variant="default"
+          onSuccess={handleRatingSuccess}
+          onClose={() => setShowQuickRateModal(false)}
+        />
+      )}
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>

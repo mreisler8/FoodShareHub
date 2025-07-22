@@ -27,6 +27,7 @@ interface ActionButtonProps {
   primary?: boolean;
   onClick?: () => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export default function ActionButton({
@@ -35,7 +36,8 @@ export default function ActionButton({
   active = false,
   primary = false,
   onClick,
-  className
+  className,
+  disabled = false
 }: ActionButtonProps) {
   const IconComponent = iconMap[icon] || Bookmark;
   
@@ -44,10 +46,12 @@ export default function ActionButton({
       variant={primary ? "default" : active ? "secondary" : "outline"}
       size="sm"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "flex items-center gap-2 text-sm",
-        primary && "bg-blue-600 hover:bg-blue-700 text-white",
+        "flex items-center gap-2 text-sm transition-all duration-200",
+        primary && "bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105 active:scale-95",
         active && "bg-blue-50 text-blue-700 border-blue-200",
+        disabled && "opacity-50 cursor-not-allowed",
         className
       )}
     >
