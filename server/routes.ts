@@ -47,7 +47,7 @@ import circleInvitesRouter from './routes/circle-invites';
 import postsRouter from './routes/posts';
 import tagsRouter from './routes/tags';
 import ratingsRouter from './routes/ratings';
-import discoverRouter from './routes/discover';
+import discoverRouter from './routes/discover-basic';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {

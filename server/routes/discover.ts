@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { eq, and, desc, sql, gt, inArray } from 'drizzle-orm';
+import { eq, and, desc, sql, gt, gte, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
 import { 
@@ -127,32 +127,21 @@ async function getDiscoverLists(
   const cutoffDate = new Date(Date.now() - (ageLimit * 24 * 60 * 60 * 1000));
   
   const listData = await db
-    .select({
-      id: lists.id,
-      name: lists.name,
-      description: lists.description,
-      createdAt: lists.createdAt,
-      createdById: lists.createdById,
-      isPublic: lists.isPublic,
-      itemCount: sql<number>`(SELECT COUNT(*) FROM restaurant_list_items WHERE list_id = ${lists.id})`,
-      savedCount: sql<number>`(SELECT COUNT(*) FROM saved_lists WHERE list_id = ${lists.id})`,
-      authorName: users.name,
-      authorUsername: users.username,
-      authorProfilePicture: users.profilePicture
-    })
+    .select()
     .from(lists)
     .innerJoin(users, eq(lists.createdById, users.id))
     .where(and(
       eq(lists.isPublic, true),
-      gt(lists.createdAt, cutoffDate),
-      sql`(SELECT COUNT(*) FROM restaurant_list_items WHERE list_id = ${lists.id}) > 0` // Only lists with items
+      gt(lists.createdAt, cutoffDate)
     ))
     .orderBy(desc(lists.createdAt))
     .limit(limit * 2); // Get more to filter and score
   
   const items: DiscoverItem[] = [];
   
-  for (const list of listData) {
+  for (const row of listData) {
+    const list = row.restaurant_lists;
+    const user = row.users;
     const isFollowed = followedIds.includes(list.createdById);
     const score = calculateScore(list, 'list', 0, isFollowed, false);
     
@@ -165,16 +154,16 @@ async function getDiscoverLists(
           id: list.id,
           name: list.name,
           description: list.description,
-          itemCount: list.itemCount,
-          savedCount: list.savedCount,
+          itemCount: 0, // Will be calculated separately if needed
+          savedCount: 0, // Will be calculated separately if needed
           isPublic: list.isPublic
         },
         score,
         metadata: {
           author: {
             id: list.createdById.toString(),
-            name: list.authorName || list.authorUsername,
-            avatar: list.authorProfilePicture
+            name: user.name || user.username,
+            avatar: user.profilePicture || undefined
           },
           createdAt: list.createdAt.toISOString(),
           socialProof: isFollowed ? "From someone you follow" : undefined
@@ -199,7 +188,7 @@ async function getDiscoverRatings(
     .select({
       id: ratings.id,
       rating: ratings.rating,
-      notes: ratings.notes,
+      note: ratings.note,
       tags: ratings.tags,
       createdAt: ratings.createdAt,
       userId: ratings.userId,
@@ -233,7 +222,7 @@ async function getDiscoverRatings(
         content: {
           id: rating.id,
           rating: rating.rating,
-          notes: rating.notes,
+          notes: rating.note,
           tags: rating.tags,
           restaurant: {
             id: rating.restaurantId,
@@ -245,7 +234,7 @@ async function getDiscoverRatings(
           author: {
             id: rating.userId.toString(),
             name: rating.authorName || rating.authorUsername,
-            avatar: rating.authorProfilePicture
+            avatar: rating.authorProfilePicture || undefined
           },
           createdAt: rating.createdAt.toISOString(),
           socialProof: isFollowed ? "From someone you follow" : undefined

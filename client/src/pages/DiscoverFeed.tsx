@@ -14,7 +14,8 @@ import {
   Star,
   Users,
   Clock,
-  ChefHat
+  ChefHat,
+  RefreshCw
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
