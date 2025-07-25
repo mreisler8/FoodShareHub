@@ -102,10 +102,11 @@ export function SmartTagInput({
     }
 
     // Filter out already selected tags and convert to array
-    // Limit to 6 suggestions for mobile-friendly display
+    // Mobile optimization: Limit to 8-10 suggestions for mobile-friendly display
+    const maxSuggestions = window.innerWidth < 768 ? 8 : 10;
     return Array.from(suggestions).filter(tag => 
       !selectedTags.includes(tag)
-    ).slice(0, 6);
+    ).slice(0, maxSuggestions);
   };
 
   const smartSuggestions = getSmartSuggestions();

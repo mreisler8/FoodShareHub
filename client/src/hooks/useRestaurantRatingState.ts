@@ -170,7 +170,7 @@ export function useRestaurantRatingState(restaurant: any) {
       const endpoint = rating?.id ? '/api/ratings' : '/api/ratings';
       const method = rating?.id ? 'PUT' : 'POST';
       
-      if (method === 'PUT') {
+      if (method === 'PUT' && rating?.id) {
         universalData.id = rating.id;
       }
 
@@ -206,22 +206,42 @@ export function useRestaurantRatingState(restaurant: any) {
       // Revert optimistic update
       setRating(previousRating);
       
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save rating';
+      if (err instanceof Error) {
+        if (err.message.includes('fetch') || err.message.includes('network')) {
+          setError({
+            type: 'network',
+            message: 'Network error. Please check your connection.',
+            retryable: true
+          });
+        } else if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+          setError({
+            type: 'auth',
+            message: 'Please log in to rate restaurants',
+            retryable: false
+          });
+        } else {
+          setError({
+            type: 'server',
+            message: err.message,
+            retryable: true
+          });
+        }
+      } else {
+        setError({
+          type: 'server',
+          message: 'Unknown error occurred',
+          retryable: true
+        });
+      }
       
-      setError({
-        type: 'server',
-        message: errorMessage,
-        retryable: true
-      });
-
-      // Show error toast
+      // Show error toast but don't throw - handle gracefully
       toast({
         title: "Failed to save rating",
-        description: errorMessage,
+        description: err instanceof Error ? err.message : 'Unknown error occurred',
         variant: "destructive"
       });
-
-      throw err;
+      
+      // Don't throw - let the component continue functioning
     } finally {
       setIsSubmitting(false);
     }

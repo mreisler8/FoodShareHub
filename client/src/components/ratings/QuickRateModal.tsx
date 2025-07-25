@@ -110,8 +110,14 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
       }, 2000);
 
     } catch (error) {
-      // Error handling is done in the hook
+      // Error handling is done in the hook - don't let it bubble up
       console.error('Rating submission failed:', error);
+      // Show fallback toast if hook didn't handle it
+      toast({
+        title: "Rating failed",
+        description: "Please try again in a moment",
+        variant: "destructive"
+      });
     }
   }, [rating, note, selectedTags, isPrivate, sharedWithCircle, submitRating, queryClient, onClose, toast]);
 
@@ -251,7 +257,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
             </div>
           </div>
 
-          {/* Quick Tags using SmartTagInput */}
+          {/* Quick Tags using SmartTagInput with mobile optimization */}
           <div>
             <Label className="text-sm font-medium mb-2 block">
               Quick tags (max 5)

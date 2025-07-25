@@ -53,7 +53,11 @@ export default function AddToListModal({ isOpen, onClose, restaurant }: AddToLis
           position: 0 // Server will calculate actual position
         };
         
-        return apiRequest('POST', `/api/lists/${listId}/restaurants`, restaurantData);
+        return apiRequest(`/api/lists/${listId}/restaurants`, {
+          method: 'POST',
+          body: JSON.stringify(restaurantData),
+          headers: { 'Content-Type': 'application/json' }
+        });
       });
       
       return Promise.all(promises);
@@ -70,9 +74,10 @@ export default function AddToListModal({ isOpen, onClose, restaurant }: AddToLis
       console.error('Add to list error:', error);
       toast({
         title: "Failed to add to lists",
-        description: "Please try again",
+        description: error?.message || "Please try again",
         variant: "destructive"
       });
+      // Don't let error bubble up - handle it here
     }
   });
 

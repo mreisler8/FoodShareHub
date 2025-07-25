@@ -76,25 +76,34 @@ export default function RestaurantActionBar({
   ];
 
   const handleNativeShare = async () => {
-    const shareData = {
-      title: restaurant.name,
-      text: `Check out ${restaurant.name} in ${restaurant.location}`,
-      url: window.location.href
-    };
+    try {
+      const shareData = {
+        title: restaurant.name,
+        text: `Check out ${restaurant.name} in ${restaurant.location}`,
+        url: window.location.href
+      };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        toast({
-          title: "Shared successfully",
-          description: "Restaurant shared via native share sheet"
-        });
-      } catch (error) {
-        console.log('Native share cancelled or failed');
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+          toast({
+            title: "Shared successfully",
+            description: "Restaurant shared via native share sheet"
+          });
+        } catch (shareError) {
+          console.log('Native share cancelled or failed:', shareError);
+          fallbackShare();
+        }
+      } else {
         fallbackShare();
       }
-    } else {
-      fallbackShare();
+    } catch (error) {
+      console.error('Share action failed:', error);
+      toast({
+        title: "Share failed",
+        description: "Unable to share restaurant. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -111,6 +120,7 @@ export default function RestaurantActionBar({
       });
       setShowShareDialog(false);
     } catch (error) {
+      console.error('Copy link failed:', error);
       toast({
         title: "Copy failed",
         description: "Unable to copy link to clipboard",
