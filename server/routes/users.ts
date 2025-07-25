@@ -446,23 +446,102 @@ router.put("/settings", authenticate, validateUserId, async (req, res) => {
 });
 
 // Additional optimized endpoints remain the same but with proper validation
+// User posts endpoint with enhanced data
 router.get("/:id/posts", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      res.json([]);
+      
+      const userPosts = await db
+        .select({
+          id: posts.id,
+          content: posts.content,
+          type: posts.type,
+          rating: posts.rating,
+          mediaUrl: posts.mediaUrl,
+          createdAt: posts.createdAt,
+          restaurantId: posts.restaurantId,
+          restaurantName: restaurants.name,
+          restaurantLocation: restaurants.location,
+          likesCount: sql<number>`(
+            SELECT COUNT(*) FROM post_likes 
+            WHERE post_id = ${posts.id}
+          )`,
+          commentsCount: sql<number>`(
+            SELECT COUNT(*) FROM post_comments 
+            WHERE post_id = ${posts.id}
+          )`
+        })
+        .from(posts)
+        .leftJoin(restaurants, eq(posts.restaurantId, restaurants.id))
+        .where(eq(posts.userId, userId))
+        .orderBy(desc(posts.createdAt))
+        .limit(20);
+
+      res.json(userPosts);
   } catch (error) {
       console.error("Error fetching user posts:", error);
       res.status(500).json({ error: "Failed to fetch user posts" });
   }
 });
 
+// User lists endpoint with enhanced data
 router.get("/:id/lists", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      res.json([]);
+      
+      const userLists = await db
+        .select({
+          id: restaurantLists.id,
+          name: restaurantLists.name,
+          description: restaurantLists.description,
+          isPublic: restaurantLists.isPublic,
+          createdAt: restaurantLists.createdAt,
+          itemCount: sql<number>`(
+            SELECT COUNT(*) FROM restaurant_list_items 
+            WHERE list_id = ${restaurantLists.id}
+          )`
+        })
+        .from(restaurantLists)
+        .where(eq(restaurantLists.createdById, userId))
+        .orderBy(desc(restaurantLists.createdAt))
+        .limit(20);
+
+      res.json(userLists);
   } catch (error) {
       console.error("Error fetching user lists:", error);
       res.status(500).json({ error: "Failed to fetch user lists" });
+  }
+});
+
+// User ratings endpoint  
+router.get("/:id/ratings", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
+  try {
+      const userId = parseInt(req.params.id);
+      
+      const userRatings = await db
+        .select({
+          id: sql<number>`ratings.id`,
+          ratingValue: sql<number>`ratings.rating_value`,
+          notes: sql<string>`ratings.notes`,
+          tags: sql<string[]>`ratings.tags`,
+          createdAt: sql<string>`ratings.created_at`,
+          restaurant: {
+            id: restaurants.id,
+            name: restaurants.name,
+            location: restaurants.location,
+            cuisine: restaurants.cuisine
+          }
+        })
+        .from(sql`ratings`)
+        .leftJoin(restaurants, sql`ratings.restaurant_id = ${restaurants.id}`)
+        .where(sql`ratings.user_id = ${userId}`)
+        .orderBy(sql`ratings.created_at DESC`)
+        .limit(20);
+
+      res.json(userRatings);
+  } catch (error) {
+      console.error("Error fetching user ratings:", error);
+      res.status(500).json({ error: "Failed to fetch user ratings" });
   }
 });
 
@@ -476,6 +555,58 @@ router.get("/:id/circles", authenticate, validateUserId, validateTargetUserId, a
   }
 });
 
+// User followers endpoint
+router.get("/:id/followers", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
+  try {
+      const userId = parseInt(req.params.id);
+      
+      const followers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio
+        })
+        .from(users)
+        .innerJoin(userFollowers, eq(users.id, userFollowers.followerId))
+        .where(eq(userFollowers.followingId, userId))
+        .orderBy(desc(userFollowers.createdAt))
+        .limit(50);
+
+      res.json(followers);
+  } catch (error) {
+      console.error("Error fetching user followers:", error);
+      res.status(500).json({ error: "Failed to fetch user followers" });
+  }
+});
+
+// User following endpoint
+router.get("/:id/following", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
+  try {
+      const userId = parseInt(req.params.id);
+      
+      const following = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio
+        })
+        .from(users)
+        .innerJoin(userFollowers, eq(users.id, userFollowers.followingId))
+        .where(eq(userFollowers.followerId, userId))
+        .orderBy(desc(userFollowers.createdAt))
+        .limit(50);
+
+      res.json(following);
+  } catch (error) {
+      console.error("Error fetching user following:", error);
+      res.status(500).json({ error: "Failed to fetch user following" });
+  }
+});
+
 router.get("/:id/saved", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
@@ -483,6 +614,58 @@ router.get("/:id/saved", authenticate, validateUserId, validateTargetUserId, asy
   } catch (error) {
       console.error("Error fetching user saved restaurants:", error);
       res.status(500).json({ error: "Failed to fetch saved restaurants" });
+  }
+});
+
+// Simplified followers endpoint for pagination route
+router.get("/followers/:id", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
+  try {
+      const userId = parseInt(req.params.id);
+      
+      const followers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio
+        })
+        .from(users)
+        .innerJoin(userFollowers, eq(users.id, userFollowers.followerId))
+        .where(eq(userFollowers.followingId, userId))
+        .orderBy(desc(userFollowers.createdAt))
+        .limit(50);
+
+      res.json(followers);
+  } catch (error) {
+      console.error("Error fetching followers:", error);
+      res.status(500).json({ error: "Failed to fetch followers" });
+  }
+});
+
+// Simplified following endpoint for pagination route
+router.get("/following/:id", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
+  try {
+      const userId = parseInt(req.params.id);
+      
+      const following = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio
+        })
+        .from(users)
+        .innerJoin(userFollowers, eq(users.id, userFollowers.followingId))
+        .where(eq(userFollowers.followerId, userId))
+        .orderBy(desc(userFollowers.createdAt))
+        .limit(50);
+
+      res.json(following);
+  } catch (error) {
+      console.error("Error fetching following:", error);
+      res.status(500).json({ error: "Failed to fetch following" });
   }
 });
 

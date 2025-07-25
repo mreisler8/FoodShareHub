@@ -1,0 +1,90 @@
+🧠 REPLIT DEV AGENT HANDOFF
+📦 Epic: Profile Page Overhaul – Unified Food Identity & Social Hub
+🎯 Goal:
+Redesign and rebuild the Profile Page to showcase users as curators of trusted food recommendations. The new profile must unify Posts, Lists, Ratings, and Follow data, present clear social signals, and set the stage for future influencer recognition and reputation features.
+
+🔨 SCOPE OF WORK
+1. Profile Page Layout (Mobile-First)
+File: pages/ProfilePage.tsx
+
+Header Section:
+
+Avatar, Display Name, Username
+
+Short bio or tagline
+
+Follower / Following counts (with clickable links)
+
+Circle memberships (show up to 3 joined Circles, "View All")
+
+Action Buttons:
+
+Follow / Unfollow
+
+Share Profile (copy link)
+
+2. Tabs for Content
+Tab Name	Content	Requirements
+Posts	User's food moments	Use existing post cards
+Lists	User's created lists	Show list name, save count, Circle Score preview
+Ratings	User's Quick Ratings	Show RatingDisplay with tags/notes
+Network	Followers & Following	Grid/list with avatars + Follow button
+
+Use Tabs component with TabsList, TabsTrigger, TabsContent.
+
+3. Follower/Following System Integration
+Ensure POST /api/follow/:userId, DELETE /api/follow/:userId, GET /api/followers, GET /api/following are fully integrated.
+
+Optimistic UI for Follow/Unfollow.
+
+Display counts dynamically in the header.
+
+4. Highlight Section (Optional, Future-Proof)
+At the top of profile:
+
+“Top Saved List” (most saved list)
+
+“Circle Score Impact” (e.g., “6 people followed your recs”)
+
+“Most Rated Cuisine” (if data available)
+
+5. UX Details
+Show empty states for each tab (e.g., “No lists yet—create your first list!”).
+
+Use shared UI components:
+
+ListCard, RatingDisplay, PostCard, CircleScoreCard.
+
+Ensure Follow button is visible on all relevant user cards.
+
+🖼 UI EXCELLENCE REQUIREMENTS
+Area	Guidelines
+Mobile-first design	Sticky tabs at top, vertical scrolling
+Visual hierarchy	Clean card-based layout, consistent spacing
+Brand alignment	Use existing home/list/rating UI styles
+Accessibility	ARIA labels, keyboard navigation, screen-reader support
+Performance	Lazy-load each tab, react-query for caching
+
+🔒 NON-FUNCTIONAL REQUIREMENTS
+No regressions to existing posts, lists, or ratings functionality
+
+Must only show data the viewer has permission to see (respect Circle privacy)
+
+All API calls should be cached with react-query
+
+✅ ACCEPTANCE CRITERIA
+Feature	Requirement
+Tabs	Posts, Lists, Ratings, Network
+Follow/Unfollow	Fully functional with optimistic UI
+Follower/following counts	Displayed accurately in header
+Content rendering	Uses existing reusable components
+Empty states	Present for each tab
+Mobile UX	Smooth, responsive layout
+
+When complete, the Profile Page will serve as the user's food identity hub, showcasing their activity, trust signals, and influence—all while setting up for future reputation systems like “Accepted Recommendations” and badges.
+
+
+
+
+
+
