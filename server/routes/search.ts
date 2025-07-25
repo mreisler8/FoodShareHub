@@ -489,8 +489,8 @@ router.get('/unified', authenticate, async (req, res) => {
                 latitude: r.latitude,
                 longitude: r.longitude,
                 googlePlaceId: r.googlePlaceId,
-                avgRating: r.rating || 4.0,
-                reviewCount: r.reviewCount || 0,
+                avgRating: 4.0, // Default rating for Google Places results
+                reviewCount: 0, // Default review count
               }));
 
             restaurantResults = [...dbRestaurants, ...filteredGoogleResults];
@@ -506,7 +506,7 @@ router.get('/unified', authenticate, async (req, res) => {
             .map(r => {
               // Calculate relevance score for each restaurant
               const nameRelevance = calculateRelevanceScore(r.name, searchTerm);
-              const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm);
+              const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm) || 0;
               const totalRelevance = Math.max(nameRelevance, categoryRelevance);
               
               return {
@@ -871,8 +871,8 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
           cuisine: r.cuisine,
           address: r.address,
           imageUrl: r.imageUrl,
-          avgRating: r.rating || 4.0,
-          reviewCount: r.reviewCount || 0,
+          avgRating: 4.0, // Schema doesn't have rating field
+          reviewCount: 0, // Schema doesn't have reviewCount field
           googlePlaceId: r.googlePlaceId,
         }));
 
@@ -888,7 +888,7 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
     .map(r => {
       // Calculate relevance score for filtering
       const nameRelevance = calculateRelevanceScore(r.name, searchTerm);
-      const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm);
+      const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm) || 0;
       const baseRelevance = Math.max(nameRelevance, categoryRelevance);
       
       // Give tag-based results high relevance score for thematic searches

@@ -178,14 +178,14 @@ export function PendingInvites() {
               <div className="flex items-center justify-center p-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
-            ) : invites.length === 0 ? (
+            ) : (Array.isArray(invites) && invites.length === 0) ? (
               <div className="text-center p-8 text-gray-500">
                 <UserPlus className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                 <p>No pending invitations</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {invites.map((invite: PendingInvite) => (
+                {Array.isArray(invites) && invites.map((invite: any) => (
                   <div key={invite.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <Avatar>
@@ -241,14 +241,14 @@ export function PendingInvites() {
               <div className="flex items-center justify-center p-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
-            ) : memberRequests.length === 0 ? (
+            ) : (Array.isArray(memberRequests) && memberRequests.length === 0) ? (
               <div className="text-center p-8 text-gray-500">
                 <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                 <p>No pending member requests</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {memberRequests.map((request: PendingMemberRequest) => (
+                {Array.isArray(memberRequests) && memberRequests.map((request: any) => (
                   <div key={request.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <Avatar>
