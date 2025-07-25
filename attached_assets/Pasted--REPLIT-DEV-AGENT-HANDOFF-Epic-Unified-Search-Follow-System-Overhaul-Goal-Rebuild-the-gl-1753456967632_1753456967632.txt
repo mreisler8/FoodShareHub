@@ -1,0 +1,88 @@
+🧠 REPLIT DEV AGENT HANDOFF
+📦 Epic: Unified Search & Follow System Overhaul
+🎯 Goal:
+Rebuild the global search experience to support restaurants, dishes, lists, and user discovery in a single interface. Integrate Circle Score for restaurant results and add full Follow/Unfollow functionality for user accounts.
+
+🔨 SCOPE OF WORK
+1. Search Improvements
+Files:
+
+components/SearchBar.tsx
+
+components/SearchResultsList.tsx
+
+services/searchService.ts
+
+Tasks:
+
+Support unified results for:
+
+Restaurants (with Circle Score displayed)
+
+Dishes (show dish + restaurant)
+
+Lists (list title, owner, save CTA)
+
+Users (avatar, username, Follow button)
+
+Add debounce + autocomplete for improved UX
+
+Display entity type labels (e.g., "Dish", "Restaurant", "List", "User")
+
+2. Circle Score Integration
+For restaurant results, fetch via /api/circle-score/:restaurantId
+
+Display score inline with badge: 🔥 Circle Score: 91
+
+Tooltip/secondary text: “Rated by 6 people in your Circle”
+
+3. Follow System Implementation
+Backend:
+
+Create tables: follows with follower_id, following_id, timestamps
+
+Endpoints:
+
+POST /api/follow/:userId
+
+DELETE /api/follow/:userId
+
+GET /api/followers
+
+GET /api/following
+
+Frontend:
+
+Add Follow/Unfollow buttons to:
+
+Search user results
+
+User profiles
+
+Show follower/following counts on profiles
+
+Optimistic UI updates
+
+4. Search Context Enhancements
+From global search: show recent search history and trending restaurants
+
+From restaurant detail: prioritize showing related lists and posts
+
+🔒 NON-FUNCTIONAL REQUIREMENTS
+Debounced queries (300ms) for search input
+
+Must reuse shared UI components (CircleScoreCard, RatingButton, etc.)
+
+Secure API access (auth required for follow actions)
+
+Maintain performance (<300ms response times with caching where possible)
+
+✅ ACCEPTANCE CRITERIA
+Feature	Requirement
+Global search results	Unified display of restaurants, dishes, lists, and users
+Circle Score integration	Correctly shown on restaurant results
+Follow functionality	Fully functional APIs and buttons
+Profile follow data	Follower/following counts visible
+Mobile UX	Full-screen modal or responsive dropdown
+Performance	Fast and reliable
+
