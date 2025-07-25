@@ -52,7 +52,7 @@ export function SendToFriendModal({
         setIsSearching(true);
         try {
           const startTime = Date.now();
-          const response = await apiRequest(`/api/sharing/search-users?q=${encodeURIComponent(searchQuery)}`) as { users: User[] };
+          const response = await apiRequest(`/api/sharing/search-users?q=${encodeURIComponent(searchQuery)}`) as any;
           const responseTime = Date.now() - startTime;
           
           // NFR: Search must respond within 300ms

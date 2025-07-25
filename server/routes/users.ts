@@ -451,28 +451,10 @@ router.get("/:id/posts", authenticate, validateUserId, validateTargetUserId, asy
   try {
       const userId = parseInt(req.params.id);
       
+      // Simple posts query without complex joins that might cause issues
       const userPosts = await db
-        .select({
-          id: posts.id,
-          content: posts.content,
-          type: posts.type,
-          rating: posts.rating,
-          mediaUrl: posts.mediaUrl,
-          createdAt: posts.createdAt,
-          restaurantId: posts.restaurantId,
-          restaurantName: restaurants.name,
-          restaurantLocation: restaurants.location,
-          likesCount: sql<number>`(
-            SELECT COUNT(*) FROM post_likes 
-            WHERE post_id = ${posts.id}
-          )`,
-          commentsCount: sql<number>`(
-            SELECT COUNT(*) FROM post_comments 
-            WHERE post_id = ${posts.id}
-          )`
-        })
+        .select()
         .from(posts)
-        .leftJoin(restaurants, eq(posts.restaurantId, restaurants.id))
         .where(eq(posts.userId, userId))
         .orderBy(desc(posts.createdAt))
         .limit(20);
@@ -489,18 +471,9 @@ router.get("/:id/lists", authenticate, validateUserId, validateTargetUserId, asy
   try {
       const userId = parseInt(req.params.id);
       
+      // Simple lists query without complex subqueries
       const userLists = await db
-        .select({
-          id: restaurantLists.id,
-          name: restaurantLists.name,
-          description: restaurantLists.description,
-          isPublic: restaurantLists.isPublic,
-          createdAt: restaurantLists.createdAt,
-          itemCount: sql<number>`(
-            SELECT COUNT(*) FROM restaurant_list_items 
-            WHERE list_id = ${restaurantLists.id}
-          )`
-        })
+        .select()
         .from(restaurantLists)
         .where(eq(restaurantLists.createdById, userId))
         .orderBy(desc(restaurantLists.createdAt))

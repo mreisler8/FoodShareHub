@@ -1,0 +1,81 @@
+Based on your codebase analysis, I can see you have a robust follow system infrastructure but there are some gaps and inconsistencies. Here's a comprehensive prompt to ensure the follow feature works effectively across your entire application:
+
+🔧 FOLLOW SYSTEM AUDIT & INTEGRATION PROMPT
+OBJECTIVE
+Audit and fix the follow system to ensure seamless functionality across all application components with consistent UI states, proper error handling, and real-time updates.
+
+IDENTIFIED ISSUES TO ADDRESS
+Follow Status Synchronization Bug (from replit.md)
+
+Search results show incorrect follow states despite correct database relationships
+Profile pages show inconsistent follow button states
+Need to fix the database query logic in search endpoints
+API Endpoint Inconsistencies
+
+Multiple follow button components with different API patterns
+Some use /api/follow/requests, others use /api/follow/:userId
+Need unified API contract
+Query Cache Management
+
+Follow status changes not properly invalidating related caches
+User stats, follower counts, and feed data need coordinated updates
+IMPLEMENTATION CHECKLIST
+Backend API Consistency
+ Standardize all follow endpoints to use consistent response formats
+ Fix the search endpoint follow status query (main bug from logs)
+ Ensure follow/unfollow actions return updated counts immediately
+ Add proper rate limiting (10 actions per minute per spec)
+Frontend Component Unification
+ Consolidate multiple FollowButton components into single reusable component
+ Ensure all follow buttons use optimistic UI updates
+ Standardize loading states and error handling
+ Fix query key consistency across all components
+Real-time State Management
+ Follow actions should invalidate: user stats, follower lists, following lists, discover feed
+ Profile pages should show accurate follower/following counts
+ Search results should reflect current follow relationships
+ Feed should update when follow relationships change
+UI/UX Consistency
+ Follow buttons should have consistent styling across components
+ Loading states should be uniform (spinner, disabled state)
+ Success/error toast messages should be standardized
+ Mobile responsiveness for all follow interactions
+Error Handling & Edge Cases
+ Handle network failures gracefully with retry mechanisms
+ Prevent self-following attempts
+ Handle duplicate follow attempts properly
+ Show appropriate messages for private/blocked users
+FILES TO AUDIT & UPDATE
+Backend:
+
+server/routes/follow.ts - Main follow API logic
+server/routes/users.ts - User search with follow status
+server/routes/discover.ts - Discover feed follow integration
+Frontend Components:
+
+client/src/components/FollowButton.tsx (main)
+client/src/components/user/FollowButton.tsx (duplicate)
+client/src/components/search/SearchResultsList.tsx
+client/src/components/home/SuggestedUsersCard.tsx
+client/src/pages/ProfilePage.tsx
+Hooks & Services:
+
+Create unified useFollowUser hook
+Update React Query cache invalidation logic
+Standardize error handling
+TESTING REQUIREMENTS
+ Follow/unfollow actions work from search results
+ Profile page follow buttons work correctly
+ Follower/following counts update in real-time
+ Feed updates when follow relationships change
+ Mobile follow interactions work smoothly
+ Error states display appropriate messages
+ Network retry logic functions properly
+SUCCESS CRITERIA
+Zero follow status synchronization bugs
+Sub-300ms follow action response time (your NFR target)
+Consistent UI behavior across all components
+Real-time count updates without page refresh
+Graceful error handling and recovery
+This prompt addresses the core issues I identified in your codebase, particularly the follow status synchronization bug that's causing inconsistent UI states. The systematic approach ensures you'll have a robust, consistent follow system across your entire social food recommendation platform.
+

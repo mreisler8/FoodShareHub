@@ -39,7 +39,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
-import "../components/ProfilePageAnimations.css";
+
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -222,6 +222,7 @@ export default function ProfilePage() {
                   <>
                     <FollowButton 
                       userId={userId!}
+                      initialFollowing={false}
                       className="px-6"
                     />
                     <Button 
@@ -617,6 +618,7 @@ export default function ProfilePage() {
                     {!isOwnProfile && follower.id !== currentUser?.id && (
                       <FollowButton 
                         userId={follower.id}
+                        initialFollowing={false}
                         size="sm"
                         className="shrink-0"
                       />
@@ -683,6 +685,7 @@ export default function ProfilePage() {
                     {!isOwnProfile && followed.id !== currentUser?.id && (
                       <FollowButton 
                         userId={followed.id}
+                        initialFollowing={true}
                         size="sm"
                         className="shrink-0"
                       />
