@@ -14,6 +14,7 @@ import CircleMembers from "../pages/circle-members";
 import Profile from "../pages/profile";
 import Settings from "../pages/settings";
 import Discover from "../pages/discover";
+import DiscoverFeed from "../pages/DiscoverFeed";
 import DiscoverByLocation from "../pages/discover-by-location";
 import ListDetails from "../pages/list-details";
 // import CreateList from "../pages/create-list";
@@ -48,7 +49,8 @@ function Router() {
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />
       <ProtectedRoute path="/circles/:id/members" component={CircleMembers} />
       <ProtectedRoute path="/profile/:id?" component={Profile} />
-      <ProtectedRoute path="/discover" component={Discover} />
+      <ProtectedRoute path="/discover" component={DiscoverFeed} />
+      <ProtectedRoute path="/discover-old" component={Discover} />
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/lists" component={Lists} />
       <ProtectedRoute path="/lists/create" component={CreateListEnhanced} />

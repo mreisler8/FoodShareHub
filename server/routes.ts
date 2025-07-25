@@ -47,6 +47,7 @@ import circleInvitesRouter from './routes/circle-invites';
 import postsRouter from './routes/posts';
 import tagsRouter from './routes/tags';
 import ratingsRouter from './routes/ratings';
+import discoverRouter from './routes/discover';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -1280,6 +1281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/follow", followRoutes);
   app.use("/api/follow-requests", followRequestsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
+  app.use("/api/discover", discoverRouter);
   app.use("/api/circles/invites", circleInvitesRouter);
   app.use("/api/circles", circleRequestsRouter);
   app.use("/api/users", usersRouter);
