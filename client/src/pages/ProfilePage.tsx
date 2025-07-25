@@ -39,6 +39,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
+import "../components/ProfilePageAnimations.css";
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -319,23 +320,57 @@ export default function ProfilePage() {
   const PostsTab = () => (
     <div className="px-4 md:px-6 py-6">
       {isPostsLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full" />
+            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+              <Skeleton className="h-20 w-full mb-4" />
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            </div>
           ))}
         </div>
       ) : userPosts && Array.isArray(userPosts) && userPosts.length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {userPosts.map((post: any) => (
-            <PostCard key={post.id} post={post} />
+            <div key={post.id} className="transform transition-all duration-200 hover:scale-[1.01]">
+              <PostCard post={post} />
+            </div>
           ))}
         </div>
       ) : (
-        <EmptyState
-          icon={MessageCircle}
-          title={isOwnProfile ? "No posts yet" : `${profileUser?.name} hasn't posted yet`}
-          description={isOwnProfile ? "Share your first food experience!" : "Check back later for new posts."}
-        />
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center mb-6">
+            <MessageCircle className="h-10 w-10 text-primary/60" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {isOwnProfile ? "No posts yet" : `${profileUser?.name || 'This user'} hasn't posted yet`}
+          </h3>
+          <p className="text-gray-600 text-center max-w-sm mb-6">
+            {isOwnProfile 
+              ? "Share your first food experience! Tell your circles about a great meal or hidden gem." 
+              : "Check back later for new posts and food discoveries."
+            }
+          </p>
+          {isOwnProfile && (
+            <Button 
+              className="bg-primary hover:bg-primary/90 transition-colors"
+              onClick={() => window.location.href = '/create-post'}
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Create Your First Post
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -343,31 +378,104 @@ export default function ProfilePage() {
   const ListsTab = () => (
     <div className="px-4 md:px-6 py-6">
       {isListsLoading ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-48 w-full" />
+            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4 mb-4" />
+              <div className="flex -space-x-2">
+                {[...Array(3)].map((_, j) => (
+                  <Skeleton key={j} className="h-8 w-8 rounded-full border-2 border-white" />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : userLists && Array.isArray(userLists) && userLists.length > 0 ? (
-        <div className="space-y-4">
+        <div className="grid gap-6 sm:grid-cols-2">
           {userLists.map((list: any) => (
-            <Card key={list.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">{list.name}</h3>
-                  <p className="text-sm text-gray-600">{list.description}</p>
+            <Card key={list.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-100">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary transition-colors">
+                      {list.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {list.description || "A curated collection of great places"}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="ml-3 bg-gray-50 text-gray-700">
+                    {list.itemCount || 0} places
+                  </Badge>
                 </div>
-                <Badge variant="outline">{list.itemCount || 0} items</Badge>
-              </div>
+                
+                {/* Preview Images */}
+                {list.previewImages && list.previewImages.length > 0 && (
+                  <div className="flex -space-x-2 mb-4">
+                    {list.previewImages.slice(0, 3).map((image: string, index: number) => (
+                      <div key={index} className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 overflow-hidden">
+                        <img src={image} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                    {list.previewImages.length > 3 && (
+                      <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center">
+                        <span className="text-xs font-medium text-gray-600">
+                          +{list.previewImages.length - 3}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span className="flex items-center gap-1">
+                    {list.isPublic ? (
+                      <>
+                        <Crown className="h-3 w-3" />
+                        Public
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-3 w-3" />
+                        Private
+                      </>
+                    )}
+                  </span>
+                  <span>{new Date(list.createdAt).toLocaleDateString()}</span>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <EmptyState
-          icon={Bookmark}
-          title={isOwnProfile ? "No lists yet" : `${profileUser?.name} hasn't created any lists`}
-          description={isOwnProfile ? "Create your first curated restaurant list!" : "Check back later for new lists."}
-        />
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center mb-6">
+            <Bookmark className="h-10 w-10 text-primary/60" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {isOwnProfile ? "No lists yet" : `${profileUser?.name || 'This user'} hasn't created any lists`}
+          </h3>
+          <p className="text-gray-600 text-center max-w-sm mb-6">
+            {isOwnProfile 
+              ? "Create curated lists of your favorite restaurants to share with your circles."
+              : "Check back later for curated restaurant recommendations."
+            }
+          </p>
+          {isOwnProfile && (
+            <Button 
+              className="bg-primary hover:bg-primary/90 transition-colors"
+              onClick={() => window.location.href = '/create-list'}
+            >
+              <Bookmark className="h-4 w-4 mr-2" />
+              Create Your First List
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -377,122 +485,226 @@ export default function ProfilePage() {
       {isRatingsLoading ? (
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
+            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Skeleton className="h-5 w-48 mb-2" />
+                  <Skeleton className="h-4 w-32 mb-3" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+                <div className="flex items-center gap-1 ml-4">
+                  {[...Array(5)].map((_, j) => (
+                    <Skeleton key={j} className="h-5 w-5 rounded-full" />
+                  ))}
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : userRatings && Array.isArray(userRatings) && userRatings.length > 0 ? (
         <div className="space-y-4">
           {userRatings.map((rating: any) => (
-            <Card key={rating.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="font-medium">{rating.restaurant?.name}</h3>
-                  <p className="text-sm text-gray-600">{rating.restaurant?.location}</p>
-                  {rating.notes && (
-                    <p className="text-sm text-gray-700 mt-1">{rating.notes}</p>
-                  )}
+            <Card key={rating.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-100">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary transition-colors">
+                      {rating.restaurant?.name || 'Restaurant'}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-3 flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {rating.restaurant?.location || 'Location not specified'}
+                    </p>
+                    {rating.notes && (
+                      <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 mb-3 line-clamp-2">
+                        "{rating.notes}"
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>Rated on {new Date(rating.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div className="ml-4 flex flex-col items-end">
+                    <div className="flex items-center gap-1 mb-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          className={`h-5 w-5 transition-colors ${
+                            i < (rating.ratingValue || 0) 
+                              ? 'fill-yellow-400 text-yellow-400' 
+                              : 'text-gray-300'
+                          }`} 
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {rating.ratingValue || 0}/5
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`h-4 w-4 ${i < rating.ratingValue ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                    />
-                  ))}
-                </div>
-              </div>
+              </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <EmptyState
-          icon={Star}
-          title={isOwnProfile ? "No ratings yet" : `${profileUser?.name} hasn't rated any restaurants`}
-          description={isOwnProfile ? "Rate your first restaurant experience!" : "Check back later for new ratings."}
-        />
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-full flex items-center justify-center mb-6">
+            <Star className="h-10 w-10 text-yellow-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {isOwnProfile ? "No ratings yet" : `${profileUser?.name || 'This user'} hasn't rated any restaurants`}
+          </h3>
+          <p className="text-gray-600 text-center max-w-sm mb-6">
+            {isOwnProfile 
+              ? "Start rating restaurants to help your circles discover great places to eat."
+              : "Check back later for restaurant ratings and reviews."
+            }
+          </p>
+          {isOwnProfile && (
+            <Button 
+              className="bg-yellow-500 hover:bg-yellow-600 text-white transition-colors"
+              onClick={() => window.location.href = '/quick-ratings'}
+            >
+              <Star className="h-4 w-4 mr-2" />
+              Rate Your First Restaurant
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
 
   const NetworkTab = () => (
     <div className="px-4 md:px-6 py-6">
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Followers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Followers</CardTitle>
+        <Card className="border-gray-100 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Followers
+              {followers && Array.isArray(followers) && (
+                <Badge variant="secondary" className="ml-2">
+                  {followers.length}
+                </Badge>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {followers && Array.isArray(followers) && followers.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {followers.slice(0, 5).map((follower: any) => (
-                  <div key={follower.id} className="flex items-center justify-between">
+                  <div key={follower.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-10 w-10 ring-2 ring-gray-100">
                         <AvatarImage src={follower.profileImageUrl} />
-                        <AvatarFallback>{follower.name?.[0] || follower.username?.[0]}</AvatarFallback>
+                        <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                          {follower.name?.[0] || follower.username?.[0] || 'U'}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium">{follower.name || follower.username}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {follower.name || follower.username}
+                        </p>
                         <p className="text-xs text-gray-600">@{follower.username}</p>
+                        {follower.bio && (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                            {follower.bio}
+                          </p>
+                        )}
                       </div>
                     </div>
                     {!isOwnProfile && follower.id !== currentUser?.id && (
                       <FollowButton 
                         userId={follower.id}
                         size="sm"
+                        className="shrink-0"
                       />
                     )}
                   </div>
                 ))}
                 {followers.length > 5 && (
-                  <Button variant="outline" size="sm" className="w-full mt-3">
+                  <Button variant="outline" size="sm" className="w-full mt-4 border-gray-200 hover:bg-gray-50">
                     View all {followers.length} followers
                   </Button>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-600">No followers yet</p>
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-600">No followers yet</p>
+                {isOwnProfile && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Share great content to attract followers
+                  </p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
 
         {/* Following */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Following</CardTitle>
+        <Card className="border-gray-100 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Following
+              {following && Array.isArray(following) && (
+                <Badge variant="secondary" className="ml-2">
+                  {following.length}
+                </Badge>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {following && Array.isArray(following) && following.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {following.slice(0, 5).map((followed: any) => (
-                  <div key={followed.id} className="flex items-center justify-between">
+                  <div key={followed.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-10 w-10 ring-2 ring-gray-100">
                         <AvatarImage src={followed.profileImageUrl} />
-                        <AvatarFallback>{followed.name?.[0] || followed.username?.[0]}</AvatarFallback>
+                        <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                          {followed.name?.[0] || followed.username?.[0] || 'U'}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium">{followed.name || followed.username}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {followed.name || followed.username}
+                        </p>
                         <p className="text-xs text-gray-600">@{followed.username}</p>
+                        {followed.bio && (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                            {followed.bio}
+                          </p>
+                        )}
                       </div>
                     </div>
                     {!isOwnProfile && followed.id !== currentUser?.id && (
                       <FollowButton 
                         userId={followed.id}
                         size="sm"
+                        className="shrink-0"
                       />
                     )}
                   </div>
                 ))}
                 {following.length > 5 && (
-                  <Button variant="outline" size="sm" className="w-full mt-3">
+                  <Button variant="outline" size="sm" className="w-full mt-4 border-gray-200 hover:bg-gray-50">
                     View all {following.length} following
                   </Button>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-600">Not following anyone yet</p>
+              <div className="text-center py-8">
+                <UserPlus className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-600">Not following anyone yet</p>
+                {isOwnProfile && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Find friends to follow their recommendations
+                  </p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -543,19 +755,19 @@ export default function ProfilePage() {
           <ProfileHeader />
           <ProfileTabs />
           
-          <TabsContent value="posts" className="mt-0">
+          <TabsContent value="posts" className="mt-0 profile-tab-transition">
             <PostsTab />
           </TabsContent>
           
-          <TabsContent value="lists" className="mt-0">
+          <TabsContent value="lists" className="mt-0 profile-tab-transition">
             <ListsTab />
           </TabsContent>
           
-          <TabsContent value="ratings" className="mt-0">
+          <TabsContent value="ratings" className="mt-0 profile-tab-transition">
             <RatingsTab />
           </TabsContent>
           
-          <TabsContent value="network" className="mt-0">
+          <TabsContent value="network" className="mt-0 profile-tab-transition">
             <NetworkTab />
           </TabsContent>
         </Tabs>
