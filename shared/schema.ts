@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   json,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -763,6 +764,64 @@ export const insertRatingSchema = createInsertSchema(ratings).pick({
 
 export type Rating = typeof ratings.$inferSelect;
 export type InsertRating = z.infer<typeof insertRatingSchema>;
+
+// Shared Recommendations model for Send to Friend & Share Restaurant features
+export const sharedRecommendations = pgTable("shared_recommendations", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  receiverId: integer("receiver_id")
+    .references(() => users.id, { onDelete: "cascade" }), // Nullable for external shares
+  entityType: text("entity_type").notNull(), // "restaurant" | "list"
+  entityId: text("entity_id").notNull(), // Store as string to handle both DB IDs and Google Place IDs
+  shareType: text("share_type").notNull(), // "internal" | "external"
+  message: text("message"), // Optional message, 140 char limit enforced at API level
+  expiresAt: timestamp("expires_at"), // For external links - 7 day expiration
+  read: boolean("read").default(false).notNull(),
+  clickCount: integer("click_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  // Required indexes for performance as per NFR specifications
+  receiverReadIndex: index("idx_shared_recommendations_receiver").on(table.receiverId, table.read, table.createdAt),
+  senderIndex: index("idx_shared_recommendations_sender").on(table.senderId, table.createdAt),
+  entityIndex: index("idx_shared_recommendations_entity").on(table.entityType, table.entityId),
+  expiresIndex: index("idx_shared_recommendations_expires").on(table.expiresAt),
+}));
+
+export const insertSharedRecommendationSchema = createInsertSchema(sharedRecommendations).pick({
+  senderId: true,
+  receiverId: true,
+  entityType: true,
+  entityId: true,
+  shareType: true,
+  message: true,
+  expiresAt: true,
+}).refine((data) => {
+  // Validate message length (140 char limit)
+  if (data.message && data.message.length > 140) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Message cannot exceed 140 characters",
+  path: ["message"],
+}).refine((data) => {
+  // Validate entity type
+  return ["restaurant", "list"].includes(data.entityType);
+}, {
+  message: "Entity type must be 'restaurant' or 'list'",
+  path: ["entityType"],
+}).refine((data) => {
+  // Validate share type
+  return ["internal", "external"].includes(data.shareType);
+}, {
+  message: "Share type must be 'internal' or 'external'",
+  path: ["shareType"],
+});
+
+export type SharedRecommendation = typeof sharedRecommendations.$inferSelect;
+export type InsertSharedRecommendation = z.infer<typeof insertSharedRecommendationSchema>;
 
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations

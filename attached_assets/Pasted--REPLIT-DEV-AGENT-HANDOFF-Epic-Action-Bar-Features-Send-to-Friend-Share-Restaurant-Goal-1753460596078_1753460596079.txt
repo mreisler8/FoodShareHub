@@ -1,0 +1,88 @@
+🧠 REPLIT DEV AGENT HANDOFF
+📦 Epic: Action Bar Features – Send to Friend & Share Restaurant
+🎯 Goal:
+Implement two new sharing features on restaurant and list pages:
+
+Send to Friend: Share a restaurant or list directly with another Circles user.
+
+Share Restaurant: Generate a shareable external link (for text, email, or social).
+
+These features must seamlessly integrate into the new Restaurant Page Action Bar, reuse existing UI patterns, and work flawlessly on mobile.
+
+🔨 SCOPE OF WORK
+1. Backend
+a) Data Models
+Add shared_recommendations table:
+
+id, sender_id, receiver_id, entity_type ("restaurant" | "list"), entity_id, message (optional), created_at, read (boolean)
+
+b) API Endpoints
+POST /api/share/send → send to friend
+
+GET /api/share/received → retrieve items shared with the logged-in user
+
+PATCH /api/share/mark-read/:id → mark as read
+
+c) External Share Links
+/api/share/generate-link
+
+Accepts: entity_type, entity_id
+
+Returns a short, public URL to view the restaurant or list
+
+2. Frontend
+a) Action Bar Updates
+Files: RestaurantActionBar.tsx, ListActionBar.tsx
+
+Add two new buttons:
+
+📤 Send to Friend (opens modal to pick a friend and optional message)
+
+🔗 Share (copies link to clipboard with toast: “Link copied!”)
+
+b) Send to Friend Modal
+User search/autocomplete (reuse SearchBar component logic for users)
+
+Optional short message (140 chars)
+
+Confirmation toast: “Sent to Alex!”
+
+c) Share Link Modal
+Show generated link + Copy button
+
+Quick “Share via…” options (native share API on mobile if supported)
+
+🖼 UI EXCELLENCE REQUIREMENTS
+Component	Guidelines
+Buttons	Use brand styles (rounded-xl, shadow-sm, hover:bg-gray-50)
+Modals	Mobile-first, full-screen on small viewports, smooth transitions
+Toast Notifications	Use consistent feedback (success/error states)
+User Search	Debounced, with avatars & usernames displayed
+Accessibility	Proper labels, keyboard navigation, and ARIA attributes
+
+🔒 NON-FUNCTIONAL REQUIREMENTS
+Must not regress existing Action Bar functionality
+
+Send-to-Friend must only allow sharing to people the sender follows or is connected to (Circle members or mutual followers)
+
+External links must be shortened, secure, and redirect to the restaurant/list detail page
+
+✅ ACCEPTANCE CRITERIA
+Feature	Requirement
+Send to Friend	Modal to pick user, optional message, successful API call
+Share Restaurant	Generates shareable link, copies to clipboard
+Action Bar Integration	Buttons visible on restaurant and list pages
+Mobile UX	Modals optimized for mobile-first layouts
+Data Integrity	Shared recommendations saved in DB, retrievable later
+Notifications	Toast confirmation for successful share or link copy
+No regressions	Other action bar buttons continue to work
+
+When deployed, these features will close the loop for direct sharing and viral growth, increasing network activity while remaining consistent with Circles’ trust-based model.
+
+
+
+
+
+
+
+Ask ChatGPT

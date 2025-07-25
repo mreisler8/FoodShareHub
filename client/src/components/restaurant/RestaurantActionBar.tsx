@@ -20,6 +20,8 @@ import QuickRateModal from '@/components/ratings/QuickRateModal';
 import AddToListModal from './AddToListModal';
 import SaveRestaurantModal from './SaveRestaurantModal';
 import ActionButton from './ActionButton';
+import { SendToFriendModal } from '@/components/sharing/SendToFriendModal';
+import { ShareLinkModal } from '@/components/sharing/ShareLinkModal';
 import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +63,8 @@ export default function RestaurantActionBar({
   const [showQuickRateModal, setShowQuickRateModal] = useState(false);
   const [showAddToListModal, setShowAddToListModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showSendToFriend, setShowSendToFriend] = useState(false);
+  const [showShareLink, setShowShareLink] = useState(false);
   const [localSaved, setLocalSaved] = useState(isSaved);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -108,7 +112,7 @@ export default function RestaurantActionBar({
   };
 
   const fallbackShare = () => {
-    setShowShareDialog(true);
+    setShowShareLink(true);
   };
 
   const handleCopyLink = async () => {
@@ -144,10 +148,7 @@ export default function RestaurantActionBar({
   };
 
   const handleSendToFriend = () => {
-    toast({
-      title: "Send to Friend",
-      description: "Feature coming soon - friend sharing in development"
-    });
+    setShowSendToFriend(true);
   };
 
   const handleShareToCircle = (circleId: number, circleName: string) => {
@@ -198,6 +199,11 @@ export default function RestaurantActionBar({
               onClick={handleAddToList}
             />
             <ActionButton 
+              icon="send" 
+              label="Send" 
+              onClick={handleSendToFriend}
+            />
+            <ActionButton 
               icon="share-2" 
               label="Share" 
               onClick={handleNativeShare}
@@ -226,6 +232,24 @@ export default function RestaurantActionBar({
           onClose={() => setShowSaveModal(false)}
           restaurant={restaurant}
           isSaved={localSaved}
+        />
+
+        {/* Send to Friend Modal */}
+        <SendToFriendModal
+          isOpen={showSendToFriend}
+          onClose={() => setShowSendToFriend(false)}
+          entityType="restaurant"
+          entityId={restaurant.id || restaurant.googlePlaceId || ""}
+          entityName={restaurant.name}
+        />
+
+        {/* Share Link Modal */}
+        <ShareLinkModal
+          isOpen={showShareLink}
+          onClose={() => setShowShareLink(false)}
+          entityType="restaurant"
+          entityId={restaurant.id || restaurant.googlePlaceId || ""}
+          entityName={restaurant.name}
         />
         
         {/* Add bottom padding to page content to avoid action bar overlap */}
@@ -327,6 +351,24 @@ export default function RestaurantActionBar({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Send to Friend Modal */}
+      <SendToFriendModal
+        isOpen={showSendToFriend}
+        onClose={() => setShowSendToFriend(false)}
+        entityType="restaurant"
+        entityId={restaurant.id || restaurant.googlePlaceId || ""}
+        entityName={restaurant.name}
+      />
+
+      {/* Share Link Modal */}
+      <ShareLinkModal
+        isOpen={showShareLink}
+        onClose={() => setShowShareLink(false)}
+        entityType="restaurant"
+        entityId={restaurant.id || restaurant.googlePlaceId || ""}
+        entityName={restaurant.name}
+      />
 
       {/* Circle Share Dialog */}
       <Dialog open={showCircleShare} onOpenChange={setShowCircleShare}>
