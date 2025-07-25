@@ -442,7 +442,7 @@ export const insertRestaurantListSchema = createInsertSchema(
   makePublic: true,
 });
 
-// Restaurant List Items model (restaurants in a list)
+// Restaurant List Items model (restaurants in a list) - ALIGNED WITH ACTUAL DATABASE
 export const restaurantListItems = pgTable("restaurant_list_items", {
   id: serial("id").primaryKey(),
   listId: integer("list_id").notNull(),
@@ -455,12 +455,6 @@ export const restaurantListItems = pgTable("restaurant_list_items", {
   mustTryDishes: text("must_try_dishes").array(),
   addedById: integer("added_by_id").notNull(),
   position: integer("position").default(0),
-  rank: integer("rank").default(0), // For ranking items in Create & Rank Lists
-  // Enhanced Create & Rank Lists fields
-  name: text("name").notNull(), // Item name (restaurant name or dish name)
-  tags: text("tags").array(), // Tags for the item
-  city: text("city"), // City for the item
-  mediaUrl: text("media_url"), // Media URL for the item
   addedAt: timestamp("added_at").defaultNow().notNull(),
 });
 
@@ -477,11 +471,6 @@ export const insertRestaurantListItemSchema = createInsertSchema(
   mustTryDishes: true,
   addedById: true,
   position: true,
-  rank: true,
-  name: true,
-  tags: true,
-  city: true,
-  mediaUrl: true,
 });
 
 // List Item Comments model (comments on specific list items)

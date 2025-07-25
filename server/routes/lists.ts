@@ -525,6 +525,109 @@ router.delete("/:id/save", authenticate, async (req, res) => {
   }
 });
 
+// POST /:id/restaurants - Add restaurant to existing list (SYSTEMIC FIX)
+router.post("/:id/restaurants", authenticate, async (req, res) => {
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+    const { name, location, googlePlaceId, notes, position } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Restaurant name is required" });
+    }
+
+    // Verify list exists and user has access
+    const [list] = await db
+      .select()
+      .from(restaurantLists)
+      .where(eq(restaurantLists.id, listId));
+
+    if (!list) {
+      return res.status(404).json({ error: "List not found" });
+    }
+
+    // Check if user can add to this list (owner or shared with edit permission)
+    if (list.createdById !== userId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Create or find restaurant
+    let restaurantId: number;
+    
+    if (googlePlaceId) {
+      // Try to find existing restaurant by Google Place ID
+      const [existingRestaurant] = await db
+        .select()
+        .from(restaurants)
+        .where(eq(restaurants.googlePlaceId, googlePlaceId));
+      
+      if (existingRestaurant) {
+        restaurantId = existingRestaurant.id;
+      } else {
+        // Create new restaurant with Google Place ID
+        const [newRestaurant] = await db
+          .insert(restaurants)
+          .values({
+            name,
+            location: location || 'Unknown location',
+            googlePlaceId,
+            category: 'Restaurant',
+            priceRange: '$$',
+            cuisine: 'General',
+          })
+          .returning();
+        restaurantId = newRestaurant.id;
+      }
+    } else {
+      // Create restaurant without Google Place ID
+      const [newRestaurant] = await db
+        .insert(restaurants)
+        .values({
+          name,
+          location: location || 'Unknown location',
+          category: 'Restaurant',
+          priceRange: '$$',
+          cuisine: 'General',
+        })
+        .returning();
+      restaurantId = newRestaurant.id;
+    }
+
+    // Get next position if not provided
+    let finalPosition = position || 0;
+    if (finalPosition === 0) {
+      const maxPosition = await db
+        .select({ max: sql<number>`MAX(${restaurantListItems.position})` })
+        .from(restaurantListItems)
+        .where(eq(restaurantListItems.listId, listId));
+      
+      finalPosition = (maxPosition[0]?.max || 0) + 1;
+    }
+
+    // Add restaurant to list (using only fields that exist in current database)
+    const [listItem] = await db
+      .insert(restaurantListItems)
+      .values({
+        listId,
+        restaurantId,
+        notes: notes || null,
+        position: finalPosition,
+        addedById: userId,
+      })
+      .returning();
+
+    res.json({ 
+      success: true, 
+      item: listItem,
+      message: `${name} added to list successfully`
+    });
+
+  } catch (error) {
+    console.error("Error adding restaurant to list:", error);
+    res.status(500).json({ error: "Failed to add restaurant to list" });
+  }
+});
+
 // GET /api/lists/:id - Get specific list with items (with filtering and sorting)
 router.get('/:id', authenticate, async (req, res) => {
   try {

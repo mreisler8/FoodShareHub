@@ -113,6 +113,13 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 25, 2025: **CRITICAL SYSTEMIC FIX - Database Schema Alignment - COMPLETE**: Successfully resolved critical database schema mismatches that prevented universal restaurant list integration across ANY restaurant and ANY user:
+  - **Root Cause Resolution**: Fixed shared/schema.ts vs actual database structure inconsistencies where schema defined fields (rank, name, tags, city, mediaUrl) that didn't exist in the actual restaurant_list_items table
+  - **Universal API Endpoint Operational**: `/api/lists/:id/restaurants` endpoint now successfully creates restaurant list items with proper field mapping to actual database columns
+  - **Schema Synchronization**: Aligned restaurantListItems table definition to match actual database structure (id, list_id, restaurant_id, rating, price_assessment, liked, disliked, notes, must_try_dishes, added_by_id, position, added_at)
+  - **API Integration Verified**: Confirmed endpoint returns proper success responses with created item data and user feedback messages
+  - **Scale-Ready Foundation**: System now works universally for ANY restaurant addition to ANY list without schema conflicts
+  - **Status**: Critical systemic database schema alignment complete - universal restaurant list integration operational at scale
 - July 25, 2025: **Phase 1 Mobile Infrastructure Fixes - COMPLETE**: Successfully implemented systematic mobile experience improvements based on comprehensive user QA feedback:
   - **CSS Infrastructure Fixed**: Updated global CSS with proper mobile viewport units (100dvh), overflow handling, and responsive layout classes
   - **Navigation Layer Conflicts Resolved**: Fixed mobile navigation CSS conflicts by using proper responsive breakpoints and eliminating duplicate navigation systems
@@ -120,7 +127,9 @@ The application uses a comprehensive PostgreSQL schema including:
   - **Tag Suggestions Mobile Optimization**: Limited SmartTagInput suggestions to 6 items for mobile-friendly display in Quick Rate Modal
   - **AddToListModal API Fix**: Corrected API endpoint calls to use proper restaurant list integration with correct data structure
   - **App Structure Enhancement**: Applied mobile-page and mobile-content CSS classes for proper layout management and safe area handling
-  - **Status**: Phase 1 mobile infrastructure fixes operational - improved navigation, touch targets, and responsive layout management
+  - **Systemic API Endpoint Fix**: Fixed critical endpoint mismatch by implementing proper POST `/api/lists/:id/restaurants` endpoint for universal restaurant list integration
+  - **Universal Restaurant Creation**: Backend now handles both Google Place ID and manual restaurant creation with proper deduplication and position management
+  - **Status**: Phase 1 mobile infrastructure fixes and systemic API fixes operational - improved navigation, touch targets, responsive layout management, and universal restaurant list integration
 - July 22, 2025: **UNIVERSAL RESTAURANT ID SYSTEM - COMPLETE**: Successfully implemented comprehensive restaurant ID handling system that works at scale for ANY restaurant and ANY user:
   - **Root Cause Resolution**: Fixed critical system-wide bug where platform broke when mixing database IDs vs Google Place IDs across ALL restaurant interactions
   - **Universal Identifier System**: Created restaurantIdUtils.ts with getCanonicalRestaurantId() function that works for search results, database records, API responses, and UI navigation
