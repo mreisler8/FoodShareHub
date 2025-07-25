@@ -52,7 +52,7 @@ function CircleScoreDisplay({ restaurantId, googlePlaceId }: {
   // Always show Circle Score (either data, loading, or N/A state)
   return (
     <CircleScoreCard 
-      data={circleScore} 
+      data={circleScore || null} 
       variant="compact" 
       className="text-xs"
       isLoading={isLoading}

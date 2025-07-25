@@ -1,10 +1,8 @@
 import { Router } from 'express';
-import { z } from 'zod';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { userFollowers, users, circleMembers, posts, restaurants } from '../../shared/schema';
-import { sql, alias, desc } from 'drizzle-orm';
+import { userFollowers, users, posts } from '../../shared/schema';
 
 const router = Router();
 
@@ -75,7 +73,7 @@ router.post('/:userId', authenticate, async (req, res) => {
     if (followingId === followerId) {
       return res.status(400).json({ error: 'Cannot follow yourself' });
     }
-    
+
     // Check if already following
     const existingFollow = await db
       .select()
@@ -83,21 +81,23 @@ router.post('/:userId', authenticate, async (req, res) => {
       .where(and(
         eq(userFollowers.followerId, followerId),
         eq(userFollowers.followingId, followingId)
-      ));
-    
+      ))
+      .limit(1);
+
     if (existingFollow.length > 0) {
       return res.status(400).json({ error: 'Already following this user' });
     }
-    
+
     // Create follow relationship
     await db.insert(userFollowers).values({
       followerId,
       followingId,
+      createdAt: new Date()
     });
-    
-    res.json({ message: 'Successfully followed user', isFollowing: true });
+
+    res.json({ success: true, message: 'User followed successfully' });
   } catch (error) {
-    console.error('Error following user:', error);
+    console.error('Follow user error:', error);
     res.status(500).json({ error: 'Failed to follow user' });
   }
 });
@@ -107,82 +107,95 @@ router.delete('/:userId', authenticate, async (req, res) => {
   try {
     const followingId = parseInt(req.params.userId);
     const followerId = req.user!.id;
-    
-    // Prevent unfollowing self
-    if (followingId === followerId) {
-      return res.status(400).json({ error: 'Cannot unfollow yourself' });
-    }
-    
-    const result = await db
+
+    // Remove follow relationship
+    await db
       .delete(userFollowers)
       .where(and(
         eq(userFollowers.followerId, followerId),
         eq(userFollowers.followingId, followingId)
       ));
-    
-    res.json({ message: 'Successfully unfollowed user', isFollowing: false });
+
+    res.json({ success: true, message: 'User unfollowed successfully' });
   } catch (error) {
-    console.error('Error unfollowing user:', error);
+    console.error('Unfollow user error:', error);
     res.status(500).json({ error: 'Failed to unfollow user' });
   }
 });
 
-// GET /api/follow/status/:userId - Check if current user is following another user
+// GET /api/follow/status/:userId - Check if following a user
 router.get('/status/:userId', authenticate, async (req, res) => {
   try {
     const followingId = parseInt(req.params.userId);
     const followerId = req.user!.id;
-    
+
     const follow = await db
       .select()
       .from(userFollowers)
       .where(and(
         eq(userFollowers.followerId, followerId),
         eq(userFollowers.followingId, followingId)
-      ));
-    
+      ))
+      .limit(1);
+
     res.json({ isFollowing: follow.length > 0 });
   } catch (error) {
-    console.error('Error checking follow status:', error);
+    console.error('Follow status error:', error);
     res.status(500).json({ error: 'Failed to check follow status' });
   }
 });
 
-// GET /api/follow/feed - Get posts from followed users for personalized feed
+// GET /api/follow/counts/:userId - Get follower and following counts
+router.get('/counts/:userId', authenticate, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    const [followersCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(userFollowers)
+      .where(eq(userFollowers.followingId, userId));
+      
+    const [followingCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(userFollowers)
+      .where(eq(userFollowers.followerId, userId));
+
+    res.json({
+      followers: followersCount.count,
+      following: followingCount.count
+    });
+  } catch (error) {
+    console.error('Error fetching follow counts:', error);
+    res.status(500).json({ error: 'Failed to fetch follow counts' });
+  }
+});
+
+// GET /api/follow/feed - Get posts from followed users
 router.get('/feed', authenticate, async (req, res) => {
   try {
     const currentUserId = req.user!.id;
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parseInt(req.query.limit as string) || 20;
     const offset = (page - 1) * limit;
 
-    // Get posts from followed users
+    // Get posts from users that the current user follows
     const followedUsersPosts = await db
       .select({
         id: posts.id,
         content: posts.content,
+        images: posts.images,
         rating: posts.rating,
         visibility: posts.visibility,
-        dishesTried: posts.dishesTried,
-        images: posts.images,
         createdAt: posts.createdAt,
-        author: {
-          id: users.id,
-          name: users.name,
-          username: users.username,
-          profilePicture: users.profilePicture,
-        },
-        restaurant: {
-          id: restaurants.id,
-          name: restaurants.name,
-          location: restaurants.location,
-          cuisine: restaurants.cuisine,
-        }
+        userId: posts.userId,
+        restaurantId: posts.restaurantId,
+        authorName: users.name,
+        authorUsername: users.username,
+        authorProfilePicture: users.profilePicture
       })
       .from(posts)
-      .innerJoin(users, eq(posts.userId, users.id))
-      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
       .innerJoin(userFollowers, eq(userFollowers.followingId, posts.userId))
+      .innerJoin(users, eq(users.id, posts.userId))
       .where(and(
         eq(userFollowers.followerId, currentUserId),
         eq(posts.visibility, 'public')
@@ -214,141 +227,6 @@ router.get('/feed', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching followed users feed:', error);
     res.status(500).json({ error: 'Failed to fetch feed' });
-  }
-});
-
-export default router;
-import express from 'express';
-import { z } from 'zod';
-import { db } from '../db';
-import { users } from '../../shared/schema';
-import { eq, and, or } from 'drizzle-orm';
-
-const router = express.Router();
-
-// Follow/Unfollow user
-router.post('/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const followerId = req.session.user?.id;
-
-    if (!followerId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    if (followerId.toString() === userId) {
-      return res.status(400).json({ error: 'Cannot follow yourself' });
-    }
-
-    // Check if already following
-    const existingFollow = await db.query.follows.findFirst({
-      where: and(
-        eq(follows.followerId, followerId),
-        eq(follows.followingId, parseInt(userId))
-      )
-    });
-
-    if (existingFollow) {
-      return res.status(400).json({ error: 'Already following this user' });
-    }
-
-    // Create follow relationship
-    await db.insert(follows).values({
-      followerId,
-      followingId: parseInt(userId),
-      createdAt: new Date()
-    });
-
-    res.json({ success: true, message: 'User followed successfully' });
-  } catch (error) {
-    console.error('Follow user error:', error);
-    res.status(500).json({ error: 'Failed to follow user' });
-  }
-});
-
-// Unfollow user
-router.delete('/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const followerId = req.session.user?.id;
-
-    if (!followerId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    await db.delete(follows).where(
-      and(
-        eq(follows.followerId, followerId),
-        eq(follows.followingId, parseInt(userId))
-      )
-    );
-
-    res.json({ success: true, message: 'User unfollowed successfully' });
-  } catch (error) {
-    console.error('Unfollow user error:', error);
-    res.status(500).json({ error: 'Failed to unfollow user' });
-  }
-});
-
-// Get followers
-router.get('/followers', async (req, res) => {
-  try {
-    const userId = req.session.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const followers = await db.query.follows.findMany({
-      where: eq(follows.followingId, userId),
-      with: {
-        follower: {
-          columns: {
-            id: true,
-            username: true,
-            name: true,
-            profilePicture: true,
-            bio: true
-          }
-        }
-      }
-    });
-
-    res.json(followers.map(f => f.follower));
-  } catch (error) {
-    console.error('Get followers error:', error);
-    res.status(500).json({ error: 'Failed to get followers' });
-  }
-});
-
-// Get following
-router.get('/following', async (req, res) => {
-  try {
-    const userId = req.session.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const following = await db.query.follows.findMany({
-      where: eq(follows.followerId, userId),
-      with: {
-        following: {
-          columns: {
-            id: true,
-            username: true,
-            name: true,
-            profilePicture: true,
-            bio: true
-          }
-        }
-      }
-    });
-
-    res.json(following.map(f => f.following));
-  } catch (error) {
-    console.error('Get following error:', error);
-    res.status(500).json({ error: 'Failed to get following' });
   }
 });
 
