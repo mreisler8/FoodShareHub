@@ -25,7 +25,7 @@ function AppContent() {
 
   return (
     <ErrorBoundary>
-      <div className={showBottomNav ? "pb-20" : ""} style={{ margin: 0, padding: 0 }}>
+      <div className={`mobile-page ${showBottomNav ? "mobile-content" : ""}`}>
         <Router />
       </div>
       {showBottomNav && <BottomNavigation />}

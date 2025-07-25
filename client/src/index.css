@@ -73,6 +73,12 @@
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
 
+    /* Safe Area Support for Mobile */
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+
     /* Spacing & Layout */
     --radius: 8px;
     --radius-sm: 4px;
@@ -140,8 +146,10 @@
   html {
     margin: 0;
     padding: 0;
-    height: 100%;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
     overflow-x: hidden;
+    width: 100%;
   }
 
   body {
@@ -150,11 +158,13 @@
     color: hsl(var(--foreground));
     background: hsl(var(--background));
     font-feature-settings: "rlig" 1, "calt" 1;
-    height: 100%;
+    height: 100vh;
+    height: 100dvh;
     position: relative;
     top: 0;
     left: 0;
     overflow-x: hidden;
+    width: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -162,10 +172,13 @@
   #root {
     margin: 0;
     padding: 0;
-    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
     position: relative;
     top: 0;
     left: 0;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   * {
@@ -489,24 +502,79 @@
   }
 
   /* Navigation fixes */
+  /* Enhanced Mobile Navigation - QA Fix */
   .nav-mobile {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 50;
-    background: hsl(var(--background));
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-top: 1px solid hsl(var(--border));
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    padding-bottom: var(--safe-area-inset-bottom);
+    width: 100%;
   }
 
-  @media (min-width: 768px) {
-    .nav-mobile {
-      display: none;
+  .mobile-button {
+    min-height: 44px; /* iOS recommended touch target size */
+    min-width: 44px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    touch-action: manipulation; /* Prevents zoom on double-tap */
+    -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
+  }
+
+  .mobile-button:active {
+    scale: 0.95;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .mobile-button:hover {
+      transform: translateY(-1px);
     }
   }
 
+  /* Proper responsive navigation - only one at a time */
+  @media (max-width: 1024px) {
+    .sidebar-desktop {
+      display: none !important;
+    }
+    
+    /* Ensure mobile content has proper spacing for fixed bottom nav */
+    .mobile-content {
+      padding-bottom: calc(80px + var(--safe-area-inset-bottom));
+    }
+  }
+
+  /* Desktop navigation */
   .nav-desktop {
     display: none;
+  }
+
+  @media (min-width: 1025px) {
+    .nav-mobile {
+      display: none !important;
+    }
+    
+    .mobile-content {
+      padding-bottom: 0;
+    }
+    
+    .nav-desktop {
+      display: block;
+    }
+  }
+
+  /* Fix scrolling issues on mobile */
+  .mobile-page {
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   @media (min-width: 768px) {

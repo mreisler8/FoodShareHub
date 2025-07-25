@@ -43,19 +43,18 @@ export default function AddToListModal({ isOpen, onClose, restaurant }: AddToLis
 
   const addToListMutation = useMutation({
     mutationFn: async (listIds: number[]) => {
-      // Add restaurant to each selected list
-      const promises = listIds.map(listId => 
-        apiRequest(`/api/lists/${listId}/items`, {
-          method: 'POST',
-          body: JSON.stringify({
-            restaurantId: restaurant.id || 0, // Will be validated on server
-            googlePlaceId: restaurant.googlePlaceId,
-            name: restaurant.name,
-            notes: `Added from restaurant page`,
-          }),
-          headers: { 'Content-Type': 'application/json' }
-        })
-      );
+      // Add restaurant to each selected list using correct API format
+      const promises = listIds.map(async (listId) => {
+        const restaurantData = {
+          name: restaurant.name,
+          location: restaurant.location || restaurant.address,
+          googlePlaceId: restaurant.googlePlaceId,
+          notes: `Added from restaurant page`,
+          position: 0 // Server will calculate actual position
+        };
+        
+        return apiRequest('POST', `/api/lists/${listId}/restaurants`, restaurantData);
+      });
       
       return Promise.all(promises);
     },

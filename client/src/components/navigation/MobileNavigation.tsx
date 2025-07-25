@@ -25,7 +25,7 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="nav-mobile bg-background/98 backdrop-blur-md shadow-lg border-t border-soft-sand-30" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+    <div className="nav-mobile">
       <div className="flex justify-around items-center h-16 px-3 max-w-screen-sm mx-auto">
         <Link href="/" className="flex-1 h-full">
           <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
