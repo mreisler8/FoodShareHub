@@ -11,13 +11,13 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // User model
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  name: text("name").notNull(),
-  bio: text("bio"),
-  profilePicture: text("profile_picture"),
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  username: text('username').notNull().unique(),
+  password: text('password').notNull(),
+  name: text('name').notNull(),
+  bio: text('bio'),
+  profilePicture: text('profile_picture'),
   // Dining preferences for personalized suggestions
   preferredCuisines: text("preferred_cuisines").array(),
   preferredPriceRange: text("preferred_price_range"),
@@ -36,6 +36,13 @@ export const insertUserSchema = createInsertSchema(users).pick({
   profilePicture: true,
   favoriteFood: true,
   favoriteRestaurant: true,
+});
+
+export const follows = pgTable('follows', {
+  id: serial('id').primaryKey(),
+  followerId: integer('follower_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  followingId: integer('following_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Restaurant model

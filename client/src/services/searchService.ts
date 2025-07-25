@@ -64,7 +64,7 @@ export class SearchService {
   }
 
   /**
-   * Unified search across all content types with semantic enhancements
+   * Unified search across all content types with Circle Score integration
    */
   async searchUnified(query: string, options: SearchOptions = {}): Promise<UnifiedSearchResults> {
     if (query.length < 2) {
@@ -76,6 +76,11 @@ export class SearchService {
     // Add location parameters if available with expanded radius for better coverage
     if (options.location) {
       searchUrl += `&lat=${options.location.lat}&lng=${options.location.lng}&radius=${options.radius || 25000}`;
+    }
+
+    // Add sorting preference
+    if (options.sortBy) {
+      searchUrl += `&sortBy=${options.sortBy}`;
     }
 
     const response = await fetch(searchUrl, {
@@ -110,6 +115,11 @@ export class SearchService {
     }
 
     const results = await response.json();
+
+    // Enhance restaurant results with Circle Score data
+    if (results.restaurants && results.restaurants.length > 0) {
+      results.restaurants = await this.enhanceRestaurantsWithCircleScore(results.restaurants);
+    }
 
     // Sort by exact match first, then by specified sort option
     if (results.restaurants) {
@@ -263,5 +273,65 @@ export class SearchService {
       // Silently fail - analytics recording is not critical
       console.warn('Failed to record search:', error);
     }
+  }
+
+  /**
+   * Enhance restaurant results with Circle Score data
+   */
+  private async enhanceRestaurantsWithCircleScore(restaurants: SearchResult[]): Promise<SearchResult[]> {
+    const enhancedRestaurants = await Promise.all(
+      restaurants.map(async (restaurant) => {
+        try {
+          // Fetch Circle Score for each restaurant
+          const response = await fetch(`/api/circle-score/${restaurant.id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const circleScoreData = await response.json();
+            return {
+              ...restaurant,
+              metadata: {
+                ...restaurant.metadata,
+                circleScore: circleScoreData.score,
+                circleScoreCount: circleScoreData.count,
+                circleScoreDescription: circleScoreData.description
+              }
+            };
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch Circle Score for restaurant ${restaurant.id}:`, error);
+        }
+        
+        return restaurant;
+      })
+    );
+
+    return enhancedRestaurants;
+  }
+
+  /**
+   * Get Circle Score for a specific restaurant
+   */
+  async getCircleScore(restaurantId: string): Promise<{ score: number; count: number; description: string } | null> {
+    try {
+      const response = await fetch(`/api/circle-score/${restaurantId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch Circle Score for restaurant ${restaurantId}:`, error);
+    }
+    
+    return null;
   }
 }

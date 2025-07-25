@@ -218,3 +218,138 @@ router.get('/feed', authenticate, async (req, res) => {
 });
 
 export default router;
+import express from 'express';
+import { z } from 'zod';
+import { db } from '../db';
+import { users } from '../../shared/schema';
+import { eq, and, or } from 'drizzle-orm';
+
+const router = express.Router();
+
+// Follow/Unfollow user
+router.post('/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const followerId = req.session.user?.id;
+
+    if (!followerId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (followerId.toString() === userId) {
+      return res.status(400).json({ error: 'Cannot follow yourself' });
+    }
+
+    // Check if already following
+    const existingFollow = await db.query.follows.findFirst({
+      where: and(
+        eq(follows.followerId, followerId),
+        eq(follows.followingId, parseInt(userId))
+      )
+    });
+
+    if (existingFollow) {
+      return res.status(400).json({ error: 'Already following this user' });
+    }
+
+    // Create follow relationship
+    await db.insert(follows).values({
+      followerId,
+      followingId: parseInt(userId),
+      createdAt: new Date()
+    });
+
+    res.json({ success: true, message: 'User followed successfully' });
+  } catch (error) {
+    console.error('Follow user error:', error);
+    res.status(500).json({ error: 'Failed to follow user' });
+  }
+});
+
+// Unfollow user
+router.delete('/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const followerId = req.session.user?.id;
+
+    if (!followerId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    await db.delete(follows).where(
+      and(
+        eq(follows.followerId, followerId),
+        eq(follows.followingId, parseInt(userId))
+      )
+    );
+
+    res.json({ success: true, message: 'User unfollowed successfully' });
+  } catch (error) {
+    console.error('Unfollow user error:', error);
+    res.status(500).json({ error: 'Failed to unfollow user' });
+  }
+});
+
+// Get followers
+router.get('/followers', async (req, res) => {
+  try {
+    const userId = req.session.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const followers = await db.query.follows.findMany({
+      where: eq(follows.followingId, userId),
+      with: {
+        follower: {
+          columns: {
+            id: true,
+            username: true,
+            name: true,
+            profilePicture: true,
+            bio: true
+          }
+        }
+      }
+    });
+
+    res.json(followers.map(f => f.follower));
+  } catch (error) {
+    console.error('Get followers error:', error);
+    res.status(500).json({ error: 'Failed to get followers' });
+  }
+});
+
+// Get following
+router.get('/following', async (req, res) => {
+  try {
+    const userId = req.session.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const following = await db.query.follows.findMany({
+      where: eq(follows.followerId, userId),
+      with: {
+        following: {
+          columns: {
+            id: true,
+            username: true,
+            name: true,
+            profilePicture: true,
+            bio: true
+          }
+        }
+      }
+    });
+
+    res.json(following.map(f => f.following));
+  } catch (error) {
+    console.error('Get following error:', error);
+    res.status(500).json({ error: 'Failed to get following' });
+  }
+});
+
+export default router;
