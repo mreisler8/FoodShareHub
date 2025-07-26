@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings, TrendingUp, Activity } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings, TrendingUp, Activity, Bell } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -6,17 +6,39 @@ import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { useState } from 'react';
 
 export function DesktopSidebar() {
   const [location] = useLocation();
   const { logoutMutation } = useAuth();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   // Get current user
   const { data: currentUser, isLoading } = useQuery<User | undefined>({
     queryKey: ["/api/me"],
   });
   
+  // Get activity indicators data
+  const { data: pendingInvites } = useQuery({
+    queryKey: ['/api/circles/invites/pending'],
+    enabled: !!currentUser,
+  });
+  
+  const { data: pendingRequests } = useQuery({
+    queryKey: ['/api/circles/requests/pending'],
+    enabled: !!currentUser,
+  });
+  
+  const { data: followRequests } = useQuery({
+    queryKey: ['/api/follow/requests/pending'],
+    enabled: !!currentUser,
+  });
+  
   const isAuthenticated = !!currentUser;
+  
+  // Calculate total notifications
+  const totalNotifications = (pendingInvites?.length || 0) + (pendingRequests?.length || 0) + (followRequests?.length || 0);
   
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -70,6 +92,18 @@ export function DesktopSidebar() {
       
       <nav className="flex-1" role="navigation" aria-label="Main navigation">
         <ul className="space-y-2">
+          {/* Search - elevated to top like Instagram */}
+          <li>
+            <button 
+              onClick={() => setIsSearchOpen(true)}
+              className={`w-full ${getNavItemClasses('/search')} bg-gray-50 hover:bg-gray-100 transition-colors`}
+              aria-label="Search restaurants and users"
+            >
+              <Search className="w-6 mr-2" aria-hidden="true" />
+              <span>Search</span>
+            </button>
+          </li>
+          
           <li>
             <Link href="/" aria-label="View your feed">
               <div className={getNavItemClasses("/")} role="menuitem" tabIndex={0}>
@@ -81,7 +115,7 @@ export function DesktopSidebar() {
           <li>
             <Link href="/discover" aria-label="Discover new restaurants">
               <div className={getNavItemClasses("/discover")} role="menuitem" tabIndex={0}>
-                <Search className="w-6 mr-2" aria-hidden="true" />
+                <TrendingUp className="w-6 mr-2" aria-hidden="true" />
                 <span>Discover</span>
               </div>
             </Link>
@@ -94,18 +128,26 @@ export function DesktopSidebar() {
               </div>
             </Link>
           </li>
+          {/* Enhanced Create Post with prominence */}
           <li>
             <Link href="/create-post" aria-label="Create a new post">
-              <div className={getNavItemClasses("/create-post")} role="menuitem" tabIndex={0}>
-                <PlusCircle className="w-6 mr-2" aria-hidden="true" />
-                <span>Create Post</span>
+              <div className={`${getNavItemClasses("/create-post")} bg-primary/5 border-primary/20 font-semibold`} role="menuitem" tabIndex={0}>
+                <PlusCircle className="w-6 mr-2 text-primary" aria-hidden="true" />
+                <span className="text-primary">Create Post</span>
               </div>
             </Link>
           </li>
           <li>
             <Link href="/circles" aria-label="View your circles">
               <div className={getNavItemClasses("/circles")} role="menuitem" tabIndex={0}>
-                <Users className="w-6 mr-2" aria-hidden="true" />
+                <div className="relative">
+                  <Users className="w-6 mr-2" aria-hidden="true" />
+                  {totalNotifications > 0 && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {totalNotifications > 9 ? '9+' : totalNotifications}
+                    </div>
+                  )}
+                </div>
                 <span>Circles</span>
               </div>
             </Link>
@@ -153,6 +195,23 @@ export function DesktopSidebar() {
         </ul>
       </nav>
       
+      {/* Activity/Notifications Section */}
+      {isAuthenticated && totalNotifications > 0 && (
+        <div className="border-t border-neutral-200 pt-4 mt-4">
+          <Link href="/circles" aria-label="View notifications">
+            <div className={`${getNavItemClasses("/notifications")} bg-blue-50 border-blue-200`} role="menuitem" tabIndex={0}>
+              <div className="relative">
+                <Bell className="w-6 mr-2 text-blue-600" aria-hidden="true" />
+                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalNotifications > 9 ? '9+' : totalNotifications}
+                </div>
+              </div>
+              <span className="text-blue-700 font-medium">Activity</span>
+            </div>
+          </Link>
+        </div>
+      )}
+      
       <div className="mt-auto pt-5 border-t border-neutral-200">
         <Link href="/profile">
           <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
@@ -174,6 +233,12 @@ export function DesktopSidebar() {
           <span>Logout</span>
         </div>
       </div>
+      
+      {/* Unified Search Modal */}
+      <UnifiedSearchModal
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+      />
     </div>
   );
 }
