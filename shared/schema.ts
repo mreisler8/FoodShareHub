@@ -823,5 +823,29 @@ export const insertSharedRecommendationSchema = createInsertSchema(sharedRecomme
 export type SharedRecommendation = typeof sharedRecommendations.$inferSelect;
 export type InsertSharedRecommendation = z.infer<typeof insertSharedRecommendationSchema>;
 
+// Accepted Recommendations model for tracking "Tried It" interactions
+export const acceptedRecommendations = pgTable('accepted_recommendations', {
+  id: serial('id').primaryKey(),
+  actorUserId: integer('actor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  recommenderUserId: integer('recommender_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  entityType: text('entity_type').notNull(), // 'list', 'rating', 'post'
+  entityId: integer('entity_id').notNull(),
+  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  sourceContext: text('source_context'), // 'list_item', 'restaurant_page', 'rating_card', etc.
+  ratingValue: integer('rating_value'), // 1-5 if user rated after trying
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  uniqueRecommendation: index('unique_recommendation_idx').on(table.actorUserId, table.entityType, table.entityId, table.restaurantId),
+}));
+
+export const insertAcceptedRecommendationSchema = createInsertSchema(acceptedRecommendations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AcceptedRecommendation = typeof acceptedRecommendations.$inferSelect;
+export type InsertAcceptedRecommendation = z.infer<typeof insertAcceptedRecommendationSchema>;
+
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations

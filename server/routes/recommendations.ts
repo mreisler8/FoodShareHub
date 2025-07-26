@@ -1,344 +1,326 @@
-import { Router } from 'express';
-import { authenticate } from '../auth';
-import { db } from '../db';
-import { eq, desc, and, or, sql, inArray } from 'drizzle-orm';
+import { Router } from "express";
+import { eq, and, sql, desc, count } from "drizzle-orm";
+import { db } from "../db";
 import { 
-  posts, 
-  users, 
+  acceptedRecommendations, 
   restaurants, 
-  userFollowers, 
-  restaurantLists, 
-  restaurantListItems,
-  circleMembers,
-  circles
-} from '../../shared/schema';
+  users, 
+  restaurantLists,
+  ratings,
+  posts,
+  insertAcceptedRecommendationSchema 
+} from "../../shared/schema";
+import { authenticate } from "../auth";
+import rateLimit from "express-rate-limit";
 
 const router = Router();
 
-// GET /api/recommendations/recent - Get recent recommendations from followed users
-router.get('/recent', authenticate, async (req, res) => {
+// Rate limiting: max 10 accepts per minute per user
+const acceptRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  message: { error: "Too many acceptance requests. Try again in a minute." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// POST /api/recommendations/accept - Record recommendation acceptance
+router.post("/accept", authenticate, acceptRateLimit, async (req, res) => {
   try {
-    const userId = req.user!.id;
-    const { theme, location, cuisine, priceRange, limit = 20 } = req.query;
-    
-    // Get users that the current user follows
-    const followedUsers = await db
-      .select({ followingId: userFollowers.followingId })
-      .from(userFollowers)
-      .where(eq(userFollowers.followerId, userId));
-    
-    const followedUserIds = followedUsers.map(f => f.followingId);
-    
-    if (followedUserIds.length === 0) {
-      return res.json({
-        recommendations: [],
-        summary: {
-          totalRecommendations: 0,
-          byTheme: {},
-          byLocation: {},
-          byCuisine: {},
-          byPriceRange: {}
-        }
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Validate request body
+    const validationResult = insertAcceptedRecommendationSchema.safeParse({
+      ...req.body,
+      actorUserId: userId,
+    });
+
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid request data",
+        details: validationResult.error.errors 
       });
     }
-    
-    // Build filter conditions
-    let filterConditions = [
-      inArray(posts.userId, followedUserIds),
-      eq(posts.visibility, 'public') // Only public posts
-    ];
-    
-    if (cuisine) {
-      filterConditions.push(eq(restaurants.cuisine, cuisine as string));
-    }
-    
-    if (location) {
-      filterConditions.push(sql`${restaurants.location} ILIKE ${'%' + location + '%'}`);
-    }
-    
-    if (priceRange) {
-      filterConditions.push(eq(restaurants.priceRange, priceRange as string));
-    }
-    
-    // Get recent recommendations (posts with high ratings)
-    const recommendations = await db
-      .select({
-        id: posts.id,
-        content: posts.content,
-        rating: posts.rating,
-        dishesTried: posts.dishesTried,
-        images: posts.images,
-        createdAt: posts.createdAt,
-        author: {
-          id: users.id,
-          name: users.name,
-          username: users.username,
-          profilePicture: users.profilePicture,
-        },
-        restaurant: {
-          id: restaurants.id,
-          name: restaurants.name,
-          location: restaurants.location,
-          cuisine: restaurants.cuisine,
-          priceRange: restaurants.priceRange,
-          address: restaurants.address,
-          imageUrl: restaurants.imageUrl,
-        }
-      })
-      .from(posts)
-      .innerJoin(users, eq(posts.userId, users.id))
-      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
-      .where(and(...filterConditions))
-      .orderBy(desc(posts.createdAt))
-      .limit(parseInt(limit as string));
-    
-    // Get summary statistics
-    const summaryQuery = await db
-      .select({
-        totalCount: sql<number>`count(*)::int`,
-        cuisine: restaurants.cuisine,
-        location: restaurants.location,
-        priceRange: restaurants.priceRange,
-        avgRating: sql<number>`avg(${posts.rating})::numeric(3,2)`,
-      })
-      .from(posts)
-      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
-      .where(and(
-        inArray(posts.userId, followedUserIds),
-        eq(posts.visibility, 'public')
-      ))
-      .groupBy(restaurants.cuisine, restaurants.location, restaurants.priceRange);
-    
-    // Process summary data
-    const summary = {
-      totalRecommendations: recommendations.length,
-      byTheme: {} as Record<string, number>,
-      byLocation: {} as Record<string, number>,
-      byCuisine: {} as Record<string, number>,
-      byPriceRange: {} as Record<string, number>
-    };
-    
-    summaryQuery.forEach(item => {
-      if (item.cuisine) {
-        summary.byCuisine[item.cuisine] = (summary.byCuisine[item.cuisine] || 0) + 1;
-      }
-      if (item.location) {
-        summary.byLocation[item.location] = (summary.byLocation[item.location] || 0) + 1;
-      }
-      if (item.priceRange) {
-        summary.byPriceRange[item.priceRange] = (summary.byPriceRange[item.priceRange] || 0) + 1;
-      }
-    });
-    
-    res.json({
-      recommendations,
-      summary,
-      filters: {
-        theme,
-        location,
-        cuisine,
-        priceRange
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error fetching recent recommendations:', error);
-    res.status(500).json({ error: 'Failed to fetch recommendations' });
-  }
-});
 
-// GET /api/recommendations/trending - Get trending recommendations in user's network
-router.get('/trending', authenticate, async (req, res) => {
-  try {
-    const userId = req.user!.id;
-    const { days = 7, limit = 10 } = req.query;
-    
-    // Get users that the current user follows
-    const followedUsers = await db
-      .select({ followingId: userFollowers.followingId })
-      .from(userFollowers)
-      .where(eq(userFollowers.followerId, userId));
-    
-    const followedUserIds = followedUsers.map(f => f.followingId);
-    
-    if (followedUserIds.length === 0) {
-      return res.json([]);
-    }
-    
-    // Get trending restaurants based on recent high-rated posts from followed users
-    const trendingRecommendations = await db.execute(sql`
-      SELECT 
-        r.id,
-        r.name,
-        r.location,
-        r.cuisine,
-        r.price_range as "priceRange",
-        r.address,
-        r.image_url as "imageUrl",
-        COUNT(p.id) as "mentionCount",
-        AVG(p.rating) as "avgRating",
-        ARRAY_AGG(DISTINCT p.dishes_tried) as "popularDishes",
-        ARRAY_AGG(DISTINCT u.name) as "recommendedBy"
-      FROM restaurants r
-      INNER JOIN posts p ON r.id = p.restaurant_id
-      INNER JOIN users u ON p.user_id = u.id
-      WHERE p.user_id = ANY(${followedUserIds})
-        AND p.created_at >= NOW() - INTERVAL '${days} days'
-        AND p.visibility = 'public'
-        AND p.rating >= 4
-      GROUP BY r.id, r.name, r.location, r.cuisine, r.price_range, r.address, r.image_url
-      ORDER BY COUNT(p.id) DESC, AVG(p.rating) DESC
-      LIMIT ${parseInt(limit as string)}
-    `);
-    
-    res.json(trendingRecommendations.rows);
-    
-  } catch (error) {
-    console.error('Error fetching trending recommendations:', error);
-    res.status(500).json({ error: 'Failed to fetch trending recommendations' });
-  }
-});
+    const data = validationResult.data;
 
-// GET /api/recommendations/by-circle - Get recommendations from circle members
-router.get('/by-circle', authenticate, async (req, res) => {
-  try {
-    const userId = req.user!.id;
-    const { circleId, limit = 20 } = req.query;
-    
-    // Get user's circles if no specific circle specified
-    let targetCircleIds: number[] = [];
-    
-    if (circleId) {
-      // Verify user is member of the specified circle
-      const membership = await db
-        .select()
-        .from(circleMembers)
-        .where(and(
-          eq(circleMembers.circleId, parseInt(circleId as string)),
-          eq(circleMembers.userId, userId)
-        ))
-        .limit(1);
-      
-      if (membership.length === 0) {
-        return res.status(403).json({ error: 'Not a member of this circle' });
-      }
-      
-      targetCircleIds = [parseInt(circleId as string)];
-    } else {
-      // Get all circles user is member of
-      const userCircles = await db
-        .select({ circleId: circleMembers.circleId })
-        .from(circleMembers)
-        .where(eq(circleMembers.userId, userId));
-      
-      targetCircleIds = userCircles.map(c => c.circleId);
+    // Validate entity type
+    if (!['list', 'rating', 'post'].includes(data.entityType)) {
+      return res.status(400).json({ error: "Invalid entity type" });
     }
-    
-    if (targetCircleIds.length === 0) {
-      return res.json([]);
+
+    // Validate rating value if provided
+    if (data.ratingValue && (data.ratingValue < 1 || data.ratingValue > 5)) {
+      return res.status(400).json({ error: "Rating value must be between 1 and 5" });
     }
-    
-    // Get recommendations from circle members
-    const circleRecommendations = await db
-      .select({
-        id: posts.id,
-        content: posts.content,
-        rating: posts.rating,
-        dishesTried: posts.dishesTried,
-        images: posts.images,
-        createdAt: posts.createdAt,
-        author: {
-          id: users.id,
-          name: users.name,
-          username: users.username,
-          profilePicture: users.profilePicture,
-        },
-        restaurant: {
-          id: restaurants.id,
-          name: restaurants.name,
-          location: restaurants.location,
-          cuisine: restaurants.cuisine,
-          priceRange: restaurants.priceRange,
-          address: restaurants.address,
-          imageUrl: restaurants.imageUrl,
-        },
-        circle: {
-          id: circles.id,
-          name: circles.name,
-        }
-      })
-      .from(posts)
-      .innerJoin(users, eq(posts.userId, users.id))
-      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
-      .innerJoin(circleMembers, eq(circleMembers.userId, posts.userId))
-      .innerJoin(circles, eq(circles.id, circleMembers.circleId))
-      .where(and(
-        inArray(circleMembers.circleId, targetCircleIds),
-        or(
-          eq(posts.visibility, 'public'),
-          eq(posts.visibility, 'circles')
+
+    // Check if user is trying to accept their own recommendation
+    if (data.actorUserId === data.recommenderUserId) {
+      return res.status(400).json({ error: "Cannot accept your own recommendation" });
+    }
+
+    // Verify the entity exists based on type
+    let entityExists = false;
+    switch (data.entityType) {
+      case 'list':
+        const listCheck = await db.select().from(restaurantLists).where(eq(restaurantLists.id, data.entityId)).limit(1);
+        entityExists = listCheck.length > 0;
+        break;
+      case 'rating':
+        const ratingCheck = await db.select().from(ratings).where(eq(ratings.id, data.entityId)).limit(1);
+        entityExists = ratingCheck.length > 0;
+        break;
+      case 'post':
+        const postCheck = await db.select().from(posts).where(eq(posts.id, data.entityId)).limit(1);
+        entityExists = postCheck.length > 0;
+        break;
+    }
+
+    if (!entityExists) {
+      return res.status(404).json({ error: "Referenced entity not found" });
+    }
+
+    // Verify restaurant exists
+    const restaurantCheck = await db.select().from(restaurants).where(eq(restaurants.id, data.restaurantId)).limit(1);
+    if (restaurantCheck.length === 0) {
+      return res.status(404).json({ error: "Restaurant not found" });
+    }
+
+    // Verify recommender user exists
+    const recommenderCheck = await db.select().from(users).where(eq(users.id, data.recommenderUserId)).limit(1);
+    if (recommenderCheck.length === 0) {
+      return res.status(404).json({ error: "Recommender not found" });
+    }
+
+    // Check for existing acceptance to prevent duplicates
+    const existingAcceptance = await db
+      .select()
+      .from(acceptedRecommendations)
+      .where(
+        and(
+          eq(acceptedRecommendations.actorUserId, data.actorUserId),
+          eq(acceptedRecommendations.entityType, data.entityType),
+          eq(acceptedRecommendations.entityId, data.entityId),
+          eq(acceptedRecommendations.restaurantId, data.restaurantId)
         )
-      ))
-      .orderBy(desc(posts.createdAt))
-      .limit(parseInt(limit as string));
-    
-    res.json(circleRecommendations);
-    
+      )
+      .limit(1);
+
+    if (existingAcceptance.length > 0) {
+      return res.status(409).json({ 
+        error: "Recommendation already accepted",
+        acceptedAt: existingAcceptance[0].createdAt 
+      });
+    }
+
+    // Insert the acceptance record
+    const [newAcceptance] = await db
+      .insert(acceptedRecommendations)
+      .values(data)
+      .returning();
+
+    res.status(201).json({
+      success: true,
+      message: "Recommendation accepted successfully",
+      acceptance: newAcceptance
+    });
+
   } catch (error) {
-    console.error('Error fetching circle recommendations:', error);
-    res.status(500).json({ error: 'Failed to fetch circle recommendations' });
+    console.error("Error accepting recommendation:", error);
+    res.status(500).json({ error: "Failed to accept recommendation" });
   }
 });
 
-// GET /api/recommendations/filters - Get available filter options
-router.get('/filters', authenticate, async (req, res) => {
+// GET /api/recommendations/accepted/:userId - User's accepted recommendations
+router.get("/accepted/:userId", authenticate, async (req, res) => {
   try {
-    const userId = req.user!.id;
-    
-    // Get users that the current user follows
-    const followedUsers = await db
-      .select({ followingId: userFollowers.followingId })
-      .from(userFollowers)
-      .where(eq(userFollowers.followerId, userId));
-    
-    const followedUserIds = followedUsers.map(f => f.followingId);
-    
-    if (followedUserIds.length === 0) {
-      return res.json({
-        cuisines: [],
-        locations: [],
-        priceRanges: []
-      });
+    const userId = parseInt(req.params.userId);
+    const currentUserId = req.user?.id;
+
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
     }
-    
-    // Get distinct filter options from followed users' posts
-    const filterOptions = await db
+
+    // Users can only view their own accepted recommendations unless they're viewing public data
+    if (userId !== currentUserId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const acceptedRecs = await db
       .select({
-        cuisine: restaurants.cuisine,
-        location: restaurants.location,
-        priceRange: restaurants.priceRange,
+        id: acceptedRecommendations.id,
+        entityType: acceptedRecommendations.entityType,
+        entityId: acceptedRecommendations.entityId,
+        sourceContext: acceptedRecommendations.sourceContext,
+        ratingValue: acceptedRecommendations.ratingValue,
+        notes: acceptedRecommendations.notes,
+        createdAt: acceptedRecommendations.createdAt,
+        restaurant: {
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+          cuisine: restaurants.cuisine,
+        },
+        recommender: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+        }
       })
-      .from(posts)
-      .innerJoin(restaurants, eq(posts.restaurantId, restaurants.id))
-      .where(and(
-        inArray(posts.userId, followedUserIds),
-        eq(posts.visibility, 'public')
-      ))
-      .groupBy(restaurants.cuisine, restaurants.location, restaurants.priceRange);
-    
-    const cuisines = [...new Set(filterOptions.map(f => f.cuisine).filter(Boolean))];
-    const locations = [...new Set(filterOptions.map(f => f.location).filter(Boolean))];
-    const priceRanges = [...new Set(filterOptions.map(f => f.priceRange).filter(Boolean))];
-    
-    res.json({
-      cuisines: cuisines.sort(),
-      locations: locations.sort(),
-      priceRanges: priceRanges.sort()
-    });
-    
+      .from(acceptedRecommendations)
+      .leftJoin(restaurants, eq(acceptedRecommendations.restaurantId, restaurants.id))
+      .leftJoin(users, eq(acceptedRecommendations.recommenderUserId, users.id))
+      .where(eq(acceptedRecommendations.actorUserId, userId))
+      .orderBy(desc(acceptedRecommendations.createdAt))
+      .limit(50);
+
+    res.json(acceptedRecs);
+
   } catch (error) {
-    console.error('Error fetching filter options:', error);
-    res.status(500).json({ error: 'Failed to fetch filter options' });
+    console.error("Error fetching accepted recommendations:", error);
+    res.status(500).json({ error: "Failed to fetch accepted recommendations" });
+  }
+});
+
+// GET /api/recommendations/impact/:userId - Recommender's influence stats
+router.get("/impact/:userId", authenticate, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    // Get overall impact stats
+    const [impactStats] = await db
+      .select({
+        totalAcceptances: count(acceptedRecommendations.id),
+        uniqueUsers: sql<number>`COUNT(DISTINCT ${acceptedRecommendations.actorUserId})`,
+        averageRating: sql<number>`AVG(${acceptedRecommendations.ratingValue})`,
+      })
+      .from(acceptedRecommendations)
+      .where(eq(acceptedRecommendations.recommenderUserId, userId));
+
+    // Get recent acceptances with details
+    const recentAcceptances = await db
+      .select({
+        id: acceptedRecommendations.id,
+        entityType: acceptedRecommendations.entityType,
+        entityId: acceptedRecommendations.entityId,
+        sourceContext: acceptedRecommendations.sourceContext,
+        ratingValue: acceptedRecommendations.ratingValue,
+        createdAt: acceptedRecommendations.createdAt,
+        restaurant: {
+          id: restaurants.id,
+          name: restaurants.name,
+          location: restaurants.location,
+        },
+        actor: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+        }
+      })
+      .from(acceptedRecommendations)
+      .leftJoin(restaurants, eq(acceptedRecommendations.restaurantId, restaurants.id))
+      .leftJoin(users, eq(acceptedRecommendations.actorUserId, users.id))
+      .where(eq(acceptedRecommendations.recommenderUserId, userId))
+      .orderBy(desc(acceptedRecommendations.createdAt))
+      .limit(20);
+
+    // Get breakdown by entity type
+    const entityTypeBreakdown = await db
+      .select({
+        entityType: acceptedRecommendations.entityType,
+        count: count(acceptedRecommendations.id),
+      })
+      .from(acceptedRecommendations)
+      .where(eq(acceptedRecommendations.recommenderUserId, userId))
+      .groupBy(acceptedRecommendations.entityType);
+
+    res.json({
+      summary: {
+        totalAcceptances: impactStats.totalAcceptances || 0,
+        uniqueUsers: impactStats.uniqueUsers || 0,
+        averageRating: impactStats.averageRating || null,
+      },
+      recentAcceptances,
+      breakdown: entityTypeBreakdown,
+    });
+
+  } catch (error) {
+    console.error("Error fetching impact stats:", error);
+    res.status(500).json({ error: "Failed to fetch impact stats" });
+  }
+});
+
+// GET /api/recommendations/stats/:entityType/:entityId - Get acceptance count for content
+router.get("/stats/:entityType/:entityId", authenticate, async (req, res) => {
+  try {
+    const { entityType, entityId } = req.params;
+    const entityIdNum = parseInt(entityId);
+
+    if (!entityType || !entityId || isNaN(entityIdNum)) {
+      return res.status(400).json({ error: "Invalid parameters" });
+    }
+
+    if (!['list', 'rating', 'post'].includes(entityType)) {
+      return res.status(400).json({ error: "Invalid entity type" });
+    }
+
+    // Get acceptance stats for this specific content
+    const [stats] = await db
+      .select({
+        totalAcceptances: count(acceptedRecommendations.id),
+        uniqueUsers: sql<number>`COUNT(DISTINCT ${acceptedRecommendations.actorUserId})`,
+        averageRating: sql<number>`AVG(${acceptedRecommendations.ratingValue})`,
+      })
+      .from(acceptedRecommendations)
+      .where(
+        and(
+          eq(acceptedRecommendations.entityType, entityType),
+          eq(acceptedRecommendations.entityId, entityIdNum)
+        )
+      );
+
+    // Get recent acceptors (for "Tried by X people" display)
+    const recentAcceptors = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        username: users.username,
+        profilePicture: users.profilePicture,
+        acceptedAt: acceptedRecommendations.createdAt,
+        ratingValue: acceptedRecommendations.ratingValue,
+      })
+      .from(acceptedRecommendations)
+      .leftJoin(users, eq(acceptedRecommendations.actorUserId, users.id))
+      .where(
+        and(
+          eq(acceptedRecommendations.entityType, entityType),
+          eq(acceptedRecommendations.entityId, entityIdNum)
+        )
+      )
+      .orderBy(desc(acceptedRecommendations.createdAt))
+      .limit(10);
+
+    res.json({
+      stats: {
+        totalAcceptances: stats.totalAcceptances || 0,
+        uniqueUsers: stats.uniqueUsers || 0,
+        averageRating: stats.averageRating || null,
+      },
+      recentAcceptors,
+    });
+
+  } catch (error) {
+    console.error("Error fetching entity stats:", error);
+    res.status(500).json({ error: "Failed to fetch entity stats" });
   }
 });
 

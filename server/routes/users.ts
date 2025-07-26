@@ -495,7 +495,7 @@ router.get("/:id/ratings", authenticate, validateUserId, validateTargetUserId, a
         .select({
           id: sql<number>`ratings.id`,
           ratingValue: sql<number>`ratings.rating_value`,
-          notes: sql<string>`ratings.notes`,
+          notes: sql<string>`ratings.note`,
           tags: sql<string[]>`ratings.tags`,
           createdAt: sql<string>`ratings.created_at`,
           restaurant: {

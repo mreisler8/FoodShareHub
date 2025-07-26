@@ -23,7 +23,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "./db.js";
 import { authenticate } from "./auth.js";
-import recommendationsRouter from "./routes/recommendations.js";
+import recommendationsRouter from "./routes/recommendations";
 import listsRouter from "./routes/lists.js";
 import searchRouter from "./routes/search.ts";
 import searchAnalyticsRouter from "./routes/search-analytics.js";
