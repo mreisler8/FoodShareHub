@@ -21,6 +21,7 @@ import { PostWithDetails } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { PostTypeFeedFilter } from '@/components/feed/PostTypeFeedFilter';
 import { PostType } from '@/components/post/PostTypeSelector';
+import { FloatingCreateButton } from '@/components/create/FloatingCreateButton';
 import './FeedPage.css';
 
 interface FeedPageProps {
@@ -517,6 +518,19 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           isOpen={showCreateCanvas}
           onClose={() => setShowCreateCanvas(false)}
           defaultTab={createCanvasTab}
+        />
+
+        {/* Floating Create Button */}
+        <FloatingCreateButton
+          onPostPhoto={() => setShowPostModal(true)}
+          onShareMoment={() => {
+            setCreateCanvasTab('moment');
+            setShowCreateCanvas(true);
+          }}
+          onBuildList={() => {
+            setCreateCanvasTab('list');
+            setShowCreateCanvas(true);
+          }}
         />
       </div>
     </FeedLayoutProvider>

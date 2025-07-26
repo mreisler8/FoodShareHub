@@ -15,12 +15,18 @@ import "./HomePage.css";
 import { FollowRequestCard } from "@/components/follow/FollowRequestCard";
 import { PendingInvites } from "@/components/circles/PendingInvites";
 import { UnifiedSearchModal } from "@/components/search/UnifiedSearchModal";
+import { FloatingCreateButton } from "@/components/create/FloatingCreateButton";
+import { UnifiedPostModal } from "@/components/post/UnifiedPostModal";
+import { CreateCanvas } from "@/components/create/CreateCanvas";
 
 export default function HomePage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<HeroTabType>('for-you');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [showCreateCanvas, setShowCreateCanvas] = useState(false);
+  const [createCanvasTab, setCreateCanvasTab] = useState<'moment' | 'list'>('moment');
 
   // Query for lists based on active tab
   const { data: lists, isLoading: listsLoading } = useQuery({
@@ -202,6 +208,32 @@ export default function HomePage() {
       <UnifiedSearchModal
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
+      />
+
+      {/* Post Modal */}
+      <UnifiedPostModal
+        open={showPostModal}
+        onOpenChange={setShowPostModal}
+      />
+
+      {/* Create Canvas */}
+      <CreateCanvas
+        isOpen={showCreateCanvas}
+        onClose={() => setShowCreateCanvas(false)}
+        defaultTab={createCanvasTab}
+      />
+
+      {/* Floating Create Button */}
+      <FloatingCreateButton
+        onPostPhoto={() => setShowPostModal(true)}
+        onShareMoment={() => {
+          setCreateCanvasTab('moment');
+          setShowCreateCanvas(true);
+        }}
+        onBuildList={() => {
+          setCreateCanvasTab('list');
+          setShowCreateCanvas(true);
+        }}
       />
     </div>
   );

@@ -1,0 +1,121 @@
+🎯 DEV AGENT PROMPT: Floating Create Button Implementation
+Objective
+Implement a modern, accessible floating action button (FAB) with popover menu for content creation across HomePage and FeedPage layouts.
+
+Component Requirements
+1. FloatingCreateButton Component
+
+Create client/src/components/create/FloatingCreateButton.tsx
+Fixed positioning: bottom-6 right-4 z-50
+Circular button (h-14 w-14) with primary brand styling
+Plus icon from lucide-react
+Accessible with proper ARIA attributes
+Smooth hover/focus transitions matching your design system
+2. Popover Menu Integration
+
+Conditional render based on isPopoverOpen state
+Position: bottom-20 right-4 (above the FAB)
+Three action items with icons:
+📸 Post a Photo → Opens UnifiedPostModal
+🍽 Share a Food Moment → Opens CreateCanvas with 'moment' tab
+📝 Build a List → Opens CreateCanvas with 'list' tab
+3. Integration Points
+
+Add to both HomePage.tsx and FeedPage.tsx
+Position inside main container, absolutely positioned
+Wire up existing modals: UnifiedPostModal and CreateCanvas
+Technical Specifications
+Accessibility (Critical NFR):
+
+aria-haspopup="menu"
+aria-expanded={isPopoverOpen}
+aria-label="Create new content"
+role="menu" for popover
+role="menuitem" for each action
+Focus trap within popover
+ESC key closes popover
+Outside click closes popover
+Styling Requirements:
+
+Use existing design tokens from client/src/index.css
+Primary button styling with hover effects
+Shadow: shadow-lg for FAB
+Popover: bg-white rounded-lg shadow-md
+Width: w-48 for popover
+Spacing: p-2 space-y-1 for menu items
+State Management:
+
+Local state for popover visibility
+No global state pollution
+Clean up on unmount
+Performance (NFR):
+
+Lazy render popover content
+Prevent unnecessary re-renders
+Lightweight click outside detection
+Implementation Steps
+Create FloatingCreateButton.tsx
+
+Import required icons from lucide-react
+Implement accessibility features
+Add smooth animations
+Integrate with HomePage
+
+Import and render inside main container
+Position after existing content
+Test modal interactions
+Integrate with FeedPage
+
+Same integration pattern as HomePage
+Ensure no conflicts with existing FABs
+Test with FeedLayoutProvider context
+Handle Modal State
+
+Connect to existing UnifiedPostModal
+Connect to existing CreateCanvas
+Proper modal state management
+Existing Code Integration
+Modal Connections:
+
+// Photo Post
+const [showPostModal, setShowPostModal] = useState(false);
+onClick={() => setShowPostModal(true)}
+// Food Moment
+const [showCreateCanvas, setShowCreateCanvas] = useState(false);
+const [createCanvasTab, setCreateCanvasTab] = useState<'moment' | 'list'>('moment');
+onClick={() => { setCreateCanvasTab('moment'); setShowCreateCanvas(true); }}
+// Build List
+onClick={() => { setCreateCanvasTab('list'); setShowCreateCanvas(true); }}
+Quality Gates (NFRs)
+✅ Accessibility:
+
+WCAG 2.1 AA compliance
+Screen reader tested
+Keyboard navigation support
+Proper focus management
+✅ Performance:
+
+< 100ms interaction response
+No layout shifts
+Efficient event handling
+✅ Design System:
+
+Consistent with existing Button component
+Uses established color tokens
+Matches interaction patterns
+✅ Mobile First:
+
+Touch-friendly (44px+ target size)
+Responsive positioning
+Proper z-index layering
+Testing Requirements
+Unit Tests: Button renders, accessibility attributes
+Integration Tests: Modal opening, outside click
+E2E Tests: Full creation flows work
+Accessibility Tests: Screen reader, keyboard nav
+Files to Modify
+client/src/components/create/FloatingCreateButton.tsx (new)
+client/src/pages/home.tsx (add FAB)
+client/src/pages/feed.tsx (add FAB)
+Implementation Priority: High - Core UX enhancement that aligns with modern social platform patterns while maintaining your existing design system and accessibility standards.
+
