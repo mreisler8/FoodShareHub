@@ -1,5 +1,4 @@
 
-<line_number>1</line_number>
 import { Router } from 'express';
 import { db } from '../db.js';
 import { getPerformanceMetrics, getSlowRequests } from '../middleware/performance.js';

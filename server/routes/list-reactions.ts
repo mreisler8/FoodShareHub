@@ -180,20 +180,3 @@ router.get('/:listId/status', authenticate, async (req, res) => {
 });
 
 export default router;
-import { Router } from 'express';
-import { authenticate } from '../auth';
-
-const router = Router();
-
-// GET /api/list-reactions/ - Get reactions for lists (placeholder)
-router.get('/', authenticate, async (req, res) => {
-  try {
-    // For now, return empty array - this can be implemented later
-    res.json([]);
-  } catch (error) {
-    console.error('Error fetching list reactions:', error);
-    res.status(500).json({ error: 'Failed to fetch list reactions' });
-  }
-});
-
-export default router;

@@ -5,7 +5,7 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { PostCard } from '@/components/home/PostCard';
-import { ModernPostCard } from '@/components/feed/ModernPostCard';
+import { EnhancedModernPostCard } from '@/components/feed/EnhancedModernPostCard';
 import { FeedLayoutProvider, useFeedLayout, getFeedLayoutClasses } from '@/components/feed/FeedLayoutProvider';
 import { FeedViewControls } from '@/components/feed/FeedViewControls';
 import { StoriesSection } from '@/components/feed/StoriesSection';
@@ -13,7 +13,7 @@ import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernS
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Users, Home, Filter, Camera, Plus } from 'lucide-react';
 import { OptimizedPendingInvites } from '@/components/optimized/OptimizedPendingInvites';
@@ -93,10 +93,27 @@ function FeedContentWithLayout({ allItems, onListClick }: { allItems: FeedItem[]
             onListClick={onListClick}
           />
         ) : (
-          <ModernPostCard 
+          <EnhancedModernPostCard 
             key={`post-${item.id}`} 
             post={item} 
             viewMode={viewMode === 'stories' ? 'list' : viewMode}
+            index={allItems.indexOf(item)}
+            onLike={(postId) => {
+              console.log('Liked post:', postId);
+              // Future: Add optimistic update
+            }}
+            onSave={(postId) => {
+              console.log('Saved post:', postId);
+              // Future: Add save functionality
+            }}
+            onShare={(postId) => {
+              if (navigator.share) {
+                navigator.share({
+                  title: `Check out this post by ${item.author?.name}`,
+                  url: window.location.href
+                });
+              }
+            }}
             onImageDoubleClick={() => {
               // Handle like action on double click
               console.log('Double clicked post:', item.id);
@@ -436,10 +453,25 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                                 onListClick={handleListClick}
                               />
                             ) : (
-                              <ModernPostCard 
+                              <EnhancedModernPostCard 
                                 key={`circle-post-${item.id}`} 
                                 post={item} 
                                 viewMode="list"
+                                index={allItems.indexOf(item)}
+                                onLike={(postId) => {
+                                  console.log('Liked circle post:', postId);
+                                }}
+                                onSave={(postId) => {
+                                  console.log('Saved circle post:', postId);
+                                }}
+                                onShare={(postId) => {
+                                  if (navigator.share) {
+                                    navigator.share({
+                                      title: `Check out this circle post by ${item.author?.name}`,
+                                      url: window.location.href
+                                    });
+                                  }
+                                }}
                                 onImageDoubleClick={() => {
                                   console.log('Double clicked circle post:', item.id);
                                 }}

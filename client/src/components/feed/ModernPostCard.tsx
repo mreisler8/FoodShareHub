@@ -23,10 +23,7 @@ export function ModernPostCard({ post, viewMode = 'list', onImageDoubleClick }: 
   const cardRef = useRef<HTMLDivElement>(null);
   
   // Memory management for performance
-  useMemoryManagement('ModernPostCard', {
-    trackImageLoading: true,
-    cleanupOnUnmount: true
-  });
+  useMemoryManagement('ModernPostCard');
 
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
   const hasMedia = post.images && post.images.length > 0 && post.images.some(img => img && img.trim() !== '');
@@ -60,7 +57,7 @@ export function ModernPostCard({ post, viewMode = 'list', onImageDoubleClick }: 
       <header className="modern-post-header">
         <div className="modern-post-author">
           <Avatar className="modern-post-avatar">
-            <AvatarImage src={post.author?.profilePicture} />
+            <AvatarImage src={post.author?.profilePicture || undefined} />
             <AvatarFallback className="modern-post-avatar-fallback">
               {post.author?.name?.split(' ').map(n => n[0]).join('') || 'U'}
             </AvatarFallback>
@@ -69,9 +66,9 @@ export function ModernPostCard({ post, viewMode = 'list', onImageDoubleClick }: 
           <div className="modern-post-author-info">
             <div className="modern-post-author-name">
               {post.author?.name || 'Anonymous'}
-              {post.postType && (
+              {post.type && (
                 <Badge className="modern-post-type-badge bg-primary/10 text-primary">
-                  {post.postType.replace('_', ' ').toUpperCase()}
+                  {post.type.replace('_', ' ').toUpperCase()}
                 </Badge>
               )}
             </div>
@@ -191,18 +188,18 @@ export function ModernPostCard({ post, viewMode = 'list', onImageDoubleClick }: 
         </div>
 
         {/* Caption */}
-        {post.caption && (
+        {post.content && (
           <div className="modern-post-caption">
             <span className="modern-post-author-username">{post.author?.name}</span>
-            <span className="modern-post-caption-text">{post.caption}</span>
+            <span className="modern-post-caption-text">{post.content}</span>
           </div>
         )}
 
         {/* Comments preview */}
-        {post.commentCount && post.commentCount > 0 && (
+        {post.likeCount && post.likeCount > 0 && (
           <div className="modern-post-comments-preview">
             <button className="modern-post-view-comments">
-              View all {post.commentCount} comments
+              View all comments
             </button>
           </div>
         )}
