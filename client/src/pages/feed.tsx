@@ -28,6 +28,7 @@ import { FollowRequestCard } from '@/components/follow/FollowRequestCard';
 import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'wouter';
+// import { DiscoverFeed } from './DiscoverFeed'; // Temporarily removed due to import issues
 import './FeedPage.css';
 
 interface FeedPageProps {
@@ -261,39 +262,65 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Main Content */}
               <div className="lg:col-span-3">
-            {/* Header */}
+            {/* Modern Feed Header with Search and Profile */}
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-foreground">
-                {activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
-              </h1>
-              <div className="flex items-center gap-2">
-                <FeedViewControls />
+              <div className="flex items-center gap-4">
+                <h1 className="text-2xl font-bold text-foreground">
+                  {activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
+                </h1>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {/* Universal Search Button */}
                 <Button 
                   variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2"
+                  onClick={() => setIsSearchOpen(true)}
+                  className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border-gray-200"
                 >
-                  <Filter className="h-4 w-4" />
-                  Filters
+                  <Search className="h-4 w-4" />
+                  <span className="hidden sm:inline">Search</span>
                 </Button>
-                <Button 
-                  onClick={() => {
-                    setCreateCanvasTab('moment');
-                    setShowCreateCanvas(true);
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Camera className="h-4 w-4" />
-                  Food Moment
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setShowPostModal(true)}
-                  className="flex items-center gap-2"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  Post
-                </Button>
+                
+                {/* User Profile Access - CRITICAL FIX */}
+                <Link href="/profile">
+                  <Button variant="ghost" size="sm" className="p-2">
+                    {user?.profilePicture ? (
+                      <img 
+                        src={user.profilePicture} 
+                        alt={user.name || 'Profile'} 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+                        {user?.name?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                      </div>
+                    )}
+                  </Button>
+                </Link>
+                
+                {!isMobile && (
+                  <>
+                    <FeedViewControls />
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowFilters(!showFilters)}
+                      className="flex items-center gap-2"
+                    >
+                      <Filter className="h-4 w-4" />
+                      Filters
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setCreateCanvasTab('moment');
+                        setShowCreateCanvas(true);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Camera className="h-4 w-4" />
+                      Food Moment
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -327,40 +354,44 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             
             <TabsContent value="feed" className="mt-6">
               <div className="space-y-4">
-                {/* Quick Create Actions */}
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  <Button 
-                    onClick={() => {
-                      setCreateCanvasTab('moment');
-                      setShowCreateCanvas(true);
-                    }}
-                    className="flex items-center gap-2 whitespace-nowrap"
-                    size="sm"
-                  >
-                    <Camera className="h-4 w-4" />
-                    Food Moment
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setCreateCanvasTab('list');
-                      setShowCreateCanvas(true);
-                    }}
-                    className="flex items-center gap-2 whitespace-nowrap"
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Create List
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowPostModal(true)}
-                    className="flex items-center gap-2 whitespace-nowrap"
-                    size="sm"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Post Experience
-                  </Button>
+                {/* Enhanced Quick Create Actions */}
+                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Camera className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-sm">Quick Actions</h3>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <Button 
+                      onClick={() => {
+                        setCreateCanvasTab('moment');
+                        setShowCreateCanvas(true);
+                      }}
+                      className="flex items-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+                      variant="outline"
+                    >
+                      <Camera className="h-4 w-4" />
+                      <span className="text-sm font-medium">Food Moment</span>
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setCreateCanvasTab('list');
+                        setShowCreateCanvas(true);
+                      }}
+                      className="flex items-center gap-2 h-12 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                      variant="outline"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="text-sm font-medium">Create List</span>
+                    </Button>
+                    <Button 
+                      onClick={() => setShowPostModal(true)}
+                      className="flex items-center gap-2 h-12 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                      variant="outline"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Share Experience</span>
+                    </Button>
+                  </div>
                 </div>
                 
                 <p className="text-muted-foreground">
@@ -533,37 +564,64 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   Discover personalized recommendations from your network
                 </p>
                 
-                {/* Discover Tabs */}
+                {/* Enhanced Discover Tabs */}
                 <Tabs defaultValue="for-you" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="for-you">For You</TabsTrigger>
-                    <TabsTrigger value="trending">Trending</TabsTrigger>
-                    <TabsTrigger value="near-you">Near You</TabsTrigger>
+                    <TabsTrigger value="for-you" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      For You
+                    </TabsTrigger>
+                    <TabsTrigger value="trending" className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Trending
+                    </TabsTrigger>
+                    <TabsTrigger value="near-you" className="flex items-center gap-2">
+                      <Search className="h-4 w-4" />
+                      Near You
+                    </TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="for-you" className="mt-4">
                     <div className="space-y-4">
-                      <div className="text-center p-8 text-muted-foreground">
-                        <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Personalized recommendations coming soon</p>
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 text-center">
+                        <User className="h-12 w-12 mx-auto mb-4 text-blue-500" />
+                        <h3 className="font-semibold text-lg mb-2">Personalized for You</h3>
+                        <p className="text-gray-600 mb-4">
+                          Discover restaurants and dishes recommended by people you follow
+                        </p>
+                        <Button variant="outline">
+                          Follow more food lovers
+                        </Button>
                       </div>
                     </div>
                   </TabsContent>
                   
                   <TabsContent value="trending" className="mt-4">
                     <div className="space-y-4">
-                      <div className="text-center p-8 text-muted-foreground">
-                        <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Trending content coming soon</p>
+                      <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 text-center">
+                        <TrendingUp className="h-12 w-12 mx-auto mb-4 text-orange-500" />
+                        <h3 className="font-semibold text-lg mb-2">Trending Now</h3>
+                        <p className="text-gray-600 mb-4">
+                          See what's popular in the food community right now
+                        </p>
+                        <Button variant="outline">
+                          Explore trending spots
+                        </Button>
                       </div>
                     </div>
                   </TabsContent>
                   
                   <TabsContent value="near-you" className="mt-4">
                     <div className="space-y-4">
-                      <div className="text-center p-8 text-muted-foreground">
-                        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Location-based recommendations coming soon</p>
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 text-center">
+                        <Search className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                        <h3 className="font-semibold text-lg mb-2">Near You</h3>
+                        <p className="text-gray-600 mb-4">
+                          Find great food recommendations in your area
+                        </p>
+                        <Button variant="outline">
+                          Enable location
+                        </Button>
                       </div>
                     </div>
                   </TabsContent>
@@ -590,25 +648,46 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           </div>
         </div>
 
-        {/* Mobile Navigation - modernized */}
+        {/* Enhanced Mobile Navigation - Feed-Specific */}
         {isMobile && (
-          <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
-            <div className="flex justify-around py-2">
-              <Link href="/" className="flex flex-col items-center p-2">
-                <Home className="h-6 w-6 text-primary" />
-                <span className="text-xs text-primary font-medium">Home</span>
-              </Link>
-              <Link href="/discover" className="flex flex-col items-center p-2">
-                <Search className="h-6 w-6 text-gray-400" />
-                <span className="text-xs text-gray-400">Explore</span>
-              </Link>
-              <Link href="/circles" className="flex flex-col items-center p-2">
-                <Users className="h-6 w-6 text-gray-400" />
-                <span className="text-xs text-gray-400">Circles</span>
-              </Link>
-              <Link href="/profile" className="flex flex-col items-center p-2">
-                <User className="h-6 w-6 text-gray-400" />
-                <span className="text-xs text-gray-400">Profile</span>
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 backdrop-blur-md bg-white/95">
+            <div className="flex justify-around py-2 px-1">
+              <button 
+                onClick={() => handleTabChange('feed')}
+                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
+                  activeTab === 'feed' 
+                    ? 'text-primary bg-primary/10' 
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <Home className="h-6 w-6" />
+                <span className="text-xs font-medium">Feed</span>
+              </button>
+              <button 
+                onClick={() => handleTabChange('discover')}
+                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
+                  activeTab === 'discover' 
+                    ? 'text-primary bg-primary/10' 
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <Search className="h-6 w-6" />
+                <span className="text-xs font-medium">Discover</span>
+              </button>
+              <button 
+                onClick={() => handleTabChange('circle')}
+                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
+                  activeTab === 'circle' 
+                    ? 'text-primary bg-primary/10' 
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <Users className="h-6 w-6" />
+                <span className="text-xs font-medium">Circles</span>
+              </button>
+              <Link href="/profile" className="flex flex-col items-center p-2 rounded-lg text-gray-400 hover:text-gray-600 transition-colors">
+                <User className="h-6 w-6" />
+                <span className="text-xs font-medium">Profile</span>
               </Link>
             </div>
           </div>
