@@ -8,6 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function FeedSection() {
   const { data: feedData, isLoading, refetch } = useQuery({
     queryKey: ["/api/feed"],
+    queryFn: async () => {
+      const response = await fetch('/api/feed?includeMoments=true');
+      if (!response.ok) throw new Error('Failed to fetch feed');
+      return response.json();
+    },
   });
 
   // Handle both direct posts array and nested posts object structure

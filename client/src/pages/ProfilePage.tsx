@@ -292,7 +292,7 @@ export default function ProfilePage() {
   const ProfileTabs = () => (
     <div className="sticky top-0 z-40 bg-white border-b">
       <div className="px-4 md:px-6">
-        <TabsList className="grid w-full grid-cols-4 h-12">
+        <TabsList className="grid w-full grid-cols-5 h-12">
           <TabsTrigger value="posts" className="text-xs md:text-sm">
             <MessageCircle className="h-4 w-4 mr-1 md:mr-2" />
             Posts
@@ -300,6 +300,10 @@ export default function ProfilePage() {
           <TabsTrigger value="lists" className="text-xs md:text-sm">
             <Bookmark className="h-4 w-4 mr-1 md:mr-2" />
             Lists
+          </TabsTrigger>
+          <TabsTrigger value="moments" className="text-xs md:text-sm">
+            <ChefHat className="h-4 w-4 mr-1 md:mr-2" />
+            Moments
           </TabsTrigger>
           <TabsTrigger value="ratings" className="text-xs md:text-sm">
             <Star className="h-4 w-4 mr-1 md:mr-2" />
@@ -572,6 +576,96 @@ export default function ProfilePage() {
     </div>
   );
 
+  const MomentsTab = () => {
+    const { data: userMoments, isLoading: isMomentsLoading } = useQuery({
+      queryKey: [`/api/users/${userId}/moments`],
+      enabled: !!userId && activeTab === "moments",
+      staleTime: 2 * 60 * 1000,
+    });
+
+    return (
+      <div className="px-4 md:px-6 py-6">
+        {isMomentsLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <Skeleton className="h-48 w-full" />
+                <div className="p-4">
+                  <Skeleton className="h-5 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2 mb-2" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : userMoments && Array.isArray(userMoments) && userMoments.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {userMoments.map((moment: any) => (
+              <Card key={moment.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-100 overflow-hidden">
+                {moment.photo && (
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img 
+                      src={moment.photo} 
+                      alt={moment.caption || 'Food moment'} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900 line-clamp-1 group-hover:text-primary transition-colors">
+                      {moment.restaurant?.name || 'Food Moment'}
+                    </h3>
+                    <Badge variant="secondary" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
+                      <ChefHat className="h-3 w-3 mr-1" />
+                      Moment
+                    </Badge>
+                  </div>
+                  {moment.caption && (
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                      {moment.caption}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {moment.restaurant?.location || 'Unknown location'}
+                    </span>
+                    <span>{new Date(moment.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-amber-50 rounded-full flex items-center justify-center mb-6">
+              <ChefHat className="h-10 w-10 text-amber-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              {isOwnProfile ? "No food moments yet" : `${profileUser?.name || 'This user'} hasn't shared any food moments`}
+            </h3>
+            <p className="text-gray-600 text-center max-w-sm mb-6">
+              {isOwnProfile 
+                ? "Capture and share your memorable food experiences with your circles."
+                : "Food moments will appear here when they're shared."
+              }
+            </p>
+            {isOwnProfile && (
+              <Button 
+                className="bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                onClick={() => window.location.href = '/create-post'}
+              >
+                <ChefHat className="h-4 w-4 mr-2" />
+                Share Your First Moment
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const NetworkTab = () => (
     <div className="px-4 md:px-6 py-6">
       <div className="grid gap-6 lg:grid-cols-2">
@@ -763,6 +857,10 @@ export default function ProfilePage() {
 
           <TabsContent value="ratings" className="mt-0 profile-tab-transition">
             <RatingsTab />
+          </TabsContent>
+
+          <TabsContent value="moments" className="mt-0 profile-tab-transition">
+            <MomentsTab />
           </TabsContent>
 
           <TabsContent value="network" className="mt-0 profile-tab-transition">
