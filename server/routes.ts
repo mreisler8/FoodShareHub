@@ -48,6 +48,7 @@ import locationRoutes from "./routes/location";
 import restaurantsRouter from "./routes/restaurants";
 import circleInvitesRouter from './routes/circle-invites';
 import postsRouter from './routes/posts';
+import momentsRouter from './routes/moments';
 import tagsRouter from './routes/tags';
 import ratingsRouter from './routes/ratings';
 import discoverRouter from './routes/discover-basic';
@@ -1356,6 +1357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/restaurants", restaurantsRouter);
   app.use("/api/ratings", ratingsRouter);
   app.use("/api/tags", tagsRouter);
+  app.use("/api/moments", momentsRouter);
 
   // Circle Score routes
   const circleScoreRouter = await import("./routes/circle-score");

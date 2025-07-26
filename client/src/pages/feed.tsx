@@ -7,9 +7,10 @@ import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { PostCard } from '@/components/home/PostCard';
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
+import { CreateCanvas } from '@/components/create/CreateCanvas';
 import { Button } from '@/components/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Users, Home, Filter } from 'lucide-react';
+import { PlusCircle, Users, Home, Filter, Camera, Plus } from 'lucide-react';
 import { OptimizedPendingInvites } from '@/components/optimized/OptimizedPendingInvites';
 import { PostWithDetails } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -62,6 +63,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const [page, setPage] = useState(1);
   const [allItems, setAllItems] = useState<FeedItem[]>([]);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [showCreateCanvas, setShowCreateCanvas] = useState(false);
+  const [createCanvasTab, setCreateCanvasTab] = useState<'moment' | 'list'>('moment');
   const [activeTab, setActiveTab] = useState<'feed' | 'circle'>(scope);
   const [hasMore, setHasMore] = useState(true);
   const [selectedPostTypes, setSelectedPostTypes] = useState<PostType[]>(['list', 'moment', 'dish']);
@@ -177,11 +180,22 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 Filters
               </Button>
               <Button 
+                onClick={() => {
+                  setCreateCanvasTab('moment');
+                  setShowCreateCanvas(true);
+                }}
+                className="flex items-center gap-2"
+              >
+                <Camera className="h-4 w-4" />
+                Moment
+              </Button>
+              <Button 
+                variant="outline"
                 onClick={() => setShowPostModal(true)}
                 className="flex items-center gap-2"
               >
                 <PlusCircle className="h-4 w-4" />
-                New Post
+                Post
               </Button>
             </div>
           </div>
@@ -212,6 +226,42 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             
             <TabsContent value="feed" className="mt-6">
               <div className="space-y-4">
+                {/* Quick Create Actions */}
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  <Button 
+                    onClick={() => {
+                      setCreateCanvasTab('moment');
+                      setShowCreateCanvas(true);
+                    }}
+                    className="flex items-center gap-2 whitespace-nowrap"
+                    size="sm"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Food Moment
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setCreateCanvasTab('list');
+                      setShowCreateCanvas(true);
+                    }}
+                    className="flex items-center gap-2 whitespace-nowrap"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create List
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowPostModal(true)}
+                    className="flex items-center gap-2 whitespace-nowrap"
+                    size="sm"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Post Experience
+                  </Button>
+                </div>
+                
                 <p className="text-muted-foreground">
                   Posts and lists from people you follow
                 </p>
@@ -394,6 +444,13 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
       
       {/* Post Modal */}
       <UnifiedPostModal open={showPostModal} onOpenChange={setShowPostModal} />
+
+      {/* Create Canvas Modal */}
+      <CreateCanvas
+        isOpen={showCreateCanvas}
+        onClose={() => setShowCreateCanvas(false)}
+        initialTab={createCanvasTab}
+      />
     </div>
   );
 }
