@@ -3,8 +3,18 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
 import { userFollowers, users, posts } from '../../shared/schema';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// Rate limiting for follow actions - max 50 follows per hour
+const followRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 50, // 50 follows per hour
+  message: { error: 'Too many follow actions. Please wait before trying again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // GET /api/follow/followers/:userId - Get user's followers
 router.get('/followers/:userId', authenticate, async (req, res) => {
@@ -57,7 +67,7 @@ router.get('/following/:userId', authenticate, async (req, res) => {
 });
 
 // POST /api/follow/:userId - Follow a user
-router.post('/:userId', authenticate, async (req, res) => {
+router.post('/:userId', followRateLimit, authenticate, async (req, res) => {
   try {
     console.log('POST Request: /api/follow/' + req.params.userId);
     console.log('Content-Type:', req.headers['content-type']);
@@ -103,7 +113,7 @@ router.post('/:userId', authenticate, async (req, res) => {
 });
 
 // DELETE /api/follow/:userId - Unfollow a user
-router.delete('/:userId', authenticate, async (req, res) => {
+router.delete('/:userId', followRateLimit, authenticate, async (req, res) => {
   try {
     const followingId = parseInt(req.params.userId);
     const followerId = req.user!.id;

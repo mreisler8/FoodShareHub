@@ -375,8 +375,8 @@ router.get('/unified', authenticate, async (req, res) => {
         )
         .limit(Math.floor(resultLimit * 0.5));
 
-        // Basic user search
-        const dbUsers = await db.select({
+        // Enhanced user search with follow status
+        const dbUsersWithFollowStatus = await db.select({
           id: users.id,
           name: users.name,
           username: users.username,
@@ -385,8 +385,13 @@ router.get('/unified', authenticate, async (req, res) => {
           preferredCuisines: users.preferredCuisines,
           favoriteFood: users.favoriteFood,
           favoriteRestaurant: users.favoriteRestaurant,
+          isFollowing: sql<boolean>`CASE WHEN follow_check.follower_id IS NOT NULL THEN true ELSE false END`
         })
         .from(users)
+        .leftJoin(
+          sql`${userFollowers} AS follow_check`,
+          sql`follow_check.following_id = ${users.id} AND follow_check.follower_id = ${userId}`
+        )
         .where(
           and(
             or(
@@ -586,7 +591,7 @@ router.get('/unified', authenticate, async (req, res) => {
             }
           })),
 
-          users: dbUsers.map(u => {
+          users: dbUsersWithFollowStatus.map(u => {
             return {
               id: u.id.toString(),
               name: u.name,
@@ -597,7 +602,7 @@ router.get('/unified', authenticate, async (req, res) => {
               username: u.username,
               bio: u.bio,
               profilePicture: u.profilePicture,
-              isFollowing: false, // Default to false for simplified search
+              isFollowing: u.isFollowing || false, // Use the actual follow status from database
               metadata: {
                 username: u.username,
                 preferredCuisines: u.preferredCuisines,

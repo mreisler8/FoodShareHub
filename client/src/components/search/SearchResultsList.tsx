@@ -16,6 +16,7 @@ import {
   Clock,
   ArrowUpDown
 } from 'lucide-react';
+import { FollowButton } from '@/components/FollowButton';
 import { SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
@@ -284,28 +285,16 @@ export function SearchResultsList({
                       </div>
                     )}
 
-                    {showFollowButton && result.type === 'user' && onFollowToggle && (
-                      <Button
-                        variant={result.isFollowing ? "secondary" : "default"}
-                        size="sm"
-                        className="h-7 px-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onFollowToggle(result.id, result.isFollowing);
-                        }}
-                      >
-                        {result.isFollowing ? (
-                          <>
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            Following
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="h-3 w-3 mr-1" />
-                            Follow
-                          </>
-                        )}
-                      </Button>
+                    {showFollowButton && result.type === 'user' && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <FollowButton
+                          userId={Number(result.id)}
+                          initialFollowing={result.isFollowing}
+                          size="sm"
+                          compactMode={false}
+                          className="h-7 px-2"
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
