@@ -1,0 +1,87 @@
+ransform Feed Page into Modern Social Hub - Complete Home/Feed Consolidation
+
+OBJECTIVE: Transform the current feed page (client/src/pages/feed.tsx) into a comprehensive social home experience that consolidates discovery, creation, and engagement - following the Instagram/TikTok model where the feed IS the home page.
+
+CURRENT ANALYSIS:
+
+You have a working feed page with tabs (Feed, Discover, Circle)
+Navigation consolidation is complete (mobile bottom nav, desktop sidebar)
+Missing key elements that make a feed feel like a true "home" experience
+Need to enhance user engagement and content discovery within the feed
+KEY IMPLEMENTATION REQUIREMENTS:
+
+Enhance Feed Header & Search Integration:
+
+Add persistent search bar in the feed header (mobile + desktop)
+Integrate with existing UnifiedSearchModal component
+Add quick search suggestions below the search bar
+Include trending searches and recent activity
+Missing Profile Access - CRITICAL FIX:
+
+Ensure profile icon/avatar is prominently displayed in feed header
+Add user avatar link to profile in top-right area
+Include notification badge on profile icon if needed
+Make profile easily accessible from feed (currently missing)
+Enhanced Content Discovery in Feed Tab:
+
+Add "Suggested for You" section above the main feed
+Include "People You May Know" cards with follow buttons
+Add "Trending Lists" horizontal scroll section
+Integrate location-based restaurant suggestions
+Improved Discover Tab Integration:
+
+Replace placeholder content with real discovery features
+Add "Near You" restaurants with map integration
+Include "Trending in Your Network" section
+Show "Popular This Week" content from your circles
+Circle Tab Enhancements:
+
+Show active circle members with status indicators
+Add "Circle Activity" feed showing recent member actions
+Include circle-specific trending content
+Add quick circle switching dropdown
+Create Actions Optimization:
+
+Streamline creation buttons in header
+Add quick "Rate a Restaurant" floating action
+Include "Share a Moment" story-style creation
+Add context-aware creation suggestions
+SPECIFIC FILES TO MODIFY:
+
+Primary File: client/src/pages/feed.tsx
+
+Add persistent search integration with UnifiedSearchModal
+Include user profile avatar/link in header (CRITICAL MISSING ELEMENT)
+Enhance all three tabs with real content
+Add suggested content sections
+Improve empty states with actionable suggestions
+Secondary Enhancements:
+
+Ensure UnifiedSearchModal integrates smoothly with feed header
+Update right sidebar content for better discovery
+Add missing profile navigation elements
+COMPETITIVE INTELLIGENCE INTEGRATION:
+Modern social apps like Instagram/TikTok have:
+
+Profile always visible in top navigation
+Search always accessible in header
+Suggested content mixed with following content
+Story creation prominently featured
+Quick actions for common tasks (rate, share, create)
+SUCCESS CRITERIA:
+
+User can access their profile from anywhere in the feed ✅
+Search is always available and responsive ✅
+Each tab shows engaging, real content (not placeholders) ✅
+Creation actions are intuitive and context-aware ✅
+Feed feels like a complete social home experience ✅
+No broken navigation or missing profile access ✅
+TECHNICAL NOTES:
+
+Preserve existing responsive design and navigation architecture
+Maintain all current functionality while enhancing UX
+Use existing components where possible (UnifiedSearchModal, SuggestedUsersCard, etc.)
+Ensure performance remains optimal with new content sections
+CRITICAL FIX: The most important missing element is profile access from the feed - users need to be able to navigate to their profile easily from the main feed interface.
+
+Transform this feed into the primary social hub where users want to spend their time discovering, creating, and engaging with food content from their trusted network.

@@ -12,7 +12,7 @@ export default function BottomNavigation() {
   ];
 
   return (
-    <nav className="mobile-navigation lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
+    <nav className="mobile-navigation fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
       <div className="flex justify-around items-center py-2 px-4">
         {navItems.map(({ href, icon: Icon, label }) => {
           const isActive = location === href || 

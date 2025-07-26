@@ -248,48 +248,25 @@
   }
 }
 
-/* Modern Single-Navigation Architecture - Mobile First Approach */
+/* Universal Bottom Navigation Architecture - User Preference */
 
-/* Default: Mobile (bottom nav only) */
+/* Always hide desktop sidebar */
 .desktop-sidebar {
   display: none !important;
 }
 
+/* Always show bottom navigation on all screen sizes */
 .mobile-navigation {
   display: flex !important;
 }
 
-/* Desktop: Show left sidebar only when >= 1024px */  
-@media screen and (min-width: 1024px) {
-  .desktop-sidebar {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  
-  .mobile-navigation {
-    display: none !important;
-  }
-}
-
 /* Force override any conflicting Tailwind classes */
-@media screen and (max-width: 1023px) {
-  .lg\\:flex {
-    display: none !important;
-  }
-  
-  .lg\\:hidden {
-    display: flex !important;
-  }
+.lg\\:flex.desktop-sidebar {
+  display: none !important;
 }
 
-@media screen and (min-width: 1024px) {
-  .lg\\:flex {
-    display: flex !important;
-  }
-  
-  .lg\\:hidden {
-    display: none !important;
-  }
+.lg\\:hidden.mobile-navigation {
+  display: flex !important;
 }
 
 @layer components {
