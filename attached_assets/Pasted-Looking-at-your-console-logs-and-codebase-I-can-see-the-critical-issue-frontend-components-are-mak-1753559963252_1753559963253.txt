@@ -1,0 +1,62 @@
+Looking at your console logs and codebase, I can see the critical issue: frontend components are making malformed API calls to /api/list-reactions/ without the required list ID parameter, causing repeated 400 errors.
+
+Here's a comprehensive prompt for your agent to fix these infrastructure issues:
+
+AGENT PROMPT: Fix Critical API Infrastructure Errors - List Reactions System
+
+OBJECTIVE: Resolve the core database and API infrastructure errors that are causing repeated 400 "List ID required" errors and preventing proper list reaction functionality.
+
+CRITICAL ISSUES TO FIX:
+
+Malformed API Calls: Frontend components are calling /api/list-reactions/ without list IDs
+Missing Frontend Integration: Components aren't properly connecting to the working backend endpoints
+Query Key Formatting: React Query keys are malformed causing cache misses
+SPECIFIC PROBLEMS FROM LOGS:
+
+GET /api/list-reactions/ 400 in 199ms :: {"error":"List ID required"}
+Query failed for "/api/list-reactions/" : "{"error":"List ID required"}"
+BACKEND STATUS: ✅ Working (confirmed working endpoints in server/routes/list-reactions.ts)
+
+REQUIRED FIXES:
+
+1. Fix ListFeedCard.tsx Reaction Mutations
+
+Current: apiRequest('/api/list-reactions', { method: 'POST', body: { listId: list.id, reactionType: 'like' } })
+Fix: Change reactionType to reaction to match backend schema
+Fix endpoint: Use /api/list-reactions/ or /api/lists/${listId}/react
+2. Fix SaveListButton.tsx API Calls
+
+Current: Making calls without proper list ID parameter
+Fix: Ensure all API calls include list ID in URL path
+3. Fix React Query Keys
+
+Current: ['/api/list-reactions/', list.id, '/status']
+Fix: Use proper endpoint format: ['/api/list-reactions', list.id]
+4. Component Integration Issues
+
+Fix components calling /api/list-reactions/ root endpoint
+Ensure all list reaction queries include list ID parameter
+Update query keys to match working backend endpoints
+SUCCESS CRITERIA:
+
+✅ No more 400 "List ID required" errors in console
+✅ List reactions work end-to-end (add/remove reactions)
+✅ Save/unsave list functionality works
+✅ React Query caching works properly
+✅ Performance improved (no repeated failed API calls)
+IMPLEMENTATION NOTES:
+
+Backend endpoints are working correctly
+Database schema is properly aligned (reaction field exists)
+Focus on frontend API integration fixes
+Test with existing lists (ID: 2 "Best pizza" exists in database)
+VALIDATION:
+After fixes, test this flow:
+
+Load feed page
+No console errors for list-reactions
+Click reaction button on a list
+Verify reaction saves and persists
+Check console shows 200 status responses
+Fix these systematically to restore full list reaction functionality.
+

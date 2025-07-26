@@ -17,7 +17,7 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
 
   // Check if list is already saved
   const { data: savedLists } = useQuery({
-    queryKey: [`/api/users/${userId}/saved-lists`],
+    queryKey: ['/api/saved-lists'],
     enabled: !!userId,
   });
 
@@ -28,14 +28,19 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
   const saveListMutation = useMutation({
     mutationFn: async (action: 'save' | 'unsave') => {
       if (action === 'save') {
-        return await apiRequest("POST", `/api/lists/${listId}/save`);
+        return await apiRequest('/api/saved-lists', {
+          method: 'POST',
+          body: { listId: parseInt(listId) }
+        });
       } else {
-        return await apiRequest("DELETE", `/api/lists/${listId}/save`);
+        return await apiRequest(`/api/saved-lists/${listId}`, {
+          method: 'DELETE'
+        });
       }
     },
     onSuccess: (_, action) => {
       setIsSaved(action === 'save');
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/saved-lists`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists'] });
       toast({
         title: action === 'save' ? "List saved!" : "List removed",
         description: action === 'save' 

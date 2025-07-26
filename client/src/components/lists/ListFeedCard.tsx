@@ -58,12 +58,12 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
 
   // Check if current user has saved/reacted to this list
   const { data: saveStatus } = useQuery({
-    queryKey: ['/api/saved-lists/', list.id, '/status'],
+    queryKey: ['/api/saved-lists', list.id, 'status'],
     enabled: showActions
   });
 
   const { data: reactionStatus } = useQuery({
-    queryKey: ['/api/list-reactions/', list.id, '/status'],
+    queryKey: ['/api/list-reactions', list.id],
     enabled: showActions
   });
 
@@ -87,7 +87,7 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
     },
     onSuccess: () => {
       // Invalidate queries to refresh status
-      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists/', list.id, '/status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists', list.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
       
       toast({
@@ -109,13 +109,13 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
   const reactionMutation = useMutation({
     mutationFn: async () => {
       if (reactionStatus?.hasReacted) {
-        return apiRequest(`/api/list-reactions/${list.id}`, {
+        return apiRequest(`/api/list-reactions/${list.id}/react`, {
           method: 'DELETE'
         });
       } else {
         return apiRequest('/api/list-reactions', {
           method: 'POST',
-          body: { listId: list.id, reactionType: 'like' }
+          body: { listId: list.id, reaction: 'like' }
         });
       }
     },
@@ -125,7 +125,7 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
     },
     onSuccess: () => {
       // Invalidate queries to refresh status
-      queryClient.invalidateQueries({ queryKey: ['/api/list-reactions/', list.id, '/status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/list-reactions', list.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
       
       toast({
