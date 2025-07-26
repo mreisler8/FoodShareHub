@@ -30,19 +30,16 @@ export function CircleScoreCard({ circleScore, isLoading }: CircleScoreCardProps
         <div className="text-center py-6">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Circle Score Yet</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Be the first in your network to rate this restaurant
+          <p className="text-sm text-muted-foreground">
+            Be the first in your network to rate this restaurant. Use the "Quick Rate" button below to share your experience.
           </p>
-          <Button size="sm" variant="outline">
-            Rate This Place
-          </Button>
         </div>
       </div>
     );
   }
 
-  const scoreColor = circleScore.averageScore >= 4 ? "bg-green-100 text-green-800" : 
-                    circleScore.averageScore >= 3 ? "bg-yellow-100 text-yellow-800" : 
+  const scoreColor = circleScore.averageScore >= 7.0 ? "bg-green-100 text-green-800" : 
+                    circleScore.averageScore >= 5.0 ? "bg-yellow-100 text-yellow-800" : 
                     "bg-red-100 text-red-800";
 
   return (
@@ -51,7 +48,7 @@ export function CircleScoreCard({ circleScore, isLoading }: CircleScoreCardProps
         <div>
           <div className="flex items-center gap-3">
             <Badge className={`${scoreColor} text-lg font-bold px-3 py-1`}>
-              {circleScore.averageScore?.toFixed(1) || 'N/A'}
+              {circleScore.averageScore?.toFixed(1) || 'N/A'}/10.0
             </Badge>
             <div>
               <p className="text-sm font-medium">Circle Score</p>

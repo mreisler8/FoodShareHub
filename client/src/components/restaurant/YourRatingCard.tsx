@@ -36,17 +36,10 @@ export function YourRatingCard({ userRating, onRate }: YourRatingCardProps) {
       <div className="rounded-xl shadow-sm bg-white p-4 space-y-4">
         <div className="text-center py-6">
           <Star className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Share Your Experience</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Rate this restaurant and help your Circle discover great spots
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Your Rating</h3>
+          <p className="text-sm text-muted-foreground">
+            You haven't rated this restaurant yet. Use the "Quick Rate" button below to share your experience.
           </p>
-          <Button 
-            size="sm" 
-            className="transform scale-100 transition-transform hover:scale-105 active:scale-95"
-            onClick={() => setIsEditing(true)}
-          >
-            ⭐ Rate This Place
-          </Button>
         </div>
       </div>
     );

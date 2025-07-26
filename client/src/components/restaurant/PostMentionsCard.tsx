@@ -40,9 +40,9 @@ export function PostMentionsCard({ posts, onViewPost, onViewProfile }: PostMenti
           <p className="text-sm text-muted-foreground mb-4">
             No posts yet from your Circles — be the first!
           </p>
-          <Button size="sm" variant="outline">
-            📝 Share Experience
-          </Button>
+          <p className="text-xs text-gray-500 mt-2">
+            Use the "Quick Rate" button below to share your experience
+          </p>
         </div>
       </div>
     );

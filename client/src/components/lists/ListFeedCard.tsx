@@ -59,12 +59,12 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
   // Check if current user has saved/reacted to this list
   const { data: saveStatus } = useQuery({
     queryKey: ['/api/saved-lists', list.id, 'status'],
-    enabled: showActions
+    enabled: showActions && !!list.id
   });
 
   const { data: reactionStatus } = useQuery({
     queryKey: ['/api/list-reactions', list.id],
-    enabled: showActions
+    enabled: showActions && !!list.id
   });
 
   // Save/unsave list mutation
