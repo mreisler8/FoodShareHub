@@ -304,8 +304,45 @@
   [class*="modal"],
   [class*="dialog"],
   [class*="popover"],
-  [class*="dropdown"] {
+  [class*="dropdown"],
+  [class*="wizard"],
+  [class*="canvas"],
+  [data-state="open"],
+  [data-state="closed"] {
     border-radius: 4px !important;
+  }
+  
+  /* Comprehensive Dialog and Modal Override */
+  div[role="dialog"],
+  div[data-radix-dialog-overlay],
+  div[data-radix-dialog-content],
+  .dialog-content,
+  .modal-content,
+  .wizard-modal,
+  .create-canvas,
+  .circle-wizard-modal,
+  .circle-wizard-close {
+    border-radius: 4px !important;
+  }
+  
+  /* Ultimate Border Radius Prevention System */
+  /* Force all elements to use 4px border radius */
+  * {
+    --radius: 4px !important;
+  }
+  
+  /* Global override for all border radius properties */
+  *[class*="rounded"],
+  *[style*="border-radius"] {
+    border-radius: 4px !important;
+  }
+  
+  /* Set all root level containers to 4px */
+  :root,
+  body, 
+  html, 
+  #root {
+    --radius: 4px !important;
   }
   
   /* Modern Button System */

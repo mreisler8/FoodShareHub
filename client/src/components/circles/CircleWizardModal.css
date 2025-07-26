@@ -15,7 +15,7 @@
 
 .circle-wizard-modal {
   background: white;
-  border-radius: 12px;
+  border-radius: 4px !important;
   width: 100%;
   max-width: 600px;
   max-height: 80vh;
@@ -46,7 +46,7 @@
   border: none;
   cursor: pointer;
   padding: 4px;
-  border-radius: 6px;
+  border-radius: 4px !important;
   color: #6b7280;
   transition: all 0.2s;
 }
