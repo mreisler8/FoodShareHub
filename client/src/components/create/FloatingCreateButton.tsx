@@ -105,7 +105,7 @@ export function FloatingCreateButton({
       const focusableElements = popoverRef.current.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
-      
+
       if (focusableElements.length > 0) {
         (focusableElements[0] as HTMLElement).focus();
       }
@@ -202,7 +202,7 @@ export function FloatingCreateButton({
         >
           <Plus className="h-6 w-6" />
         </motion.div>
-        
+
         {/* Pulse animation when closed */}
         {!isPopoverOpen && (
           <motion.div

@@ -107,8 +107,7 @@ function FeedContentWithLayout({ allItems, onListClick }: { allItems: FeedItem[]
             viewMode={viewMode === 'stories' ? 'list' : viewMode}
             index={allItems.indexOf(item)}
             onLike={(postId) => {
-              console.log('Liked post:', postId);
-              // Future: Add optimistic update
+              console.log('Liked post:', postId);              // Future: Add optimistic update
             }}
             onSave={(postId) => {
               console.log('Saved post:', postId);
@@ -435,7 +434,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                         Create your first post
                       </Button>
                       <Button 
-                        onClick={() => setLocation('/create-list')}
+                        onClick={() => setLocation('/create-list-enhanced')}
                         variant="outline"
                       >
                         Create your first list
@@ -547,7 +546,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                             Create a post
                           </Button>
                           <Button 
-                            onClick={() => setLocation('/create-list')}
+                            onClick={() => setLocation('/create-list-enhanced')}
                             variant="outline"
                           >
                             Create a list
@@ -717,7 +716,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         <FloatingCreateButton 
           onPostPhoto={() => {/* TODO: Implement */}}
           onShareMoment={() => {/* TODO: Implement */}}
-          onBuildList={() => navigate("/create-list")}
+          onBuildList={() => navigate("/create-list-enhanced")}
         />
       </div>
     </FeedLayoutProvider>
