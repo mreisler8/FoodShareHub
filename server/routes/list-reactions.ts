@@ -6,8 +6,8 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 
 const router = Router();
 
-// Get reactions for a specific list
-router.get('/:listId', async (req, res) => {
+// Get reactions for a specific list - handle both with and without trailing slash
+router.get(['/:listId', '/:listId/'], async (req, res) => {
   try {
     const { listId } = req.params;
 
@@ -42,8 +42,8 @@ router.get('/:listId', async (req, res) => {
   }
 });
 
-// Add reaction to list
-router.post('/:listId/react', authenticate, async (req, res) => {
+// Add reaction to list - handle both with and without trailing slash
+router.post(['/:listId/react', '/:listId/react/'], authenticate, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
