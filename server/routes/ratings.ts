@@ -55,6 +55,87 @@ router.get('/', async (req, res) => {
   }
 });
 
+// PUT /api/ratings - Create or update rating
+router.put('/', async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const userId = req.user!.id;
+    const { restaurantId, googlePlaceId, restaurantName, ratingValue, note, tags, circleIds, isPrivate } = req.body;
+
+    // Validate required fields
+    if (!ratingValue || ratingValue < 0.1 || ratingValue > 10.0) {
+      return res.status(400).json({ error: 'Rating value must be between 0.1 and 10.0' });
+    }
+
+    if (!restaurantId && !googlePlaceId) {
+      return res.status(400).json({ error: 'Either restaurant ID or Google Place ID is required' });
+    }
+
+    // Check if rating already exists
+    let existingRating;
+    if (restaurantId) {
+      [existingRating] = await db
+        .select()
+        .from(ratings)
+        .where(and(
+          eq(ratings.userId, userId),
+          eq(ratings.restaurantId, restaurantId)
+        ))
+        .limit(1);
+    } else {
+      [existingRating] = await db
+        .select()
+        .from(ratings)
+        .where(and(
+          eq(ratings.userId, userId),
+          eq(ratings.googlePlaceId, googlePlaceId)
+        ))
+        .limit(1);
+    }
+
+    let result;
+    if (existingRating) {
+      // Update existing rating
+      [result] = await db
+        .update(ratings)
+        .set({
+          ratingValue: parseFloat(ratingValue.toString()),
+          note: note || null,
+          tags: tags || [],
+          circleIds: circleIds || [],
+          isPrivate: isPrivate || false,
+          updatedAt: new Date()
+        })
+        .where(eq(ratings.id, existingRating.id))
+        .returning();
+    } else {
+      // Create new rating
+      [result] = await db
+        .insert(ratings)
+        .values({
+          userId,
+          restaurantId: restaurantId || null,
+          googlePlaceId: googlePlaceId || null,
+          restaurantName: restaurantName || null,
+          ratingValue: parseFloat(ratingValue.toString()),
+          note: note || null,
+          tags: tags || [],
+          circleIds: circleIds || [],
+          isPrivate: isPrivate || false,
+        })
+        .returning();
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error creating/updating rating:', error);
+    res.status(500).json({ error: 'Failed to save rating' });
+  }
+});
+
 // GET /api/ratings/restaurant/:id - Get user's rating for specific restaurant
 router.get('/restaurant/:id', async (req, res) => {
   if (!req.user?.id) {
@@ -65,9 +146,9 @@ router.get('/restaurant/:id', async (req, res) => {
     const { id } = req.params;
     const type = req.query.type as string; // 'google_place' or 'database'
     console.log('Rating API - Fetching rating for ID:', id, 'User:', req.user.id, 'Type:', type);
-    
+
     let rating;
-    
+
     if (type === 'google_place' || (!type && (id.startsWith('ChIJ') || id.length > 10))) {
       // Handle Google Place ID
       const cleanId = id.replace('google_', ''); // Remove google_ prefix if present
@@ -95,7 +176,7 @@ router.get('/restaurant/:id', async (req, res) => {
     } else {
       return res.status(400).json({ error: 'Invalid restaurant identifier' });
     }
-    
+
     console.log('Rating query result:', rating);
 
     if (rating.length === 0) {

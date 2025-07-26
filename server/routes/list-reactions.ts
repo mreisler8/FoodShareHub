@@ -62,10 +62,14 @@ router.post(['/', ''], authenticate, async (req, res) => {
   }
 });
 
-// Get reactions for a specific list - handle both with and without trailing slash
-router.get(['/:listId', '/:listId/'], async (req, res) => {
+// GET /api/list-reactions/:listId - Get reactions for a specific list
+router.get('/:listId', authenticate, async (req, res) => {
   try {
-    const { listId } = req.params;
+    const listId = parseInt(req.params.listId);
+
+    if (!listId || isNaN(listId)) {
+      return res.status(400).json({ error: 'Valid List ID required' });
+    }
 
     const reactions = await db.select({
       id: listReactions.id,
