@@ -1364,10 +1364,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/health', healthRoutes);
   app.use('/api/feed', feedCountsRoutes);
 
-  // Circle Score routes
-  const circleScoreRouter = await import("./routes/circle-score");
-  app.use("/api/circle-score", circleScoreRouter.default);
-
   // Unified Feed API - Lists and Posts together
   app.get('/api/unified-feed', authenticate, async (req: any, res: any) => {
     try {

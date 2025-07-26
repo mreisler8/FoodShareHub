@@ -6,6 +6,62 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 
 const router = Router();
 
+// Handle root path - return all reactions or error
+router.get(['/', ''], async (req, res) => {
+  res.status(400).json({ error: 'List ID required' });
+});
+
+// Create new reaction - handle both with and without trailing slash
+router.post(['/', ''], authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { listId, reaction } = req.body;
+
+    if (!listId || !reaction) {
+      return res.status(400).json({ error: 'List ID and reaction required' });
+    }
+
+    if (!['like', 'love', 'fire', 'clap'].includes(reaction)) {
+      return res.status(400).json({ error: 'Invalid reaction type' });
+    }
+
+    // Check if user already reacted
+    const existingReaction = await db.select()
+      .from(listReactions)
+      .where(and(
+        eq(listReactions.listId, parseInt(listId)),
+        eq(listReactions.userId, userId)
+      ))
+      .limit(1);
+
+    if (existingReaction.length > 0) {
+      // Update existing reaction
+      await db.update(listReactions)
+        .set({ reaction })
+        .where(and(
+          eq(listReactions.listId, parseInt(listId)),
+          eq(listReactions.userId, userId)
+        ));
+    } else {
+      // Create new reaction
+      await db.insert(listReactions).values({
+        listId: parseInt(listId),
+        userId,
+        reaction
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error adding list reaction:', error);
+    res.status(500).json({ error: 'Failed to add reaction' });
+  }
+});
+
 // Get reactions for a specific list - handle both with and without trailing slash
 router.get(['/:listId', '/:listId/'], async (req, res) => {
   try {

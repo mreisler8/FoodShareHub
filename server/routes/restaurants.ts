@@ -62,7 +62,7 @@ router.get("/", authenticate, async (req, res) => {
         hasApiKey: !!process.env.GOOGLE_MAPS_API_KEY
       });
 
-      // Format Google Places details to match our restaurant format
+      // Format Google Places details to match our restaurant format - using safe property access
       const restaurantDetails = {
         id: `google_${googlePlaceId}`,
         name: placeDetails.name || 'Unknown Restaurant',
@@ -74,7 +74,7 @@ router.get("/", authenticate, async (req, res) => {
         category: placeDetails.category || 'Restaurant',
         cuisine: placeDetails.cuisine || 'Restaurant',
         priceRange: placeDetails.priceRange || '$$',
-        rating: placeDetails.rating || 4.0,
+        googleRating: placeDetails.rating || 4.0, // Renamed to avoid schema conflicts
         imageUrl: placeDetails.imageUrl || null,
         description: null,
         googlePlaceId: googlePlaceId,
@@ -82,7 +82,7 @@ router.get("/", authenticate, async (req, res) => {
         googlePlaces: {
           rating: placeDetails.rating || 0,
           reviewCount: placeDetails.reviewCount || 0,
-          isOpen: placeDetails.isOpen,
+          isOpen: placeDetails.isOpen || null,
           businessStatus: placeDetails.businessStatus || 'OPERATIONAL',
           isPermanentlyClosed: placeDetails.isPermanentlyClosed || false,
           photos: placeDetails.photos || [],
@@ -92,8 +92,8 @@ router.get("/", authenticate, async (req, res) => {
         communityInsights: {
           followersAverageRating: null,
           followersReviewCount: 0,
-          topDishes: [],
-          recentPosts: [],
+          topDishes: [] as Array<{dish: string; mentions: number}>,
+          recentPosts: [] as Array<any>,
           hasFollowersReviewed: false
         }
       };
@@ -141,7 +141,7 @@ router.get("/:id", authenticate, async (req, res) => {
           });
         }
 
-        // Format Google Places details to match our restaurant format
+        // Format Google Places details to match our restaurant format - using safe property access
         const restaurantDetails = {
           id: `google_${googlePlaceId}`,
           name: placeDetails.name || 'Unknown Restaurant',
@@ -153,15 +153,15 @@ router.get("/:id", authenticate, async (req, res) => {
           category: placeDetails.category || 'Restaurant',
           cuisine: placeDetails.cuisine || 'Restaurant',
           priceRange: placeDetails.priceRange || '$$',
-          rating: placeDetails.rating || 4.0,
-          imageUrl: null,
+          googleRating: placeDetails.rating || 4.0, // Use googleRating to avoid schema conflicts
+          imageUrl: placeDetails.imageUrl || null,
           description: null,
           googlePlaceId: googlePlaceId,
           source: 'google',
           googlePlaces: {
             rating: placeDetails.rating || 0,
             reviewCount: placeDetails.reviewCount || 0,
-            isOpen: placeDetails.isOpen,
+            isOpen: placeDetails.isOpen || null,
             businessStatus: placeDetails.businessStatus || 'OPERATIONAL',
             isPermanentlyClosed: placeDetails.isPermanentlyClosed || false,
             photos: placeDetails.photos || [],
@@ -171,8 +171,8 @@ router.get("/:id", authenticate, async (req, res) => {
           communityInsights: {
             followersAverageRating: null,
             followersReviewCount: 0,
-            topDishes: [],
-            recentPosts: [],
+            topDishes: [] as Array<{dish: string; mentions: number}>,
+            recentPosts: [] as Array<any>,
             hasFollowersReviewed: false
           }
         };
@@ -344,8 +344,8 @@ router.get("/:id", authenticate, async (req, res) => {
       category: restaurantData.category,
       cuisine: restaurantData.cuisine || restaurantData.category,
       priceRange: googlePlacesData?.priceRange || restaurantData.priceRange,
-      rating: googlePlacesData?.rating || restaurantData.rating || 4.0,
-      imageUrl: restaurantData.imageUrl || null,
+      googleRating: googlePlacesData?.rating || 4.0, // Use googleRating to avoid schema conflicts
+      imageUrl: googlePlacesData?.imageUrl || restaurantData.imageUrl || null,
       description: googlePlacesData?.description || restaurantData.description || null,
       googlePlaceId: restaurantData.googlePlaceId || null,
       source: 'database',
@@ -353,7 +353,7 @@ router.get("/:id", authenticate, async (req, res) => {
       googlePlaces: googlePlacesData ? {
         rating: googlePlacesData.rating || 0,
         reviewCount: googlePlacesData.reviewCount || 0,
-        isOpen: googlePlacesData.isOpen,
+        isOpen: googlePlacesData.isOpen || null,
         businessStatus: googlePlacesData.businessStatus,
         isPermanentlyClosed: googlePlacesData.isPermanentlyClosed || false,
         photos: googlePlacesData.photos || [],

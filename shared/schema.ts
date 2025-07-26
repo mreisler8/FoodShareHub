@@ -740,7 +740,7 @@ export const ratings = pgTable("ratings", {
   restaurantId: integer("restaurant_id")
     .references(() => restaurants.id),
   googlePlaceId: text("google_place_id"), // For Google Places restaurants not in our DB
-  restaurantName: text("restaurant_name").notNull(), // Store name for reference
+  restaurantName: text("restaurant_name"), // Store name for reference (optional for Google Place ratings)
   ratingValue: integer("rating_value").notNull(), // 1-5 star rating
   note: text("note"), // Optional 140-char note
   tags: text("tags").array().default([]), // Quick tags like "Perfect for brunch", "Great value"
