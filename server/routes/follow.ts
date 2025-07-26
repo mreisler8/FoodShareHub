@@ -16,7 +16,7 @@ const followRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// GET /api/follow/followers/:userId - Get user's followers
+// GET /api/follow/followers/:userId or /api/followers/:userId - Get user's followers
 router.get('/followers/:userId', authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId);
@@ -41,7 +41,7 @@ router.get('/followers/:userId', authenticate, async (req, res) => {
   }
 });
 
-// GET /api/follow/following/:userId - Get users that the user is following
+// GET /api/follow/following/:userId or /api/following/:userId - Get users that the user is following
 router.get('/following/:userId', authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId);
@@ -237,6 +237,31 @@ router.get('/feed', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching followed users feed:', error);
     res.status(500).json({ error: 'Failed to fetch feed' });
+  }
+});
+
+// Handle root level paths for backwards compatibility
+router.get('/:userId', authenticate, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    const followers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        username: users.username,
+        profilePicture: users.profilePicture,
+        bio: users.bio,
+        followedAt: userFollowers.createdAt,
+      })
+      .from(userFollowers)
+      .innerJoin(users, eq(userFollowers.followerId, users.id))
+      .where(eq(userFollowers.followingId, userId));
+
+    res.json(followers);
+  } catch (error) {
+    console.error('Error fetching followers:', error);
+    res.status(500).json({ error: 'Failed to fetch followers' });
   }
 });
 

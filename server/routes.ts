@@ -1279,7 +1279,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/list-reactions", listReactionsRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/list-item-comments", listItemCommentsRouter);
-  app.use("/api/follow", followRoutes);
+  app.use('/api/follow', followRoutes);
+  app.use('/api/followers', followRoutes);
+  app.use('/api/following', followRoutes);
   app.use("/api/follow-requests", followRequestsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
   app.use("/api/discover", discoverRouter);
@@ -1292,7 +1294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/restaurants", restaurantsRouter);
   app.use("/api/ratings", ratingsRouter);
   app.use("/api/tags", tagsRouter);
-  
+
   // Circle Score routes
   const circleScoreRouter = await import("./routes/circle-score");
   app.use("/api/circle-score", circleScoreRouter.default);
@@ -1304,7 +1306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
-      
+
       // Get posts from feed
       const posts = await storage.getFeedPosts({
         offset: 0,
@@ -1316,7 +1318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const publicLists = await storage.getPublicRestaurantLists();
       const userLists = await storage.getRestaurantListsByUser(userId);
       const allLists = [...publicLists, ...userLists];
-      
+
       // Remove duplicates and slice for pagination
       const uniqueLists = allLists.filter((list, index, self) => 
         index === self.findIndex(l => l.id === list.id)
@@ -1331,7 +1333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...lists.map(list => ({ ...list, feedType: 'list' }))
       ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
        .slice(offset, offset + limit);
-      
+
       res.json({
         items: feedItems,
         pagination: {

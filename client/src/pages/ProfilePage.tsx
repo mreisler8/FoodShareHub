@@ -85,56 +85,53 @@ export default function ProfilePage() {
 
   // Fetch followers/following with lazy loading
   const { data: followers } = useQuery({
-    queryKey: [`/api/followers/${userId}`],
+    queryKey: [`/api/follow/followers/${userId}`],
     enabled: !!userId && activeTab === "network",
     staleTime: 30 * 1000, // 30 seconds cache for real-time feel
   });
 
   const { data: following } = useQuery({
-    queryKey: [`/api/following/${userId}`],
+    queryKey: [`/api/follow/following/${userId}`],
     enabled: !!userId && activeTab === "network",
     staleTime: 30 * 1000, // 30 seconds cache for real-time feel
   });
 
   // Follow/Unfollow mutation with optimistic updates
   const followMutation = useMutation({
-    mutationFn: async (targetUserId: number) => {
-      return await apiRequest(`/api/follow/${targetUserId}`, {
-        method: "POST"
+    mutationFn: async ({ targetUserId, action }: { targetUserId: number; action: 'follow' | 'unfollow' }) => {
+      if (action === 'follow') {
+        return await apiRequest(`/api/follow/${targetUserId}`, {
+          method: "POST"
+        });
+      } else {
+        return await apiRequest(`/api/follow/${targetUserId}`, {
+          method: "DELETE"
+        });
+      }
+    },
+    onSuccess: (_, { targetUserId, action }) => {
+      // Invalidate all follow-related queries
+      queryClient.invalidateQueries({ queryKey: [`/api/follow/status/${targetUserId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${targetUserId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/follow/followers/${targetUserId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/follow/following/${currentUser?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUser?.id}/stats`] });
+      
+      toast({
+        title: action === 'follow' ? "Following!" : "Unfollowed",
+        description: action === 'follow' ? "You're now following this user" : "You've unfollowed this user",
       });
     },
-    onMutate: async (targetUserId) => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: [`/api/users/${targetUserId}`] });
-      const previousData = queryClient.getQueryData([`/api/users/${targetUserId}`]);
-      
-      queryClient.setQueryData([`/api/users/${targetUserId}`], (old: any) => ({
-        ...old,
-        followersCount: (old?.followersCount || 0) + 1,
-        isFollowing: true
-      }));
-
-      return { previousData, targetUserId };
-    },
-    onError: (err, targetUserId, context) => {
-      queryClient.setQueryData([`/api/users/${targetUserId}`], context?.previousData);
+    onError: (err, { action }) => {
       toast({
-        title: "Follow failed",
-        description: "Unable to follow user. Please try again.",
+        title: `${action === 'follow' ? 'Follow' : 'Unfollow'} failed`,
+        description: "Unable to complete action. Please try again.",
         variant: "destructive"
       });
-    },
-    onSettled: (data, error, targetUserId) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${targetUserId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/followers/${targetUserId}`] });
     }
   });
 
-  const handleFollow = () => {
-    if (userId) {
-      followMutation.mutate(userId);
-    }
-  };
+  
 
   const handleShare = () => {
     setShowShareLink(true);
@@ -222,7 +219,7 @@ export default function ProfilePage() {
                   <>
                     <FollowButton 
                       userId={userId!}
-                      initialFollowing={false}
+                      size="sm"
                       className="px-6"
                     />
                     <Button 
@@ -618,7 +615,6 @@ export default function ProfilePage() {
                     {!isOwnProfile && follower.id !== currentUser?.id && (
                       <FollowButton 
                         userId={follower.id}
-                        initialFollowing={false}
                         size="sm"
                         className="shrink-0"
                       />
@@ -685,7 +681,6 @@ export default function ProfilePage() {
                     {!isOwnProfile && followed.id !== currentUser?.id && (
                       <FollowButton 
                         userId={followed.id}
-                        initialFollowing={true}
                         size="sm"
                         className="shrink-0"
                       />
