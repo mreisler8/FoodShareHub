@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,16 @@ export function SendToFriendModal({
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
 
+  // Memoize error handler to prevent re-renders
+  const handleSearchError = useCallback((error: any) => {
+    console.error("Search error:", error);
+    toast({
+      title: "Search failed",
+      description: "Unable to search for users. Please try again.",
+      variant: "destructive",
+    });
+  }, [toast]);
+
   // NFR: Search with 300ms debounce for performance
   useEffect(() => {
     if (searchTimeoutRef.current) {
@@ -62,12 +72,7 @@ export function SendToFriendModal({
           
           setSearchResults(response.users || []);
         } catch (error) {
-          console.error("Search error:", error);
-          toast({
-            title: "Search failed",
-            description: "Unable to search for users. Please try again.",
-            variant: "destructive",
-          });
+          handleSearchError(error);
         } finally {
           setIsSearching(false);
         }
@@ -81,7 +86,7 @@ export function SendToFriendModal({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery, toast]);
+  }, [searchQuery, handleSearchError]);
 
   const handleSendToFriend = async () => {
     if (!selectedUser) return;
