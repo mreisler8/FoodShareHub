@@ -32,9 +32,9 @@ export const createRateLimit = (windowMs: number, max: number, message?: string)
   });
 };
 
-// Different rate limits for different endpoints
-export const generalRateLimit = createRateLimit(15 * 60 * 1000, 100); // 100 requests per 15 minutes
-export const authRateLimit = createRateLimit(15 * 60 * 1000, 5); // 5 login attempts per 15 minutes
-export const searchRateLimit = createRateLimit(60 * 1000, 30); // 30 searches per minute
-export const followRateLimit = createRateLimit(60 * 60 * 1000, 50); // 50 follows per hour
-export const recommendationRateLimit = createRateLimit(60 * 1000, 10); // 10 recommendations per minute
+// Different rate limits for different endpoints - RELAXED FOR DEVELOPMENT
+export const generalRateLimit = createRateLimit(15 * 60 * 1000, 1000); // 1000 requests per 15 minutes (development)
+export const authRateLimit = createRateLimit(15 * 60 * 1000, 50); // 50 login attempts per 15 minutes
+export const searchRateLimit = createRateLimit(60 * 1000, 300); // 300 searches per minute (development)
+export const followRateLimit = createRateLimit(60 * 60 * 1000, 500); // 500 follows per hour
+export const recommendationRateLimit = createRateLimit(60 * 1000, 100); // 100 recommendations per minute

@@ -34,6 +34,7 @@ import * as circleRoutes from './routes/circles';
 import circleRequestsRouter from './routes/circle-requests';
 import { healthCheckRouter } from './middleware/healthCheck';
 import { generalRateLimit } from './middleware/rateLimit';
+import { performanceMonitoring, performanceHealthCheck, autoOptimizer } from './middleware/performanceOptimizer';
 import usersRouter from './routes/users';
 import usersStatsRouter from './routes/users-stats';
 import analyticsRouter from './routes/analytics';
@@ -58,6 +59,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Set up authentication
     setupAuth(app);
     console.log("Authentication setup complete");
+
+    // Apply performance monitoring to all routes
+    app.use(performanceMonitoring);
+    app.use(autoOptimizer);
+    app.use(generalRateLimit);
+    console.log("Performance optimization middleware applied");
   } catch (error) {
     console.error("Failed to setup authentication:", error);
     throw error;
@@ -1322,6 +1329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Health check and monitoring routes
   app.use("/api/health", healthCheckRouter);
+  app.get("/api/health/performance", performanceHealthCheck);
   app.use("/api/posts", postsRouter);
 
   // Import and mount geocode routes

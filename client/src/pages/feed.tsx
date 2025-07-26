@@ -10,6 +10,7 @@ import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { Button } from '@/components/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Users, Home, Filter } from 'lucide-react';
+import { OptimizedPendingInvites } from '@/components/optimized/OptimizedPendingInvites';
 import { PostWithDetails } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { PostTypeFeedFilter } from '@/components/feed/PostTypeFeedFilter';

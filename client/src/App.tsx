@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import { GlobalErrorBoundary, setupGlobalErrorHandling } from "./components/common/GlobalErrorBoundary";
+import { SmartPollingProvider } from "./components/optimized/SmartPollingProvider";
 import Router from "./components/Router";
 import BottomNavigation from "./components/navigation/BottomNavigation";
 import { useLocation } from "wouter";
@@ -36,12 +38,21 @@ function AppContent() {
 }
 
 function App() {
+  // Setup global error handling on app initialization
+  useEffect(() => {
+    setupGlobalErrorHandling();
+  }, []);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </QueryClientProvider>
+    <GlobalErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <SmartPollingProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </SmartPollingProvider>
+      </QueryClientProvider>
+    </GlobalErrorBoundary>
   );
 }
 
