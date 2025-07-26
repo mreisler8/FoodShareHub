@@ -749,7 +749,7 @@ export default function ProfilePage() {
       <DesktopSidebar />
 
       <div className="flex-1 max-w-4xl mx-auto">
-        <Tabs value={activeTab} oneValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <ProfileHeader />
           <ProfileTabs />
 
