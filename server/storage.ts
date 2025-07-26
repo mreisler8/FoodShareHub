@@ -125,7 +125,7 @@ export interface IStorage {
   // List reactions operations
   createListReaction(listId: number, userId: number, reactionType: string): Promise<any>;
   deleteListReaction(listId: number, userId: number): Promise<void>;
-  getUserListReaction(listId: number, userId: number): Promise<any>;
+  getUserListReaction(listId: number): Promise<any>;
   getListReactionCounts(listId: number): Promise<number>;
 
   // Story operations
@@ -832,7 +832,7 @@ export class DatabaseStorage implements IStorage {
   async getSavedListsByUser(userId: number): Promise<any[]> {
     return await db.select({
       id: savedLists.id,
-      savedAt: savedLists.savedAt,
+      savedAt: savedLists.createdAt,
       list: {
         id: restaurantLists.id,
         name: restaurantLists.name,
@@ -846,7 +846,7 @@ export class DatabaseStorage implements IStorage {
       },
       creator: {
         id: users.id,
-        name: users.name,
+        name:users.name,
         username: users.username,
         profilePicture: users.profilePicture
       }
@@ -855,7 +855,7 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(restaurantLists, eq(savedLists.listId, restaurantLists.id))
     .innerJoin(users, eq(restaurantLists.createdById, users.id))
     .where(eq(savedLists.userId, userId))
-    .orderBy(desc(savedLists.savedAt));
+    .orderBy(desc(savedLists.createdAt));
   }
 
   async isListSavedByUser(listId: number, userId: number): Promise<boolean> {

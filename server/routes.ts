@@ -53,6 +53,10 @@ import tagsRouter from './routes/tags';
 import ratingsRouter from './routes/ratings';
 import discoverRouter from './routes/discover-basic';
 import sharingRouter from './routes/sharing';
+import circleScoreRoutes from './routes/circle-score';
+import healthRoutes from './routes/health';
+import listReactionsRoutes from './routes/list-reactions';
+import feedCountsRoutes from './routes/feed-counts';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -112,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/followers/:userId", authenticate, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      
+
       const followers = await db
         .select({
           id: users.id,
@@ -136,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/following/:userId", authenticate, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      
+
       const following = await db
         .select({
           id: users.id,
@@ -902,9 +906,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedPost = await storage.updatePost(postId, updateData);
       res.json(updatedPost);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+      res.status(500).json({ error: err.message });      }
+    });
 
   // Delete a post
   app.delete("/api/posts/:id", async (req, res) => {
@@ -1327,7 +1330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/search", searchRouter);
   app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/location", locationRoutes);
-  
+
   // Health check and monitoring routes
   app.use("/api/health", healthCheckRouter);
   app.get("/api/health/performance", performanceHealthCheck);
@@ -1358,6 +1361,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/ratings", ratingsRouter);
   app.use("/api/tags", tagsRouter);
   app.use("/api/moments", momentsRouter);
+  app.use('/api/circle-score', circleScoreRoutes);
+  app.use('/api/health', healthRoutes);
+  app.use('/api/list-reactions', listReactionsRoutes);
+  app.use('/api/feed', feedCountsRoutes);
 
   // Circle Score routes
   const circleScoreRouter = await import("./routes/circle-score");
