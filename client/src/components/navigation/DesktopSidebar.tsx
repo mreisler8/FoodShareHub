@@ -63,7 +63,7 @@ export function DesktopSidebar() {
   };
 
   return (
-    <div className="nav-desktop md:flex-col md:w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-4 h-screen sticky top-0 border-r border-soft-sand-30">
+    <div className="desktop-sidebar hidden lg:flex flex-col w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-4 h-screen sticky top-0 border-r border-soft-sand-30">
       
       {/* Persistent Search Bar */}
       {isAuthenticated && (

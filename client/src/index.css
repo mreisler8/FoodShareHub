@@ -72,6 +72,7 @@
     /* Typography */
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  }
 
     /* Safe Area Support for Mobile */
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -136,7 +137,6 @@
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
   }
-}
 
 @layer base {
   * {
@@ -245,6 +245,27 @@
   /* Focus States - WCAG Compliant */
   *:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+/* Modern Single-Navigation Architecture */
+/* Mobile: Show bottom nav only */
+@media (max-width: 1023px) {
+  .desktop-sidebar { 
+    display: none !important; 
+  }
+  .mobile-navigation { 
+    display: flex !important; 
+  }
+}
+
+/* Desktop: Show left sidebar only */  
+@media (min-width: 1024px) {
+  .desktop-sidebar { 
+    display: flex !important; 
+  }
+  .mobile-navigation { 
+    display: none !important; 
   }
 }
 

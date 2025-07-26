@@ -5,18 +5,19 @@ export default function BottomNavigation() {
   const [location] = useLocation();
   
   const navItems = [
-    { href: '/', icon: Home, label: 'Home' },
-    { href: '/feed', icon: Activity, label: 'Feed' },
+    { href: '/feed', icon: Home, label: 'Home' },
     { href: '/discover', icon: Compass, label: 'Explore' },
     { href: '/circles', icon: Users, label: 'Circles' },
     { href: '/profile', icon: User, label: 'Profile' }
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
+    <nav className="mobile-navigation lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
       <div className="flex justify-around items-center py-2 px-4">
         {navItems.map(({ href, icon: Icon, label }) => {
-          const isActive = location === href || (href !== '/' && location.startsWith(href));
+          const isActive = location === href || 
+            (href === '/feed' && (location === '/' || location === '/feed')) || 
+            (href !== '/feed' && href !== '/' && location.startsWith(href));
           
           return (
             <Link
