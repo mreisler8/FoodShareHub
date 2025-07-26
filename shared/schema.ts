@@ -368,14 +368,14 @@ export const listReactions = pgTable("list_reactions", {
   userId: integer("user_id")
     .references(() => users.id)
     .notNull(),
-  reactionType: text("reaction_type").notNull().default("like"), // "like", "love", "fire", etc.
+  reaction: text("reaction").notNull().default("like"), // "like", "love", "fire", etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertListReactionSchema = createInsertSchema(listReactions).pick({
   listId: true,
   userId: true,
-  reactionType: true,
+  reaction: true,
 });
 
 // Story model
@@ -852,12 +852,3 @@ export type InsertAcceptedRecommendation = z.infer<typeof insertAcceptedRecommen
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations
 
-export const listReactions = pgTable('list_reactions', {
-  id: serial('id').primaryKey(),
-  listId: integer('list_id').references(() => restaurantLists.id, { onDelete: 'cascade' }).notNull(),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  reaction: varchar('reaction', { length: 20 }).notNull(), // like, love, fire, clap
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
-  uniqueUserListReaction: unique().on(table.listId, table.userId)
-}));

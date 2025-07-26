@@ -830,32 +830,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSavedListsByUser(userId: number): Promise<any[]> {
-    return await db.select({
-      id: savedLists.id,
-      savedAt: savedLists.createdAt,
-      list: {
-        id: restaurantLists.id,
-        name: restaurantLists.name,
-        description: restaurantLists.description,
-        createdById: restaurantLists.createdById,
-        isPublic: restaurantLists.isPublic,
-        tags: restaurantLists.tags,
-        primaryLocation: restaurantLists.primaryLocation,
-        createdAt: restaurantLists.createdAt,
-        updatedAt: restaurantLists.updatedAt
-      },
-      creator: {
-        id: users.id,
-        name:users.name,
-        username: users.username,
-        profilePicture: users.profilePicture
-      }
-    })
-    .from(savedLists)
-    .innerJoin(restaurantLists, eq(savedLists.listId, restaurantLists.id))
-    .innerJoin(users, eq(restaurantLists.createdById, users.id))
-    .where(eq(savedLists.userId, userId))
-    .orderBy(desc(savedLists.createdAt));
+    try {
+      return await db.select({
+        id: savedLists.id,
+        savedAt: savedLists.savedAt,
+        list: {
+          id: restaurantLists.id,
+          name: restaurantLists.name,
+          description: restaurantLists.description,
+          createdById: restaurantLists.createdById,
+          isPublic: restaurantLists.isPublic,
+          tags: restaurantLists.tags,
+          primaryLocation: restaurantLists.primaryLocation,
+          createdAt: restaurantLists.createdAt,
+          updatedAt: restaurantLists.updatedAt
+        },
+        creator: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture
+        }
+      })
+      .from(savedLists)
+      .innerJoin(restaurantLists, eq(savedLists.listId, restaurantLists.id))
+      .innerJoin(users, eq(restaurantLists.createdById, users.id))
+      .where(eq(savedLists.userId, userId))
+      .orderBy(desc(savedLists.savedAt));
+    } catch (error) {
+      console.error('Error in getSavedListsByUser:', error);
+      throw new Error('Failed to fetch saved lists');
+    }
   }
 
   async isListSavedByUser(listId: number, userId: number): Promise<boolean> {
@@ -869,17 +874,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // List reactions operations
-  async createListReaction(listId: number, userId: number, reactionType: string): Promise<any> {
+  async createListReaction(listId: number, userId: number, reaction: string): Promise<any> {
     // First check if reaction already exists
     const existingReaction = await this.getUserListReaction(listId, userId);
     if (existingReaction) {
       throw new Error('User has already reacted to this list');
     }
 
-    const [reaction] = await db.insert(listReactions).values({
+    const [reactionRecord] = await db.insert(listReactions).values({
       listId,
       userId,
-      reactionType,
+      reaction,
       createdAt: new Date()
     }).returning();
 
@@ -889,7 +894,7 @@ export class DatabaseStorage implements IStorage {
       reactionCount: countResult.count
     }).where(eq(restaurantLists.id, listId));
 
-    return reaction;
+    return reactionRecord;
   }
 
   async deleteListReaction(listId: number, userId: number): Promise<void> {

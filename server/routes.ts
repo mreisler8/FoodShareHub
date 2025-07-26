@@ -55,7 +55,6 @@ import discoverRouter from './routes/discover-basic';
 import sharingRouter from './routes/sharing';
 import circleScoreRoutes from './routes/circle-score';
 import healthRoutes from './routes/health';
-import listReactionsRoutes from './routes/list-reactions';
 import feedCountsRoutes from './routes/feed-counts';
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1345,7 +1344,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/list-reactions", listReactionsRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/list-item-comments", listItemCommentsRouter);
-  app.use('/api/list-reactions', listReactionsRoutes);
   app.use('/api/follow', followRoutes);
   app.use('/api/followers', followRoutes);
   app.use('/api/following', followRoutes);
@@ -1794,7 +1792,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/*', (req: any, res: any) => {
     res.setHeader('Content-Type', 'application/json');
     res.status(404).json({
-```text
       error: 'API endpoint not found',
       path: req.path,
       timestamp: new Date().toISOString()
