@@ -1,13 +1,13 @@
 import { Link, useLocation } from 'wouter';
-import { Home, Compass, Users, User, Star } from 'lucide-react';
+import { Home, Compass, Users, User, Star, Activity } from 'lucide-react';
 
 export default function BottomNavigation() {
   const [location] = useLocation();
   
   const navItems = [
     { href: '/', icon: Home, label: 'Home' },
+    { href: '/feed', icon: Activity, label: 'Feed' },
     { href: '/discover', icon: Compass, label: 'Explore' },
-    { href: '/quick-ratings', icon: Star, label: 'Ratings' },
     { href: '/circles', icon: Users, label: 'Circles' },
     { href: '/profile', icon: User, label: 'Profile' }
   ];
