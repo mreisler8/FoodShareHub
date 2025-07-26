@@ -10,6 +10,7 @@ import Router from "./components/Router";
 import BottomNavigation from "./components/navigation/BottomNavigation";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { logViewportInfo } from "./utils/viewportDebug";
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -41,6 +42,10 @@ function App() {
   // Setup global error handling on app initialization
   useEffect(() => {
     setupGlobalErrorHandling();
+    // Debug viewport in development
+    if (import.meta.env.DEV) {
+      logViewportInfo();
+    }
   }, []);
 
   return (

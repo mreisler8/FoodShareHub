@@ -248,24 +248,47 @@
   }
 }
 
-/* Modern Single-Navigation Architecture */
-/* Mobile: Show bottom nav only */
-@media (max-width: 1023px) {
-  .desktop-sidebar { 
-    display: none !important; 
+/* Modern Single-Navigation Architecture - Mobile First Approach */
+
+/* Default: Mobile (bottom nav only) */
+.desktop-sidebar {
+  display: none !important;
+}
+
+.mobile-navigation {
+  display: flex !important;
+}
+
+/* Desktop: Show left sidebar only when >= 1024px */  
+@media screen and (min-width: 1024px) {
+  .desktop-sidebar {
+    display: flex !important;
+    flex-direction: column !important;
   }
-  .mobile-navigation { 
-    display: flex !important; 
+  
+  .mobile-navigation {
+    display: none !important;
   }
 }
 
-/* Desktop: Show left sidebar only */  
-@media (min-width: 1024px) {
-  .desktop-sidebar { 
-    display: flex !important; 
+/* Force override any conflicting Tailwind classes */
+@media screen and (max-width: 1023px) {
+  .lg\\:flex {
+    display: none !important;
   }
-  .mobile-navigation { 
-    display: none !important; 
+  
+  .lg\\:hidden {
+    display: flex !important;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .lg\\:flex {
+    display: flex !important;
+  }
+  
+  .lg\\:hidden {
+    display: none !important;
   }
 }
 
