@@ -270,9 +270,15 @@
 }
 
 @layer components {
-  /* Dialog/Modal Border Radius Override */
-  [data-radix-dialog-content] {
-    border-radius: 0.75rem !important; /* 12px - reasonable rounded corners */
+  /* SYSTEM-WIDE BORDER RADIUS OVERRIDE - 4px Standard */
+  [data-radix-dialog-content],
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl,
+  .sm\\:rounded-lg,
+  .md\\:rounded-lg,
+  .lg\\:rounded-lg {
+    border-radius: 4px !important; /* Standardized 4px border radius */
   }
   
   /* Modern Button System */
@@ -316,7 +322,8 @@
   }
 
   .btn-lg {
-    @apply h-12 px-8 text-base rounded-lg;
+    @apply h-12 px-8 text-base;
+    border-radius: 4px !important;
   }
 
   /* Modern Card System */

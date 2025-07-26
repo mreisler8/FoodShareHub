@@ -11,7 +11,7 @@ interface RestaurantListCardProps {
 export function RestaurantListCard({ list }: RestaurantListCardProps) {
   return (
     <Link href={`/lists/${list.id}`}>
-      <div className="group relative overflow-hidden rounded-2xl bg-white border border-neutral-200 hover:border-neutral-300 hover:shadow-lg transition-all duration-300 cursor-pointer">
+      <div className="group relative overflow-hidden rounded bg-white border border-neutral-200 hover:border-neutral-300 hover:shadow-lg transition-all duration-300 cursor-pointer">
         {/* Cover Image or Gradient Header */}
         <div className="relative h-24 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
           {list.coverImage ? (

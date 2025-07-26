@@ -60,7 +60,8 @@
 
 /* Premium Video Player */
 .premium-video-player {
-  @apply relative w-full overflow-hidden rounded-2xl;
+  @apply relative w-full overflow-hidden;
+  border-radius: 4px !important;
 }
 
 .premium-video {
