@@ -117,7 +117,7 @@ export function FloatingCreateButton({
   };
 
   return (
-    <div className="fixed bottom-6 right-4 z-50">
+    <div className="fixed bottom-20 right-4 md:bottom-6" style={{ zIndex: 9999 }}>
       {/* Popover Menu */}
       <AnimatePresence>
         {isPopoverOpen && (
@@ -127,7 +127,7 @@ export function FloatingCreateButton({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute bottom-20 right-0 w-64 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+            className="absolute bottom-16 right-0 w-64 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
             role="menu"
             aria-label="Create new content menu"
           >
