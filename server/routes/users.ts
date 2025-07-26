@@ -450,7 +450,7 @@ router.put("/settings", authenticate, validateUserId, async (req, res) => {
 router.get("/:id/posts", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      
+
       // Simple posts query without complex joins that might cause issues
       const userPosts = await db
         .select()
@@ -470,7 +470,7 @@ router.get("/:id/posts", authenticate, validateUserId, validateTargetUserId, asy
 router.get("/:id/lists", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      
+
       // Simple lists query without complex subqueries
       const userLists = await db
         .select()
@@ -490,7 +490,7 @@ router.get("/:id/lists", authenticate, validateUserId, validateTargetUserId, asy
 router.get("/:id/ratings", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      
+
       const userRatings = await db
         .select({
           id: sql<number>`ratings.id`,
@@ -532,7 +532,7 @@ router.get("/:id/circles", authenticate, validateUserId, validateTargetUserId, a
 router.get("/:id/followers", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      
+
       const followers = await db
         .select({
           id: users.id,
@@ -558,7 +558,7 @@ router.get("/:id/followers", authenticate, validateUserId, validateTargetUserId,
 router.get("/:id/following", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      
+
       const following = await db
         .select({
           id: users.id,
@@ -594,7 +594,7 @@ router.get("/:id/saved", authenticate, validateUserId, validateTargetUserId, asy
 router.get("/followers/:id", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      
+
       const followers = await db
         .select({
           id: users.id,
@@ -620,7 +620,7 @@ router.get("/followers/:id", authenticate, validateUserId, validateTargetUserId,
 router.get("/following/:id", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
-      
+
       const following = await db
         .select({
           id: users.id,

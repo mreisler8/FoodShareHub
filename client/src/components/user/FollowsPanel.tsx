@@ -27,19 +27,23 @@ export function FollowsPanel({ userId, className = "" }: FollowsPanelProps) {
 
   // Fetch followers
   const { data: followers, isLoading: followersLoading } = useQuery<FollowUser[]>({
-    queryKey: [`/api/follow/followers/${userId}`],
+    queryKey: ['followers', userId],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/follow/followers/${userId}`);
-      return res.json();
+      const response = await fetch(`/api/users/${userId}/followers`);
+      if (!response.ok) throw new Error('Failed to fetch followers');
+      const data = await response.json();
+      return data.followers || [];
     },
   });
 
   // Fetch following
   const { data: following, isLoading: followingLoading } = useQuery<FollowUser[]>({
-    queryKey: [`/api/follow/following/${userId}`],
+    queryKey: ['following', userId],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/follow/following/${userId}`);
-      return res.json();
+      const response = await fetch(`/api/users/${userId}/following`);
+      if (!response.ok) throw new Error('Failed to fetch following');
+      const data = await response.json();
+      return data.following || [];
     },
   });
 

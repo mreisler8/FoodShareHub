@@ -116,7 +116,7 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: [`/api/follow/followers/${targetUserId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/follow/following/${currentUser?.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUser?.id}/stats`] });
-      
+
       toast({
         title: action === 'follow' ? "Following!" : "Unfollowed",
         description: action === 'follow' ? "You're now following this user" : "You've unfollowed this user",
@@ -131,7 +131,7 @@ export default function ProfilePage() {
     }
   });
 
-  
+
 
   const handleShare = () => {
     setShowShareLink(true);
@@ -411,7 +411,7 @@ export default function ProfilePage() {
                     {list.itemCount || 0} places
                   </Badge>
                 </div>
-                
+
                 {/* Preview Images */}
                 {list.previewImages && list.previewImages.length > 0 && (
                   <div className="flex -space-x-2 mb-4">
@@ -429,7 +429,7 @@ export default function ProfilePage() {
                     )}
                   </div>
                 )}
-                
+
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <span className="flex items-center gap-1">
                     {list.isPublic ? (
@@ -747,24 +747,24 @@ export default function ProfilePage() {
     <div className="flex min-h-screen mb-16 md:mb-0">
       <MobileNavigation />
       <DesktopSidebar />
-      
+
       <div className="flex-1 max-w-4xl mx-auto">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} oneValueChange={setActiveTab} className="w-full">
           <ProfileHeader />
           <ProfileTabs />
-          
+
           <TabsContent value="posts" className="mt-0 profile-tab-transition">
             <PostsTab />
           </TabsContent>
-          
+
           <TabsContent value="lists" className="mt-0 profile-tab-transition">
             <ListsTab />
           </TabsContent>
-          
+
           <TabsContent value="ratings" className="mt-0 profile-tab-transition">
             <RatingsTab />
           </TabsContent>
-          
+
           <TabsContent value="network" className="mt-0 profile-tab-transition">
             <NetworkTab />
           </TabsContent>

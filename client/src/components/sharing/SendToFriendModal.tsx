@@ -86,6 +86,12 @@ export function SendToFriendModal({
         clearTimeout(searchTimeoutRef.current);
       }
     };
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, [searchQuery, handleSearchError]);
 
   const handleSendToFriend = async () => {

@@ -81,7 +81,7 @@ const handleClick = () => {
     followMutation.mutate(isFollowing ? 'unfollow' : 'follow');
   };
 
-  const isLoading = followMutation.isPending;
+  
   const buttonVariant = isFollowing ? 'outline' : variant;
   const hoverClasses = isFollowing ? 'hover:bg-red-50 hover:text-red-600 hover:border-red-300' : '';
 
