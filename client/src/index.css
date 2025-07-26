@@ -271,14 +271,41 @@
 
 @layer components {
   /* SYSTEM-WIDE BORDER RADIUS OVERRIDE - 4px Standard */
+  /* This prevents all excessive border radius throughout the entire application */
   [data-radix-dialog-content],
+  [data-radix-popover-content],
+  [data-radix-dropdown-menu-content],
+  [data-radix-tooltip-content],
+  [data-radix-alert-dialog-content],
   .rounded-lg,
   .rounded-xl,
   .rounded-2xl,
+  .rounded-3xl,
   .sm\\:rounded-lg,
+  .sm\\:rounded-xl,
+  .sm\\:rounded-2xl,
   .md\\:rounded-lg,
-  .lg\\:rounded-lg {
+  .md\\:rounded-xl,
+  .md\\:rounded-2xl,
+  .lg\\:rounded-lg,
+  .lg\\:rounded-xl,
+  .lg\\:rounded-2xl,
+  .xl\\:rounded-lg,
+  .xl\\:rounded-xl,
+  .xl\\:rounded-2xl {
     border-radius: 4px !important; /* Standardized 4px border radius */
+  }
+  
+  /* Force override any card components */
+  .bg-card,
+  .bg-popover,
+  .bg-background,
+  [class*="card"],
+  [class*="modal"],
+  [class*="dialog"],
+  [class*="popover"],
+  [class*="dropdown"] {
+    border-radius: 4px !important;
   }
   
   /* Modern Button System */
