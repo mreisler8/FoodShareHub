@@ -34,7 +34,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
     submitRating, 
     retry 
   } = useRestaurantRatingState(restaurant);
-  
+
   // Form state - Upgraded to 10-point decimal system
   const [rating, setRating] = useState(0.0);
   const [hoveredRating, setHoveredRating] = useState(0.0);
@@ -43,7 +43,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
   const [isPrivate, setIsPrivate] = useState(true);
   const [sharedWithCircle, setSharedWithCircle] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -99,11 +99,11 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
 
       // Show success animation
       setShowSuccess(true);
-      
+
       // Invalidate relevant queries for Circle Score recalculation
       queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
       queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
-      
+
       // Close modal after success animation
       setTimeout(() => {
         onClose();
@@ -159,18 +159,11 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
   }
 
   return (
-    <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="quick-rate-modal-title"
-      aria-describedby="quick-rate-modal-description"
-    >
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex-1">
-            <h2 id="quick-rate-modal-title" className="text-lg font-semibold">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
+              <h2 id="quick-rate-modal-title" className="text-lg font-semibold">
               {existingRating ? 'Update Rating' : 'Rate Restaurant'}
             </h2>
             <div id="quick-rate-modal-description" className="flex items-center text-sm text-gray-600 mt-1">
@@ -180,14 +173,14 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
                 <span className="ml-1">• {restaurant.location}</span>
               )}
             </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Close modal">
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
+              <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Close modal">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
 
-        {/* Content */}
-        <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 space-y-4">
           {/* Error display */}
           {ratingError && (
             <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -293,10 +286,11 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
             )}
           </div>
         </div>
+              </div>
 
-        {/* Footer */}
-        <div className="border-t p-4">
-          <Button
+              {/* Fixed Footer with Submit Buttons */}
+              <div className="border-t p-4 flex-shrink-0">
+                <Button
             onClick={handleSubmit}
             disabled={!isValid || isSubmitting}
             className="w-full"
@@ -317,9 +311,10 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
               Please select a rating from 0.1 to 10.0
             </p>
           )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
   );
 }
 
