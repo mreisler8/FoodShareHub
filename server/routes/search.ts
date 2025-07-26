@@ -738,7 +738,8 @@ router.get('/trending-tags', authenticate, async (req, res) => {
         { tag: 'dim sum', count: 0, trending: false, suggested: true },
         { tag: 'birthday', count: 0, trending: false, suggested: true },
         { tag: 'low key', count: 0, trending: false, suggested: true },
-        { tag: 'fun', count: 0, trending: false, suggested: true        { tag: 'trending restaurants', count: 0, trending: false, suggested: true },
+        { tag: 'fun', count: 0, trending: false, suggested: true },
+        { tag: 'trending restaurants', count: 0, trending: false, suggested: true },
       ]
     });
 

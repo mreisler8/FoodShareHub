@@ -98,6 +98,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add missing followers/following endpoints that are causing 404s
+  app.get("/api/followers/:userId", authenticate, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      const followers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio,
+          followedAt: userFollowers.createdAt,
+        })
+        .from(userFollowers)
+        .innerJoin(users, eq(userFollowers.followerId, users.id))
+        .where(eq(userFollowers.followingId, userId));
+
+      res.json(followers);
+    } catch (error) {
+      console.error('Error fetching followers:', error);
+      res.status(500).json({ error: 'Failed to fetch followers' });
+    }
+  });
+
+  app.get("/api/following/:userId", authenticate, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      const following = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio,
+          followedAt: userFollowers.createdAt,
+        })
+        .from(userFollowers)
+        .innerJoin(users, eq(userFollowers.followingId, users.id))
+        .where(eq(userFollowers.followerId, userId));
+
+      res.json(following);
+    } catch (error) {
+      console.error('Error fetching following:', error);
+      res.status(500).json({ error: 'Failed to fetch following' });
+    }
+  });
+
   // Error handling middleware
   const handleZodError = (err: any, res: Response) => {
     if (err instanceof ZodError) {
