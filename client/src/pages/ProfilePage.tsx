@@ -471,7 +471,7 @@ export default function ProfilePage() {
           {isOwnProfile && (
             <Button 
               className="bg-primary hover:bg-primary/90 transition-colors"
-              onClick={() => window.location.href = '/create-list'}
+              onClick={() => navigate('/create-list')}
             >
               <Bookmark className="h-4 w-4 mr-2" />
               Create Your First List

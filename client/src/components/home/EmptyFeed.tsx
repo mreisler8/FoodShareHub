@@ -190,7 +190,7 @@ export function EmptyFeed() {
           <p className="text-gray-600 mb-4">
             Share your favorite restaurants and hidden gems with the community
           </p>
-          <Link href="/lists/create">
+          <Link href="/create-list">
             <Button className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Create List

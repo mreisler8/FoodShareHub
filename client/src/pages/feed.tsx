@@ -73,7 +73,7 @@ interface UnifiedFeedResponse {
 // Modern Feed Content Component with Layout Support
 function FeedContentWithLayout({ allItems, onListClick }: { allItems: FeedItem[], onListClick: (id: number) => void }) {
   const { viewMode } = useFeedLayout();
-  
+
   return (
     <div className={getFeedLayoutClasses(viewMode)}>
       {allItems.map((item) => (
@@ -243,11 +243,13 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
     );
   }
 
+  const navigate = useLocation()[1];
+
   return (
     <FeedLayoutProvider>
       <div className="flex min-h-screen bg-background">
         <DesktopSidebar />
-        
+
         <div className="flex-1 overflow-auto lg:ml-0">
           {/* Stories Section - Instagram Style */}
           <StoriesSection 
@@ -269,7 +271,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   {activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
                 </h1>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 {/* Universal Search Button */}
                 <Button 
@@ -280,7 +282,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   <Search className="h-4 w-4" />
                   <span className="hidden sm:inline">Search</span>
                 </Button>
-                
+
                 {/* User Profile Access - CRITICAL FIX */}
                 <Link href="/profile">
                   <Button variant="ghost" size="sm" className="p-2">
@@ -297,7 +299,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     )}
                   </Button>
                 </Link>
-                
+
                 {!isMobile && (
                   <>
                     <FeedViewControls />
@@ -351,7 +353,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 Circle
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="feed" className="mt-6">
               <div className="space-y-4">
                 {/* Enhanced Quick Create Actions */}
@@ -393,11 +395,11 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     </Button>
                   </div>
                 </div>
-                
+
                 <p className="text-muted-foreground">
                   Posts and lists from people you follow
                 </p>
-                
+
                 {isLoading && page === 1 ? (
                   <FeedLoadingState viewMode="list" />
                 ) : error ? (
@@ -443,7 +445,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="circle" className="mt-6">
               <div className="space-y-4">
                 {userCircles.length === 0 ? (
@@ -458,7 +460,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     <p className="text-muted-foreground">
                       Posts and lists shared with your circles
                     </p>
-                    
+
                     {isLoading && page === 1 ? (
                       <FeedLoadingState viewMode="list" />
                     ) : error ? (
@@ -563,7 +565,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 <p className="text-muted-foreground">
                   Discover personalized recommendations from your network
                 </p>
-                
+
                 {/* Enhanced Discover Tabs */}
                 <Tabs defaultValue="for-you" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
@@ -580,7 +582,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       Near You
                     </TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="for-you" className="mt-4">
                     <div className="space-y-4">
                       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 text-center">
@@ -595,7 +597,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="trending" className="mt-4">
                     <div className="space-y-4">
                       <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 text-center">
@@ -610,7 +612,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="near-you" className="mt-4">
                     <div className="space-y-4">
                       <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 text-center">
@@ -630,7 +632,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             </TabsContent>
           </Tabs>
           </div>
-          
+
           {/* Right Sidebar - integrated from home page */}
           <div className="hidden lg:block lg:col-span-1 space-y-6">
             {/* Pending Invites & Requests */}
@@ -640,7 +642,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 <FollowRequestCard />
               </div>
             )}
-            
+
             <SuggestedUsersCard />
             <TagExploreCard />
           </div>
@@ -692,7 +694,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             </div>
           </div>
         )}
-        
+
         {/* Unified Search Modal */}
         <UnifiedSearchModal
           open={isSearchOpen}
@@ -700,7 +702,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         />
 
 
-        
+
         {/* Post Modal */}
         <UnifiedPostModal open={showPostModal} onOpenChange={setShowPostModal} />
 
@@ -712,16 +714,10 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         />
 
         {/* Floating Create Button */}
-        <FloatingCreateButton
-          onPostPhoto={() => setShowPostModal(true)}
-          onShareMoment={() => {
-            setCreateCanvasTab('moment');
-            setShowCreateCanvas(true);
-          }}
-          onBuildList={() => {
-            setCreateCanvasTab('list');
-            setShowCreateCanvas(true);
-          }}
+        <FloatingCreateButton 
+          onPostPhoto={() => {/* TODO: Implement */}}
+          onShareMoment={() => {/* TODO: Implement */}}
+          onBuildList={() => navigate("/create-list")}
         />
       </div>
     </FeedLayoutProvider>
