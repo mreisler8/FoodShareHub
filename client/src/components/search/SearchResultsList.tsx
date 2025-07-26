@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import CircleScoreCard from '@/components/circle-score/CircleScoreCard';
 import { useCircleScore } from '@/hooks/useCircleScore';
+import { TriedItButton } from '@/components/recommendations';
 
 interface SearchResultsListProps {
   results: SearchResult[];
@@ -271,7 +272,7 @@ export function SearchResultsList({
 
                     {/* Quick Rate Button for restaurants */}
                     {result.type === 'restaurant' && (
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
                         <QuickRateButton
                           restaurant={{
                             id: typeof result.id === 'string' && result.id.startsWith('google_') ? undefined : Number(result.id),
@@ -282,6 +283,18 @@ export function SearchResultsList({
                           }}
                           variant="compact"
                         />
+                        {/* TriedItButton appears when restaurant is from a recommendation */}
+                        {result.metadata?.isRecommendation && result.metadata?.recommenderUserId && (
+                          <TriedItButton
+                            entityType={result.metadata.recommendationEntityType || 'rating'}
+                            entityId={result.metadata.recommendationEntityId || 0}
+                            restaurantId={typeof result.id === 'string' && result.id.startsWith('google_') ? 0 : Number(result.id)}
+                            recommenderUserId={result.metadata.recommenderUserId}
+                            sourceContext="search_results"
+                            size="sm"
+                            variant="ghost"
+                          />
+                        )}
                       </div>
                     )}
 

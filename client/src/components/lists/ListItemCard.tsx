@@ -10,6 +10,7 @@ import {
 import { RestaurantListItemWithDetails } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { ItemComments } from "./ItemComments";
+import { TriedItButton, RecCreditBadge } from "@/components/recommendations";
 
 interface ListItemCardProps {
   data: RestaurantListItemWithDetails;
@@ -163,24 +164,42 @@ export function ListItemCard({ data: item, onEdit, onDelete, isOptimistic = fals
             </div>
           )}
           
-          {/* Added by info */}
+          {/* Added by info and Tried It button */}
           <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
             <div className="flex items-center text-xs text-neutral-500">
               <Avatar className="h-6 w-6 mr-2 border border-neutral-200">
                 <AvatarImage src={item.addedBy?.profilePicture || undefined} alt={item.addedBy?.name || "User"} />
                 <AvatarFallback className="text-xs">{item.addedBy?.name?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
-              <span className="font-medium text-neutral-600">{item.addedBy?.name || "anonymous"}</span>
+              <div className="flex flex-col">
+                <span className="font-medium text-neutral-600">{item.addedBy?.name || "anonymous"}</span>
+                {item.addedBy && user && item.addedBy.id !== user.id && (
+                  <RecCreditBadge userId={item.addedBy.id} size="xs" />
+                )}
+              </div>
             </div>
-            {item.addedAt && (
-              <span className="text-xs text-neutral-400">
-                {new Date(item.addedAt).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric',
-                  year: new Date(item.addedAt).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-                })}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {item.addedAt && (
+                <span className="text-xs text-neutral-400">
+                  {new Date(item.addedAt).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: new Date(item.addedAt).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                  })}
+                </span>
+              )}
+              {item.addedBy && user && item.addedBy.id !== user.id && item.restaurant && (
+                <TriedItButton
+                  entityType="list"
+                  entityId={item.id}
+                  restaurantId={item.restaurant.id}
+                  recommenderUserId={item.addedBy.id}
+                  sourceContext="list_item_card"
+                  size="sm"
+                  variant="ghost"
+                />
+              )}
+            </div>
           </div>
           
           {/* Item Comments */}

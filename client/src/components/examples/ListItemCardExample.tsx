@@ -21,7 +21,7 @@ export function ListItemCardExample() {
         <CardTitle className="flex items-center justify-between">
           <span>{exampleListItem.restaurantName}</span>
           <RecCreditBadge 
-            recommenderName={exampleListItem.recommenderName}
+            userId={exampleListItem.recommenderUserId}
             size="sm"
           />
         </CardTitle>
@@ -41,7 +41,6 @@ export function ListItemCardExample() {
               entityType="list"
               entityId={exampleListItem.id}
               restaurantId={exampleListItem.restaurantId}
-              restaurantName={exampleListItem.restaurantName}
               recommenderUserId={exampleListItem.recommenderUserId}
               sourceContext="list_item_card"
               size="sm"

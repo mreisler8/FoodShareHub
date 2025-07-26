@@ -25,6 +25,7 @@ import { ShareLinkModal } from '@/components/sharing/ShareLinkModal';
 import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { TriedItButton } from '@/components/recommendations';
 
 interface Restaurant {
   id?: number;
@@ -48,6 +49,11 @@ interface RestaurantActionBarProps {
   onAddToList?: () => void;
   className?: string;
   variant?: 'mobile' | 'desktop';
+  // Recommendation tracking props (optional)
+  isRecommendation?: boolean;
+  recommenderUserId?: number;
+  recommendationEntityType?: 'list' | 'rating' | 'post';
+  recommendationEntityId?: number;
 }
 
 export default function RestaurantActionBar({
@@ -56,7 +62,11 @@ export default function RestaurantActionBar({
   onSave,
   onAddToList,
   className,
-  variant = 'mobile'
+  variant = 'mobile',
+  isRecommendation = false,
+  recommenderUserId,
+  recommendationEntityType = 'rating',
+  recommendationEntityId
 }: RestaurantActionBarProps) {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showCircleShare, setShowCircleShare] = useState(false);
@@ -193,6 +203,17 @@ export default function RestaurantActionBar({
             className={error ? 'border-red-200 text-red-600' : ''}
               onClick={handleQuickRate}
             />
+            {isRecommendation && recommenderUserId && recommendationEntityId && restaurant.id && (
+              <TriedItButton
+                entityType={recommendationEntityType}
+                entityId={recommendationEntityId}
+                restaurantId={restaurant.id}
+                recommenderUserId={recommenderUserId}
+                sourceContext="restaurant_action_bar_mobile"
+                size="sm"
+                variant="outline"
+              />
+            )}
             <ActionButton 
               icon="plus" 
               label="Add to List" 
@@ -279,6 +300,17 @@ export default function RestaurantActionBar({
           disabled={isLoading}
           onClick={handleQuickRate}
         />
+        {isRecommendation && recommenderUserId && recommendationEntityId && restaurant.id && (
+          <TriedItButton
+            entityType={recommendationEntityType}
+            entityId={recommendationEntityId}
+            restaurantId={restaurant.id}
+            recommenderUserId={recommenderUserId}
+            sourceContext="restaurant_action_bar_desktop"
+            size="default"
+            variant="outline"
+          />
+        )}
         <ActionButton 
           icon="plus" 
           label="Add to List" 
