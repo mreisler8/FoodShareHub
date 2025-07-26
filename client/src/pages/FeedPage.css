@@ -1,8 +1,107 @@
-.end-msg {
-  text-align: center;
-  color: var(--muted-foreground);
-  margin: 1em 0;
-  padding: 2rem;
-  font-size: 0.9rem;
-  font-weight: 500;
+/* Modern Feed Page Styles */
+
+/* Feed Layout Variations */
+.feed-layout-list {
+  @apply flex flex-col;
+}
+
+.feed-layout-grid {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.feed-layout-masonry {
+  @apply columns-2 md:columns-3 gap-4;
+  break-inside: avoid;
+}
+
+/* Stories Section Styling */
+.stories-section {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Enhanced Feed Container */
+.feed-container {
+  @apply relative;
+}
+
+/* Smooth Transitions */
+.feed-layout-list > *,
+.feed-layout-grid > *,
+.feed-layout-masonry > * {
+  transition: all 0.3s ease-out;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .feed-layout-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .feed-layout-masonry {
+    columns: 1;
+  }
+}
+
+/* Loading States */
+.feed-loading-skeleton {
+  @apply animate-pulse bg-gray-200 rounded-xl;
+}
+
+/* Enhanced Scrolling */
+.feed-scroll-container {
+  scroll-behavior: smooth;
+}
+
+/* Modern Feed Header */
+.modern-feed-header {
+  @apply sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100;
+}
+
+/* View Controls Integration */
+.feed-view-controls {
+  @apply flex items-center gap-2;
+}
+
+/* Story Create Button */
+.story-create-floating {
+  @apply fixed bottom-20 right-4 w-14 h-14 bg-gradient-to-r from-pink-500 to-violet-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300;
+  z-index: 50;
+}
+
+.story-create-floating:hover {
+  transform: scale(1.1);
+}
+
+/* Premium Feed Styling */
+.premium-feed-bg {
+  background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+}
+
+/* Glass Morphism Effects */
+.glass-effect {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Enhanced Interactions */
+.interactive-element {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-element:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile-First Feed Adjustments */
+@media (max-width: 640px) {
+  .feed-container {
+    @apply px-2;
+  }
+  
+  .modern-feed-header {
+    @apply px-3;
+  }
 }

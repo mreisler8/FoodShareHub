@@ -5,6 +5,10 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { PostCard } from '@/components/home/PostCard';
+import { ModernPostCard } from '@/components/feed/ModernPostCard';
+import { FeedLayoutProvider, useFeedLayout, getFeedLayoutClasses } from '@/components/feed/FeedLayoutProvider';
+import { FeedViewControls } from '@/components/feed/FeedViewControls';
+import { StoriesSection } from '@/components/feed/StoriesSection';
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
@@ -55,6 +59,52 @@ interface UnifiedFeedResponse {
     total: number;
     hasMore: boolean;
   };
+}
+
+// Modern Feed Content Component with Layout Support
+function FeedContentWithLayout({ allItems, onListClick }: { allItems: FeedItem[], onListClick: (id: number) => void }) {
+  const { viewMode } = useFeedLayout();
+  
+  return (
+    <div className={getFeedLayoutClasses(viewMode)}>
+      {allItems.map((item) => (
+        item.feedType === 'list' ? (
+          <ListFeedCard 
+            key={`list-${item.id}`} 
+            list={{
+              id: item.id,
+              name: item.name || 'Untitled List',
+              description: item.description,
+              coverImage: item.coverImage,
+              tags: item.tags,
+              type: item.type || 'restaurant',
+              audience: item.audience || 'public',
+              shareWithCircle: item.shareWithCircle,
+              makePublic: item.makePublic,
+              viewCount: item.viewCount || 0,
+              saveCount: item.saveCount || 0,
+              reactionCount: item.reactionCount || 0,
+              createdAt: typeof item.createdAt === 'string' ? item.createdAt : item.createdAt.toISOString(),
+              updatedAt: item.updatedAt || (typeof item.createdAt === 'string' ? item.createdAt : item.createdAt.toISOString()),
+              createdById: item.createdById || item.userId,
+              creator: item.creator
+            }}
+            onListClick={onListClick}
+          />
+        ) : (
+          <ModernPostCard 
+            key={`post-${item.id}`} 
+            post={item} 
+            viewMode={viewMode}
+            onImageDoubleClick={() => {
+              // Handle like action on double click
+              console.log('Double clicked post:', item.id);
+            }}
+          />
+        )
+      ))}
+    </div>
+  );
 }
 
 export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
@@ -160,45 +210,55 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <DesktopSidebar />
-      
-      <div className="flex-1 overflow-auto">
-        <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-foreground">
-              {activeTab === 'feed' ? 'Your Feed' : 'Circle Feed'}
-            </h1>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2"
-              >
-                <Filter className="h-4 w-4" />
-                Filters
-              </Button>
-              <Button 
-                onClick={() => {
-                  setCreateCanvasTab('moment');
-                  setShowCreateCanvas(true);
-                }}
-                className="flex items-center gap-2"
-              >
-                <Camera className="h-4 w-4" />
-                Food Moment
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setShowPostModal(true)}
-                className="flex items-center gap-2"
-              >
-                <PlusCircle className="h-4 w-4" />
-                Post
-              </Button>
+    <FeedLayoutProvider>
+      <div className="flex min-h-screen bg-background">
+        <DesktopSidebar />
+        
+        <div className="flex-1 overflow-auto">
+          {/* Stories Section - Instagram Style */}
+          <StoriesSection 
+            onCreateStory={() => {
+              setCreateCanvasTab('moment');
+              setShowCreateCanvas(true);
+            }}
+          />
+
+          <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold text-foreground">
+                {activeTab === 'feed' ? 'Your Feed' : 'Circle Feed'}
+              </h1>
+              <div className="flex items-center gap-2">
+                <FeedViewControls />
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center gap-2"
+                >
+                  <Filter className="h-4 w-4" />
+                  Filters
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setCreateCanvasTab('moment');
+                    setShowCreateCanvas(true);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Camera className="h-4 w-4" />
+                  Food Moment
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowPostModal(true)}
+                  className="flex items-center gap-2"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Post
+                </Button>
+              </div>
             </div>
-          </div>
 
           {/* Post Type Filters */}
           {showFilters && (
@@ -290,36 +350,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       </div>
                     }
                   >
-                    <div className="space-y-6">
-                      {allItems.map((item) => (
-                        item.feedType === 'list' ? (
-                          <ListFeedCard 
-                            key={`list-${item.id}`} 
-                            list={{
-                              id: item.id,
-                              name: item.name || 'Untitled List',
-                              description: item.description,
-                              coverImage: item.coverImage,
-                              tags: item.tags,
-                              type: item.type || 'restaurant',
-                              audience: item.audience || 'public',
-                              shareWithCircle: item.shareWithCircle,
-                              makePublic: item.makePublic,
-                              viewCount: item.viewCount || 0,
-                              saveCount: item.saveCount || 0,
-                              reactionCount: item.reactionCount || 0,
-                              createdAt: typeof item.createdAt === 'string' ? item.createdAt : item.createdAt.toISOString(),
-                              updatedAt: item.updatedAt || (typeof item.createdAt === 'string' ? item.createdAt : item.createdAt.toISOString()),
-                              createdById: item.createdById || item.userId,
-                              creator: item.creator
-                            }}
-                            onListClick={handleListClick}
-                          />
-                        ) : (
-                          <PostCard key={`post-${item.id}`} post={item} />
-                        )
-                      ))}
-                    </div>
+                    <FeedContentWithLayout allItems={allItems} onListClick={handleListClick} />
                   </InfiniteScroll>
                 ) : (
                   <div className="text-center p-8">
@@ -408,7 +439,14 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                                 onListClick={handleListClick}
                               />
                             ) : (
-                              <PostCard key={`circle-post-${item.id}`} post={item} />
+                              <ModernPostCard 
+                                key={`circle-post-${item.id}`} 
+                                post={item} 
+                                viewMode="list"
+                                onImageDoubleClick={() => {
+                                  console.log('Double clicked circle post:', item.id);
+                                }}
+                              />
                             )
                           ))}
                         </div>
@@ -437,20 +475,21 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
               </div>
             </TabsContent>
           </Tabs>
+          </div>
         </div>
+
+        <MobileNavigation />
+        
+        {/* Post Modal */}
+        <UnifiedPostModal open={showPostModal} onOpenChange={setShowPostModal} />
+
+        {/* Create Canvas Modal */}
+        <CreateCanvas
+          isOpen={showCreateCanvas}
+          onClose={() => setShowCreateCanvas(false)}
+          defaultTab={createCanvasTab}
+        />
       </div>
-
-      <MobileNavigation />
-      
-      {/* Post Modal */}
-      <UnifiedPostModal open={showPostModal} onOpenChange={setShowPostModal} />
-
-      {/* Create Canvas Modal */}
-      <CreateCanvas
-        isOpen={showCreateCanvas}
-        onClose={() => setShowCreateCanvas(false)}
-        defaultTab={createCanvasTab}
-      />
-    </div>
+    </FeedLayoutProvider>
   );
 }
