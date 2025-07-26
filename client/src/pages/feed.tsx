@@ -9,6 +9,7 @@ import { ModernPostCard } from '@/components/feed/ModernPostCard';
 import { FeedLayoutProvider, useFeedLayout, getFeedLayoutClasses } from '@/components/feed/FeedLayoutProvider';
 import { FeedViewControls } from '@/components/feed/FeedViewControls';
 import { StoriesSection } from '@/components/feed/StoriesSection';
+import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernShimmerLoader';
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
@@ -95,7 +96,7 @@ function FeedContentWithLayout({ allItems, onListClick }: { allItems: FeedItem[]
           <ModernPostCard 
             key={`post-${item.id}`} 
             post={item} 
-            viewMode={viewMode}
+            viewMode={viewMode === 'stories' ? 'list' : viewMode}
             onImageDoubleClick={() => {
               // Handle like action on double click
               console.log('Double clicked post:', item.id);
@@ -327,9 +328,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 </p>
                 
                 {isLoading && page === 1 ? (
-                  <div className="flex justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
+                  <FeedLoadingState viewMode="list" />
                 ) : error ? (
                   <div className="text-center p-8">
                     <p className="text-red-500">Failed to load feed posts</p>
@@ -340,8 +339,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     next={fetchMoreItems}
                     hasMore={hasMore}
                     loader={
-                      <div className="flex justify-center py-6">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <div className="py-6">
+                        <ModernShimmerLoader viewMode="list" count={2} />
                       </div>
                     }
                     endMessage={
@@ -390,9 +389,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     </p>
                     
                     {isLoading && page === 1 ? (
-                      <div className="flex justify-center p-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      </div>
+                      <FeedLoadingState viewMode="list" />
                     ) : error ? (
                       <div className="text-center p-8">
                         <p className="text-red-500">Failed to load circle posts</p>

@@ -5,7 +5,7 @@ import { PostWithDetails } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { PostTypeIcon, getPostTypeColor, getPostTypeLabel } from '@/components/post/PostTypeIcon';
+// import { PostTypeIcon, getPostTypeColor, getPostTypeLabel } from '@/components/post/PostTypeIcon';
 import { useMemoryManagement } from '@/hooks/useMemoryManagement';
 import './ModernPostCard.css';
 
@@ -70,9 +70,8 @@ export function ModernPostCard({ post, viewMode = 'list', onImageDoubleClick }: 
             <div className="modern-post-author-name">
               {post.author?.name || 'Anonymous'}
               {post.postType && (
-                <Badge className={`modern-post-type-badge ${getPostTypeColor(post.postType)}`}>
-                  <PostTypeIcon type={post.postType} size="sm" />
-                  {getPostTypeLabel(post.postType)}
+                <Badge className="modern-post-type-badge bg-primary/10 text-primary">
+                  {post.postType.replace('_', ' ').toUpperCase()}
                 </Badge>
               )}
             </div>
@@ -200,10 +199,17 @@ export function ModernPostCard({ post, viewMode = 'list', onImageDoubleClick }: 
         )}
 
         {/* Comments preview */}
-        <div className="modern-post-comments-preview">
-          <button className="modern-post-view-comments">
-            View all comments
-          </button>
+        {post.commentCount && post.commentCount > 0 && (
+          <div className="modern-post-comments-preview">
+            <button className="modern-post-view-comments">
+              View all {post.commentCount} comments
+            </button>
+          </div>
+        )}
+        
+        {/* Time */}
+        <div className="modern-post-time">
+          {timeAgo}
         </div>
       </div>
     </article>
