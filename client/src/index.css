@@ -80,12 +80,12 @@
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-left: env(safe-area-inset-left, 0px);
 
-    /* Spacing & Layout */
-    --radius: 8px;
+    /* Spacing & Layout - Standardized 4px Border Radius */
+    --radius: 4px;
     --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
+    --radius-md: 4px;
+    --radius-lg: 4px;
+    --radius-xl: 4px;
 
     /* Shadows - Modern Elevation System */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
