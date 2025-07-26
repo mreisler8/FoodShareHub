@@ -7,6 +7,8 @@ import {
   timestamp,
   json,
   index,
+  varchar,
+  unique,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -184,7 +186,7 @@ export const circles = pgTable("circles", {
   // Personalization features
   tags: text("tags").array(),
   primaryCuisine: text("primary_cuisine"),
-  priceRange: text("price_range"), // "$", "$$", "$$$", "$$$$"
+  priceRange: text("price_range"), // "$", "$$", "$$$$",
   location: text("location"), // City/region focus
   memberCount: integer("member_count").default(0),
   featured: boolean("featured").default(false),
@@ -849,3 +851,13 @@ export type InsertAcceptedRecommendation = z.infer<typeof insertAcceptedRecommen
 
 // Content Moderation Status - add moderation fields to existing content
 // Note: These will be added as optional fields to existing tables via migrations
+
+export const listReactions = pgTable('list_reactions', {
+  id: serial('id').primaryKey(),
+  listId: integer('list_id').references(() => restaurantLists.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  reaction: varchar('reaction', { length: 20 }).notNull(), // like, love, fire, clap
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  uniqueUserListReaction: unique().on(table.listId, table.userId)
+}));

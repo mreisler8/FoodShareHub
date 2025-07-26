@@ -1345,6 +1345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/list-reactions", listReactionsRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/list-item-comments", listItemCommentsRouter);
+  app.use('/api/list-reactions', listReactionsRoutes);
   app.use('/api/follow', followRoutes);
   app.use('/api/followers', followRoutes);
   app.use('/api/following', followRoutes);
@@ -1363,7 +1364,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/moments", momentsRouter);
   app.use('/api/circle-score', circleScoreRoutes);
   app.use('/api/health', healthRoutes);
-  app.use('/api/list-reactions', listReactionsRoutes);
   app.use('/api/feed', feedCountsRoutes);
 
   // Circle Score routes
@@ -1794,6 +1794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/*', (req: any, res: any) => {
     res.setHeader('Content-Type', 'application/json');
     res.status(404).json({
+```text
       error: 'API endpoint not found',
       path: req.path,
       timestamp: new Date().toISOString()

@@ -15,37 +15,37 @@ export function DesktopSidebar() {
   const { logoutMutation } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Get current user
   const { data: currentUser, isLoading } = useQuery<User | undefined>({
     queryKey: ["/api/me"],
   });
-  
+
   // Get activity indicators data
   const { data: pendingInvites } = useQuery({
     queryKey: ['/api/circles/invites/pending'],
     enabled: !!currentUser,
   });
-  
+
   const { data: pendingRequests } = useQuery({
     queryKey: ['/api/circles/requests/pending'],
     enabled: !!currentUser,
   });
-  
+
   const { data: followRequests } = useQuery({
     queryKey: ['/api/follow/requests/pending'],
     enabled: !!currentUser,
   });
-  
+
   const isAuthenticated = !!currentUser;
-  
+
   // Calculate total notifications
   const totalNotifications = (pendingInvites?.length || 0) + (pendingRequests?.length || 0) + (followRequests?.length || 0);
-  
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
-  
+
   // Function to check if a path is active
   const isActive = (path: string) => {
     if (path === "/" && location === "/") {
@@ -64,7 +64,7 @@ export function DesktopSidebar() {
 
   return (
     <div className="desktop-sidebar hidden lg:flex flex-col w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-4 h-screen sticky top-0 border-r border-soft-sand-30">
-      
+
       {/* Persistent Search Bar */}
       {isAuthenticated && (
         <div className="mb-6">
@@ -107,7 +107,7 @@ export function DesktopSidebar() {
           <p className="text-xs text-neutral-600 mt-0.5">Trusted restaurant recommendations from your inner circle</p>
         </div>
       </Link>
-      
+
       <nav className="flex-1" role="navigation" aria-label="Main navigation">
         <ul className="space-y-2">
           {/* Search - elevated to top like Instagram */}
@@ -121,7 +121,7 @@ export function DesktopSidebar() {
               <span>Search</span>
             </button>
           </li>
-          
+
           <li>
             <Link href={isAuthenticated ? "/feed" : "/"} aria-label="View your feed">
               <div className={getNavItemClasses(isAuthenticated ? "/feed" : "/")} role="menuitem" tabIndex={0}>
@@ -204,7 +204,7 @@ export function DesktopSidebar() {
           </li>
         </ul>
       </nav>
-      
+
       {/* Activity/Notifications Section */}
       {isAuthenticated && totalNotifications > 0 && (
         <div className="border-t border-neutral-200 pt-4 mt-4">
@@ -221,7 +221,7 @@ export function DesktopSidebar() {
           </Link>
         </div>
       )}
-      
+
       <div className="mt-auto pt-5 border-t border-neutral-200">
         <Link href="/profile">
           <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
@@ -243,7 +243,7 @@ export function DesktopSidebar() {
           <span>Logout</span>
         </div>
       </div>
-      
+
       {/* Unified Search Modal */}
       <UnifiedSearchModal
         open={isSearchOpen}

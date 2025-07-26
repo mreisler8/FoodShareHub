@@ -60,7 +60,7 @@ router.get('/:listId/status', authenticate, async (req, res) => {
   try {
     const listId = parseInt(req.params.listId);
     const userId = req.user!.id;
-    
+
     const isSaved = await storage.isListSavedByUser(listId, userId);
     res.json({ isSaved });
   } catch (error: any) {
