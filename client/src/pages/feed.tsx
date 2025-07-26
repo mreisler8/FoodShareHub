@@ -14,7 +14,7 @@ import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Users, Home, Filter, Camera, Plus, Search, User } from 'lucide-react';
+import { PlusCircle, Users, Home, Filter, Camera, Plus, Search, User, TrendingUp } from 'lucide-react';
 import { OptimizedPendingInvites } from '@/components/optimized/OptimizedPendingInvites';
 import { PostWithDetails } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -141,7 +141,11 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const [showPostModal, setShowPostModal] = useState(false);
   const [showCreateCanvas, setShowCreateCanvas] = useState(false);
   const [createCanvasTab, setCreateCanvasTab] = useState<'moment' | 'list'>('moment');
-  const [activeTab, setActiveTab] = useState<'feed' | 'circle'>(scope);
+  // Check URL parameters for tab selection
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlTab = urlParams.get('tab');
+  const initialTab = urlTab === 'discover' ? 'discover' : scope;
+  const [activeTab, setActiveTab] = useState<'feed' | 'discover' | 'circle'>(initialTab);
   const [hasMore, setHasMore] = useState(true);
   const [selectedPostTypes, setSelectedPostTypes] = useState<PostType[]>(['list', 'moment', 'dish']);
   const [showFilters, setShowFilters] = useState(false);
@@ -161,7 +165,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
     setHasMore(true);
   }, [activeTab, circleId, selectedPostTypes]);
 
-  // Fetch unified feed (posts + lists) based on current scope and page
+  // Fetch unified feed (posts + lists) based on current scope and page - skip for discover tab
   const { data: feedData, isLoading, error } = useQuery<UnifiedFeedResponse>({
     queryKey: ['/api/unified-feed', { 
       scope: activeTab, 
@@ -169,13 +173,13 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
       page,
       postTypes: selectedPostTypes.length < 3 ? selectedPostTypes : undefined
     }],
-    enabled: !!user,
+    enabled: !!user && activeTab !== 'discover',
   });
 
-  // Get post type counts for filter UI
+  // Get post type counts for filter UI - skip for discover tab
   const { data: postTypeCounts } = useQuery<Record<PostType, number>>({
     queryKey: ['/api/feed/counts', { scope: activeTab, circleId: activeTab === 'circle' ? circleId : undefined }],
-    enabled: !!user,
+    enabled: !!user && activeTab !== 'discover',
   });
 
   // Accumulate feed items for infinite scroll
@@ -211,10 +215,12 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
 
 
   const handleTabChange = (newTab: string) => {
-    if (newTab === 'feed' || newTab === 'circle') {
+    if (newTab === 'feed' || newTab === 'discover' || newTab === 'circle') {
       setActiveTab(newTab);
       if (newTab === 'feed') {
         setLocation('/feed');
+      } else if (newTab === 'discover') {
+        setLocation('/feed?tab=discover');
       } else if (userCircles.length > 0) {
         // Navigate to first circle if available
         setLocation(`/feed/circle/${userCircles[0].id}`);
@@ -258,7 +264,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-foreground">
-                {activeTab === 'feed' ? 'Your Feed' : 'Circle Feed'}
+                {activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
               </h1>
               <div className="flex items-center gap-2">
                 <FeedViewControls />
@@ -304,10 +310,14 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
 
           {/* Feed/Circle Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="feed" className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 Feed
+              </TabsTrigger>
+              <TabsTrigger value="discover" className="flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Discover
               </TabsTrigger>
               <TabsTrigger value="circle" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -514,6 +524,50 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     )}
                   </>
                 )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="discover" className="mt-6">
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Discover personalized recommendations from your network
+                </p>
+                
+                {/* Discover Tabs */}
+                <Tabs defaultValue="for-you" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="for-you">For You</TabsTrigger>
+                    <TabsTrigger value="trending">Trending</TabsTrigger>
+                    <TabsTrigger value="near-you">Near You</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="for-you" className="mt-4">
+                    <div className="space-y-4">
+                      <div className="text-center p-8 text-muted-foreground">
+                        <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Personalized recommendations coming soon</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="trending" className="mt-4">
+                    <div className="space-y-4">
+                      <div className="text-center p-8 text-muted-foreground">
+                        <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Trending content coming soon</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="near-you" className="mt-4">
+                    <div className="space-y-4">
+                      <div className="text-center p-8 text-muted-foreground">
+                        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Location-based recommendations coming soon</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             </TabsContent>
           </Tabs>

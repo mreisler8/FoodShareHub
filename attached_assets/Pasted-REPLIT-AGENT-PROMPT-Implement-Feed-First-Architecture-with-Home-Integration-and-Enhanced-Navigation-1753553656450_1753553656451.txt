@@ -1,0 +1,76 @@
+REPLIT AGENT PROMPT: Implement Feed-First Architecture with Home Integration and Enhanced Navigation
+
+OBJECTIVE: Transform the Circles app into a modern, feed-first social experience by redirecting authenticated users to /feed, consolidating discovery into feed tabs, and enhancing navigation with persistent search.
+
+CONTEXT:
+
+Current feed page: client/src/pages/feed.tsx (excellent foundation)
+Current home page: client/src/pages/home.tsx (needs consolidation)
+Current discover page: client/src/pages/DiscoverFeed.tsx (integrate into feed)
+Enhanced search: client/src/components/search/UnifiedSearchModal.tsx (move to navigation)
+Navigation: client/src/components/navigation/DesktopSidebar.tsx (needs search integration)
+PHASE 1: REDIRECT AUTHENTICATED USERS
+
+Update Home Page (client/src/pages/home.tsx):
+Add redirect logic: if user is authenticated, automatically redirect to /feed
+Keep marketing/onboarding content for logged-out users
+Preserve welcome messaging and sign-up flows for non-authenticated visitors
+PHASE 2: ENHANCED FEED TABS WITH DISCOVERY INTEGRATION
+
+Transform Feed Page (client/src/pages/feed.tsx):
+
+Current: Feed Tab, Circle Tab
+New: Feed Tab, Discover Tab, Circle Tab
+Integrate DiscoverFeed.tsx content into new "Discover" tab
+Move the three-tab discovery experience (For You, Trending, Near You) into the Discover tab
+Preserve all existing Stories, enhanced post cards, and sidebar functionality
+Tab Structure Enhancement:
+
+// Update tabs to include:
+- Feed Tab: Personal timeline (current functionality)
+- Discover Tab: Full DiscoverFeed integration with For You/Trending/Near You sub-tabs
+- Circle Tab: Circle-specific content (current functionality)
+PHASE 3: NAVIGATION SEARCH INTEGRATION
+
+Update DesktopSidebar (client/src/components/navigation/DesktopSidebar.tsx):
+
+Remove: Current search button that opens modal
+Add: Persistent search bar at top of sidebar (Instagram-style)
+Integrate: UnifiedSearchModal functionality directly in sidebar
+Features: Real-time search, recent searches, trending suggestions
+Design: Clean, prominent search input with sophisticated dropdown results
+Search Bar Implementation:
+
+Always visible search input in sidebar header
+Context-aware search based on active feed tab
+Dropdown results showing restaurants, users, lists, posts
+Recent searches and trending integration
+Keyboard shortcuts (Cmd+K) maintained
+TECHNICAL REQUIREMENTS:
+
+Preserve All Existing Functionality: Stories, enhanced post cards, infinite scroll, feed filtering
+Maintain API Structure: No backend changes required
+Keep Performance Optimizations: Memory management, smart polling, caching
+Responsive Design: Ensure mobile navigation remains clean
+TypeScript Safety: Update all interfaces and type definitions
+Component Reuse: Leverage existing DiscoverItemRenderer, EnhancedModernPostCard, etc.
+NAVIGATION FLOW:
+
+Logged-out users: Land on marketing home page
+Authenticated users: Automatically redirect to /feed
+Feed page becomes the primary hub with Discovery integrated
+Search always accessible in sidebar without modal overlays
+SUCCESS CRITERIA:
+
+Feed page feels like Instagram/TikTok with integrated discovery
+Search is persistent and contextually aware
+No separate discovery page needed - everything in unified feed experience
+Home page serves marketing/onboarding for logged-out users only
+Smooth user flow from authentication directly to personalized feed
+FILES TO MODIFY:
+
+client/src/pages/home.tsx (add authentication redirect)
+client/src/pages/feed.tsx (add Discover tab integration)
+client/src/components/navigation/DesktopSidebar.tsx (persistent search)
+Update routing and navigation references as needed
+Transform this into the modern, unified social experience where authenticated users land directly in their personalized feed with integrated discovery and persistent search - no page jumping required.

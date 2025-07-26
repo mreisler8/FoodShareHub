@@ -8,11 +8,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
 import { useState } from 'react';
+import { Input } from '@/components/ui/input';
 
 export function DesktopSidebar() {
   const [location] = useLocation();
   const { logoutMutation } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Get current user
   const { data: currentUser, isLoading } = useQuery<User | undefined>({
@@ -62,6 +64,22 @@ export function DesktopSidebar() {
 
   return (
     <div className="nav-desktop md:flex-col md:w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-4 h-screen sticky top-0 border-r border-soft-sand-30">
+      
+      {/* Persistent Search Bar */}
+      {isAuthenticated && (
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search restaurants, users, lists..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchOpen(true)}
+              className="pl-10 bg-background/50 border-border/50 focus:bg-background"
+            />
+          </div>
+        </div>
+      )}
       <Link href="/" className="flex items-center mb-6 hover:opacity-80 transition-opacity" aria-label="Go to home page">
         <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
           <svg 
@@ -105,18 +123,10 @@ export function DesktopSidebar() {
           </li>
           
           <li>
-            <Link href="/" aria-label="View your feed">
-              <div className={getNavItemClasses("/")} role="menuitem" tabIndex={0}>
+            <Link href={isAuthenticated ? "/feed" : "/"} aria-label="View your feed">
+              <div className={getNavItemClasses(isAuthenticated ? "/feed" : "/")} role="menuitem" tabIndex={0}>
                 <Home className="w-6 mr-2" aria-hidden="true" />
-                <span>Feed</span>
-              </div>
-            </Link>
-          </li>
-          <li>
-            <Link href="/discover" aria-label="Discover new restaurants">
-              <div className={getNavItemClasses("/discover")} role="menuitem" tabIndex={0}>
-                <TrendingUp className="w-6 mr-2" aria-hidden="true" />
-                <span>Discover</span>
+                <span>{isAuthenticated ? "Feed" : "Home"}</span>
               </div>
             </Link>
           </li>

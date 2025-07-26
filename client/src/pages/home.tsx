@@ -10,7 +10,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Home, Compass, Users, User } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import "./HomePage.css";
 import { FollowRequestCard } from "@/components/follow/FollowRequestCard";
 import { PendingInvites } from "@/components/circles/PendingInvites";
@@ -20,13 +21,21 @@ import { UnifiedPostModal } from "@/components/post/UnifiedPostModal";
 import { CreateCanvas } from "@/components/create/CreateCanvas";
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<HeroTabType>('for-you');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
   const [showCreateCanvas, setShowCreateCanvas] = useState(false);
   const [createCanvasTab, setCreateCanvasTab] = useState<'moment' | 'list'>('moment');
+
+  // Redirect authenticated users to feed
+  useEffect(() => {
+    if (!isLoading && user) {
+      setLocation('/feed');
+    }
+  }, [user, isLoading, setLocation]);
 
   // Query for lists based on active tab
   const { data: lists, isLoading: listsLoading } = useQuery({
@@ -49,8 +58,22 @@ export default function HomePage() {
 
   const hasContent = lists && lists.length > 0;
 
-  return (
-    <div className="min-h-screen bg-gray-50">
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show marketing page for non-authenticated users
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -235,6 +258,10 @@ export default function HomePage() {
           setShowCreateCanvas(true);
         }}
       />
-    </div>
-  );
+      </div>
+    );
+  }
+
+  // Authenticated users are redirected, this shouldn't render
+  return null;
 }
