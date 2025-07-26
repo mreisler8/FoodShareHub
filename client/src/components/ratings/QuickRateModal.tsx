@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { X, Star, Check, MapPin, AlertCircle, RefreshCw } from 'lucide-react';
+import { X, Check, MapPin, AlertCircle, RefreshCw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
