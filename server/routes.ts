@@ -32,6 +32,8 @@ import followRequestsRouter from './routes/follow-requests';
 import listItemCommentsRouter from './routes/list-item-comments.js';
 import * as circleRoutes from './routes/circles';
 import circleRequestsRouter from './routes/circle-requests';
+import { healthCheckRouter } from './middleware/healthCheck';
+import { generalRateLimit } from './middleware/rateLimit';
 import usersRouter from './routes/users';
 import usersStatsRouter from './routes/users-stats';
 import analyticsRouter from './routes/analytics';
@@ -1317,6 +1319,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/search", searchRouter);
   app.use("/api/search-analytics", searchAnalyticsRouter);
   app.use("/api/location", locationRoutes);
+  
+  // Health check and monitoring routes
+  app.use("/api/health", healthCheckRouter);
   app.use("/api/posts", postsRouter);
 
   // Import and mount geocode routes

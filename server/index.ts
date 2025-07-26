@@ -90,6 +90,10 @@ app.use((req, res, next) => {
 
     // Performance monitoring
     app.use(performanceMiddleware);
+    
+    // Error handling middleware
+    const { errorHandler } = await import('./middleware/errorHandler.js');
+    app.use(errorHandler);
 
     const server = await registerRoutes(app);
     // Additional routes are registered in registerRoutes function

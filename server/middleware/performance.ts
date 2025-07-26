@@ -1,101 +1,86 @@
-
 import { Request, Response, NextFunction } from 'express';
 
-interface PerformanceMetrics {
-  requestId: string;
+interface PerformanceMetric {
+  timestamp: number;
   method: string;
   url: string;
-  startTime: number;
-  endTime?: number;
   duration?: number;
   statusCode?: number;
-  queryCount?: number;
-  memoryUsage?: number;
+  memoryUsage?: NodeJS.MemoryUsage;
   userAgent?: string;
-  ipAddress?: string;
+  userId?: string;
 }
 
-// Store metrics in memory (in production, use Redis or database)
-const metricsCache = new Map<string, PerformanceMetrics>();
+const performanceMetrics: PerformanceMetric[] = [];
+const MAX_METRICS = 1000; // Keep last 1000 requests
 
+// Performance monitoring middleware
 export const performanceMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const startTime = Date.now();
-  const startMemory = process.memoryUsage().heapUsed;
+  const startMemory = process.memoryUsage();
   
-  // Add request ID to request for tracking
-  (req as any).requestId = requestId;
-  
-  // Store initial metrics with more detailed information
-  metricsCache.set(requestId, {
-    requestId,
-    method: req.method,
-    url: req.url,
-    startTime,
-    userAgent: req.headers['user-agent'],
-    ipAddress: req.ip || req.connection.remoteAddress,
-    memoryUsage: startMemory,
-  });
-  
-  // Override res.json to capture response time and memory usage
-  const originalJson = res.json;
-  res.json = function(body) {
+  const originalEnd = res.end;
+  res.end = function(chunk?: any, encoding?: any) {
     const endTime = Date.now();
     const duration = endTime - startTime;
-    const endMemory = process.memoryUsage().heapUsed;
-    const memoryDelta = endMemory - startMemory;
+    const endMemory = process.memoryUsage();
     
-    // Update metrics
-    const metrics = metricsCache.get(requestId);
-    if (metrics) {
-      metrics.endTime = endTime;
-      metrics.duration = duration;
-      metrics.statusCode = res.statusCode;
-      metrics.memoryUsage = memoryDelta;
-      
-      // Log slow requests (> 1 second) with detailed info
-      if (duration > 1000) {
-        console.warn(`🐌 Slow request detected:`, {
-          requestId,
-          method: req.method,
-          url: req.url,
-          duration: `${duration}ms`,
-          statusCode: res.statusCode,
-          memoryDelta: `${(memoryDelta / 1024 / 1024).toFixed(2)}MB`,
-          userAgent: req.headers['user-agent']?.substring(0, 50) + '...'
-        });
-      }
-      
-      // Log memory-intensive requests (> 10MB)
-      if (memoryDelta > 10 * 1024 * 1024) {
-        console.warn(`🧠 Memory-intensive request:`, {
-          requestId,
-          method: req.method,
-          url: req.url,
-          memoryDelta: `${(memoryDelta / 1024 / 1024).toFixed(2)}MB`,
-          duration: `${duration}ms`
-        });
-      }
-      
-      // Clean up old metrics (keep last 1000 requests) with memory consideration
-      if (metricsCache.size > 1000) {
-        const oldestKey = metricsCache.keys().next().value;
-        metricsCache.delete(oldestKey);
-      }
+    // Only log slow requests (>1000ms) or errors
+    if (duration > 1000 || res.statusCode >= 400) {
+      console.log(`PERFORMANCE: ${req.method} ${req.url} - ${duration}ms - Status: ${res.statusCode} - Memory: ${(endMemory.heapUsed - startMemory.heapUsed) / 1024 / 1024}MB`);
     }
     
-    return originalJson.call(this, body);
+    const metric: PerformanceMetric = {
+      timestamp: startTime,
+      method: req.method,
+      url: req.url,
+      duration,
+      statusCode: res.statusCode,
+      memoryUsage: {
+        heapUsed: endMemory.heapUsed - startMemory.heapUsed,
+        heapTotal: endMemory.heapTotal - startMemory.heapTotal,
+        external: endMemory.external - startMemory.external,
+        arrayBuffers: endMemory.arrayBuffers - startMemory.arrayBuffers
+      },
+      userAgent: req.get('User-Agent'),
+      userId: req.user?.id?.toString()
+    };
+    
+    // Add to metrics array
+    performanceMetrics.push(metric);
+    
+    // Keep only last MAX_METRICS entries
+    if (performanceMetrics.length > MAX_METRICS) {
+      performanceMetrics.splice(0, performanceMetrics.length - MAX_METRICS);
+    }
+    
+    originalEnd.call(this, chunk, encoding);
   };
   
   next();
 };
 
-export const getPerformanceMetrics = (): PerformanceMetrics[] => {
-  return Array.from(metricsCache.values());
+// Get performance metrics
+export const getPerformanceMetrics = (): PerformanceMetric[] => {
+  return [...performanceMetrics];
 };
 
-export const getSlowRequests = (thresholdMs: number = 1000): PerformanceMetrics[] => {
-  return Array.from(metricsCache.values()).filter(
-    metric => metric.duration && metric.duration > thresholdMs
+// Get slow requests
+export const getSlowRequests = (thresholdMs: number = 1000): PerformanceMetric[] => {
+  return performanceMetrics.filter(metric => 
+    metric.duration && metric.duration > thresholdMs
   );
+};
+
+// Get memory-intensive requests
+export const getMemoryIntensiveRequests = (thresholdMB: number = 10): PerformanceMetric[] => {
+  return performanceMetrics.filter(metric => 
+    metric.memoryUsage && 
+    metric.memoryUsage.heapUsed / 1024 / 1024 > thresholdMB
+  );
+};
+
+// Clear metrics (for cleanup)
+export const clearMetrics = (): void => {
+  performanceMetrics.length = 0;
 };

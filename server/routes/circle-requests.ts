@@ -3,6 +3,10 @@ import { db } from '../db';
 import { circleMembers, circles, users, circleInvites } from '@shared/schema';
 import { eq, and, or, desc, inArray } from 'drizzle-orm';
 import { authenticate } from '../auth';
+import { asyncHandler, createApiError } from '../middleware/errorHandler';
+import { circleDataCache } from '../middleware/caching';
+import { generalRateLimit } from '../middleware/rateLimit';
+import { databaseCircuitBreaker } from '../middleware/circuitBreaker';
 
 const router = Router();
 
@@ -110,8 +114,8 @@ router.post('/:circleId/request', authenticate, async (req: Request, res: Respon
   }
 });
 
-// GET /api/circles/requests/pending - Get all pending requests for circles user manages - ENTERPRISE GRADE
-router.get('/requests/pending', authenticate, async (req: Request, res: Response) => {
+// GET /api/circles/requests/pending - Get all pending requests for circles user manages - OPTIMIZED FOR PERFORMANCE
+router.get('/requests/pending', authenticate, circleDataCache, asyncHandler(async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     console.log(`[ENDPOINT] Fetching pending circle requests for user ${userId}`);
@@ -185,10 +189,9 @@ router.get('/requests/pending', authenticate, async (req: Request, res: Response
 
     res.json(requests);
   } catch (error) {
-    console.error('Error fetching pending requests:', error);
-    res.status(500).json({ error: 'Failed to fetch requests' });
+    throw createApiError("Failed to fetch pending circle requests", 500, "CIRCLE_REQUESTS_FETCH_ERROR");
   }
-});
+}));
 
 // POST /api/circles/requests/:requestId/respond - Approve or reject a member request
 router.post('/requests/:requestId/respond', authenticate, async (req: Request, res: Response) => {

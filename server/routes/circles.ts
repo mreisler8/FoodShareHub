@@ -1,10 +1,13 @@
 import { Request, Response, Router } from 'express';
-import { eq, and, or, sql } from 'drizzle-orm';
+import { eq, and, or, sql, desc } from 'drizzle-orm';
 import { db } from '../db';
 import { circles, circleMembers, circleInvites, users, circleSharedLists, restaurantLists } from '../../shared/schema';
 import { insertCircleInviteSchema, insertCircleSharedListSchema } from '../../shared/schema';
 import { z } from 'zod';
 import { authenticate } from '../auth';
+import { asyncHandler, createApiError } from '../middleware/errorHandler';
+import { circleDataCache } from '../middleware/caching';
+import { generalRateLimit } from '../middleware/rateLimit';
 
 const router = Router();
 
@@ -804,8 +807,8 @@ export async function getCircleSharedLists(req: Request, res: Response) {
   }
 }
 
-// Get pending invites for the authenticated user - ENTERPRISE GRADE
-router.get('/invites/pending', authenticate, async (req, res) => {
+// Get pending invites for the authenticated user - OPTIMIZED FOR PERFORMANCE
+router.get('/invites/pending', authenticate, circleDataCache, asyncHandler(async (req, res) => {
   try {
     const userId = req.user!.id;
     console.log(`[ENDPOINT] Fetching pending circle invites for user ${userId}`);
@@ -871,10 +874,9 @@ router.get('/invites/pending', authenticate, async (req, res) => {
 
     res.json(enrichedInvites);
   } catch (error) {
-    console.error('Error fetching pending circle invites:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    throw createApiError("Failed to fetch pending circle invites", 500, "INVITES_FETCH_ERROR");
   }
-});
+}));
 
 // Get circle details with enhanced access control
 router.get('/:id', authenticate, validateUserId, validateCircleId(), async (req, res) => {

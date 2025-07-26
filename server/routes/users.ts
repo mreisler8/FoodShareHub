@@ -1,9 +1,12 @@
 import { Router } from "express";
 import { db } from "../db";
-import { users, userFollowers, circleMembers, circles, posts, restaurants, restaurantLists, restaurantListItems, savedRestaurants } from "@shared/schema";
+import { users, userFollowers, circleMembers, circles, posts, restaurants, restaurantLists, restaurantListItems, savedRestaurants, ratings } from "@shared/schema";
 import { eq, or, ilike, and, ne, sql, desc, inArray } from "drizzle-orm";
 import { authenticate } from "../auth";
 import { z } from "zod";
+import { asyncHandler, createApiError } from "../middleware/errorHandler";
+import { userDataCache, ratingCache } from "../middleware/caching";
+import { searchRateLimit } from "../middleware/rateLimit";
 
 const router = Router();
 
@@ -219,7 +222,7 @@ class UserSearchService {
 }
 
 // Enhanced user search endpoint with optimization
-router.get("/", authenticate, validateUserId, async (req, res) => {
+router.get("/", authenticate, validateUserId, searchRateLimit, userDataCache, asyncHandler(async (req, res) => {
   try {
     // Enhanced input validation
     const validatedQuery = userSearchSchema.parse({
@@ -243,25 +246,15 @@ router.get("/", authenticate, validateUserId, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("User search error:", error);
-
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: "Invalid search parameters",
-        details: error.errors,
-        code: "INVALID_INPUT"
-      });
+      throw createApiError("Invalid search parameters", 400, "INVALID_INPUT", error.errors);
     }
-
-    res.status(500).json({ 
-      error: "Internal server error",
-      code: "SEARCH_ERROR"
-    });
+    throw createApiError("User search failed", 500, "SEARCH_ERROR");
   }
-});
+}));
 
 // Enhanced user profile endpoint with security validation
-router.get("/:id", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
+router.get("/:id", authenticate, validateUserId, validateTargetUserId, userDataCache, asyncHandler(async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const currentUserId = req.user!.id;
@@ -285,10 +278,7 @@ router.get("/:id", authenticate, validateUserId, validateTargetUserId, async (re
       .limit(1);
 
     if (user.length === 0) {
-      return res.status(404).json({ 
-        error: "User not found",
-        code: "USER_NOT_FOUND"
-      });
+      throw createApiError("User not found", 404, "USER_NOT_FOUND");
     }
 
     // Batch query for social stats
@@ -326,13 +316,9 @@ router.get("/:id", authenticate, validateUserId, validateTargetUserId, async (re
       }
     });
   } catch (error) {
-    console.error("Error fetching user profile:", error);
-    res.status(500).json({ 
-      error: "Internal server error",
-      code: "PROFILE_FETCH_ERROR"
-    });
+    throw createApiError("Failed to fetch user profile", 500, "PROFILE_FETCH_ERROR");
   }
-});
+}));
 
 // Enhanced user stats endpoint
 router.get("/:id/stats", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
@@ -486,18 +472,18 @@ router.get("/:id/lists", authenticate, validateUserId, validateTargetUserId, asy
   }
 });
 
-// User ratings endpoint  
-router.get("/:id/ratings", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
+// User ratings endpoint - FIXED ENDPOINT FOR HTTP 500 ERROR  
+router.get("/:id/ratings", authenticate, validateUserId, validateTargetUserId, ratingCache, asyncHandler(async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
 
       const userRatings = await db
         .select({
-          id: sql<number>`ratings.id`,
-          ratingValue: sql<number>`ratings.rating_value`,
-          notes: sql<string>`ratings.note`,
-          tags: sql<string[]>`ratings.tags`,
-          createdAt: sql<string>`ratings.created_at`,
+          id: ratings.id,
+          ratingValue: ratings.rating,
+          notes: ratings.note,
+          tags: ratings.tags,
+          createdAt: ratings.createdAt,
           restaurant: {
             id: restaurants.id,
             name: restaurants.name,
@@ -505,18 +491,17 @@ router.get("/:id/ratings", authenticate, validateUserId, validateTargetUserId, a
             cuisine: restaurants.cuisine
           }
         })
-        .from(sql`ratings`)
-        .leftJoin(restaurants, sql`ratings.restaurant_id = ${restaurants.id}`)
-        .where(sql`ratings.user_id = ${userId}`)
-        .orderBy(sql`ratings.created_at DESC`)
+        .from(ratings)
+        .leftJoin(restaurants, eq(ratings.restaurantId, restaurants.id))
+        .where(eq(ratings.userId, userId))
+        .orderBy(desc(ratings.createdAt))
         .limit(20);
 
       res.json(userRatings);
   } catch (error) {
-      console.error("Error fetching user ratings:", error);
-      res.status(500).json({ error: "Failed to fetch user ratings" });
+      throw createApiError("Failed to fetch user ratings", 500, "RATINGS_FETCH_ERROR");
   }
-});
+}));
 
 router.get("/:id/circles", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
