@@ -187,7 +187,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 className="flex items-center gap-2"
               >
                 <Camera className="h-4 w-4" />
-                Moment
+                Food Moment
               </Button>
               <Button 
                 variant="outline"
