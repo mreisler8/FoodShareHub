@@ -1,0 +1,118 @@
+💻 DEV AGENT PROMPT (Updated)
+📌 Component: FloatingCreateButton.tsx
+📍 Location: Render this inside both your HomePage and FeedPage layouts (e.g. in HomePage.tsx and Feed.tsx), absolutely positioned in the bottom-right corner of each.
+
+🎯 Objective
+Add a modern, floating “+” action button on both the home page and any feed pages that opens a popover menu with three clear post actions:
+
+📸 Post a Photo
+
+🍽 Share a Food Moment
+
+📝 Build a List
+
+🔧 Implementation Details
+Floating Button
+
+tsx
+Copy
+Edit
+// In HomePage.tsx and Feed.tsx, just inside the main container:
+<FloatingCreateButton />
+tsx
+Copy
+Edit
+// FloatingCreateButton.tsx
+import { PlusIcon } from "lucide-react";
+
+export function FloatingCreateButton({ togglePopover }) {
+  return (
+    <button
+      aria-haspopup="true"
+      aria-expanded={isPopoverOpen}
+      aria-label="Create new content"
+      className="fixed bottom-6 right-4 z-50 h-14 w-14 rounded-full bg-primary shadow-lg flex items-center justify-center text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary-light"
+      onClick={togglePopover}
+    >
+      <PlusIcon className="h-6 w-6" />
+    </button>
+  );
+}
+Popover Menu
+
+tsx
+Copy
+Edit
+// Within FloatingCreateButton.tsx, conditionally render:
+{isPopoverOpen && (
+  <ul
+    role="menu"
+    className="fixed bottom-20 right-4 z-50 bg-white rounded-lg shadow-md p-2 space-y-1 w-48"
+  >
+    <li role="menuitem">
+      <button onClick={openPhotoPost} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md w-full">
+        <CameraIcon className="h-5 w-5 text-gray-700"/> Post a Photo
+      </button>
+    </li>
+    <li role="menuitem">
+      <button onClick={openFoodMoment} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md w-full">
+        <SparklesIcon className="h-5 w-5 text-gray-700"/> Share a Food Moment
+      </button>
+    </li>
+    <li role="menuitem">
+      <button onClick={openListBuilder} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md w-full">
+        <ClipboardListIcon className="h-5 w-5 text-gray-700"/> Build a List
+      </button>
+    </li>
+  </ul>
+)}
+ARIA & Accessibility
+
+FAB: aria-haspopup="menu", aria-expanded={isPopoverOpen}
+
+Popover: role="menu", each item role="menuitem"
+
+Trap focus within the popover; close on Escape or outside click
+
+Ensure all buttons have aria-label or visible text
+
+Behavior
+
+openPhotoPost opens your Photo/Post modal
+
+openFoodMoment opens the Food Moment flow
+
+openListBuilder opens the List Starter canvas
+
+Clicking outside or pressing Esc closes the popover
+
+Styling
+
+Tailwind: fixed bottom-6 right-4, bg-primary, shadow-lg, rounded-full, text-white
+
+Popover: bg-white, shadow-md, rounded-lg, p-2, text-sm font-medium
+
+Menu items: hover:bg-gray-100, min-h-[44px], gap-2
+
+🧪 Test Cases
+ FAB appears on HomePage and FeedPage only
+
+ Popover opens/closes reliably (click, outside click, Esc)
+
+ Each menu item triggers the correct modal or route
+
+ Keyboard navigation works (Tab into FAB, navigate menu, Esc closes)
+
+ Tap targets ≥ 44px, ARIA attributes present
+
+This ensures the “+” button gives users a consistent entry point to create content on both home and feed, matching modern best practices.
+
+
+
+
+
+
+
+Sources
+
+Ask ChatGPT
