@@ -21,7 +21,6 @@ export function SmartTagInput({
   maxTags = 10
 }: SmartTagInputProps) {
   const [inputValue, setInputValue] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(true);
 
   // Fetch popular tags from backend
   const { data: popularTags = [] } = useQuery({
@@ -38,75 +37,38 @@ export function SmartTagInput({
     },
   });
 
-  // Generate smart tag suggestions based on context
+  // Generate smart tag suggestions
   const getSmartSuggestions = () => {
     const suggestions = new Set<string>();
 
-    // Cuisine-based suggestions from context restaurants
+    // Context-based suggestions
     contextRestaurants.forEach(restaurant => {
       if (restaurant.cuisine) {
         suggestions.add(restaurant.cuisine);
-        if (restaurant.cuisine.toLowerCase().includes('italian')) {
-          suggestions.add('Pasta');
-          suggestions.add('Wine');
-        }
-        if (restaurant.cuisine.toLowerCase().includes('asian')) {
-          suggestions.add('Spicy');
-          suggestions.add('Noodles');
-        }
       }
     });
 
-    // Location-based suggestions
-    contextRestaurants.forEach(restaurant => {
-      if (restaurant.location) {
-        const location = restaurant.location.toLowerCase();
-        if (location.includes('downtown')) suggestions.add('Downtown');
-        if (location.includes('waterfront')) suggestions.add('Waterfront');
-        if (location.includes('beach')) suggestions.add('Beach');
-      }
-    });
-
-    // Title-based suggestions
-    const titleLower = listTitle.toLowerCase();
-    if (titleLower.includes('date')) suggestions.add('Date Night');
-    if (titleLower.includes('family')) suggestions.add('Family Friendly');
-    if (titleLower.includes('business')) suggestions.add('Business Lunch');
-    if (titleLower.includes('brunch')) suggestions.add('Brunch');
-    if (titleLower.includes('late')) suggestions.add('Late Night');
-    if (titleLower.includes('cheap') || titleLower.includes('budget')) suggestions.add('Budget Friendly');
-    if (titleLower.includes('fancy') || titleLower.includes('upscale')) suggestions.add('Upscale');
-
-    // Default occasion and mood tags
+    // Default high-value tags
     const defaultTags = [
       'Must Try',
       'Hidden Gem',
-      'Local Favorite',
-      'Great Value',
-      'Romantic',
-      'Casual',
-      'Quick Bite',
-      'Vegetarian Friendly',
-      'Good for Groups',
-      'Outdoor Seating',
+      'Great Value'
     ];
 
     defaultTags.forEach(tag => suggestions.add(tag));
 
-    // Add popular tags from backend - ensure we handle both strings and objects
+    // Add popular tags from backend
     if (Array.isArray(popularTags)) {
-      popularTags.forEach((tag: any) => {
+      popularTags.slice(0, 3).forEach((tag: any) => {
         const tagName = typeof tag === 'string' ? tag : (tag?.name || tag?.value || String(tag));
         if (tagName) suggestions.add(tagName);
       });
     }
 
-    // Filter out already selected tags and convert to array
-    // Mobile optimization: Limit to 8-10 suggestions for mobile-friendly display
-    const maxSuggestions = 3;
-    return Array.from(suggestions).filter(tag => 
-      !selectedTags.includes(tag)
-    ).slice(0, maxSuggestions);
+    // Filter out selected tags and limit
+    return Array.from(suggestions)
+      .filter(tag => !selectedTags.includes(tag))
+      .slice(0, 3);
   };
 
   const smartSuggestions = getSmartSuggestions();
@@ -137,7 +99,7 @@ export function SmartTagInput({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Selected Tags */}
       {selectedTags.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -145,9 +107,8 @@ export function SmartTagInput({
             <Badge
               key={tag}
               variant="secondary"
-              className="flex items-center gap-1 px-3 py-1"
+              className="flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
             >
-              <Tag className="h-3 w-3" />
               {tag}
               <Button
                 type="button"
@@ -163,47 +124,11 @@ export function SmartTagInput({
         </div>
       )}
 
-      {/* Add Custom Tag Input */}
-      <div className="flex gap-2">
-        <Input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleInputKeyDown}
-          placeholder={selectedTags.length >= maxTags ? `Maximum ${maxTags} tags reached` : "Add custom tag..."}
-          className="flex-1"
-          disabled={selectedTags.length >= maxTags}
-        />
-        <Button
-          type="button"
-          onClick={handleInputSubmit}
-          disabled={!inputValue.trim() || selectedTags.length >= maxTags}
-          size="sm"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-      {selectedTags.length >= maxTags && (
-        <p className="text-xs text-amber-600 mt-1">
-          Maximum {maxTags} tags selected
-        </p>
-      )}
-
-      {/* Smart Suggestions */}
-      {showSuggestions && smartSuggestions.length > 0 && selectedTags.length < maxTags && (
+      {/* Quick Suggestions */}
+      {smartSuggestions.length > 0 && selectedTags.length < maxTags && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">
-              Suggested tags:
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowSuggestions(false)}
-              className="text-xs"
-            >
-              Hide suggestions
-            </Button>
+          <div className="text-xs text-gray-500 font-medium">
+            Quick suggestions:
           </div>
           <div className="flex flex-wrap gap-2">
             {smartSuggestions.map((suggestion) => (
@@ -212,11 +137,8 @@ export function SmartTagInput({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  handleAddTag(suggestion);
-                  setShowSuggestions(smartSuggestions.length > 1);
-                }}
-                className="text-xs h-7"
+                onClick={() => handleAddTag(suggestion)}
+                className="text-xs h-7 px-3 border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
                 disabled={selectedTags.length >= maxTags}
               >
                 + {suggestion}
@@ -226,16 +148,31 @@ export function SmartTagInput({
         </div>
       )}
 
-      {!showSuggestions && smartSuggestions.length > 0 && (
+      {/* Custom Tag Input */}
+      <div className="flex gap-2">
+        <Input
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleInputKeyDown}
+          placeholder={selectedTags.length >= maxTags ? `Maximum ${maxTags} tags` : "Add custom tag..."}
+          className="flex-1 text-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+          disabled={selectedTags.length >= maxTags}
+        />
         <Button
           type="button"
-          variant="outline"
+          onClick={handleInputSubmit}
+          disabled={!inputValue.trim() || selectedTags.length >= maxTags}
           size="sm"
-          onClick={() => setShowSuggestions(true)}
-          className="text-sm"
+          className="px-3"
         >
-          Show tag suggestions ({smartSuggestions.length})
+          <Plus className="h-4 w-4" />
         </Button>
+      </div>
+
+      {selectedTags.length >= maxTags && (
+        <p className="text-xs text-amber-600">
+          Maximum {maxTags} tags selected
+        </p>
       )}
     </div>
   );
