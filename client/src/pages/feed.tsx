@@ -449,7 +449,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
       <CreateCanvas
         isOpen={showCreateCanvas}
         onClose={() => setShowCreateCanvas(false)}
-        initialTab={createCanvasTab}
+        defaultTab={createCanvasTab}
       />
     </div>
   );

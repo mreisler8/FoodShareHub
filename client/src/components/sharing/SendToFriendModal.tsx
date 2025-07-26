@@ -67,7 +67,7 @@ export function SendToFriendModal({
     }
   }, [toast]);
 
-  // NFR: Search with 300ms debounce for performance - FIXED: Added performSearch dependency
+  // NFR: Search with 300ms debounce for performance - FIXED: Removed performSearch dependency to prevent infinite loop
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -86,7 +86,7 @@ export function SendToFriendModal({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery, performSearch]); // CRITICAL FIX: Added performSearch dependency
+  }, [searchQuery]); // CRITICAL FIX: Removed performSearch dependency to prevent infinite re-render
 
   const handleSendToFriend = useCallback(async () => {
     if (!selectedUser) return;

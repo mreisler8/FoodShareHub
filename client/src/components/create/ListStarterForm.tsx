@@ -1,103 +1,86 @@
 import React, { useState, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ListIcon, PlusIcon, X } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Loader2, Plus, X, Sparkles, Users, Globe, Lock } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { useMemoryManagement } from '@/utils/memoryManagement';
+import { useToast } from '@/hooks/use-toast';
 
 const listStarterSchema = z.object({
-  name: z.string().min(1, 'List name is required').max(100, 'Name must be 100 characters or less'),
-  description: z.string().max(500, 'Description must be 500 characters or less').optional(),
-  privacy: z.enum(['public', 'circle', 'private']),
-  tags: z.array(z.string()).max(10, 'Maximum 10 tags allowed'),
+  title: z.string().min(1, 'Title is required').max(100, 'Title must be under 100 characters'),
+  description: z.string().max(500, 'Description must be under 500 characters').optional(),
+  privacy: z.enum(['public', 'circles', 'private']),
+  category: z.string().optional(),
 });
 
 type ListStarterFormData = z.infer<typeof listStarterSchema>;
 
 interface ListStarterFormProps {
   onSuccess: () => void;
-  onCancel: () => void;
 }
 
-const commonTags = [
-  'date-night', 'family-friendly', 'brunch', 'cheap-eats', 'fine-dining',
-  'pizza', 'sushi', 'mexican', 'italian', 'asian', 'breakfast', 'lunch',
-  'dinner', 'drinks', 'coffee', 'dessert', 'vegetarian', 'vegan'
+const QUICK_TEMPLATES = [
+  { emoji: '🍕', title: 'Best Pizza Places', description: 'Amazing pizza spots worth trying', category: 'pizza' },
+  { emoji: '💕', title: 'Date Night Favorites', description: 'Perfect restaurants for romantic dinners', category: 'date-night' },
+  { emoji: '💎', title: 'Hidden Gems', description: 'Secret spots that locals love', category: 'hidden-gems' },
+  { emoji: '☀️', title: 'Brunch Spots', description: 'Great places for weekend brunch', category: 'brunch' },
+  { emoji: '🌮', title: 'Taco Tuesday', description: 'Best tacos in the city', category: 'tacos' },
+  { emoji: '👨‍👩‍👧‍👦', title: 'Family Friendly', description: 'Great restaurants for the whole family', category: 'family' },
 ];
 
-export function ListStarterForm({ onSuccess, onCancel }: ListStarterFormProps) {
-  const [customTag, setCustomTag] = useState('');
+const CATEGORIES = [
+  'pizza', 'burgers', 'sushi', 'tacos', 'brunch', 'coffee', 'dessert', 'date-night', 
+  'family', 'hidden-gems', 'cheap-eats', 'fine-dining', 'casual', 'takeout'
+];
+
+export function ListStarterForm({ onSuccess }: ListStarterFormProps) {
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const memoryManager = useMemoryManagement('ListStarterForm');
 
   const form = useForm<ListStarterFormData>({
     resolver: zodResolver(listStarterSchema),
     defaultValues: {
-      name: '',
+      title: '',
       description: '',
       privacy: 'public',
-      tags: [],
+      category: '',
     },
   });
 
-  const watchedTags = form.watch('tags');
-
-  // Add tag
-  const addTag = useCallback((tag: string) => {
-    const cleanTag = tag.trim().toLowerCase();
-    if (cleanTag && !watchedTags.includes(cleanTag) && watchedTags.length < 10) {
-      form.setValue('tags', [...watchedTags, cleanTag]);
-    }
-    setCustomTag('');
-  }, [watchedTags, form]);
-
-  // Remove tag
-  const removeTag = useCallback((tagToRemove: string) => {
-    form.setValue('tags', watchedTags.filter(tag => tag !== tagToRemove));
-  }, [watchedTags, form]);
-
-  // Handle custom tag input
-  const handleCustomTagKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTag(customTag);
-    }
-  }, [customTag, addTag]);
-
-  // Submit mutation
+  // Create list mutation
   const createListMutation = useMutation({
-    mutationFn: async (data: ListStarterFormData) => {
+    mutationFn: async (data: ListStarterFormData & { tags: string[] }) => {
       return apiRequest('/api/lists', {
         method: 'POST',
         body: JSON.stringify({
-          name: data.name,
-          description: data.description || null,
+          title: data.title,
+          description: data.description || '',
           privacy: data.privacy,
+          category: data.category || null,
           tags: data.tags,
-          isPublic: data.privacy === 'public',
+          isRanked: false, // Start as unranked, user can add ranking later
         }),
       });
     },
     onSuccess: (newList) => {
       // Invalidate relevant caches
       queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/discover'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/unified-feed'] });
       
       toast({
         title: 'List created!',
-        description: 'Your new restaurant list has been created successfully.',
+        description: 'Your list has been created. Start adding restaurants to build your curated collection.',
       });
       
       onSuccess();
@@ -111,161 +94,238 @@ export function ListStarterForm({ onSuccess, onCancel }: ListStarterFormProps) {
     },
   });
 
-  const onSubmit = useCallback((data: ListStarterFormData) => {
-    createListMutation.mutate(data);
-  }, [createListMutation]);
+  // Apply quick template
+  const applyTemplate = useCallback((template: typeof QUICK_TEMPLATES[0]) => {
+    form.setValue('title', template.title);
+    form.setValue('description', template.description);
+    form.setValue('category', template.category);
+    setTags([template.category]);
+  }, [form]);
 
-  // Component cleanup handled automatically by useMemoryManagement hook
+  // Add tag
+  const addTag = useCallback(() => {
+    if (newTag.trim() && !tags.includes(newTag.trim()) && tags.length < 5) {
+      setTags(prev => [...prev, newTag.trim()]);
+      setNewTag('');
+    }
+  }, [newTag, tags]);
+
+  // Remove tag
+  const removeTag = useCallback((tagToRemove: string) => {
+    setTags(prev => prev.filter(tag => tag !== tagToRemove));
+  }, []);
+
+  // Handle key press for tag input
+  const handleTagKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
+  }, [addTag]);
+
+  // Submit form
+  const onSubmit = useCallback((data: ListStarterFormData) => {
+    createListMutation.mutate({
+      ...data,
+      tags,
+    });
+  }, [tags, createListMutation]);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      {/* List Name */}
-      <div className="space-y-2">
-        <Label htmlFor="name" className="text-base font-medium">List Name *</Label>
-        <Input
-          id="name"
-          placeholder="e.g., Best Pizza Places in SF"
-          {...form.register('name')}
-          className="min-h-[44px]"
-          maxLength={100}
-        />
-        {form.formState.errors.name && (
-          <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
-        )}
-      </div>
-
-      {/* Description */}
-      <div className="space-y-2">
-        <Label htmlFor="description" className="text-base font-medium">Description (Optional)</Label>
-        <Textarea
-          id="description"
-          placeholder="What makes this list special? Share some context..."
-          {...form.register('description')}
-          className="resize-none min-h-[80px]"
-          maxLength={500}
-        />
-        {form.formState.errors.description && (
-          <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>
-        )}
-      </div>
-
-      {/* Tags */}
-      <div className="space-y-3">
-        <Label className="text-base font-medium">Tags (Optional)</Label>
-        
-        {/* Selected Tags */}
-        {watchedTags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {watchedTags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                {tag}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeTag(tag)}
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  aria-label={`Remove tag ${tag}`}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Quick Templates */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-blue-600" />
+            <Label className="text-base font-medium">Quick Start Templates</Label>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {QUICK_TEMPLATES.map((template, index) => (
+              <Card 
+                key={index} 
+                className="cursor-pointer hover:shadow-md transition-all duration-200 hover:border-blue-300"
+                onClick={() => applyTemplate(template)}
+              >
+                <CardContent className="p-3 text-center">
+                  <div className="text-2xl mb-1">{template.emoji}</div>
+                  <div className="text-sm font-medium text-gray-900">{template.title}</div>
+                </CardContent>
+              </Card>
             ))}
           </div>
-        )}
-        
-        {/* Quick Add Tags */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Quick Add:</p>
-              <div className="flex flex-wrap gap-2">
-                {commonTags
-                  .filter(tag => !watchedTags.includes(tag))
-                  .slice(0, 12)
-                  .map((tag) => (
-                    <Button
-                      key={tag}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addTag(tag)}
-                      disabled={watchedTags.length >= 10}
-                      className="h-8 text-xs"
-                    >
-                      <PlusIcon className="h-3 w-3 mr-1" />
-                      {tag}
-                    </Button>
-                  ))
-                }
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Custom Tag Input */}
-        <div className="flex space-x-2">
-          <Input
-            placeholder="Add custom tag..."
-            value={customTag}
-            onChange={(e) => setCustomTag(e.target.value)}
-            onKeyDown={handleCustomTagKeyDown}
-            disabled={watchedTags.length >= 10}
-            className="flex-1 min-h-[44px]"
-            maxLength={20}
+        </div>
+
+        {/* List Details */}
+        <div className="space-y-4">
+          <Label className="text-base font-medium">List Details</Label>
+          
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title *</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="My amazing restaurant list..."
+                    {...field}
+                    className="text-base"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="What makes this list special? Share your thoughts..."
+                    {...field}
+                    rows={3}
+                    className="resize-none"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a category (optional)" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Tags */}
+          <div className="space-y-3">
+            <Label>Tags (max 5)</Label>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                    {tag}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTag(tag)}
+                      className="h-4 w-4 p-0 hover:bg-transparent"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            {tags.length < 5 && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a tag..."
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyPress={handleTagKeyPress}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addTag}
+                  disabled={!newTag.trim() || tags.includes(newTag.trim())}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <FormField
+            control={form.control}
+            name="privacy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Privacy</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="public">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4" />
+                        Public - Anyone can see
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="circles">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Circles - Only your circles
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="private">
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Private - Only you
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Submit */}
+        <div className="flex gap-3 pt-4">
           <Button
-            type="button"
-            variant="outline"
-            onClick={() => addTag(customTag)}
-            disabled={!customTag.trim() || watchedTags.length >= 10}
-            className="min-h-[44px] px-4"
+            type="submit"
+            disabled={createListMutation.isPending || !form.watch('title')}
+            className="flex-1 min-h-[44px]"
           >
-            Add
+            {createListMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              'Create List'
+            )}
           </Button>
         </div>
-        
-        {watchedTags.length >= 10 && (
-          <p className="text-sm text-amber-600">Maximum 10 tags reached</p>
-        )}
-      </div>
 
-      {/* Privacy */}
-      <div className="space-y-2">
-        <Label className="text-base font-medium">Privacy</Label>
-        <Select 
-          value={form.watch('privacy')} 
-          onValueChange={(value: 'public' | 'circle' | 'private') => form.setValue('privacy', value)}
-        >
-          <SelectTrigger className="min-h-[44px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="public">🌍 Public - Anyone can discover</SelectItem>
-            <SelectItem value="circle">👥 Circle - Only your circles</SelectItem>
-            <SelectItem value="private">🔒 Private - Only you</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex space-x-3 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          className="flex-1 min-h-[44px]"
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          disabled={createListMutation.isPending}
-          className="flex-1 min-h-[44px]"
-        >
-          {createListMutation.isPending ? 'Creating...' : 'Create List'}
-        </Button>
-      </div>
-    </form>
+        <div className="text-xs text-gray-500 text-center">
+          You can add restaurants and customize your list after creation
+        </div>
+      </form>
+    </Form>
   );
 }

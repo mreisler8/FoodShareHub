@@ -12,10 +12,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocationService } from '@/hooks/useLocationService';
-import { useMemoryManagement } from '@/utils/memoryManagement';
+import { useMemoryManagement } from '@/hooks/useMemoryManagement';
 
 const foodMomentSchema = z.object({
-  caption: z.string().min(1, 'Caption is required').max(140, 'Caption must be 140 characters or less'),
+  caption: z.string().max(140, 'Caption must be 140 characters or less'),
   privacy: z.enum(['public', 'circle', 'private']),
   location: z.object({
     name: z.string().optional(),
@@ -39,7 +39,7 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { location, requestLocation, isLocationLoading } = useLocationService();
-  const memoryManager = useMemoryManagement('FoodMomentForm');
+  const { trackComponent, cleanupComponent } = useMemoryManagement();
 
   const form = useForm<FoodMomentFormData>({
     resolver: zodResolver(foodMomentSchema),
@@ -213,16 +213,20 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
     });
   }, [selectedImages, createMomentMutation, toast]);
 
-  // Cleanup previews on unmount
+  // Component lifecycle and cleanup
   React.useEffect(() => {
+    trackComponent('FoodMomentForm');
+    
     return () => {
+      // Cleanup blob URLs
       imagePreviews.forEach(preview => {
         if (preview.startsWith('blob:')) {
           URL.revokeObjectURL(preview);
         }
       });
+      cleanupComponent('FoodMomentForm');
     };
-  }, [imagePreviews]);
+  }, [trackComponent, cleanupComponent, imagePreviews]);
 
   const remainingChars = 140 - form.watch('caption').length;
 
