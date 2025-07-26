@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, Camera, UtensilsCrossed, ListPlus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ interface FloatingCreateButtonProps {
 interface CreateAction {
   id: string;
   label: string;
-  icon: React.ReactNode;
+  icon: JSX.Element;
   onClick: () => void;
   description: string;
 }
@@ -219,16 +219,10 @@ export function FloatingCreateButton({
       </motion.button>
 
       {/* Tooltip for first-time users */}
-      {!isPopoverOpen && (
-        <motion.div
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="absolute bottom-4 right-16 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-        >
-          Create content
-          <div className="absolute top-2 -right-1 w-2 h-2 bg-gray-900 rotate-45" />
-        </motion.div>
-      )}
+      <div className="absolute bottom-4 right-16 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        Create content
+        <div className="absolute top-2 -right-1 w-2 h-2 bg-gray-900 rotate-45" />
+      </div>
     </div>
   );
 }
