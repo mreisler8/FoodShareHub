@@ -9,7 +9,7 @@ const router = Router();
 
 // Validation schemas  
 const createRatingSchema = insertRatingSchema.omit({ userId: true, restaurantName: true }).extend({
-  ratingValue: z.number().min(1).max(5),
+  ratingValue: z.number().min(0.1).max(10.0),
   note: z.string().max(140).optional(),
   tags: z.array(z.string()).max(5).optional(),
   restaurantName: z.string().optional(), // Optional for Google Place ratings
@@ -138,6 +138,7 @@ router.post('/', async (req, res) => {
 
     const ratingData = {
       ...validatedData,
+      ratingValue: validatedData.ratingValue.toString(),
       userId: req.user.id,
       updatedAt: new Date(),
     };
@@ -235,6 +236,7 @@ router.put('/:id', async (req, res) => {
 
     const updateData = {
       ...validatedData,
+      ratingValue: validatedData.ratingValue ? validatedData.ratingValue.toString() : undefined,
       updatedAt: new Date(),
     };
     const { id, ...updateDataWithoutId } = updateData; // Remove id from update data

@@ -9,6 +9,7 @@ import {
   index,
   varchar,
   unique,
+  decimal,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -741,7 +742,7 @@ export const ratings = pgTable("ratings", {
     .references(() => restaurants.id),
   googlePlaceId: text("google_place_id"), // For Google Places restaurants not in our DB
   restaurantName: text("restaurant_name"), // Store name for reference (optional for Google Place ratings)
-  ratingValue: integer("rating_value").notNull(), // 1-5 star rating
+  ratingValue: decimal("rating_value", { precision: 3, scale: 1 }).notNull(), // 0.1-10.0 decimal rating
   note: text("note"), // Optional 140-char note
   tags: text("tags").array().default([]), // Quick tags like "Perfect for brunch", "Great value"
   sharedWithCircle: boolean("shared_with_circle").default(false),

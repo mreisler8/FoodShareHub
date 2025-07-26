@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
 import { SmartTagInput } from '@/components/lists/SmartTagInput';
+import { DecimalRatingSlider } from '@/components/ratings/DecimalRatingSlider';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -34,9 +35,9 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
     retry 
   } = useRestaurantRatingState(restaurant);
   
-  // Form state
-  const [rating, setRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
+  // Form state - Upgraded to 10-point decimal system
+  const [rating, setRating] = useState(0.0);
+  const [hoveredRating, setHoveredRating] = useState(0.0);
   const [note, setNote] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isPrivate, setIsPrivate] = useState(true);
@@ -51,14 +52,14 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
     if (isOpen) {
       const source = existingRating || currentRating;
       if (source) {
-        setRating(source.ratingValue || 0);
+        setRating(parseFloat(source.ratingValue) || 0.0);
         setNote(source.note || '');
         setSelectedTags(source.tags || []);
         setIsPrivate(source.isPrivate ?? true);
         setSharedWithCircle(source.sharedWithCircle || false);
       } else {
         // Reset form for new rating
-        setRating(0);
+        setRating(0.0);
         setNote('');
         setSelectedTags([]);
         setIsPrivate(true);
@@ -78,10 +79,10 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
 
   // Handle rating submission
   const handleSubmit = useCallback(async () => {
-    if (rating === 0) {
+    if (rating < 0.1) {
       toast({
         title: "Please select a rating",
-        description: "Choose a star rating from 1-5 stars.",
+        description: "Choose a rating from 0.1 to 10.0.",
         variant: "destructive"
       });
       return;
@@ -128,15 +129,15 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
     }
   }, [isSubmitting, onClose]);
 
-  const handleStarClick = useCallback((starRating: number) => {
-    setRating(starRating);
+  const handleRatingChange = useCallback((newRating: number) => {
+    setRating(newRating);
   }, []);
 
-  const handleStarHover = useCallback((starRating: number) => {
-    setHoveredRating(starRating);
+  const handleRatingHover = useCallback((hoverRating: number) => {
+    setHoveredRating(hoverRating);
   }, []);
 
-  const isValid = rating > 0;
+  const isValid = rating >= 0.1;
 
   if (!isOpen) return null;
 
@@ -150,7 +151,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
           </div>
           <h3 className="text-lg font-semibold mb-2">Rating Saved!</h3>
           <p className="text-gray-600 text-sm">
-            Your {rating}-star rating has been saved and will contribute to Circle Score calculations.
+            Your {rating.toFixed(1)}/10.0 rating has been saved and will contribute to Circle Score calculations.
           </p>
         </div>
       </div>
@@ -205,37 +206,19 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
             </div>
           )}
 
-          {/* Star Rating */}
-          <div className="text-center">
-            <div className="flex justify-center space-x-1 mb-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onMouseEnter={() => handleStarHover(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  onClick={() => handleStarClick(star)}
-                  className="p-1 transition-transform hover:scale-110"
-                >
-                  <Star
-                    className={cn(
-                      "h-8 w-8 transition-colors",
-                      (hoveredRating >= star || (hoveredRating === 0 && rating >= star))
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
-                    )}
-                  />
-                </button>
-              ))}
-            </div>
-            {rating > 0 && (
-              <p className="text-sm text-gray-600">
-                {rating === 1 && "Poor"}
-                {rating === 2 && "Fair"}
-                {rating === 3 && "Good"}
-                {rating === 4 && "Great"}
-                {rating === 5 && "Excellent"}
-              </p>
-            )}
+          {/* 10-Point Decimal Rating */}
+          <div>
+            <Label className="text-sm font-medium mb-3 block">
+              Rate this restaurant (0.1 - 10.0)
+            </Label>
+            <DecimalRatingSlider
+              value={rating}
+              onChange={handleRatingChange}
+              onHover={handleRatingHover}
+              hoveredValue={hoveredRating}
+              size="md"
+              className="w-full"
+            />
           </div>
 
           {/* Note */}
@@ -331,7 +314,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
           </Button>
           {!isValid && (
             <p className="text-xs text-red-500 text-center mt-2">
-              Please select a star rating
+              Please select a rating from 0.1 to 10.0
             </p>
           )}
         </div>

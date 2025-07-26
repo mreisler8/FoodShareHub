@@ -195,7 +195,7 @@ export function useRestaurantRatingState(restaurant: any) {
       // Success feedback
       toast({
         title: "Rating saved!",
-        description: `Your ${savedRating.ratingValue}-star rating has been saved and will contribute to Circle Score calculations.`
+        description: `Your ${savedRating.ratingValue}/10.0 rating has been saved and will contribute to Circle Score calculations.`
       });
 
       return savedRating;
