@@ -48,12 +48,12 @@ export function SendToFriendModal({
       const startTime = Date.now();
       const response = await apiRequest(`/api/sharing/search-users?q=${encodeURIComponent(query)}`) as any;
       const responseTime = Date.now() - startTime;
-      
+
       // NFR: Search must respond within 300ms
       if (responseTime > 300) {
         console.warn(`Search took ${responseTime}ms, exceeding 300ms target`);
       }
-      
+
       setSearchResults(response.users || []);
     } catch (error) {
       console.error("Search error:", error);
@@ -88,7 +88,7 @@ export function SendToFriendModal({
     };
   }, [searchQuery, performSearch]); // CRITICAL FIX: Added performSearch dependency
 
-  const handleSendToFriend = async () => {
+  const handleSendToFriend = useCallback(async () => {
     if (!selectedUser) return;
 
     setIsSending(true);
@@ -106,7 +106,7 @@ export function SendToFriendModal({
       });
 
       const responseTime = Date.now() - startTime;
-      
+
       // NFR: Share operations must complete within 2 seconds
       if (responseTime > 2000) {
         console.warn(`Share operation took ${responseTime}ms, exceeding 2s target`);
@@ -126,7 +126,7 @@ export function SendToFriendModal({
 
     } catch (error: any) {
       console.error("Send error:", error);
-      
+
       let errorMessage = "Failed to send recommendation. Please try again.";
       if (error.message?.includes("403")) {
         errorMessage = "You can only share with users you follow or share circles with.";
@@ -142,17 +142,17 @@ export function SendToFriendModal({
     } finally {
       setIsSending(false);
     }
-  };
+  }, [selectedUser, entityType, entityId, entityName, message, toast, onClose]);
 
-  const handleUserSelect = (user: User) => {
+  const handleUserSelect = useCallback((user: User) => {
     setSelectedUser(user);
     setSearchQuery("");
     setSearchResults([]);
-  };
+  }, []);
 
-  const handleRemoveSelectedUser = () => {
+  const handleRemoveSelectedUser = useCallback(() => {
     setSelectedUser(null);
-  };
+  }, []);
 
   // NFR: Mobile optimization with touch interactions
   return (
@@ -164,7 +164,7 @@ export function SendToFriendModal({
             Send to Friend
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* Entity info */}
           <div className="p-3 bg-gray-50 rounded-lg">

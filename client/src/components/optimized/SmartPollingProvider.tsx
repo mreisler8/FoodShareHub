@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useSearchCache } from '@/hooks/useSearchCache';
 import { useMemoryManagement, enableMemoryDebugging } from '@/utils/memoryManagement';
 
@@ -10,11 +10,49 @@ interface SmartPollingContextType {
 const SmartPollingContext = createContext<SmartPollingContextType | null>(null);
 
 export function SmartPollingProvider({ children }: { children: React.ReactNode }) {
+  const [pollingInterval, setPollingInterval] = useState(60000); // Start with 60 seconds (reduced from 30)
+  const [isUserActive, setIsUserActive] = useState(true);
+  const lastActivityRef = useRef(Date.now());
+
+  useEffect(() => {
+    const handleActivity = () => {
+      setIsUserActive(true);
+      lastActivityRef.current = Date.now();
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => {
+      document.addEventListener(event, handleActivity, true);
+    });
+
+    // Check for inactivity every 2 minutes (reduced frequency)
+    const activityCheck = setInterval(() => {
+      const timeSinceActivity = Date.now() - lastActivityRef.current;
+      const isActive = timeSinceActivity < 120000; // 2 minute threshold (increased)
+
+      setIsUserActive(isActive);
+
+      // More aggressive polling reduction
+      if (isActive) {
+        setPollingInterval(60000); // 60 seconds for active users (reduced from 30)
+      } else {
+        setPollingInterval(Math.min(600000, pollingInterval * 2)); // Max 10 minutes, faster exponential backoff
+      }
+    }, 120000); // Check every 2 minutes instead of 1
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleActivity, true);
+      });
+      clearInterval(activityCheck);
+    };
+  }, [pollingInterval]);
+
   const searchCache = useSearchCache({
     ttl: 5 * 60 * 1000, // 5 minutes
     maxSize: 100
   });
-  
+
   const memoryManager = useMemoryManagement('SmartPollingProvider');
   const isInitialized = useRef(false);
 
@@ -80,10 +118,10 @@ export function withMemoryManagement<P extends object>(
 ) {
   const WrappedComponent = React.forwardRef<any, P>((props, ref) => {
     const memoryManager = useMemoryManagement(componentName);
-    
+
     return <Component ref={ref} {...props} />;
   });
-  
+
   WrappedComponent.displayName = `withMemoryManagement(${componentName})`;
   return WrappedComponent;
 }

@@ -12,12 +12,12 @@ interface SearchCacheOptions {
 }
 
 /**
- * Search result caching hook with 5-minute TTL and intelligent invalidation
+ * Search result caching hook with 10-minute TTL and intelligent invalidation
  * Reduces search API calls and improves response times to under 500ms
  */
 export function useSearchCache<T>({
-  ttl = 5 * 60 * 1000, // 5 minutes default
-  maxSize = 100
+  ttl = 10 * 60 * 1000, // 10 minutes default (increased from 5)
+  maxSize = 150 // Increased cache size
 }: SearchCacheOptions = {}) {
   const cacheRef = useRef<Map<string, CacheEntry<T>>>(new Map());
   const requestsRef = useRef<Map<string, Promise<T>>>(new Map());
@@ -126,7 +126,8 @@ export function useSearchCache<T>({
   const getOrFetch = useCallback(async (
     query: string,
     fetchFn: () => Promise<T>,
-    options?: Record<string, any>
+    options?: Record<string, any>,
+    abortSignal?: AbortSignal
   ): Promise<T> => {
     if (!query.trim()) {
       throw new Error('Query cannot be empty');
@@ -150,6 +151,11 @@ export function useSearchCache<T>({
     const startTime = Date.now();
     const request = fetchFn()
       .then(result => {
+        // Check if request was cancelled
+        if (abortSignal?.aborted) {
+          throw new Error('Request cancelled');
+        }
+        
         const responseTime = Date.now() - startTime;
         console.log(`Search completed in ${responseTime}ms for query: ${query}`);
         
@@ -161,6 +167,12 @@ export function useSearchCache<T>({
         // Cache successful result
         set(query, result, options);
         return result;
+      })
+      .catch(error => {
+        if (error.name === 'AbortError' || error.message === 'Request cancelled') {
+          console.log(`Search request cancelled for query: ${query}`);
+        }
+        throw error;
       })
       .finally(() => {
         // Remove from in-flight requests

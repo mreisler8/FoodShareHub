@@ -1,132 +1,137 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface SmartPollingOptions {
   queryKey: string[];
-  pollingInterval?: number;
+  enabled?: boolean;
+  baseInterval?: number;
   maxInterval?: number;
-  exponentialBackoff?: boolean;
-  activityBased?: boolean;
+  backoffMultiplier?: number;
+  activityThreshold?: number;
 }
 
-/**
- * Smart polling hook that reduces API calls by 70% through:
- * - Exponential backoff for inactive users
- * - Activity-based polling adjustments
- * - Automatic request deduplication
- */
+// Global request tracker to prevent duplicate requests
+const activeRequests = new Set<string>();
+const requestQueue = new Map<string, Promise<any>>();
+
 export function useSmartPolling({
   queryKey,
-  pollingInterval = 30000, // 30 seconds default
-  maxInterval = 300000, // 5 minutes max
-  exponentialBackoff = true,
-  activityBased = true
+  enabled = true,
+  baseInterval = 60000, // 1 minute default (reduced from 30 seconds)
+  maxInterval = 600000, // 10 minutes max
+  backoffMultiplier = 1.5,
+  activityThreshold = 120000 // 2 minutes
 }: SmartPollingOptions) {
   const queryClient = useQueryClient();
   const intervalRef = useRef<NodeJS.Timeout>();
-  const currentIntervalRef = useRef(pollingInterval);
   const lastActivityRef = useRef(Date.now());
-  const isActiveRef = useRef(true);
+  const currentIntervalRef = useRef(baseInterval);
+  const consecutiveFailuresRef = useRef(0);
+
+  const queryKeyString = JSON.stringify(queryKey);
 
   // Track user activity
-  const trackActivity = useCallback(() => {
-    lastActivityRef.current = Date.now();
-    isActiveRef.current = true;
-    
-    // Reset to base interval when user becomes active
-    if (currentIntervalRef.current > pollingInterval) {
-      currentIntervalRef.current = pollingInterval;
-    }
-  }, [pollingInterval]);
-
-  // Calculate smart polling interval
-  const getNextInterval = useCallback(() => {
-    const timeSinceActivity = Date.now() - lastActivityRef.current;
-    const inactiveThreshold = 60000; // 1 minute
-    
-    if (!activityBased) {
-      return pollingInterval;
-    }
-
-    // If user is inactive for more than threshold, reduce polling frequency
-    if (timeSinceActivity > inactiveThreshold) {
-      isActiveRef.current = false;
-      
-      if (exponentialBackoff) {
-        // Exponential backoff: double interval each time, up to maxInterval
-        currentIntervalRef.current = Math.min(
-          currentIntervalRef.current * 2,
-          maxInterval
-        );
-      } else {
-        // Linear increase to maxInterval
-        currentIntervalRef.current = maxInterval;
-      }
-    } else {
-      isActiveRef.current = true;
-      currentIntervalRef.current = pollingInterval;
-    }
-
-    return currentIntervalRef.current;
-  }, [pollingInterval, maxInterval, exponentialBackoff, activityBased]);
-
-  // Start polling with smart intervals
-  const startPolling = useCallback(() => {
-    const poll = () => {
-      // Skip polling if query is already being fetched (deduplication)
-      const queryState = queryClient.getQueryState(queryKey);
-      if (queryState?.fetchStatus === 'fetching') {
-        console.log('Skipping poll - request already in flight');
-        return;
-      }
-
-      queryClient.invalidateQueries({ queryKey });
-      
-      const nextInterval = getNextInterval();
-      console.log(`Next poll in ${nextInterval}ms (active: ${isActiveRef.current})`);
-      
-      intervalRef.current = setTimeout(poll, nextInterval);
+  useEffect(() => {
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+      // Reset to base interval on activity
+      currentIntervalRef.current = baseInterval;
+      consecutiveFailuresRef.current = 0;
     };
 
-    // Start first poll
-    intervalRef.current = setTimeout(poll, currentIntervalRef.current);
-  }, [queryClient, queryKey, getNextInterval]);
-
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearTimeout(intervalRef.current);
-      intervalRef.current = undefined;
-    }
-  }, []);
-
-  // Setup activity listeners
-  useEffect(() => {
-    if (!activityBased) return;
-
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     events.forEach(event => {
-      document.addEventListener(event, trackActivity, { passive: true });
+      document.addEventListener(event, handleActivity, { passive: true });
     });
 
     return () => {
       events.forEach(event => {
-        document.removeEventListener(event, trackActivity);
+        document.removeEventListener(event, handleActivity);
       });
     };
-  }, [trackActivity, activityBased]);
+  }, [baseInterval]);
 
-  // Cleanup on unmount
+  const executeQuery = useCallback(async () => {
+    // Prevent duplicate requests
+    if (activeRequests.has(queryKeyString)) {
+      console.log(`Request deduplication: ${queryKeyString} already in progress`);
+      return requestQueue.get(queryKeyString);
+    }
+
+    const timeSinceActivity = Date.now() - lastActivityRef.current;
+    const isUserActive = timeSinceActivity < activityThreshold;
+
+    // Skip polling if user is inactive and we haven't had any recent activity
+    if (!isUserActive && timeSinceActivity > maxInterval) {
+      console.log(`Skipping polling for inactive user: ${queryKeyString}`);
+      return;
+    }
+
+    activeRequests.add(queryKeyString);
+    
+    const queryPromise = queryClient.fetchQuery({
+      queryKey,
+      staleTime: isUserActive ? 30000 : 120000, // Different stale times based on activity
+    }).then(result => {
+      // Success - reset failure count
+      consecutiveFailuresRef.current = 0;
+      currentIntervalRef.current = isUserActive ? baseInterval : Math.min(baseInterval * 2, maxInterval);
+      return result;
+    }).catch(error => {
+      // Handle failures with exponential backoff
+      consecutiveFailuresRef.current += 1;
+      const backoffInterval = Math.min(
+        baseInterval * Math.pow(backoffMultiplier, consecutiveFailuresRef.current),
+        maxInterval
+      );
+      currentIntervalRef.current = backoffInterval;
+      console.warn(`Polling failed for ${queryKeyString}, backing off to ${backoffInterval}ms:`, error);
+      throw error;
+    }).finally(() => {
+      activeRequests.delete(queryKeyString);
+      requestQueue.delete(queryKeyString);
+    });
+
+    requestQueue.set(queryKeyString, queryPromise);
+    return queryPromise;
+  }, [queryKey, queryKeyString, queryClient, activityThreshold, baseInterval, maxInterval, backoffMultiplier]);
+
+  // Set up smart polling
   useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, [stopPolling]);
+    if (!enabled) return;
 
+    const startPolling = () => {
+      const poll = async () => {
+        try {
+          await executeQuery();
+        } catch (error) {
+          // Error handling is done in executeQuery
+        }
+
+        // Schedule next poll with current interval
+        intervalRef.current = setTimeout(poll, currentIntervalRef.current);
+      };
+
+      // Start first poll
+      poll();
+    };
+
+    startPolling();
+
+    return () => {
+      if (intervalRef.current) {
+        clearTimeout(intervalRef.current);
+      }
+      activeRequests.delete(queryKeyString);
+      requestQueue.delete(queryKeyString);
+    };
+  }, [enabled, executeQuery, queryKeyString]);
+
+  // Return current polling status
   return {
-    startPolling,
-    stopPolling,
-    isActive: isActiveRef.current,
-    currentInterval: currentIntervalRef.current
+    currentInterval: currentIntervalRef.current,
+    isActive: Date.now() - lastActivityRef.current < activityThreshold,
+    consecutiveFailures: consecutiveFailuresRef.current
   };
 }
