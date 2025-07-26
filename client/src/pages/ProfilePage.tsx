@@ -593,7 +593,7 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 {followers.slice(0, 5).map((follower: any) => (
                   <div key={follower.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-3">
+                    <Link href={`/profile/${follower.id}`} className="flex items-center gap-3 flex-1 cursor-pointer">
                       <Avatar className="h-10 w-10 ring-2 ring-gray-100">
                         <AvatarImage src={follower.profileImageUrl} />
                         <AvatarFallback className="bg-primary/10 text-primary font-medium">
@@ -601,7 +601,7 @@ export default function ProfilePage() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900 hover:text-primary transition-colors">
                           {follower.name || follower.username}
                         </p>
                         <p className="text-xs text-gray-600">@{follower.username}</p>
@@ -611,12 +611,12 @@ export default function ProfilePage() {
                           </p>
                         )}
                       </div>
-                    </div>
+                    </Link>
                     {!isOwnProfile && follower.id !== currentUser?.id && (
                       <FollowButton 
                         userId={follower.id}
                         size="sm"
-                        className="shrink-0"
+                        className="shrink-0 ml-3"
                       />
                     )}
                   </div>
@@ -659,7 +659,7 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 {following.slice(0, 5).map((followed: any) => (
                   <div key={followed.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-3">
+                    <Link href={`/profile/${followed.id}`} className="flex items-center gap-3 flex-1 cursor-pointer">
                       <Avatar className="h-10 w-10 ring-2 ring-gray-100">
                         <AvatarImage src={followed.profileImageUrl} />
                         <AvatarFallback className="bg-primary/10 text-primary font-medium">
@@ -667,7 +667,7 @@ export default function ProfilePage() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900 hover:text-primary transition-colors">
                           {followed.name || followed.username}
                         </p>
                         <p className="text-xs text-gray-600">@{followed.username}</p>
@@ -677,12 +677,12 @@ export default function ProfilePage() {
                           </p>
                         )}
                       </div>
-                    </div>
+                    </Link>
                     {!isOwnProfile && followed.id !== currentUser?.id && (
                       <FollowButton 
                         userId={followed.id}
                         size="sm"
-                        className="shrink-0"
+                        className="shrink-0 ml-3"
                       />
                     )}
                   </div>

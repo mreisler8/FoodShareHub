@@ -86,7 +86,7 @@ export function SendToFriendModal({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery, performSearch]);
+  }, [searchQuery]);
 
   const handleSendToFriend = async () => {
     if (!selectedUser) return;
