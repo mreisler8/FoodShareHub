@@ -13,6 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocationService } from '@/hooks/useLocationService';
 import { useMemoryManagement } from '@/hooks/useMemoryManagement';
+import { MapPin, Star } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import VisualFoodMoment from './VisualFoodMoment';
 
 const foodMomentSchema = z.object({
   caption: z.string().max(140, 'Caption must be 140 characters or less'),
@@ -40,6 +43,7 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
   const queryClient = useQueryClient();
   const { location, requestLocation, isLocationLoading } = useLocationService();
   const { trackComponent, cleanupComponent } = useMemoryManagement();
+  const [showFullForm, setShowFullForm] = useState(false);
 
   const form = useForm<FoodMomentFormData>({
     resolver: zodResolver(foodMomentSchema),
@@ -56,14 +60,14 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
       const img = new Image();
-      
+
       img.onload = () => {
         // Calculate dimensions (max 1200px width)
         const maxWidth = 1200;
         const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
         canvas.width = img.width * ratio;
         canvas.height = img.height * ratio;
-        
+
         // Draw and compress
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob((blob) => {
@@ -78,7 +82,7 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
           }
         }, 'image/jpeg', 0.8);
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   }, []);
@@ -86,7 +90,7 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
   // Handle image selection
   const handleImageSelect = useCallback(async (files: FileList | null) => {
     if (!files) return;
-    
+
     const validImages = Array.from(files).filter(file => 
       file.type.startsWith('image/') && file.size < 10 * 1024 * 1024 // 10MB limit
     );
@@ -109,7 +113,7 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
       const compressedImages = await Promise.all(
         imagesToProcess.map(file => compressImage(file))
       );
-      
+
       // Create previews
       const previews = await Promise.all(
         compressedImages.map(file => {
@@ -159,15 +163,15 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
       formData.append('type', 'moment');
       formData.append('caption', data.caption);
       formData.append('privacy', data.privacy);
-      
+
       if (data.location) {
         formData.append('location', JSON.stringify(data.location));
       }
-      
+
       data.images.forEach((image, index) => {
         formData.append(`images`, image);
       });
-      
+
       return apiRequest('/api/moments', {
         method: 'POST',
         body: formData,
@@ -179,12 +183,12 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/unified-feed'] });
       queryClient.invalidateQueries({ queryKey: ['/api/discover'] });
-      
+
       toast({
         title: 'Moment shared!',
         description: 'Your food moment has been shared successfully.',
       });
-      
+
       onSuccess();
     },
     onError: (error: any) => {
@@ -216,7 +220,7 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
   // Component lifecycle and cleanup
   React.useEffect(() => {
     trackComponent('FoodMomentForm');
-    
+
     return () => {
       // Cleanup blob URLs
       imagePreviews.forEach(preview => {
@@ -230,12 +234,45 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
 
   const remainingChars = 140 - form.watch('caption').length;
 
+  const handleMomentSubmit = (momentData: any) => {
+    // Transform the data for the parent component
+    const formattedData = {
+      type: 'moment',
+      postType: 'food_moment',
+      content: momentData.description,
+      rating: momentData.rating,
+      tags: momentData.tags,
+      restaurantId: momentData.restaurant?.id,
+      restaurantName: momentData.restaurant?.name,
+      dishName: momentData.dishName,
+      images: selectedImages,
+      metadata: {
+        dishName: momentData.dishName,
+        restaurant: momentData.restaurant
+      }
+    };
+
+    onSubmit(formattedData as any);
+  };
+
+  if (showFullForm) {
+    return (
+      <VisualFoodMoment
+        onSubmit={handleMomentSubmit}
+        onCancel={() => {
+          setShowFullForm(false);
+          onCancel?.();
+        }}
+      />
+    );
+  }
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       {/* Image Upload */}
       <div className="space-y-4">
         <Label className="text-base font-medium">Photos *</Label>
-        
+
         {selectedImages.length === 0 ? (
           <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
             <CardContent className="p-8">
@@ -280,7 +317,7 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
                 </Button>
               </div>
             ))}
-            
+
             {selectedImages.length < 4 && (
               <Button
                 type="button"
@@ -297,7 +334,7 @@ export function FoodMomentForm({ onSuccess, onCancel }: FoodMomentFormProps) {
             )}
           </div>
         )}
-        
+
         <input
           ref={fileInputRef}
           type="file"
