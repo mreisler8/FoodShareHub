@@ -1,18 +1,15 @@
-import React, { useState, useRef } from 'react';
-import { Camera, MapPin, Hash, Star, Upload, Check, X, ArrowLeft } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
-import { Badge } from '../ui/badge';
-import { Card, CardContent } from '../ui/card';
-import { RestaurantSearchInput } from '../search/RestaurantSearchInput';
+import React, { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Camera, Upload, X, Star, MapPin, ArrowLeft, Check } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 interface VisualFoodMomentProps {
-  onSubmit?: (momentData: any) => void;
-  onCancel?: () => void;
+  onSubmit?: (data: any) => void;
+  onCancel: () => void;
   onSuccess?: () => void;
   initialImage?: string;
 }
@@ -27,10 +24,13 @@ interface Restaurant {
 }
 
 export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }: VisualFoodMomentProps) {
+  // CRITICAL: Photo-first state management
   const [image, setImage] = useState<string | null>(initialImage || null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [currentStep, setCurrentStep] = useState<'photo' | 'details'>(initialImage ? 'details' : 'photo');
+  
+  // Form state - only accessible after photo
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [dishName, setDishName] = useState('');
   const [description, setDescription] = useState('');
@@ -38,11 +38,14 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Camera and refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -53,21 +56,25 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
   // MOBILE VIEWPORT OPTIMIZATION for 503x559px
   const [isMobileViewport, setIsMobileViewport] = useState(false);
 
-  // Update viewport detection on mount and resize
-  React.useEffect(() => {
+  useEffect(() => {
     const updateViewport = () => {
       setIsMobileViewport(window.innerWidth <= 520 && window.innerHeight <= 580);
     };
     
-    updateViewport(); // Check immediately
+    updateViewport();
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
   }, []);
 
+  // Restaurant search state
+  const [restaurantQuery, setRestaurantQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Restaurant[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Photo upload handler
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
     try {
-      // Create preview immediately
       const reader = new FileReader();
       reader.onload = (e) => {
         setImage(e.target?.result as string);
@@ -94,16 +101,7 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type and size
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Invalid file",
-          description: "Please select an image file",
-          variant: "destructive",
-        });
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "File too large",
           description: "Please select an image under 10MB",
@@ -115,13 +113,14 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
     }
   };
 
+  // Camera functionality
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         } 
       });
       setStream(mediaStream);
@@ -169,6 +168,39 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
     setShowCamera(false);
   };
 
+  // Restaurant search
+  const searchRestaurants = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(query)}`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.restaurants || []);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      searchRestaurants(restaurantQuery);
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [restaurantQuery]);
+
+  // Tag management
   const addTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim()) && tags.length < 10) {
       setTags([...tags, newTag.trim()]);
@@ -180,59 +212,66 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const submitMoment = useMutation({
-    mutationFn: async (data: any) => {
+  // Submit functionality
+  const handleSubmit = async () => {
+    if (!canSubmit || !imageFile) return;
+
+    setIsSubmitting(true);
+    
+    try {
       const formData = new FormData();
-      if (imageFile) {
-        formData.append('image', imageFile);
-      }
-      formData.append('restaurantId', data.restaurant.id);
-      formData.append('content', data.description || `${data.dishName} at ${data.restaurant.name}`);
-      formData.append('rating', data.rating.toString());
-      formData.append('tags', JSON.stringify(data.tags));
-      formData.append('dishName', data.dishName);
-      
-      return apiRequest('/api/moments', {
+      formData.append('image', imageFile);
+      formData.append('restaurantId', selectedRestaurant?.id || '');
+      formData.append('dishName', dishName);
+      formData.append('content', description);
+      formData.append('rating', rating.toString());
+      formData.append('tags', JSON.stringify(tags));
+
+      console.log('Submitting Food Moment:', {
+        restaurantId: selectedRestaurant?.id,
+        dishName,
+        hasImage: Boolean(imageFile),
+        rating,
+        tags
+      });
+
+      const response = await fetch('/api/moments', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/unified-feed'] });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('API Error:', error);
+        throw new Error(error.error || 'Failed to create moment');
+      }
+
+      const result = await response.json();
+      console.log('Food Moment Created:', result);
+      
+      // Invalidate feed cache to show new moment
+      queryClient.invalidateQueries({ queryKey: ['/api/feed/unified'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      
       toast({
         title: "Food moment shared!",
-        description: "Your moment has been added to your feed",
+        description: "Your photo-first moment has been added to the feed",
       });
-      if (onSuccess) {
-        onSuccess();
-      } else if (onSubmit) {
-        onSubmit({});
-      }
-    },
-    onError: (error) => {
+
+      if (onSuccess) onSuccess();
+      if (onSubmit) onSubmit(result.moment);
+
+    } catch (error) {
       console.error('Submit failed:', error);
       toast({
         title: "Share failed",
-        description: "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
-  });
-
-  const handleSubmit = () => {
-    if (!canSubmit) return;
-    
-    const momentData = {
-      image,
-      restaurant: selectedRestaurant,
-      dishName: dishName.trim(),
-      description: description.trim(),
-      rating,
-      tags,
-    };
-
-    setIsSubmitting(true);
-    submitMoment.mutate(momentData);
   };
 
   const goBackToPhoto = () => {
@@ -267,27 +306,24 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className="w-full rounded-lg"
+                className="w-full h-auto rounded-lg"
               />
-              <canvas ref={canvasRef} className="hidden" />
-              
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-4">
                 <Button
-                  onClick={stopCamera}
-                  variant="secondary"
-                  size="lg"
-                  className="bg-white/90 hover:bg-white"
+                  onClick={capturePhoto}
+                  className="w-16 h-16 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center"
                 >
-                  Cancel
+                  <div className="w-12 h-12 rounded-full bg-red-500"></div>
                 </Button>
                 <Button
-                  onClick={capturePhoto}
-                  size="lg"
-                  className="bg-white hover:bg-gray-100 text-black w-16 h-16 rounded-full"
+                  onClick={stopCamera}
+                  variant="outline"
+                  className="w-16 h-16 rounded-full bg-white/20 hover:bg-white/30 text-white border-white/30"
                 >
-                  <Camera className="w-8 h-8" />
+                  <X className="w-6 h-6" />
                 </Button>
               </div>
+              <canvas ref={canvasRef} className="hidden" />
             </div>
           ) : (
             <div className="w-full max-w-md space-y-6">
@@ -301,8 +337,13 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
                 <span>Take Photo Now</span>
               </Button>
 
-              <div className="text-center">
-                <p className="text-white/80 mb-4">or</p>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/30"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-black text-white/60">or</span>
+                </div>
               </div>
 
               {/* Upload Button */}
@@ -321,10 +362,13 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
                 style={{ minHeight: '44px', minWidth: '44px' }}
               >
                 {isUploading ? (
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white" />
+                  <>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                    <span>Uploading...</span>
+                  </>
                 ) : (
                   <>
-                    <Upload className="w-8 h-8" />
+                    <Upload className="w-6 h-6" />
                     <span>Choose from Gallery</span>
                   </>
                 )}
@@ -358,84 +402,92 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h2 className="font-semibold text-lg">Add Details</h2>
-        <Button
-          onClick={handleSubmit}
-          disabled={!canSubmit || isSubmitting}
-          className="bg-orange-500 hover:bg-orange-600 text-white px-6"
-          size="sm"
-        >
-          {isSubmitting ? 'Sharing...' : 'Share'}
-        </Button>
+        <div className="w-10"></div>
       </div>
 
-      {/* Progress Indicator */}
-      <div className="bg-white px-4 py-2 border-b">
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <Check className="w-4 h-4 text-green-500" />
-          <span>Photo Added</span>
-          <div className="w-4 h-0.5 bg-gray-300"></div>
-          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-          <span className="font-medium">Details</span>
-        </div>
-      </div>
-
+      {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Photo Preview */}
-        <div className="bg-white p-4 border-b">
-          <img 
-            src={image!} 
-            alt="Food moment" 
-            className="w-full h-48 object-cover rounded-lg"
-          />
-        </div>
-
         <div className="p-4 space-y-6">
-          {/* Restaurant Selection - REQUIRED */}
-          <Card className={`border-2 ${selectedRestaurant ? 'border-green-200 bg-green-50/50' : 'border-orange-200'}`}>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2 mb-3">
-                <MapPin className="w-5 h-5 text-orange-600" />
-                <label className="font-medium text-gray-900">
-                  Where did you eat this? *
-                </label>
+          {/* Photo Preview */}
+          {image && (
+            <div className="relative">
+              <img 
+                src={image} 
+                alt="Food moment" 
+                className="w-full h-48 object-cover rounded-lg"
+              />
+              <div className="absolute top-2 right-2">
+                <div className="bg-green-500 text-white p-1 rounded-full">
+                  <Check className="w-4 h-4" />
+                </div>
               </div>
+            </div>
+          )}
 
-              <RestaurantSearchInput
-                onSelect={(restaurant: Restaurant) => setSelectedRestaurant(restaurant)}
-                selectedRestaurant={selectedRestaurant}
-                placeholder="Search restaurants..."
+          {/* Restaurant Search */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Restaurant *
+            </label>
+            <div className="relative">
+              <Input
+                value={restaurantQuery}
+                onChange={(e) => setRestaurantQuery(e.target.value)}
+                placeholder="Search for restaurant..."
                 className="w-full"
               />
+              <MapPin className="absolute right-3 top-3 w-4 h-4 text-gray-400" />
+            </div>
+            
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="bg-white border rounded-lg shadow-sm max-h-40 overflow-y-auto">
+                {searchResults.map((restaurant) => (
+                  <button
+                    key={restaurant.id}
+                    onClick={() => {
+                      setSelectedRestaurant(restaurant);
+                      setRestaurantQuery(restaurant.name);
+                      setSearchResults([]);
+                    }}
+                    className="w-full text-left p-3 hover:bg-gray-50 border-b last:border-b-0"
+                  >
+                    <div className="font-medium">{restaurant.name}</div>
+                    <div className="text-sm text-gray-600">{restaurant.location || 'Location not specified'}</div>
+                  </button>
+                ))}
+              </div>
+            )}
 
-              {selectedRestaurant && (
-                <div className="mt-2 p-2 bg-green-50 rounded border border-green-200 flex items-center space-x-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <div>
-                    <div className="font-medium">{selectedRestaurant.name}</div>
-                    <div className="text-sm text-gray-600">{selectedRestaurant.location || 'Location not specified'}</div>
-                  </div>
+            {/* Selected Restaurant */}
+            {selectedRestaurant && (
+              <div className="mt-2 p-2 bg-green-50 rounded border border-green-200 flex items-center space-x-2">
+                <Check className="w-4 h-4 text-green-600" />
+                <div>
+                  <div className="font-medium">{selectedRestaurant.name}</div>
+                  <div className="text-sm text-gray-600">{selectedRestaurant.location || 'Location not specified'}</div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </div>
 
-          {/* Dish Name - REQUIRED */}
-          <div>
-            <label className="block font-medium text-gray-900 mb-2">
-              What dish is this? *
+          {/* Dish Name */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Dish Name *
             </label>
             <Input
               value={dishName}
               onChange={(e) => setDishName(e.target.value)}
-              placeholder="e.g., Margherita Pizza, Chicken Tikka Masala..."
-              className={`w-full ${dishName.trim() ? 'border-green-200 bg-green-50/50' : 'border-gray-300'}`}
+              placeholder="What did you eat?"
+              className="w-full"
             />
           </div>
 
           {/* Rating */}
-          <div>
-            <label className="block font-medium text-gray-900 mb-3">
-              How was it?
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Rating (Optional)
             </label>
             <div className="flex space-x-1">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -448,111 +500,99 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
                   <Star
                     className={`w-8 h-8 ${
                       star <= rating 
-                        ? 'fill-yellow-400 text-yellow-400' 
+                        ? 'text-yellow-400 fill-current' 
                         : 'text-gray-300'
                     }`}
                   />
                 </button>
               ))}
             </div>
-            {rating > 0 && (
-              <p className="text-sm text-gray-600 mt-1">
-                {rating === 5 ? 'Amazing!' : rating === 4 ? 'Great!' : rating === 3 ? 'Good' : rating === 2 ? 'Okay' : 'Not great'}
-              </p>
-            )}
           </div>
 
           {/* Description */}
-          <div>
-            <label className="block font-medium text-gray-900 mb-2">
-              Tell us more (optional)
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Description (Optional)
             </label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What made this special? How did it taste?"
-              className="w-full min-h-[80px]"
-              maxLength={280}
+              placeholder="Tell us about this dish..."
+              className="w-full h-20 resize-none"
             />
-            <div className="text-right text-xs text-gray-500 mt-1">
-              {description.length}/280
-            </div>
           </div>
 
           {/* Tags */}
-          <div>
-            <label className="block font-medium text-gray-900 mb-2">
-              Add tags (optional)
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Tags (Optional)
             </label>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag) => (
-                <Badge 
-                  key={tag} 
-                  variant="secondary" 
-                  className="text-sm px-3 py-1 flex items-center space-x-1"
+                <span
+                  key={tag}
+                  className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm flex items-center space-x-1"
                 >
-                  <span>#{tag}</span>
-                  <button onClick={() => removeTag(tag)}>
+                  <span>{tag}</span>
+                  <button
+                    onClick={() => removeTag(tag)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
                     <X className="w-3 h-3" />
                   </button>
-                </Badge>
+                </span>
               ))}
             </div>
-            
             <div className="flex space-x-2">
               <Input
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addTag()}
                 placeholder="Add a tag..."
                 className="flex-1"
-                maxLength={20}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
               />
-              <Button 
-                onClick={addTag} 
-                variant="outline" 
-                size="sm"
-                disabled={!newTag.trim() || tags.length >= 10}
-              >
-                <Hash className="w-4 h-4" />
+              <Button onClick={addTag} size="sm">
+                Add
               </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {tags.length}/10 tags • Try: spicy, date-night, must-try
-            </p>
-          </div>
-
-          {/* Submit Button for Mobile */}
-          <div className="pb-8">
-            <Button
-              onClick={handleSubmit}
-              disabled={!canSubmit || isSubmitting}
-              className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-lg font-medium touch-target-large"
-              style={{ minHeight: '48px' }}
-            >
-              {isSubmitting ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                  <span>Sharing...</span>
-                </div>
-              ) : (
-                'Share Food Moment'
-              )}
-            </Button>
-            
-            {!canSubmit && (
-              <div className="text-center mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                <p className="text-sm text-red-700 font-medium">
-                  📝 Required Fields Missing
-                </p>
-                <p className="text-xs text-red-600 mt-1">
-                  {!selectedRestaurant && "• Restaurant selection required"}
-                  {selectedRestaurant && !dishName.trim() && "• Dish name required"}
-                </p>
-              </div>
-            )}
           </div>
         </div>
+      </div>
+
+      {/* Fixed Submit Button */}
+      <div className="bg-white border-t p-4">
+        <Button
+          onClick={handleSubmit}
+          disabled={!canSubmit || isSubmitting}
+          className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-lg font-medium touch-target-large"
+          style={{ minHeight: '48px' }}
+        >
+          {isSubmitting ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+              Creating...
+            </>
+          ) : (
+            'Share Food Moment'
+          )}
+        </Button>
+        
+        {!canSubmit && (
+          <div className="text-center mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+            <p className="text-sm text-red-700 font-medium">
+              📝 Required Fields Missing
+            </p>
+            <p className="text-xs text-red-600 mt-1">
+              {!selectedRestaurant && "• Restaurant selection required"}
+              {selectedRestaurant && !dishName.trim() && "• Dish name required"}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
