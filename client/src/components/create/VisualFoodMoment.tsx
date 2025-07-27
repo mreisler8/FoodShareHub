@@ -28,6 +28,12 @@ import { RestaurantSearchInput } from '../search/RestaurantSearchInput';
 interface VisualFoodMomentProps {
   onSuccess: () => void;
   onCancel: () => void;
+  initialVisibility?: 'public' | 'circle' | 'private';
+  contextData?: {
+    restaurant?: any;
+    location?: any;
+    initialCaption?: string;
+  };
 }
 
 interface FilterOption {
@@ -68,16 +74,17 @@ const PRIVACY_OPTIONS = [
   { id: 'private', label: '🔒 Private', description: 'Only you' }
 ];
 
-export function VisualFoodMoment({ onSuccess, onCancel }: VisualFoodMomentProps) {
+export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'public', contextData }: VisualFoodMomentProps) {
   // Core state
   const [step, setStep] = useState<'capture' | 'enhance' | 'tag' | 'share'>('capture');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<FilterOption>(FILTERS[0]);
   const [textOverlay, setTextOverlay] = useState('');
+  const [caption, setCaption] = useState(contextData?.initialCaption || '');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
-  const [privacy, setPrivacy] = useState<'public' | 'circle' | 'private'>('public');
+  const [privacy, setPrivacy] = useState<'public' | 'circle' | 'private'>(initialVisibility);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Refs and hooks

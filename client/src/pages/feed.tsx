@@ -12,6 +12,7 @@ import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernS
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
+import { UnifiedShareModal } from '@/components/share/UnifiedShareModal';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Users, Home, Filter, Camera, Plus, Search, User, TrendingUp } from 'lucide-react';
@@ -141,6 +142,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const [showPostModal, setShowPostModal] = useState(false);
   const [showCreateCanvas, setShowCreateCanvas] = useState(false);
   const [createCanvasTab, setCreateCanvasTab] = useState<'moment' | 'list'>('moment');
+  const [showUnifiedShare, setShowUnifiedShare] = useState(false);
+  const [shareModalTab, setShareModalTab] = useState<'moment' | 'list' | 'post'>('moment');
   // Check URL parameters for tab selection
   const urlParams = new URLSearchParams(window.location.search);
   const urlTab = urlParams.get('tab');
@@ -372,7 +375,10 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <Button 
-                      onClick={() => navigate('/create-moment')}
+                      onClick={() => {
+                        setShareModalTab('moment');
+                        setShowUnifiedShare(true);
+                      }}
                       className="flex items-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
                       variant="outline"
                     >
@@ -380,7 +386,10 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       <span className="text-sm font-medium">Food Moment</span>
                     </Button>
                     <Button 
-                      onClick={() => navigate('/create-list')}
+                      onClick={() => {
+                        setShareModalTab('list');
+                        setShowUnifiedShare(true);
+                      }}
                       className="flex items-center gap-2 h-12 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                       variant="outline"
                     >
@@ -713,6 +722,13 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           isOpen={showCreateCanvas}
           onClose={() => setShowCreateCanvas(false)}
           defaultTab={createCanvasTab}
+        />
+
+        {/* Unified Share Modal */}
+        <UnifiedShareModal
+          isOpen={showUnifiedShare}
+          onClose={() => setShowUnifiedShare(false)}
+          defaultTab={shareModalTab}
         />
 
         {/* Floating Create Button */}

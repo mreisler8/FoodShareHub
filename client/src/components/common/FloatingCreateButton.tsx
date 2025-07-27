@@ -3,6 +3,7 @@ import { Plus, List, Camera, Share2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
+import { UnifiedShareModal } from "@/components/share/UnifiedShareModal";
 
 interface FloatingCreateButtonProps {
   className?: string;
@@ -11,20 +12,28 @@ interface FloatingCreateButtonProps {
 export function FloatingCreateButton({ className }: FloatingCreateButtonProps) {
   const [, navigate] = useLocation();
   const [isHovered, setIsHovered] = useState(false);
+  const [showUnifiedShare, setShowUnifiedShare] = useState(false);
+  const [shareModalTab, setShareModalTab] = useState<'moment' | 'list' | 'post'>('moment');
 
   const createOptions = [
     {
       icon: Camera,
       label: "Food Moment",
-      href: "/create-moment",
+      action: () => {
+        setShareModalTab('moment');
+        setShowUnifiedShare(true);
+      },
       bgColor: "bg-orange-100 hover:bg-orange-200",
       iconColor: "text-orange-600",
       borderColor: "border-orange-200"
     },
     {
-      icon: List,
+      icon: List,  
       label: "Create List",
-      href: "/create-list",
+      action: () => {
+        setShareModalTab('list');
+        setShowUnifiedShare(true);
+      },
       bgColor: "bg-green-100 hover:bg-green-200",
       iconColor: "text-green-600",
       borderColor: "border-green-200"
@@ -32,15 +41,18 @@ export function FloatingCreateButton({ className }: FloatingCreateButtonProps) {
     {
       icon: Share2,
       label: "Share Experience",
-      href: "/create-post?type=experience",
+      action: () => {
+        setShareModalTab('post');
+        setShowUnifiedShare(true);
+      },
       bgColor: "bg-blue-100 hover:bg-blue-200",
       iconColor: "text-blue-600",
       borderColor: "border-blue-200"
     }
   ];
 
-  const handleOptionClick = (href: string) => {
-    navigate(href);
+  const handleOptionClick = (action: () => void) => {
+    action();
   };
 
   return (
@@ -69,7 +81,7 @@ export function FloatingCreateButton({ className }: FloatingCreateButtonProps) {
           {createOptions.map((option, index) => (
             <div
               key={option.label}
-              onClick={() => handleOptionClick(option.href)}
+              onClick={option.action}
               className={cn(
                 "p-4 rounded-lg border cursor-pointer transition-all duration-200",
                 "hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
@@ -108,6 +120,13 @@ export function FloatingCreateButton({ className }: FloatingCreateButtonProps) {
       >
         <Plus className="h-6 w-6" />
       </Button>
+      
+      {/* Unified Share Modal */}
+      <UnifiedShareModal
+        isOpen={showUnifiedShare}
+        onClose={() => setShowUnifiedShare(false)}
+        defaultTab={shareModalTab}
+      />
     </div>
   );
 }
