@@ -100,8 +100,8 @@ export async function calculateCircleScore(
 
     const trustedUserIds = trustedUsers.map(u => u.id);
     
-    // 2. Fetch Quick Ratings from trusted users
-    const quickRatings = await getQuickRatings(restaurantId, googlePlaceId, trustedUserIds);
+    // 2. Fetch Quick Ratings from trusted users + requesting user
+    const quickRatings = await getQuickRatings(restaurantId, googlePlaceId, trustedUserIds, requestingUserId);
     
     // 3. Fetch List Placements from shared lists in circles
     const listPlacements = await getListPlacements(restaurantId, googlePlaceId, requestingUserId);
@@ -112,8 +112,15 @@ export async function calculateCircleScore(
     
     // Process Quick Ratings (weight: 3)
     quickRatings.forEach(rating => {
-      const user = trustedUsers.find(u => u.id === rating.userId);
-      if (!user) return;
+      // Check if this is the requesting user or a trusted user
+      let user;
+      if (rating.userId === requestingUserId) {
+        // Add requesting user details for their own rating
+        user = { id: requestingUserId, username: 'You', name: 'You' };
+      } else {
+        user = trustedUsers.find(u => u.id === rating.userId);
+        if (!user) return;
+      }
       
       const recencyDays = Math.floor((Date.now() - new Date(rating.createdAt).getTime()) / (1000 * 60 * 60 * 24));
       const recencyDecay = calculateRecencyDecay(recencyDays);
@@ -262,11 +269,23 @@ async function getTrustedUsers(requestingUserId: number): Promise<TrustedUser[]>
 async function getQuickRatings(
   restaurantId: number | null,
   googlePlaceId: string | null,
-  trustedUserIds: number[]
+  trustedUserIds: number[],
+  requestingUserId: number
 ) {
+  // Include both trusted users AND the requesting user
+  const allUserIds = [...trustedUserIds, requestingUserId];
+  
   const whereConditions = [
-    inArray(ratings.userId, trustedUserIds),
-    eq(ratings.sharedWithCircle, true) // Only include shared ratings
+    inArray(ratings.userId, allUserIds),
+    // For the requesting user, include all their ratings (private or shared)
+    // For trusted users, only include shared ratings
+    or(
+      eq(ratings.userId, requestingUserId), // User's own ratings (any privacy level)
+      and(
+        inArray(ratings.userId, trustedUserIds),
+        eq(ratings.sharedWithCircle, true) // Trusted users' shared ratings only
+      )
+    )
   ];
   
   if (restaurantId) {

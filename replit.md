@@ -113,6 +113,11 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 27, 2025: **ENHANCED CIRCLE SCORE INTEGRATION - TRUSTED NETWORK + YOURSELF**: Successfully enhanced Circle Score to include user's own ratings alongside trusted network for comprehensive personalized scoring:
+  - **Enhanced Algorithm**: Circle Score now includes both trusted network ratings AND user's own rating for complete personalized view
+  - **Privacy Respect**: User's own ratings included regardless of privacy setting, trusted users' ratings only if shared with circles
+  - **Better User Experience**: Shows "You" as contributor alongside trusted network members in Circle Score breakdown
+  - **Scale-Ready Enhancement**: System now provides more comprehensive scoring by combining personal experience with trusted recommendations
 - July 27, 2025: **COMPLETE CIRCLE SCORE INTEGRATION FIX - RATINGS NOW FEED INTO TRUST SYSTEM**: Successfully resolved critical issue where ratings weren't contributing to Circle Score calculations:
   - **Root Cause Fixed**: QuickRateModal was hardcoded to `sharedWithCircle: false`, preventing ratings from feeding into Circle Score algorithm
   - **Systemic Solution**: Updated QuickRateModal to automatically share ratings with circles unless explicitly kept private (`sharedWithCircle: !isPrivate`)
