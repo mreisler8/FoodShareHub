@@ -267,7 +267,7 @@ export function useRestaurantRatingState(restaurant: any) {
 
   // Computed properties for easier use in components
   const hasRated = rating !== null;
-  const label = hasRated ? `Rated ${rating.ratingValue}⭐` : 'Quick Rate';
+  const label = hasRated ? `Rated ${parseFloat(rating.ratingValue.toString()).toFixed(1)}/10` : 'Quick Rate';
 
   return {
     rating,

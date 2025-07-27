@@ -102,7 +102,7 @@ router.put('/', async (req, res) => {
       [result] = await db
         .update(ratings)
         .set({
-          ratingValue: parseFloat(ratingValue.toString()),
+          ratingValue: ratingValue.toString(),
           note: note || null,
           tags: tags || [],
           circleIds: circleIds || [],
@@ -120,7 +120,7 @@ router.put('/', async (req, res) => {
           restaurantId: restaurantId || null,
           googlePlaceId: googlePlaceId || null,
           restaurantName: restaurantName || null,
-          ratingValue: parseFloat(ratingValue.toString()),
+          ratingValue: ratingValue.toString(),
           note: note || null,
           tags: tags || [],
           circleIds: circleIds || [],
