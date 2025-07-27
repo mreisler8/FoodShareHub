@@ -731,8 +731,14 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           defaultTab={shareModalTab}
         />
 
-        {/* Floating Create Button */}
-        <FloatingCreateButton />
+        {/* Enhanced Floating Create Button */}
+        <div className="fixed bottom-20 right-4 z-50 md:bottom-6 md:right-6">
+            <div className="relative">
+              {/* Pulsing background for prominence */}
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-pink-500 rounded-full animate-pulse opacity-20 scale-110"></div>
+              <FloatingCreateButton />
+            </div>
+          </div>
       </div>
     </FeedLayoutProvider>
   );

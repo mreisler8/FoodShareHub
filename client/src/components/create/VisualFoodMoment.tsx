@@ -151,7 +151,7 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
             canvas.height = img.height * ratio;
 
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            
+
             canvas.toBlob((blob) => {
               if (blob) {
                 const compressedFile = new File([blob], file.name, {
@@ -170,7 +170,7 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
 
       setSelectedImages(processedImages);
       setImagePreviews(previews);
-      
+
       if (processedImages.length > 0) {
         setStep('enhance');
       }
@@ -199,7 +199,7 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
       const formData = new FormData();
       formData.append('caption', data.textOverlay);
       formData.append('privacy', data.privacy);
-      
+
       if (data.location) {
         formData.append('location', JSON.stringify(data.location));
       }
@@ -249,6 +249,45 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
     },
   });
 
+    // Camera Capture Function
+    const capturePhoto = async () => {
+      setIsProcessing(true);
+      try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          const track = stream.getVideoTracks()[0];
+          const imageCapture = new ImageCapture(track);
+          const blob = await imageCapture.takePhoto();
+
+          // Process the captured photo as a File object
+          const capturedImageFile = new File([blob], 'captured-photo.jpg', { type: 'image/jpeg' });
+          
+          // Manually create a FileList and pass it to processImages
+          const fileList = {
+              0: capturedImageFile,
+              length: 1,
+              item: (index: number) => (index === 0 ? capturedImageFile : null),
+              [Symbol.iterator]: function* () {
+                  yield capturedImageFile;
+              }
+          } as unknown as FileList;
+
+          await processImages(fileList);
+
+          // Stop the camera stream
+          track.stop();
+          stream.getTracks().forEach(track => track.stop());
+      } catch (error: any) {
+          toast({
+              title: 'Camera error',
+              description: error.message || 'Could not access camera.',
+              variant: 'destructive',
+          });
+      } finally {
+          setIsProcessing(false);
+      }
+  };
+
+
   const handleSubmit = useCallback(() => {
     if (selectedImages.length === 0) {
       toast({
@@ -291,34 +330,51 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
         <p className="text-gray-600">Share your food experience visually</p>
       </div>
 
+      {/* Enhanced Image Upload/Capture with Progress */}
       {selectedImages.length === 0 ? (
-        <Card className="border-2 border-dashed border-gray-300 hover:border-primary/50 transition-colors">
-          <CardContent className="p-12">
+        <Card className="border-dashed border-2 border-gray-300 hover:border-orange-400 transition-all duration-300 hover:shadow-lg">
+          <CardContent className="p-8">
             <div className="text-center space-y-6">
-              <div className="flex justify-center space-x-4">
-                <Button
-                  size="lg"
-                  onClick={() => cameraInputRef.current?.click()}
+              <div className="flex justify-center gap-4">
+                <Button 
+                  onClick={capturePhoto}
                   disabled={isProcessing}
-                  className="min-h-[56px] px-8"
+                  className={`bg-orange-500 hover:bg-orange-600 text-white gap-2 shadow-lg transition-all ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                 >
-                  <Camera className="h-5 w-5 mr-2" />
-                  Camera
+                  <Camera className="h-5 w-5" />
+                  {isProcessing ? 'Capturing...' : 'Take Photo'}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
+                <Button 
                   onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
                   disabled={isProcessing}
-                  className="min-h-[56px] px-8"
+                  className={`gap-2 transition-all ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                 >
-                  <ImageIcon className="h-5 w-5 mr-2" />
-                  Gallery
+                  <ImageIcon className="h-5 w-5" />
+                  Choose Photo
                 </Button>
               </div>
-              <p className="text-sm text-gray-500">
-                Select up to 4 photos • Max 10MB each
-              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => processImages(e.target.files)}
+                className="hidden"
+              />
+              {isProcessing ? (
+                <div className="space-y-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-orange-500 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                  </div>
+                  <p className="text-sm text-orange-600 font-medium">Processing your photo...</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  📸 Take a photo or choose from your gallery
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -345,7 +401,7 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
               </Button>
             </div>
           ))}
-          
+
           {selectedImages.length < 4 && (
             <Button
               variant="outline"
@@ -395,7 +451,7 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
           className="w-full aspect-square object-cover rounded-lg"
           style={{ filter: selectedFilter.preview }}
         />
-        
+
         {/* Text overlay */}
         {textOverlay && (
           <div className="absolute bottom-4 left-4 right-4">
@@ -512,7 +568,7 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
           className="w-full aspect-square object-cover rounded-lg"
           style={{ filter: selectedFilter.preview }}
         />
-        
+
         {textOverlay && (
           <div className="absolute bottom-4 left-4 right-4">
             <div className="bg-black/50 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
@@ -627,7 +683,7 @@ export function VisualFoodMoment({ onSuccess, onCancel, initialVisibility = 'pub
         >
           {step === 'capture' ? 'Cancel' : 'Back'}
         </Button>
-        
+
         {isLastStep ? (
           <Button
             onClick={handleSubmit}

@@ -26,6 +26,8 @@ type ListStarterFormData = z.infer<typeof listStarterSchema>;
 
 interface ListStarterFormProps {
   onSuccess: () => void;
+  onCancel: () => void;
+  privacy?: 'public' | 'circle' | 'private';
 }
 
 const QUICK_TEMPLATES = [
@@ -42,7 +44,7 @@ const CATEGORIES = [
   'family', 'hidden-gems', 'cheap-eats', 'fine-dining', 'casual', 'takeout'
 ];
 
-export function ListStarterForm({ onSuccess }: ListStarterFormProps) {
+export function ListStarterForm({ onSuccess, onCancel, privacy }: ListStarterFormProps) {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const { toast } = useToast();
@@ -53,7 +55,7 @@ export function ListStarterForm({ onSuccess }: ListStarterFormProps) {
     defaultValues: {
       title: '',
       description: '',
-      privacy: 'public',
+      privacy: privacy || 'public',
       category: '',
     },
   });
@@ -77,12 +79,12 @@ export function ListStarterForm({ onSuccess }: ListStarterFormProps) {
       // Invalidate relevant caches
       queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
       queryClient.invalidateQueries({ queryKey: ['/api/unified-feed'] });
-      
+
       toast({
         title: 'List created!',
         description: 'Your list has been created. Start adding restaurants to build your curated collection.',
       });
-      
+
       onSuccess();
     },
     onError: (error: any) => {
@@ -159,7 +161,7 @@ export function ListStarterForm({ onSuccess }: ListStarterFormProps) {
         {/* List Details */}
         <div className="space-y-4">
           <Label className="text-base font-medium">List Details</Label>
-          
+
           <FormField
             control={form.control}
             name="title"

@@ -68,236 +68,169 @@ const shareOptions: ShareOption[] = [
   }
 ];
 
-export function UnifiedShareModal({ isOpen, onClose, defaultTab = 'moment', contextData }: UnifiedShareModalProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab);
-  const [selectedVisibility, setSelectedVisibility] = useState<'public' | 'circle' | 'private'>('public');
-  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
-  const { toast } = useToast();
+export function UnifiedShareModal({ isOpen, onClose, contextData }: UnifiedShareModalProps) {
+  const [activeTab, setActiveTab] = useState<'moment' | 'list' | 'post'>('moment');
+  const [privacy, setPrivacy] = useState<'public' | 'circle' | 'private'>('public');
   const { trackComponent, cleanupComponent } = useMemoryManagement();
+  const { toast } = useToast();
 
-  // Track component lifecycle
   useEffect(() => {
     if (isOpen) {
       trackComponent('UnifiedShareModal');
     }
-    
-    return () => {
-      if (isOpen) {
-        cleanupComponent('UnifiedShareModal');
-      }
-    };
+    return () => cleanupComponent('UnifiedShareModal');
   }, [isOpen, trackComponent, cleanupComponent]);
 
-  // Reset active tab when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab(defaultTab);
-      setShowSuccessAnimation(false);
-    }
-  }, [isOpen, defaultTab]);
-
-  // Handle successful creation with animation
-  const handleSuccess = useCallback(() => {
-    setShowSuccessAnimation(true);
+  const handleSuccessfulShare = (type: string) => {
     toast({
-      title: 'Shared successfully!',
-      description: 'Your content has been shared with your network.',
+      title: `${type} shared successfully! ✨`,
+      description: "Your content is now live and visible to your network.",
+      duration: 3000,
     });
-    
-    // Close modal after animation
-    setTimeout(() => {
-      onClose();
-      setShowSuccessAnimation(false);
-    }, 2000);
-  }, [onClose, toast]);
-
-  // Handle modal close with cleanup
-  const handleClose = useCallback(() => {
-    cleanupComponent('UnifiedShareModal');
-    setShowSuccessAnimation(false);
     onClose();
-  }, [onClose, cleanupComponent]);
-
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !showSuccessAnimation) {
-        handleClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, handleClose, showSuccessAnimation]);
-
-  const getTabConfig = () => {
-    const tabs = [
-      {
-        id: 'moment',
-        icon: Camera,
-        label: 'Food Moment',
-        description: 'Quick photo sharing',
-        color: 'text-orange-600',
-        bgColor: 'bg-orange-50'
-      },
-      {
-        id: 'list',
-        icon: List,
-        label: 'Create List',
-        description: 'Curated restaurant collection',
-        color: 'text-green-600',
-        bgColor: 'bg-green-50'
-      },
-      {
-        id: 'post',
-        icon: Share2,
-        label: 'Share Experience',
-        description: 'Detailed restaurant review',
-        color: 'text-blue-600',
-        bgColor: 'bg-blue-50'
-      }
-    ];
-    return tabs;
   };
 
-  const tabs = getTabConfig();
-
-  // Success animation overlay
-  if (showSuccessAnimation) {
-    return (
-      <Dialog open={isOpen} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md w-full max-w-[95vw] border-0 bg-white/95 backdrop-blur-sm" style={{ borderRadius: '12px !important' }}>
-          <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-            <div className="relative mb-6">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-pulse">
-                <CheckCircle className="h-10 w-10 text-green-600 animate-bounce" />
-              </div>
-              <div className="absolute -top-2 -right-2 w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center animate-spin">
-                <Sparkles className="h-4 w-4 text-orange-600" />
-              </div>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Successfully Shared!</h3>
-            <p className="text-gray-600 mb-4">Your content is now live and visible to your network</p>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span>Redirecting to feed</span>
-              <ArrowRight className="h-4 w-4 animate-pulse" />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent 
-        className="sm:max-w-3xl w-full max-w-[95vw] h-[90vh] max-h-screen p-0 overflow-hidden border-0 bg-gradient-to-br from-white to-gray-50/50" 
-        style={{ borderRadius: '12px !important' }}
-      >
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[95vh] p-0 gap-0 overflow-hidden">
         <div className="flex flex-col h-full">
-          {/* Enhanced Header */}
-          <div className="relative p-6 bg-white border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-orange-400 to-pink-400 rounded-full flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Share Your Experience</h2>
-                  <p className="text-sm text-gray-500">Choose what you'd like to share with your network</p>
-                </div>
+          {/* Enhanced Header with Visual Hierarchy */}
+          <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-orange-50 to-pink-50">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <Sparkles className="h-6 w-6 text-white" />
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent">
+                  Share Your Experience
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">Choose what you'd like to share with your network</p>
+              </div>
             </div>
+            <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-white/50">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
 
-            {/* Visibility Selection */}
-            <div className="mt-4 flex gap-2">
-              {shareOptions.map((option) => {
-                const Icon = option.icon;
-                return (
-                  <button
-                    key={option.id}
-                    onClick={() => setSelectedVisibility(option.id)}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 text-sm',
-                      selectedVisibility === option.id 
-                        ? `${option.bgColor} ${option.color} border-current shadow-sm` 
-                        : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200'
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="font-medium">{option.label}</span>
-                  </button>
-                );
-              })}
+          {/* Enhanced Privacy Selection with Visual Feedback */}
+          <div className="px-6 py-4 border-b bg-gray-50/50">
+            <div className="flex gap-3">
+              <Button 
+                variant={privacy === 'public' ? 'default' : 'outline'} 
+                size="sm" 
+                className={`gap-2 transition-all ${privacy === 'public' ? 'bg-green-500 hover:bg-green-600 text-white shadow-md' : ''}`}
+                onClick={() => setPrivacy('public')}
+              >
+                <Globe className="h-4 w-4" />
+                Public
+              </Button>
+              <Button 
+                variant={privacy === 'circle' ? 'default' : 'outline'} 
+                size="sm" 
+                className={`gap-2 transition-all ${privacy === 'circle' ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-md' : ''}`}
+                onClick={() => setPrivacy('circle')}
+              >
+                <Users className="h-4 w-4" />
+                Circle
+              </Button>
+              <Button 
+                variant={privacy === 'private' ? 'default' : 'outline'} 
+                size="sm" 
+                className={`gap-2 transition-all ${privacy === 'private' ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-md' : ''}`}
+                onClick={() => setPrivacy('private')}
+              >
+                <Lock className="h-4 w-4" />
+                Private
+              </Button>
             </div>
           </div>
 
           {/* Enhanced Tab Navigation */}
-          <div className="bg-gray-50/50 px-6 py-4">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'moment' | 'list' | 'post')}>
-              <TabsList className="grid w-full grid-cols-3 bg-white p-1 shadow-sm" style={{ borderRadius: '8px !important' }}>
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.id}
-                      className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                      style={{ borderRadius: '6px !important' }}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-xs font-medium">{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
+          <div className="flex-1 overflow-hidden">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3 mx-6 mt-4 bg-white border shadow-sm">
+                <TabsTrigger 
+                  value="moment" 
+                  className="gap-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                >
+                  <Camera className="h-4 w-4" />
+                  Food Moment
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="list" 
+                  className="gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                >
+                  <List className="h-4 w-4" />
+                  Create List
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="post" 
+                  className="gap-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share Experience
+                </TabsTrigger>
               </TabsList>
-            </Tabs>
-          </div>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto bg-white">
-            <Tabs value={activeTab} className="h-full">
-              <TabsContent value="moment" className="h-full p-6 m-0">
-                <div className="h-full">
-                  <VisualFoodMoment 
-                    onSuccess={handleSuccess} 
-                    onCancel={handleClose}
-                    initialVisibility={selectedVisibility}
-                    contextData={contextData}
+              {/* Enhanced Food Moment with Real-time Feedback */}
+              <TabsContent value="moment" className="h-full p-6 m-0 overflow-auto">
+                <VisualFoodMoment
+                  onSuccess={() => handleSuccessfulShare('Food Moment')}
+                  onCancel={onClose}
+                  initialVisibility={privacy}
+                  contextData={contextData}
+                />
+              </TabsContent>
+
+              {/* Modal-based List Creation (no page navigation) */}
+              <TabsContent value="list" className="h-full p-6 m-0 overflow-auto">
+                <div className="max-w-2xl mx-auto">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <List className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Create a New List</h3>
+                    <p className="text-gray-600">Curate and share your favorite spots with your network</p>
+                  </div>
+                  <ListStarterForm
+                    onSuccess={() => handleSuccessfulShare('List')}
+                    onCancel={onClose}
+                    privacy={privacy}
                   />
                 </div>
               </TabsContent>
-              
-              <TabsContent value="list" className="h-full p-6 m-0">
-                <div className="h-full">
-                  <ListStarterForm 
-                    onSuccess={handleSuccess}
-                  />
-                </div>
-              </TabsContent>
 
+              {/* Enhanced Share Experience Placeholder */}
               <TabsContent value="post" className="h-full p-6 m-0">
                 <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <Share2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Share Experience</h3>
-                    <p className="text-gray-500 mb-4">Detailed restaurant review coming soon</p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab('moment')}
-                      className="gap-2"
-                    >
-                      <Camera className="h-4 w-4" />
-                      Try Food Moment instead
-                    </Button>
+                  <div className="text-center max-w-md">
+                    <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Share2 className="h-10 w-10 text-purple-600" />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-gray-900 mb-3">Detailed Reviews Coming Soon</h3>
+                    <p className="text-gray-600 mb-6 leading-relaxed">
+                      We're building an amazing experience for detailed restaurant reviews. 
+                      In the meantime, try our other sharing options!
+                    </p>
+                    <div className="flex gap-3 justify-center">
+                      <Button 
+                        onClick={() => setActiveTab('moment')}
+                        className="gap-2 bg-orange-500 hover:bg-orange-600"
+                      >
+                        <Camera className="h-4 w-4" />
+                        Quick Food Moment
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => setActiveTab('list')}
+                        className="gap-2"
+                      >
+                        <List className="h-4 w-4" />
+                        Create List
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
