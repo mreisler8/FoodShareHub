@@ -1,0 +1,76 @@
+The Problem Analysis
+Looking at the console logs and ListFeedCard.tsx, I can see the exact issue:
+
+Root Cause: The ListFeedCard component is making a query to /api/list-reactions without the required list ID parameter. The query should be /api/list-reactions/${list.id} but it's calling the base route /api/list-reactions.
+
+The Fix: Update the React Query implementation in ListFeedCard.tsx to include the list ID in the API endpoint URL.
+
+AGENT PROMPT: Fix List Reactions API Call - Stop 400 Error Cascade
+
+CRITICAL ISSUE: The /api/list-reactions endpoint is being called repeatedly without a list ID parameter, causing a cascade of 400 errors and performance degradation.
+
+CONSOLE ERROR PATTERN:
+
+Query failed for /api/list-reactions : {"error":"List ID required"}
+GET /api/list-reactions 400 in 199ms :: {"error":"List ID required"}
+ROOT CAUSE IDENTIFIED:
+In ListFeedCard.tsx, line 45, the reactionStatus query is incorrectly calling:
+
+queryKey: ['/api/list-reactions', list.id],
+queryFn: () => apiRequest(`/api/list-reactions/${list.id}`),
+But the actual API call in queryFn should match the backend route structure.
+
+REQUIRED FIXES:
+
+1. Fix the React Query API Call:
+
+// In ListFeedCard.tsx - Update the reactionStatus query:
+const { data: reactionStatus } = useQuery({
+  queryKey: ['/api/list-reactions', list.id],
+  queryFn: () => apiRequest(`/api/list-reactions/${list.id}`), // This line needs verification
+  enabled: showActions && !!list.id
+});
+2. Verify the API Endpoint Structure:
+
+Backend expects: /api/list-reactions/:listId
+Frontend should call: /api/list-reactions/${list.id}
+Ensure the apiRequest function is correctly formatting the URL
+3. Add Error Handling to Prevent Cascading Failures:
+
+const { data: reactionStatus } = useQuery({
+  queryKey: ['/api/list-reactions', list.id],
+  queryFn: () => apiRequest(`/api/list-reactions/${list.id}`),
+  enabled: showActions && !!list.id && !isNaN(list.id),
+  retry: 1, // Limit retries to prevent cascading
+  staleTime: 30000, // Cache for 30 seconds
+  onError: (error) => {
+    console.error(`Failed to fetch reactions for list ${list.id}:`, error);
+  }
+});
+4. Update the Reaction Mutation Endpoint:
+
+// Verify the reactionMutation is using the correct endpoint
+mutationFn: async () => {
+  if (reactionStatus?.hasReacted) {
+    return apiRequest(`/api/list-reactions/${list.id}/react`, {
+      method: 'DELETE'
+    });
+  } else {
+    return apiRequest('/api/list-reactions', {
+      method: 'POST',
+      body: { listId: list.id, reaction: 'like' }
+    });
+  }
+}
+IMMEDIATE VALIDATION:
+✅ Stop the 400 error cascade in console logs
+✅ Verify /api/list-reactions/${listId} returns proper reaction data
+✅ Ensure React queries are not retrying indefinitely
+✅ Performance logs show normal response times (<100ms)
+
+DEBUGGING STEPS:
+
+Check apiRequest function implementation in lib/queryClient.ts
+Verify the backend route handler expects the correct parameter structure
+Test with a known valid list.id value to confirm endpoint works
+This fix will immediately resolve the performance issues and restore proper list reaction functionality.
