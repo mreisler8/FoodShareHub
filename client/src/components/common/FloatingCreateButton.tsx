@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Plus, List, Camera, Star } from "lucide-react";
+import { Plus, List, Camera, Share2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/Button";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface FloatingCreateButtonProps {
@@ -11,99 +10,104 @@ interface FloatingCreateButtonProps {
 
 export function FloatingCreateButton({ className }: FloatingCreateButtonProps) {
   const [, navigate] = useLocation();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const createOptions = [
     {
-      icon: List,
-      label: "Create List",
-      description: "Curate restaurant collections",
-      href: "/create-list",
-      color: "bg-orange-500 hover:bg-orange-600",
-      textColor: "text-orange-600"
-    },
-    {
       icon: Camera,
       label: "Food Moment",
-      description: "Share a food experience",
       href: "/create-post?type=moment",
-      color: "bg-blue-500 hover:bg-blue-600",
-      textColor: "text-blue-600"
+      bgColor: "bg-orange-100 hover:bg-orange-200",
+      iconColor: "text-orange-600",
+      borderColor: "border-orange-200"
     },
     {
-      icon: Star,
-      label: "Rate Restaurant",
-      description: "Quick rating & review",
-      href: "/quick-ratings",
-      color: "bg-green-500 hover:bg-green-600", 
-      textColor: "text-green-600"
+      icon: List,
+      label: "Create List",
+      href: "/create-list",
+      bgColor: "bg-green-100 hover:bg-green-200",
+      iconColor: "text-green-600",
+      borderColor: "border-green-200"
+    },
+    {
+      icon: Share2,
+      label: "Share Experience",
+      href: "/create-post?type=experience",
+      bgColor: "bg-blue-100 hover:bg-blue-200",
+      iconColor: "text-blue-600",
+      borderColor: "border-blue-200"
     }
   ];
 
   const handleOptionClick = (href: string) => {
     navigate(href);
-    setIsExpanded(false);
-  };
-
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
   };
 
   return (
-    <div className={cn("fixed bottom-20 lg:bottom-8 right-4 z-50", className)}>
-      {/* Expanded Options */}
-      {isExpanded && (
-        <div className="mb-4 space-y-3">
+    <div 
+      className={cn("fixed bottom-20 lg:bottom-8 right-4 z-50 group", className)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Quick Actions - Show on Hover */}
+      <div className={cn(
+        "absolute bottom-16 right-0 transition-all duration-300 ease-out",
+        isHovered 
+          ? "opacity-100 translate-y-0 pointer-events-auto" 
+          : "opacity-0 translate-y-4 pointer-events-none"
+      )}>
+        {/* Quick Actions Header */}
+        <div className="text-right mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full shadow-sm border border-gray-200">
+            <Camera className="h-4 w-4 text-orange-500" />
+            <span className="text-sm font-medium text-gray-700">Quick Actions</span>
+          </div>
+        </div>
+
+        {/* Action Grid */}
+        <div className="grid grid-cols-2 gap-3 w-80">
           {createOptions.map((option, index) => (
-            <Card 
+            <div
               key={option.label}
+              onClick={() => handleOptionClick(option.href)}
               className={cn(
-                "transform transition-all duration-300 shadow-lg cursor-pointer hover:shadow-xl",
-                "animate-in slide-in-from-bottom-2 fade-in-0",
-                isExpanded ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                "p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                "hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
+                "bg-white",
+                option.bgColor,
+                option.borderColor
               )}
               style={{ 
-                animationDelay: `${index * 100}ms`,
-                animationFillMode: 'both'
+                animationDelay: `${index * 50}ms`,
               }}
-              onClick={() => handleOptionClick(option.href)}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-lg", option.color)}>
-                    <option.icon className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">{option.label}</div>
-                    <div className="text-sm text-gray-500">{option.description}</div>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className={cn("p-2 rounded-lg bg-white shadow-sm", option.iconColor)}>
+                  <option.icon className="h-5 w-5" />
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900 text-sm">{option.label}</div>
+                </div>
+              </div>
+            </div>
           ))}
+          
+          {/* Empty slot for 2x2 grid balance */}
+          <div className="opacity-0"></div>
         </div>
-      )}
+      </div>
 
       {/* Main Create Button */}
       <Button
-        onClick={toggleExpanded}
         className={cn(
           "h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300",
           "bg-orange-500 hover:bg-orange-600 text-white",
-          "flex items-center justify-center",
-          isExpanded && "rotate-45"
+          "flex items-center justify-center group-hover:scale-110",
+          isHovered && "rotate-45"
         )}
       >
         <Plus className="h-6 w-6" />
       </Button>
-
-      {/* Backdrop */}
-      {isExpanded && (
-        <div 
-          className="fixed inset-0 bg-black/20 z-[-1]"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
     </div>
   );
 }
