@@ -93,11 +93,6 @@ export async function calculateCircleScore(
   try {
     // 1. Get trusted users (circle members + followed users)
     const trustedUsers = await getTrustedUsers(requestingUserId);
-    
-    if (trustedUsers.length === 0) {
-      return null; // No trusted network
-    }
-
     const trustedUserIds = trustedUsers.map(u => u.id);
     
     // 2. Fetch Quick Ratings from trusted users + requesting user
@@ -161,7 +156,7 @@ export async function calculateCircleScore(
     });
     
     if (contributors.length === 0) {
-      return null; // No data from trusted sources
+      return null; // No data from trusted sources or user
     }
     
     // 5. Apply confidence modifier and normalize to 0-100
