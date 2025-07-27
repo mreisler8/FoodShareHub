@@ -252,10 +252,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         <div className="flex-1 overflow-auto lg:ml-0">
           {/* Stories Section - Instagram Style */}
           <StoriesSection 
-            onCreateStory={() => {
-              setCreateCanvasTab('moment');
-              setShowCreateCanvas(true);
-            }}
+            onCreateStory={() => navigate('/create-moment')}
           />
 
           <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
@@ -311,10 +308,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       Filters
                     </Button>
                     <Button 
-                      onClick={() => {
-                        setCreateCanvasTab('moment');
-                        setShowCreateCanvas(true);
-                      }}
+                      onClick={() => navigate('/create-moment')}
                       className="flex items-center gap-2"
                     >
                       <Camera className="h-4 w-4" />
@@ -363,10 +357,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <Button 
-                      onClick={() => {
-                        setCreateCanvasTab('moment');
-                        setShowCreateCanvas(true);
-                      }}
+                      onClick={() => navigate('/create-moment')}
                       className="flex items-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
                       variant="outline"
                     >

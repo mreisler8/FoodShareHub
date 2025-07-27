@@ -18,6 +18,7 @@ import DiscoverFeed from "../pages/DiscoverFeed";
 import DiscoverByLocation from "../pages/discover-by-location";
 import ListDetails from "../pages/list-details";
 import CreateList from "../pages/create-list";
+import { CreateMomentPage } from "../pages/create-moment";
 import CreateCircle from "../pages/create-circle";
 import CreateCircleAdvanced from "../pages/create-circle-advanced";
 import PostDetails from "../pages/post-details";
@@ -44,6 +45,7 @@ function Router() {
       <ProtectedRoute path="/feed/circle/:circleId" component={({ params }: any) => <FeedPage scope="circle" circleId={params?.circleId} />} />
       <ProtectedRoute path="/top-picks" component={TopPicksPage} />
       <ProtectedRoute path="/create-post" component={CreatePost} />
+      <ProtectedRoute path="/create-moment" component={CreateMomentPage} />
       <ProtectedRoute path="/circles" component={Circles} />
       <ProtectedRoute path="/create-circle" component={CreateCircle} />
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />

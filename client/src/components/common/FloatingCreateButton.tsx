@@ -16,7 +16,7 @@ export function FloatingCreateButton({ className }: FloatingCreateButtonProps) {
     {
       icon: Camera,
       label: "Food Moment",
-      href: "/create-post?type=moment",
+      href: "/create-moment",
       bgColor: "bg-orange-100 hover:bg-orange-200",
       iconColor: "text-orange-600",
       borderColor: "border-orange-200"

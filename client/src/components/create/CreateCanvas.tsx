@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { X, Camera, List, Sparkles } from 'lucide-react';
-import { FoodMomentForm } from './FoodMomentForm';
+import { VisualFoodMoment } from './VisualFoodMoment';
 import { ListStarterForm } from './ListStarterForm';
 import { useMemoryManagement } from '@/hooks/useMemoryManagement';
 
@@ -97,7 +97,7 @@ export function CreateCanvas({ isOpen, onClose, defaultTab = 'moment' }: CreateC
             <Tabs value={activeTab} className="h-full">
               <TabsContent value="moment" className="h-full p-6 m-0">
                 <div className="h-full">
-                  <FoodMomentForm onSuccess={handleSuccess} onCancel={handleClose} />
+                  <VisualFoodMoment onSuccess={handleSuccess} onCancel={handleClose} />
                 </div>
               </TabsContent>
               
