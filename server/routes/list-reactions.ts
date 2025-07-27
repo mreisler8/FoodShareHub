@@ -62,10 +62,11 @@ router.post(['/', ''], authenticate, async (req, res) => {
   }
 });
 
-// GET /api/list-reactions/:listId - Get reactions for a specific list
+// GET /api/list-reactions/:listId - Get reactions for a specific list with user status
 router.get('/:listId', authenticate, async (req, res) => {
   try {
     const listId = parseInt(req.params.listId);
+    const userId = req.user?.id;
 
     if (!listId || isNaN(listId)) {
       return res.status(400).json({ error: 'Valid List ID required' });
@@ -92,9 +93,20 @@ router.get('/:listId', authenticate, async (req, res) => {
     .where(eq(listReactions.listId, parseInt(listId)))
     .groupBy(listReactions.reaction);
 
+    // Check if current user has reacted
+    const userReaction = await db.select()
+      .from(listReactions)
+      .where(and(
+        eq(listReactions.listId, parseInt(listId)),
+        eq(listReactions.userId, userId)
+      ))
+      .limit(1);
+
     res.json({
       reactions,
-      counts: reactionCounts
+      counts: reactionCounts,
+      hasReacted: userReaction.length > 0,
+      userReaction: userReaction[0] || null
     });
   } catch (error) {
     console.error('Error fetching list reactions:', error);

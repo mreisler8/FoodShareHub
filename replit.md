@@ -113,6 +113,14 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 27, 2025: **10-Point Decimal Rating System Fully Operational - COMPLETE**: Successfully implemented comprehensive 10-point decimal rating system (0.1-10.0) with complete database and API integration:
+  - **Database Schema Fixed**: Removed legacy 1-5 star constraint, added proper 0.1-10.0 decimal constraint supporting precise ratings
+  - **Backend Type Conversion**: Fixed Drizzle ORM type handling by converting decimal values to strings for database storage
+  - **Frontend Display Updated**: Quick Rate button now shows "Rated 8.8/10" format instead of star emojis for precise feedback
+  - **API Integration Verified**: Successfully tested 8.8/10 rating saves correctly and feeds into Circle Score calculations
+  - **Systemic API Error Fix**: Resolved recurring /api/list-reactions 400 errors by adding proper queryFn parameters to prevent malformed queries
+  - **Scale-Ready Architecture**: System now handles ANY decimal rating from ANY user consistently across all restaurant interactions
+  - **Status**: Complete 10-point decimal rating system operational with consolidated single entry point and proper Circle Score integration
 - July 26, 2025: **CRITICAL API INFRASTRUCTURE RESTORATION - COMPLETE**: Successfully resolved all blocking database schema and API routing issues that were preventing restaurant rating and list functionality:
   - **Database Schema Alignment Fixed**: Corrected `listReactions` table to use `reaction` field instead of `reactionType`, matching frontend expectations and eliminating SQL field mismatch errors
   - **SavedLists Query Fixed**: Updated getSavedListsByUser to use correct `savedAt` field instead of `createdAt`, resolving null data return issues with proper error handling
