@@ -108,10 +108,10 @@ export function InstagramFoodMomentModal({ isOpen, onClose }: InstagramFoodMomen
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden bg-white border-0 shadow-2xl">
-        <div className="flex flex-col h-full max-h-[90vh]">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b bg-white">
+      <DialogContent className="max-w-lg w-full h-[95vh] p-0 gap-0 flex flex-col bg-white border-0 shadow-2xl">
+        <div className="flex flex-col h-full">
+          {/* Header - Fixed */}
+          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b bg-white">
             <h2 className="text-lg font-semibold text-gray-900">Share Food Moment</h2>
             <Button variant="ghost" size="sm" onClick={handleClose}>
               <X className="h-5 w-5" />
@@ -119,7 +119,7 @@ export function InstagramFoodMomentModal({ isOpen, onClose }: InstagramFoodMomen
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {/* Photo/Video Upload Section */}
             <div className="p-4">
               {!preview ? (
@@ -247,8 +247,8 @@ export function InstagramFoodMomentModal({ isOpen, onClose }: InstagramFoodMomen
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t bg-white">
+          {/* Footer - Fixed */}
+          <div className="flex-shrink-0 p-4 border-t bg-white">
             <Button
               onClick={handleSubmit}
               disabled={!selectedFile || createMomentMutation.isPending}
