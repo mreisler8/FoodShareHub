@@ -123,7 +123,7 @@ export const queryClient = new QueryClient({
         return failureCount < 3;
       },
       staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (TanStack Query v5)
       refetchOnWindowFocus: false,
       refetchOnMount: true,
       refetchOnReconnect: true,
@@ -146,6 +146,18 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Make queryClient globally available for cache invalidation
+declare global {
+  interface Window {
+    queryClient: typeof queryClient;
+    gtag?: (...args: any[]) => void;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.queryClient = queryClient;
+}
 
 // Add global error handling for queries
 queryClient.setMutationDefaults(['post', 'put', 'patch', 'delete'], {

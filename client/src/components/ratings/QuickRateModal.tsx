@@ -87,7 +87,18 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
       // Show success animation
       setShowSuccess(true);
 
-      // Invalidate relevant queries
+      // CRITICAL: Comprehensive cache invalidation for immediate UI updates
+      const restaurantIdentifier = restaurant.googlePlaceId || restaurant.id;
+      await queryClient.invalidateQueries({
+        queryKey: ['/api/ratings/restaurant', restaurantIdentifier]
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['/api/circle-score', restaurantIdentifier]
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['/api/restaurants', restaurantIdentifier]
+      });
+      // Also invalidate general queries
       queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
       queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
 

@@ -113,6 +113,12 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 27, 2025: **CRITICAL CACHE INVALIDATION FIX - 10-POINT DECIMAL SYSTEM COMPLETE**: Successfully resolved cache invalidation issues preventing dynamic UI updates after rating submission:
+  - **Systematic Cache Invalidation**: Implemented comprehensive React Query cache invalidation targeting specific restaurant-scoped queries instead of generic keys
+  - **Immediate UI Updates**: Fixed QuickRateModal to invalidate exact query keys (/api/ratings/restaurant/{id}, /api/circle-score/{id}) ensuring restaurant pages reflect rating changes instantly
+  - **Best-in-Class Data Management**: Applied restaurant identifier-specific cache invalidation preventing stale data across restaurant pages and Circle Score displays
+  - **Global QueryClient Access**: Made queryClient globally available through window object for universal cache invalidation patterns
+  - **TanStack Query v5 Compatibility**: Fixed deprecated cacheTime property to gcTime for proper query lifecycle management
 - July 27, 2025: **10-Point Decimal Rating System Fully Operational - COMPLETE**: Successfully implemented comprehensive 10-point decimal rating system (0.1-10.0) with complete database and API integration:
   - **Database Schema Fixed**: Removed legacy 1-5 star constraint, added proper 0.1-10.0 decimal constraint supporting precise ratings
   - **Backend Type Conversion**: Fixed Drizzle ORM type handling by converting decimal values to strings for database storage

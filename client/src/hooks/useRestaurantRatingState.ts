@@ -192,6 +192,20 @@ export function useRestaurantRatingState(restaurant: any) {
       setRating(savedRating);
       setRetryCount(0);
 
+      // CRITICAL: Cache invalidation for immediate UI updates
+      if (typeof window !== 'undefined' && window.queryClient) {
+        const restaurantIdentifier = restaurant.googlePlaceId || restaurant.id;
+        await window.queryClient.invalidateQueries({
+          queryKey: ['/api/ratings/restaurant', restaurantIdentifier]
+        });
+        await window.queryClient.invalidateQueries({
+          queryKey: ['/api/circle-score', restaurantIdentifier] 
+        });
+        await window.queryClient.invalidateQueries({
+          queryKey: ['/api/restaurants', restaurantIdentifier]
+        });
+      }
+
       // Success feedback
       toast({
         title: "Rating saved!",
