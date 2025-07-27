@@ -319,6 +319,21 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
               </div>
             </div>
 
+            {/* Prominent Search Bar */}
+            <div className="mb-6">
+              <Button 
+                onClick={() => setIsSearchOpen(true)}
+                variant="outline"
+                className="w-full justify-start text-left h-12 bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <Search className="h-5 w-5 mr-3 text-gray-400" />
+                <span className="flex-1">Search restaurants, lists, posts, people...</span>
+                <kbd className="hidden sm:inline-flex items-center gap-1 rounded border bg-white px-2 py-1 text-xs text-gray-500">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </Button>
+            </div>
+
           {/* Post Type Filters */}
           {showFilters && (
             <div className="mb-6">

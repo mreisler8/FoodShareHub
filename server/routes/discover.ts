@@ -90,9 +90,14 @@ function calculateScore(
   // Apply formula: (circle_score × 0.4) + (recency_score × 0.3) + (engagement_score × 0.3)
   let finalScore = (circleScore * 0.4) + (recencyScore * 0.3) + (Math.min(engagementScore, 100) * 0.3);
   
-  // Add bonuses
-  if (isFollowed) finalScore += (finalScore * 0.2); // 20% bonus for followed users
+  // Add bonuses - ENHANCED for social feed priority
+  if (isFollowed) finalScore += (finalScore * 0.5); // 50% bonus for followed users (Instagram-style)
   if (isNearby) finalScore += (finalScore * 0.1); // 10% bonus for nearby content
+  
+  // Additional social signals boost
+  if (type === 'post' && isFollowed && daysSinceCreated < 1) {
+    finalScore += (finalScore * 0.3); // 30% boost for recent posts from followed users
+  }
   
   // Apply content type multipliers
   const typeMultipliers = {
