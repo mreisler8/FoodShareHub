@@ -144,6 +144,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const [createCanvasTab, setCreateCanvasTab] = useState<'moment' | 'list'>('moment');
   const [showUnifiedShare, setShowUnifiedShare] = useState(false);
   const [shareModalTab, setShareModalTab] = useState<'moment' | 'list' | 'post'>('moment');
+  const [isFoodMomentOpen, setIsFoodMomentOpen] = useState(false);
   // Check URL parameters for tab selection
   const urlParams = new URLSearchParams(window.location.search);
   const urlTab = urlParams.get('tab');
@@ -310,7 +311,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       <Filter className="h-4 w-4" />
                       Filters
                     </Button>
-                    
+
                   </>
                 )}
               </div>
@@ -733,6 +734,30 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
               <FloatingCreateButton />
             </div>
           </div>
+              {/* Quick Actions - Food Moment and Create List */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="relative group">
+                  <Button
+                    onMouseEnter={() => setIsFoodMomentOpen(true)}
+                    variant="outline"
+                    className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200 transition-all duration-200"
+                  >
+                    <Camera className="h-6 w-6 text-orange-600 mb-2" />
+                    <span className="text-sm font-medium text-orange-800">Food Moment</span>
+                  </Button>
+                </div>
+
+                <div className="relative group">
+                  <Button
+                    onMouseEnter={() => navigate('/create-list-enhanced')}
+                    variant="outline"
+                    className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200"
+                  >
+                    <ListPlus className="h-6 w-6 text-green-600 mb-2" />
+                    <span className="text-sm font-medium text-green-800">Create List</span>
+                  </Button>
+                </div>
+              </div>
       </div>
     </FeedLayoutProvider>
   );
