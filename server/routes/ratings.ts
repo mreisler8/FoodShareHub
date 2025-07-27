@@ -9,7 +9,7 @@ const router = Router();
 
 // Validation schemas  
 const createRatingSchema = insertRatingSchema.omit({ userId: true, restaurantName: true }).extend({
-  ratingValue: z.number().min(0.1).max(10.0),
+  ratingValue: z.union([z.number(), z.string()]).transform((val) => parseFloat(val.toString())).refine((val) => val >= 0.1 && val <= 10.0, "Rating must be between 0.1 and 10.0"),
   note: z.string().max(140).optional(),
   tags: z.array(z.string()).max(5).optional(),
   restaurantName: z.string().optional(), // Optional for Google Place ratings
