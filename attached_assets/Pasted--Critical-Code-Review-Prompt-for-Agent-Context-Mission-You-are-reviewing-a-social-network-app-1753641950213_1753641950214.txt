@@ -1,0 +1,72 @@
+# Critical Code Review Prompt for Agent
+
+## Context & Mission
+You are reviewing a social network application called "Circles" - a trusted restaurant recommendation platform. The previous agent has made changes to the Food Moment creation flow and UI components. Your job is to conduct a thorough, critical review focusing on functionality, user experience, and code quality.
+
+## Critical Review Areas
+
+### 1. FUNCTIONAL VALIDATION
+**Does it actually work?**
+- Test the Food Moment creation flow end-to-end
+- Verify restaurant search integration works properly
+- Check that photo upload and preview functions correctly
+- Validate form submission and data persistence
+- Test error handling for edge cases (no photo, missing restaurant, etc.)
+
+### 2. USER EXPERIENCE AUDIT
+**Is this intuitive and delightful?**
+- Does the flow match the stated requirements for "photo-only Food Moments"?
+- Is the two-step process (photo → details) logical and smooth?
+- Are required fields clearly marked and enforced?
+- Does the UI provide clear feedback and guidance?
+- Test on mobile viewport (503x559px) - is it truly mobile optimized?
+
+### 3. CODE QUALITY ASSESSMENT
+**Is this maintainable and robust?**
+- Review TypeScript types and interfaces for completeness
+- Check for proper error boundaries and loading states
+- Validate memory management (component cleanup, blob URL revocation)
+- Assess component architecture - is it modular and reusable?
+- Look for potential performance issues or unnecessary re-renders
+
+### 4. INTEGRATION CONSISTENCY  
+**Does this fit with the existing system?**
+- Does the VisualFoodMoment component integrate properly with UnifiedShareModal?
+- Are the data models consistent with existing post/moment structures?
+- Does the styling match the app's design system (4px border radius, consistent spacing)?
+- Are the API endpoints being called correctly?
+
+### 5. REQUIREMENTS COMPLIANCE
+**Did the agent actually deliver what was asked for?**
+- Review the original chat context about Food Moment being "photo-only"
+- Check if the duplicate button removal was properly implemented
+- Verify that the UI focuses on photo capture first, details second
+- Confirm restaurant tagging and dish naming are properly required
+
+## Red Flags to Look For
+- **Broken Functionality**: Forms that don't submit, searches that don't work
+- **Poor Mobile UX**: Elements that don't fit on 503px width, unclickable buttons
+- **Memory Leaks**: Unrevoked blob URLs, missing cleanup in useEffect
+- **Inconsistent Styling**: Wrong border radius, mismatched colors/spacing
+- **Missing Error Handling**: No fallbacks for failed uploads or API errors
+- **Performance Issues**: Unnecessary API calls, unoptimized image handling
+
+## Success Criteria
+The implementation should:
+✅ Create photo-first Food Moments with restaurant + dish tagging
+✅ Work flawlessly on mobile (primary use case)
+✅ Integrate cleanly with existing modal system
+✅ Handle errors gracefully with user-friendly messages
+✅ Follow established code patterns and styling conventions
+✅ Be performant and memory-safe
+
+## Your Review Output
+Provide:
+1. **FUNCTIONAL SCORE** (1-10): Does it work as intended?
+2. **UX SCORE** (1-10): Is it intuitive and delightful?
+3. **CODE QUALITY SCORE** (1-10): Is it maintainable and robust?
+4. **CRITICAL ISSUES**: List any blocking problems that must be fixed
+5. **IMPROVEMENT RECOMMENDATIONS**: Specific suggestions for enhancement
+6. **OVERALL ASSESSMENT**: Pass/Fail with reasoning
+
+Be thorough, be critical, and don't accept "good enough" - this is a user-facing feature that represents the core value proposition of the app.
