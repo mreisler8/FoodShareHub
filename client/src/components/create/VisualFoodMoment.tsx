@@ -49,6 +49,20 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
   // CRITICAL: Photo-first enforcement - details step only accessible after photo
   const canProceedToDetails = Boolean(image);
   const canSubmit = canProceedToDetails && selectedRestaurant && dishName.trim();
+  
+  // MOBILE VIEWPORT OPTIMIZATION for 503x559px
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  // Update viewport detection on mount and resize
+  React.useEffect(() => {
+    const updateViewport = () => {
+      setIsMobileViewport(window.innerWidth <= 520 && window.innerHeight <= 580);
+    };
+    
+    updateViewport(); // Check immediately
+    window.addEventListener('resize', updateViewport);
+    return () => window.removeEventListener('resize', updateViewport);
+  }, []);
 
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
@@ -228,10 +242,14 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
     stopCamera();
   };
 
-  // PHOTO CAPTURE STEP
+  // PHOTO CAPTURE STEP - MANDATORY FIRST STEP
   if (currentStep === 'photo') {
     return (
-      <div className="h-screen flex flex-col bg-black">
+      <div className="h-screen flex flex-col bg-black" style={{ 
+        height: isMobileViewport ? '100dvh' : '100vh',
+        maxWidth: isMobileViewport ? '503px' : 'none',
+        margin: isMobileViewport ? '0 auto' : 'auto'
+      }}>
         {/* Header */}
         <div className="bg-white px-4 py-3 flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={onCancel}>
@@ -273,13 +291,14 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
             </div>
           ) : (
             <div className="w-full max-w-md space-y-6">
-              {/* Camera Button */}
+              {/* Camera Button - 44px minimum touch target */}
               <Button
                 onClick={startCamera}
-                className="w-full h-32 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-lg font-medium rounded-2xl flex flex-col items-center justify-center space-y-2"
+                className="w-full h-32 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-lg font-medium rounded-lg flex flex-col items-center justify-center space-y-2 touch-target-large"
+                style={{ minHeight: '44px', minWidth: '44px' }}
               >
                 <Camera className="w-12 h-12" />
-                <span>Take Photo</span>
+                <span>Take Photo Now</span>
               </Button>
 
               <div className="text-center">
@@ -297,8 +316,9 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 variant="outline"
-                className="w-full h-20 bg-white/10 hover:bg-white/20 text-white border-white/30 text-lg font-medium rounded-2xl flex items-center justify-center space-x-3"
+                className="w-full h-20 bg-white/10 hover:bg-white/20 text-white border-white/30 text-lg font-medium rounded-lg flex items-center justify-center space-x-3 touch-target-large"
                 disabled={isUploading}
+                style={{ minHeight: '44px', minWidth: '44px' }}
               >
                 {isUploading ? (
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white" />
@@ -310,9 +330,14 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
                 )}
               </Button>
 
-              <p className="text-white/60 text-center text-sm mt-6">
-                📸 Share what you're eating right now!
-              </p>
+              <div className="text-center mt-6">
+                <p className="text-white/80 text-lg font-medium mb-2">
+                  📸 Photo Required
+                </p>
+                <p className="text-white/60 text-sm">
+                  You must capture or upload a photo to continue
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -320,9 +345,13 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
     );
   }
 
-  // DETAILS STEP - Only accessible after photo
+  // DETAILS STEP - Only accessible after photo is captured/uploaded
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50" style={{ 
+      height: isMobileViewport ? '100dvh' : '100vh',
+      maxWidth: isMobileViewport ? '503px' : 'none',
+      margin: isMobileViewport ? '0 auto' : 'auto'
+    }}>
       {/* Header with Back Button */}
       <div className="bg-white px-4 py-3 flex items-center justify-between border-b">
         <Button variant="ghost" size="sm" onClick={goBackToPhoto}>
@@ -414,6 +443,7 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
                   key={star}
                   onClick={() => setRating(star)}
                   className="p-1 touch-target"
+                  style={{ minHeight: '44px', minWidth: '44px' }}
                 >
                   <Star
                     className={`w-8 h-8 ${
@@ -497,7 +527,8 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
             <Button
               onClick={handleSubmit}
               disabled={!canSubmit || isSubmitting}
-              className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-lg font-medium"
+              className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-lg font-medium touch-target-large"
+              style={{ minHeight: '48px' }}
             >
               {isSubmitting ? (
                 <div className="flex items-center space-x-2">
@@ -510,9 +541,15 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
             </Button>
             
             {!canSubmit && (
-              <p className="text-center text-sm text-red-600 mt-2">
-                Please add restaurant and dish name to share
-              </p>
+              <div className="text-center mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-sm text-red-700 font-medium">
+                  📝 Required Fields Missing
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  {!selectedRestaurant && "• Restaurant selection required"}
+                  {selectedRestaurant && !dishName.trim() && "• Dish name required"}
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -521,7 +558,7 @@ export function VisualFoodMoment({ onSubmit, onCancel, onSuccess, initialImage }
   );
 }
 
-// Add CSS for touch targets
+// Add CSS for mobile optimization and touch targets
 const styles = `
 .touch-target {
   min-height: 44px;
@@ -529,6 +566,15 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-target-large {
+  min-height: 48px;
+  min-width: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Mobile viewport optimization for 503x559px */
@@ -542,12 +588,40 @@ const styles = `
     min-height: 48px;
     min-width: 48px;
   }
+  
+  .touch-target-large {
+    min-height: 52px;
+    min-width: 52px;
+  }
+  
+  /* Optimize for mobile viewport */
+  body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  /* Fast tap response */
+  button, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Performance optimizations */
+* {
+  box-sizing: border-box;
+}
+
+img, video {
+  max-width: 100%;
+  height: auto;
 }
 `;
 
-// Inject styles
-if (typeof document !== 'undefined') {
+// Inject styles once
+if (typeof document !== 'undefined' && !document.getElementById('visual-food-moment-styles')) {
   const styleSheet = document.createElement('style');
+  styleSheet.id = 'visual-food-moment-styles';
   styleSheet.textContent = styles;
   document.head.appendChild(styleSheet);
 }

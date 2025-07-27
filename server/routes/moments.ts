@@ -41,178 +41,112 @@ const upload = multer({
   }
 });
 
-// Create a food moment
-router.post('/', authenticate, upload.array('images', 4), async (req, res) => {
+// Create a food moment - PHOTO-FIRST ENFORCEMENT
+router.post('/', authenticate, upload.single('image'), async (req, res) => {
   try {
     const userId = req.user!.id;
-    const { caption, privacy, location, restaurantId } = req.body;
+    const { content, restaurantId, rating, tags, dishName } = req.body;
 
-    // Validate input - either caption or images required
-    if (!caption && (!req.files || req.files.length === 0)) {
+    // CRITICAL FIX: Photo is MANDATORY - no bypasses allowed
+    if (!req.file) {
       return res.status(400).json({ 
-        error: "Either a caption or images are required for food moments" 
+        error: "Photo is required for food moments" 
       });
     }
 
-    // Handle image uploads
-    let imageUrls: string[] = [];
-    if (req.files && req.files.length > 0) {
-      imageUrls = (req.files as Express.Multer.File[]).map(file => `/uploads/${file.filename}`);
+    // CRITICAL FIX: Restaurant and dish name are MANDATORY
+    if (!restaurantId || !dishName || !dishName.trim()) {
+      return res.status(400).json({ 
+        error: "Restaurant and dish name are required" 
+      });
     }
 
-    // Parse location if provided
-    let parsedLocation = null;
-    if (location) {
+    // Handle single image upload (photo-first enforcement)
+    const imageUrl = `/uploads/${req.file.filename}`;
+
+    // Parse tags if provided
+    let parsedTags = [];
+    if (tags) {
       try {
-        parsedLocation = JSON.parse(location);
+        parsedTags = JSON.parse(tags);
       } catch (e) {
-        console.warn('Invalid location JSON:', location);
+        console.warn('Invalid tags JSON:', tags);
+        parsedTags = [];
       }
     }
 
-    // Get or create restaurant if provided
+    // Process restaurant ID (required)
     let finalRestaurantId = null;
-    if (restaurantId && restaurantId !== 'null') {
-      if (typeof restaurantId === 'string' && restaurantId.startsWith('google_')) {
-        // Handle Google Places restaurant
-        const googlePlaceId = restaurantId.replace('google_', '');
-        
-        // Check if restaurant exists
-        const existingRestaurant = await db
-          .select()
-          .from(restaurants)
-          .where(eq(restaurants.googlePlaceId, googlePlaceId))
-          .limit(1);
+    if (typeof restaurantId === 'string' && restaurantId.startsWith('google_')) {
+      // Handle Google Places restaurant
+      const googlePlaceId = restaurantId.replace('google_', '');
+      
+      // Check if restaurant exists
+      const existingRestaurant = await db
+        .select()
+        .from(restaurants)
+        .where(eq(restaurants.googlePlaceId, googlePlaceId))
+        .limit(1);
 
-        if (existingRestaurant.length > 0) {
-          finalRestaurantId = existingRestaurant[0].id;
-        } else if (parsedLocation) {
-          // Create new restaurant record
-          const newRestaurant = await db
-            .insert(restaurants)
-            .values({
-              name: parsedLocation.name || 'Unknown Restaurant',
-              location: parsedLocation.vicinity || 'Unknown Location',
-              category: 'restaurant',
-              priceRange: '$',
-              googlePlaceId,
-              address: parsedLocation.vicinity || '',
-              city: parsedLocation.vicinity || '',
-              cuisine: 'Various',
-            })
-            .returning();
-          
-          finalRestaurantId = newRestaurant[0].id;
-        }
+      if (existingRestaurant.length > 0) {
+        finalRestaurantId = existingRestaurant[0].id;
       } else {
-        finalRestaurantId = parseInt(restaurantId);
+        return res.status(400).json({ 
+          error: "Restaurant not found" 
+        });
+      }
+    } else {
+      finalRestaurantId = parseInt(restaurantId);
+      
+      // Verify restaurant exists
+      const existingRestaurant = await db
+        .select()
+        .from(restaurants)
+        .where(eq(restaurants.id, finalRestaurantId))
+        .limit(1);
+        
+      if (existingRestaurant.length === 0) {
+        return res.status(400).json({ 
+          error: "Restaurant not found" 
+        });
       }
     }
 
-    // Create the moment post
+    // Create the moment post with strict validation
     const newMoment = await db
       .insert(posts)
       .values({
         userId,
         restaurantId: finalRestaurantId,
-        content: caption || '',
-        rating: 0, // Moments don't require ratings
+        content: content || `${dishName} - Food Moment`,
+        images: [imageUrl],
+        rating: rating ? parseFloat(rating) : 0,
+        tags: parsedTags,
         postType: 'moment',
+        dishName: dishName.trim(),
+        isPublic: true,
+        sharedWithCircle: true,
         visibility: { 
-          public: privacy === 'public', 
-          followers: privacy === 'followers', 
+          public: true, 
+          followers: true, 
           circleIds: [] 
         },
-        images: imageUrls,
-        tags: [],
-        metadata: {
-          caption,
-          location: parsedLocation,
-          privacy,
-          imageCount: imageUrls.length
-        }
       })
       .returning();
 
-    // Get the complete moment with restaurant and user details
-    const momentWithDetails = await db
-      .select({
-        id: posts.id,
-        content: posts.content,
-        images: posts.images,
-        postType: posts.postType,
-        metadata: posts.metadata,
-        visibility: posts.visibility,
-        createdAt: posts.createdAt,
-        userId: posts.userId,
-        restaurantId: posts.restaurantId,
-        restaurantName: restaurants.name,
-        restaurantLocation: restaurants.location,
-      })
-      .from(posts)
-      .leftJoin(restaurants, eq(posts.restaurantId, restaurants.id))
-      .where(eq(posts.id, newMoment[0].id))
-      .limit(1);
-
     res.status(201).json({
       success: true,
-      moment: momentWithDetails[0],
-      message: 'Food moment created successfully!'
+      message: "Food moment created successfully",
+      moment: newMoment[0]
     });
 
   } catch (error) {
     console.error('Error creating food moment:', error);
     res.status(500).json({ 
-      error: 'Failed to create food moment',
+      error: "Failed to create food moment",
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Get moments feed (recent moments from followed users)
-router.get('/feed', authenticate, async (req, res) => {
-  try {
-    const userId = req.user!.id;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const offset = (page - 1) * limit;
-
-    // Get moments from followed users and own moments
-    const moments = await db
-      .select({
-        id: posts.id,
-        content: posts.content,
-        images: posts.images,
-        postType: posts.postType,
-        metadata: posts.metadata,
-        visibility: posts.visibility,
-        createdAt: posts.createdAt,
-        userId: posts.userId,
-        restaurantId: posts.restaurantId,
-        restaurantName: restaurants.name,
-        restaurantLocation: restaurants.location,
-      })
-      .from(posts)
-      .leftJoin(restaurants, eq(posts.restaurantId, restaurants.id))
-      .where(eq(posts.postType, 'moment'))
-      .orderBy(posts.createdAt)
-      .limit(limit)
-      .offset(offset);
-
-    res.json({
-      moments,
-      pagination: {
-        page,
-        limit,
-        total: moments.length,
-        hasMore: moments.length === limit
-      }
-    });
-
-  } catch (error) {
-    console.error('Error fetching moments feed:', error);
-    res.status(500).json({ error: 'Failed to fetch moments feed' });
-  }
-});
-
-export default router;
+export { router as momentsRouter };

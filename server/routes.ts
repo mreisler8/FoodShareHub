@@ -48,7 +48,7 @@ import locationRoutes from "./routes/location";
 import restaurantsRouter from "./routes/restaurants";
 import circleInvitesRouter from './routes/circle-invites';
 import postsRouter from './routes/posts';
-import momentsRouter from './routes/moments';
+import { momentsRouter } from './routes/moments';
 import tagsRouter from './routes/tags';
 import ratingsRouter from './routes/ratings';
 import discoverRouter from './routes/discover-basic';
