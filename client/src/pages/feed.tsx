@@ -20,7 +20,7 @@ import { PostWithDetails } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { PostTypeFeedFilter } from '@/components/feed/PostTypeFeedFilter';
 import { PostType } from '@/components/post/PostTypeSelector';
-import { FloatingCreateButton } from '@/components/create/FloatingCreateButton';
+import { FloatingCreateButton } from '@/components/common/FloatingCreateButton';
 import { SuggestedUsersCard } from '@/components/home/SuggestedUsersCard';
 import { TagExploreCard } from '@/components/home/TagExploreCard';
 import { PendingInvites } from '@/components/circles/PendingInvites';
@@ -713,11 +713,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         />
 
         {/* Floating Create Button */}
-        <FloatingCreateButton 
-          onPostPhoto={() => {/* TODO: Implement */}}
-          onShareMoment={() => {/* TODO: Implement */}}
-          onBuildList={() => navigate("/create-list-enhanced")}
-        />
+        <FloatingCreateButton />
       </div>
     </FeedLayoutProvider>
   );

@@ -1014,4 +1014,149 @@ router.get('/:id/items', authenticate, async (req, res) => {
   }
 });
 
+// GET /user/:userId - Get all lists for a specific user (for my-lists page)
+router.get("/user/:userId", authenticate, async (req, res) => {
+  try {
+    const requestedUserId = parseInt(req.params.userId);
+    const currentUserId = req.user!.id;
+    
+    // Allow users to get their own lists
+    if (requestedUserId !== currentUserId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Get user's lists with counts and metrics
+    const lists = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        createdById: restaurantLists.createdById,
+        circleId: restaurantLists.circleId,
+        isPublic: restaurantLists.isPublic,
+        tags: restaurantLists.tags,
+        type: restaurantLists.type,
+        audience: restaurantLists.audience,
+        visibility: restaurantLists.visibility,
+        allowSharing: restaurantLists.allowSharing,
+        shareWithCircle: restaurantLists.shareWithCircle,
+        makePublic: restaurantLists.makePublic,
+        viewCount: restaurantLists.viewCount,
+        saveCount: restaurantLists.saveCount,
+        reactionCount: restaurantLists.reactionCount,
+        createdAt: restaurantLists.createdAt,
+        updatedAt: restaurantLists.updatedAt,
+      })
+      .from(restaurantLists)
+      .where(eq(restaurantLists.createdById, currentUserId))
+      .orderBy(desc(restaurantLists.updatedAt));
+
+    // Get restaurant counts for each list
+    const listIds = lists.map(list => list.id);
+    let listsWithCounts = lists;
+
+    if (listIds.length > 0) {
+      const restaurantCounts = await db
+        .select({
+          listId: restaurantListItems.listId,
+          count: sql<number>`count(*)::int`
+        })
+        .from(restaurantListItems)
+        .where(inArray(restaurantListItems.listId, listIds))
+        .groupBy(restaurantListItems.listId);
+
+      const countByList: Record<number, number> = {};
+      restaurantCounts.forEach(({ listId, count }) => {
+        countByList[listId] = count;
+      });
+
+      listsWithCounts = lists.map(list => ({
+        ...list,
+        restaurantCount: countByList[list.id] || 0
+      }));
+    }
+
+    res.json(listsWithCounts);
+  } catch (error) {
+    console.error("Error fetching user lists:", error);
+    res.status(500).json({ error: "Failed to fetch user lists" });
+  }
+});
+
+// POST /:id/duplicate - Duplicate a list
+router.post("/:id/duplicate", authenticate, async (req, res) => {
+  try {
+    const originalListId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    // Get the original list
+    const [originalList] = await db
+      .select()
+      .from(restaurantLists)
+      .where(eq(restaurantLists.id, originalListId));
+
+    if (!originalList) {
+      return res.status(404).json({ error: "List not found" });
+    }
+
+    // Check if user has access to view this list
+    if (!originalList.isPublic && originalList.createdById !== userId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Create duplicate list
+    const [duplicatedList] = await db
+      .insert(restaurantLists)
+      .values({
+        name: `${originalList.name} (Copy)`,
+        description: originalList.description,
+        createdById: userId,
+        circleId: null, // Reset to no circle
+        isPublic: false, // Reset to private
+        tags: originalList.tags,
+        type: originalList.type,
+        audience: 'profile', // Reset to profile
+        visibility: 'private', // Reset to private
+        allowSharing: originalList.allowSharing,
+        shareWithCircle: false, // Reset sharing
+        makePublic: false, // Reset public
+      })
+      .returning();
+
+    // Copy list items
+    const originalItems = await db
+      .select()
+      .from(restaurantListItems)
+      .where(eq(restaurantListItems.listId, originalListId));
+
+    if (originalItems.length > 0) {
+      await db
+        .insert(restaurantListItems)
+        .values(
+          originalItems.map(item => ({
+            listId: duplicatedList.id,
+            restaurantId: item.restaurantId,
+            rating: item.rating,
+            priceAssessment: item.priceAssessment,
+            liked: item.liked,
+            disliked: item.disliked,
+            notes: item.notes,
+            mustTryDishes: item.mustTryDishes,
+            addedById: userId,
+            position: item.position,
+          }))
+        );
+    }
+
+    res.json({ 
+      success: true, 
+      message: "List duplicated successfully",
+      list: duplicatedList 
+    });
+  } catch (error) {
+    console.error("Error duplicating list:", error);
+    res.status(500).json({ error: "Failed to duplicate list" });
+  }
+});
+
 export default router;

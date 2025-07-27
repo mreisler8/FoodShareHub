@@ -25,6 +25,7 @@ import JoinPage from "../pages/join";
 import JoinCirclePage from "../pages/join/[inviteCode]";
 import AuthPage from "../pages/auth-page";
 import Lists from "./Lists";
+import MyLists from "../pages/my-lists";
 import RestaurantDetailPage from "../pages/RestaurantDetailPage";
 import UserDiscovery from "../pages/user-discovery";
 import SocialDashboardPage from "../pages/social-dashboard";
@@ -52,10 +53,11 @@ function Router() {
       <ProtectedRoute path="/discover" component={DiscoverFeed} />
       <ProtectedRoute path="/discover-old" component={Discover} />
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
-      <ProtectedRoute path="/lists" component={Lists} />
+      <ProtectedRoute path="/lists" component={MyLists} />
       <ProtectedRoute path="/lists/create" component={CreateList} />
       <ProtectedRoute path="/create-list" component={CreateList} />
       <ProtectedRoute path="/lists/:id" component={ListDetails} />
+      <ProtectedRoute path="/my-lists" component={MyLists} />
       <ProtectedRoute path="/posts/:id" component={PostDetails} />
       <ProtectedRoute path="/join" component={JoinPage} />
       <ProtectedRoute path="/join/:inviteCode" component={JoinCirclePage} />

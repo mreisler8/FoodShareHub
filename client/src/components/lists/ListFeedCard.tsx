@@ -57,13 +57,13 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
   const [isAnimating, setIsAnimating] = useState({ save: false, react: false });
 
   // Check if current user has saved/reacted to this list
-  const { data: saveStatus } = useQuery({
+  const { data: saveStatus } = useQuery<{isSaved: boolean}>({
     queryKey: ['/api/saved-lists', list.id, 'status'],
     queryFn: () => apiRequest(`/api/saved-lists/${list.id}/status`),
     enabled: showActions && !!list.id
   });
 
-  const { data: reactionStatus } = useQuery({
+  const { data: reactionStatus } = useQuery<{hasReacted: boolean, userReaction: any}>({
     queryKey: ['/api/list-reactions', list.id],
     queryFn: () => apiRequest(`/api/list-reactions/${list.id}`),
     enabled: showActions && !!list.id
@@ -79,7 +79,8 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
       } else {
         return apiRequest('/api/saved-lists', {
           method: 'POST',
-          body: { listId: list.id }
+          body: JSON.stringify({ listId: list.id }),
+          headers: { 'Content-Type': 'application/json' }
         });
       }
     },
@@ -117,7 +118,8 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
       } else {
         return apiRequest('/api/list-reactions', {
           method: 'POST',
-          body: { listId: list.id, reaction: 'like' }
+          body: JSON.stringify({ listId: list.id, reaction: 'like' }),
+          headers: { 'Content-Type': 'application/json' }
         });
       }
     },

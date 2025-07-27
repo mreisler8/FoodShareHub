@@ -1,0 +1,74 @@
+**OBJECTIVE**: Build a complete, engaging list creation and management ecosystem that transforms lists into the core social currency of our restaurant app.
+
+**CONTEXT**: You have a solid create-list.tsx foundation but need to complete the full user journey from creation → management → discovery → engagement.
+
+**IMPLEMENTATION REQUIREMENTS**:
+
+1. **Enhanced List Creation Flow** (`/create-list` improvements):
+   - Keep your existing create-list.tsx as the base (it's well-designed)
+   - Add real-time list preview sidebar showing how the list will appear in feeds
+   - Implement smart tag suggestions based on restaurant selections (max 3)
+   - Add "Save Draft" functionality with persistent localStorage
+   - Include sharing preview before final submission
+
+2. **Post-Creation Journey** (Critical Missing Piece):
+   - Replace generic success modal with rich post-creation experience
+   - Immediate options: "View List", "Add More Items", "Share Now", "Create Another"
+   - Auto-navigate to list detail view with celebration animation
+   - Prompt for social sharing with pre-filled text and list preview
+
+3. **List Management Hub** (New Feature Required):
+   - Add "My Lists" to bottom navigation (replace or enhance existing nav)
+   - Create dedicated list management page at `/my-lists`
+   - Show list metrics: views, saves, reactions, recent activity
+   - Quick actions: Edit, Delete, Share, Duplicate
+   - Filter by: Public, Circle, Private, Most Popular, Recent
+
+4. **List Discovery Integration** (Feed Enhancement):
+   - Surface lists prominently in main feed alongside posts
+   - Add "Trending Lists" section to discover page
+   - Implement "Lists from your circles" in home feed
+   - Show "Friend added to list" activity notifications
+
+5. **List Engagement Features** (Social Layer):
+   - Fix `/api/list-reactions` endpoint errors (console shows 400 errors)
+   - Add reaction buttons (❤️ 🔥 👏 💯) to list cards
+   - Enable list comments and discussions
+   - "Save List" functionality with personal collections
+   - "Tried it" tracking for list items
+
+6. **Navigation & Discoverability**:
+   - Add floating "+" button on feed with "Create List" as primary option
+   - Include list creation shortcuts in empty states
+   - Add "Shared with me" lists section
+   - Implement list search in unified search modal
+
+**TECHNICAL SPECIFICATIONS**:
+
+- **API Fixes**: Resolve list-reactions endpoint 400 errors
+- **Performance**: Implement infinite scroll for large list collections
+- **Mobile-first**: Ensure all list interactions work seamlessly on mobile
+- **Accessibility**: ARIA labels, keyboard navigation, screen reader support
+- **Analytics**: Track list creation completion rate, engagement metrics
+
+**SUCCESS METRICS**:
+- List creation completion rate > 95%
+- Average time from creation to first share < 2 minutes
+- Weekly list engagement (reactions, saves) increase by 30%
+- User returns to created lists within 48 hours > 60%
+
+**DELIVERABLES**:
+1. Enhanced `/create-list` page with preview and smart features
+2. New `/my-lists` management hub with full CRUD operations
+3. List cards integrated throughout feed and discovery
+4. Fixed API endpoints and proper error handling
+5. Mobile-optimized list interaction patterns
+
+**PRIORITY ORDER**:
+1. Fix API errors and complete post-creation flow
+2. Build list management hub and navigation integration
+3. Enhance feed integration and discovery
+4. Add engagement features (reactions, comments, saves)
+5. Implement analytics and performance optimizations
+
+This creates a complete ecosystem where lists become the primary way users share and discover restaurants, turning your app into a curated recommendation platform.
