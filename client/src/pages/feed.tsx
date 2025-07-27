@@ -15,7 +15,7 @@ import { CreateCanvas } from '@/components/create/CreateCanvas';
 import { UnifiedShareModal } from '@/components/share/UnifiedShareModal';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Users, Home, Filter, Camera, Plus, Search, User, TrendingUp } from 'lucide-react';
+import { PlusCircle, Users, Home, Filter, Camera, Plus, Search, User, TrendingUp, ListPlus } from 'lucide-react';
 import { OptimizedPendingInvites } from '@/components/optimized/OptimizedPendingInvites';
 import { PostWithDetails } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -145,6 +145,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const [showUnifiedShare, setShowUnifiedShare] = useState(false);
   const [shareModalTab, setShareModalTab] = useState<'moment' | 'list' | 'post'>('moment');
   const [isFoodMomentOpen, setIsFoodMomentOpen] = useState(false);
+  const [, navigate] = useLocation();
   // Check URL parameters for tab selection
   const urlParams = new URLSearchParams(window.location.search);
   const urlTab = urlParams.get('tab');
@@ -245,8 +246,6 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
       </div>
     );
   }
-
-  const navigate = useLocation()[1];
 
   return (
     <FeedLayoutProvider>
@@ -362,42 +361,30 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
 
             <TabsContent value="feed" className="mt-6">
               <div className="space-y-4">
-                {/* Enhanced Quick Create Actions */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Camera className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-sm">Quick Actions</h3>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <Button 
-                      onClick={() => {
+                {/* Quick Actions - Food Moment and Create List */}
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  <div className="relative group">
+                    <Button
+                      onMouseEnter={() => {
                         setShareModalTab('moment');
                         setShowUnifiedShare(true);
                       }}
-                      className="flex items-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
                       variant="outline"
+                      className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200 transition-all duration-200"
                     >
-                      <Camera className="h-4 w-4" />
-                      <span className="text-sm font-medium">Food Moment</span>
+                      <Camera className="h-6 w-6 text-orange-600 mb-2" />
+                      <span className="text-sm font-medium text-orange-800">Food Moment</span>
                     </Button>
-                    <Button 
-                      onClick={() => {
-                        setShareModalTab('list');
-                        setShowUnifiedShare(true);
-                      }}
-                      className="flex items-center gap-2 h-12 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                  </div>
+
+                  <div className="relative group">
+                    <Button
+                      onMouseEnter={() => navigate('/create-list-enhanced')}
                       variant="outline"
+                      className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200"
                     >
-                      <Plus className="h-4 w-4" />
-                      <span className="text-sm font-medium">Create List</span>
-                    </Button>
-                    <Button 
-                      onClick={() => setShowPostModal(true)}
-                      className="flex items-center gap-2 h-12 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-                      variant="outline"
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                      <span className="text-sm font-medium">Share Experience</span>
+                      <ListPlus className="h-6 w-6 text-green-600 mb-2" />
+                      <span className="text-sm font-medium text-green-800">Create List</span>
                     </Button>
                   </div>
                 </div>
@@ -734,30 +721,6 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
               <FloatingCreateButton />
             </div>
           </div>
-              {/* Quick Actions - Food Moment and Create List */}
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="relative group">
-                  <Button
-                    onMouseEnter={() => setIsFoodMomentOpen(true)}
-                    variant="outline"
-                    className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200 transition-all duration-200"
-                  >
-                    <Camera className="h-6 w-6 text-orange-600 mb-2" />
-                    <span className="text-sm font-medium text-orange-800">Food Moment</span>
-                  </Button>
-                </div>
-
-                <div className="relative group">
-                  <Button
-                    onMouseEnter={() => navigate('/create-list-enhanced')}
-                    variant="outline"
-                    className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200"
-                  >
-                    <ListPlus className="h-6 w-6 text-green-600 mb-2" />
-                    <span className="text-sm font-medium text-green-800">Create List</span>
-                  </Button>
-                </div>
-              </div>
       </div>
     </FeedLayoutProvider>
   );
