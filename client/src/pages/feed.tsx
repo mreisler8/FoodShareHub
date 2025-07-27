@@ -361,32 +361,30 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
 
             <TabsContent value="feed" className="mt-6">
               <div className="space-y-4">
-                {/* Quick Actions - Food Moment and Create List */}
+                {/* Quick Actions - FIXED UX: Food Moment Modal + Create List Navigation */}
                 <div className="grid grid-cols-2 gap-3 mb-6">
-                  <div className="relative group">
-                    <Button
-                      onMouseEnter={() => {
-                        setShareModalTab('moment');
-                        setShowUnifiedShare(true);
-                      }}
-                      variant="outline"
-                      className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200 transition-all duration-200"
-                    >
-                      <Camera className="h-6 w-6 text-orange-600 mb-2" />
-                      <span className="text-sm font-medium text-orange-800">Food Moment</span>
-                    </Button>
-                  </div>
+                  {/* Food Moment - Opens Modal (Correct UX) */}
+                  <Button
+                    onClick={() => {
+                      setShareModalTab('moment');
+                      setShowUnifiedShare(true);
+                    }}
+                    variant="outline"
+                    className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200 transition-all duration-200 touch-action-manipulation"
+                  >
+                    <Camera className="h-6 w-6 text-orange-600 mb-2" />
+                    <span className="text-sm font-medium text-orange-800">Food Moment</span>
+                  </Button>
 
-                  <div className="relative group">
-                    <Button
-                      onMouseEnter={() => navigate('/create-list-enhanced')}
-                      variant="outline"
-                      className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200"
-                    >
-                      <ListPlus className="h-6 w-6 text-green-600 mb-2" />
-                      <span className="text-sm font-medium text-green-800">Create List</span>
-                    </Button>
-                  </div>
+                  {/* Create List - Navigate to Enhanced Page (Fixed UX) */}
+                  <Button
+                    onClick={() => setLocation('/create-list')}
+                    variant="outline"
+                    className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200 touch-action-manipulation"
+                  >
+                    <ListPlus className="h-6 w-6 text-green-600 mb-2" />
+                    <span className="text-sm font-medium text-green-800">Create List</span>
+                  </Button>
                 </div>
 
                 <p className="text-muted-foreground">
