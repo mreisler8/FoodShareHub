@@ -374,10 +374,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       <span className="text-sm font-medium">Food Moment</span>
                     </Button>
                     <Button 
-                      onClick={() => {
-                        setCreateCanvasTab('list');
-                        setShowCreateCanvas(true);
-                      }}
+                      onClick={() => navigate('/create-list')}
                       className="flex items-center gap-2 h-12 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                       variant="outline"
                     >
@@ -546,7 +543,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                             Create a post
                           </Button>
                           <Button 
-                            onClick={() => setLocation('/create-list')}
+                            onClick={() => navigate('/create-list')}
                             variant="outline"
                           >
                             Create a list

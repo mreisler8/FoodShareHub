@@ -23,7 +23,7 @@ import { CreateCanvas } from "@/components/create/CreateCanvas";
 export default function HomePage() {
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<HeroTabType>('for-you');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
@@ -33,9 +33,9 @@ export default function HomePage() {
   // Redirect authenticated users to feed
   useEffect(() => {
     if (!isLoading && user) {
-      setLocation('/feed');
+      navigate('/feed');
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, navigate]);
 
   // Query for lists based on active tab
   const { data: lists, isLoading: listsLoading } = useQuery({
@@ -253,10 +253,7 @@ export default function HomePage() {
           setCreateCanvasTab('moment');
           setShowCreateCanvas(true);
         }}
-        onBuildList={() => {
-          setCreateCanvasTab('list');
-          setShowCreateCanvas(true);
-        }}
+        onBuildList={() => navigate('/create-list')}
       />
       </div>
     );

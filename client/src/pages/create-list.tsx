@@ -106,8 +106,8 @@ export default function CreateListEnhanced() {
       });
       return response;
     },
-    onSuccess: (data) => {
-      setCreatedListId(data.id);
+    onSuccess: (data: any) => {
+      setCreatedListId(data?.id || null);
       setShowSuccessModal(true);
       localStorage.removeItem('list-creation-draft');
       toast({
@@ -191,7 +191,7 @@ export default function CreateListEnhanced() {
     const hasTitle = listData.title.trim().length > 0;
     const hasItems = listItems.length > 0;
     const hasDestination = shareDestination.type !== "private" || true; // Private is always valid
-    const hasDescription = listData.description?.trim().length > 0;
+    const hasDescription = listData.description?.trim()?.length ?? 0 > 0;
     
     return {
       title: hasTitle,
