@@ -59,7 +59,7 @@ export default function MyLists() {
 
   // Fetch user's lists
   const { data: lists = [], isLoading } = useQuery<List[]>({
-    queryKey: ['/api/lists/user', user?.id],
+    queryKey: ['/api/lists/user'],
     enabled: !!user?.id,
   });
 

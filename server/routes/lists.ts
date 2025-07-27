@@ -282,10 +282,10 @@ router.get('/', authenticate, async (req, res) => {
 router.post("/", authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
-    
+
     // Validate request body using schema
     const validatedData = createListSchema.parse(req.body);
-    
+
     const { 
       name, 
       description, 
@@ -553,14 +553,14 @@ router.post("/:id/restaurants", authenticate, async (req, res) => {
 
     // Create or find restaurant
     let restaurantId: number;
-    
+
     if (googlePlaceId) {
       // Try to find existing restaurant by Google Place ID
       const [existingRestaurant] = await db
         .select()
         .from(restaurants)
         .where(eq(restaurants.googlePlaceId, googlePlaceId));
-      
+
       if (existingRestaurant) {
         restaurantId = existingRestaurant.id;
       } else {
@@ -600,7 +600,7 @@ router.post("/:id/restaurants", authenticate, async (req, res) => {
         .select({ max: sql<number>`MAX(${restaurantListItems.position})` })
         .from(restaurantListItems)
         .where(eq(restaurantListItems.listId, listId));
-      
+
       finalPosition = (maxPosition[0]?.max || 0) + 1;
     }
 
@@ -1019,7 +1019,7 @@ router.get("/user/:userId", authenticate, async (req, res) => {
   try {
     const requestedUserId = parseInt(req.params.userId);
     const currentUserId = req.user!.id;
-    
+
     // Allow users to get their own lists
     if (requestedUserId !== currentUserId) {
       return res.status(403).json({ error: "Access denied" });
@@ -1156,6 +1156,68 @@ router.post("/:id/duplicate", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Error duplicating list:", error);
     res.status(500).json({ error: "Failed to duplicate list" });
+  }
+});
+
+// Get user's lists
+router.get('/user', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    if (!userId || isNaN(parseInt(userId.toString()))) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const userIdInt = parseInt(userId.toString());
+
+    const lists = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        createdById: restaurantLists.createdById,
+        circleId: restaurantLists.circleId,
+        isPublic: restaurantLists.isPublic,
+        tags: restaurantLists.tags,
+        visibility: restaurantLists.visibility,
+        viewCount: restaurantLists.viewCount,
+        saveCount: restaurantLists.saveCount,
+        reactionCount: restaurantLists.reactionCount,
+        createdAt: restaurantLists.createdAt,
+        updatedAt: restaurantLists.updatedAt,
+      })
+      .from(restaurantLists)
+      .where(eq(restaurantLists.createdById, userIdInt))
+      .orderBy(desc(restaurantLists.updatedAt));
+
+    // Get restaurant counts for each list
+    const listIds = lists.map(list => list.id);
+    let listsWithCounts = lists;
+
+    if (listIds.length > 0) {
+      const restaurantCounts = await db
+        .select({
+          listId: restaurantListItems.listId,
+          count: sql<number>`count(*)::int`
+        })
+        .from(restaurantListItems)
+        .where(inArray(restaurantListItems.listId, listIds))
+        .groupBy(restaurantListItems.listId);
+
+      const countByList: Record<number, number> = {};
+      restaurantCounts.forEach(({ listId, count }) => {
+        countByList[listId] = count;
+      });
+
+      listsWithCounts = lists.map(list => ({
+        ...list,
+        restaurantCount: countByList[list.id] || 0
+      }));
+    }
+
+    res.json(listsWithCounts);
+  } catch (error) {
+    console.error("Error fetching user lists:", error);
+    res.status(500).json({ error: "Failed to fetch user lists" });
   }
 });
 

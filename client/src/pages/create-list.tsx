@@ -191,12 +191,15 @@ export default function CreateListEnhanced() {
     const hasTitle = listData.title.trim().length > 0;
     const hasItems = listItems.length > 0;
     const hasDestination = shareDestination.type !== "private" || true; // Private is always valid
+    const hasDescription = listData.description?.trim().length > 0;
     
     return {
       title: hasTitle,
       items: hasItems,
       destination: hasDestination,
-      complete: hasTitle && hasItems && hasDestination
+      description: hasDescription,
+      complete: hasTitle && hasItems && hasDestination,
+      completionPercentage: Math.round(((hasTitle ? 1 : 0) + (hasItems ? 1 : 0) + (hasDestination ? 1 : 0) + (hasDescription ? 0.5 : 0)) / 3.5 * 100)
     };
   };
 
@@ -226,6 +229,15 @@ export default function CreateListEnhanced() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1">
+                  <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500 ease-out"
+                      style={{ width: `${status.completionPercentage}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{status.completionPercentage}%</span>
+                </div>
                 {status.title && <Badge variant="secondary" className="bg-green-100 text-green-800">Title ✓</Badge>}
                 {status.items && <Badge variant="secondary" className="bg-green-100 text-green-800">{listItems.length} Items ✓</Badge>}
               </div>
@@ -261,7 +273,12 @@ export default function CreateListEnhanced() {
             {/* List Details Form */}
             <Card className="mb-8">
               <CardHeader>
-                <CardTitle>List Details</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  List Details
+                  {!status.title && (
+                    <span className="text-sm text-gray-500 font-normal">Start by giving your list a memorable name</span>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
@@ -313,8 +330,15 @@ export default function CreateListEnhanced() {
                 {listItems.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="text-4xl mb-4">🍽️</div>
-                    <p className="text-lg mb-2">No items yet</p>
-                    <p>Click "Add Item" to start building your list</p>
+                    <p className="text-lg mb-2">Ready to add your first spot?</p>
+                    <p className="mb-4">Great lists start with one amazing place</p>
+                    <Button 
+                      onClick={() => setShowAddItemModal(true)}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Item
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
