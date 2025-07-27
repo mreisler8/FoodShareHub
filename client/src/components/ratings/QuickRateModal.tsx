@@ -81,7 +81,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
         note: note.trim() || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
         isPrivate,
-        sharedWithCircle: false
+        sharedWithCircle: !isPrivate // Share with circles unless kept private
       });
 
       // Show success animation
@@ -274,7 +274,7 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
                   Keep private
                 </Label>
                 <p className="text-xs text-gray-500 mt-1">
-                  Only you will see this rating
+                  Private ratings won't contribute to Circle Score
                 </p>
               </div>
               <Switch

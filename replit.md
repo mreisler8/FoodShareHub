@@ -113,6 +113,12 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 27, 2025: **COMPLETE CIRCLE SCORE INTEGRATION FIX - RATINGS NOW FEED INTO TRUST SYSTEM**: Successfully resolved critical issue where ratings weren't contributing to Circle Score calculations:
+  - **Root Cause Fixed**: QuickRateModal was hardcoded to `sharedWithCircle: false`, preventing ratings from feeding into Circle Score algorithm
+  - **Systemic Solution**: Updated QuickRateModal to automatically share ratings with circles unless explicitly kept private (`sharedWithCircle: !isPrivate`)
+  - **User Education**: Updated privacy toggle description to clarify "Private ratings won't contribute to Circle Score"
+  - **Trust Network Integration**: Ratings now properly feed into personalized Circle Score calculations for trusted network recommendations
+  - **Scale-Ready Architecture**: System now works universally - any rating shared with circles contributes to Circle Score for all users in that trust network
 - July 27, 2025: **CRITICAL CACHE INVALIDATION FIX - 10-POINT DECIMAL SYSTEM COMPLETE**: Successfully resolved cache invalidation issues preventing dynamic UI updates after rating submission:
   - **Systematic Cache Invalidation**: Implemented comprehensive React Query cache invalidation targeting specific restaurant-scoped queries instead of generic keys
   - **Immediate UI Updates**: Fixed QuickRateModal to invalidate exact query keys (/api/ratings/restaurant/{id}, /api/circle-score/{id}) ensuring restaurant pages reflect rating changes instantly
