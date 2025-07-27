@@ -23,6 +23,7 @@ import QuickRateButton from '@/components/ratings/QuickRateButton';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
 
 import { useCircleScore } from '@/hooks/useCircleScore';
+import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
 
 // New modular components for the redesign
 import { HeaderCard } from '@/components/restaurant/HeaderCard';
@@ -217,8 +218,15 @@ export default function RestaurantDetailPage() {
     enabled: !!restaurantId
   });
 
-  // Fetch user's rating for this restaurant - using new consistent rating state hook
-  // Remove this duplicate query since RestaurantActionBar already handles rating state
+  // CRITICAL: Fetch user's rating for this restaurant using rating state hook
+  const { 
+    rating: userRating, 
+    isLoading: isRatingLoading,
+    submitRating
+  } = useRestaurantRatingState(restaurant || { 
+    googlePlaceId: restaurantId,
+    name: 'Loading...'
+  });
 
   if (isLoading) {
     return (
@@ -572,7 +580,11 @@ export default function RestaurantDetailPage() {
 
         {/* Your Activity Section */}
         <YourRatingCard 
-          userRating={null} // Rating state handled by RestaurantActionBar
+          userRating={userRating ? {
+            rating: parseFloat(userRating.ratingValue) || 0,
+            note: userRating.note,
+            tags: userRating.tags
+          } : undefined}
           onRate={(rating, note, tags) => {
             console.log('Rating updated:', { rating, note, tags });
             // TODO: Implement rating save

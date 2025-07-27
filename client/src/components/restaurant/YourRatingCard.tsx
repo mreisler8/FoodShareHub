@@ -6,7 +6,7 @@ import { Star, Edit3, Check, X } from "lucide-react";
 
 interface YourRatingCardProps {
   userRating?: {
-    rating: number;
+    rating: number; // 10-point decimal system (0.1-10.0)
     note?: string;
     tags?: string[];
   };
@@ -64,21 +64,25 @@ export function YourRatingCard({ userRating, onRate }: YourRatingCardProps) {
 
       {isEditing ? (
         <div className="space-y-4">
-          {/* Star Rating */}
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                onClick={() => setEditRating(star)}
-                className="transform scale-100 transition-transform hover:scale-110 active:scale-95"
-              >
-                <Star
-                  className={`h-6 w-6 ${
-                    star <= editRating ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                  }`}
-                />
-              </button>
-            ))}
+          {/* 10-Point Rating Slider */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700">
+              Rating: {editRating.toFixed(1)}/10
+            </label>
+            <input
+              type="range"
+              min="0.1"
+              max="10.0"
+              step="0.1"
+              value={editRating}
+              onChange={(e) => setEditRating(parseFloat(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>0.1</span>
+              <span>5.0</span>
+              <span>10.0</span>
+            </div>
           </div>
 
           {/* Note */}
@@ -112,18 +116,16 @@ export function YourRatingCard({ userRating, onRate }: YourRatingCardProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Display Rating */}
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`h-5 w-5 ${
-                  star <= (userRating?.rating || 0) ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                }`}
-              />
-            ))}
-            <span className="text-sm text-muted-foreground ml-2">
-              {userRating?.rating}/5
+          {/* Display Rating - 10-Point System */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-blue-50 rounded-lg px-3 py-2">
+              <Star className="h-5 w-5 text-blue-600 fill-current" />
+              <span className="text-lg font-bold text-blue-700">
+                {userRating?.rating?.toFixed(1)}/10
+              </span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              Your rating
             </span>
           </div>
 
