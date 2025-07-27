@@ -246,15 +246,7 @@ export default function HomePage() {
         defaultTab={createCanvasTab}
       />
 
-      {/* Floating Create Button */}
-      <FloatingCreateButton
-        onPostPhoto={() => setShowPostModal(true)}
-        onShareMoment={() => {
-          setCreateCanvasTab('moment');
-          setShowCreateCanvas(true);
-        }}
-        onBuildList={() => navigate('/create-list')}
-      />
+      
       </div>
     );
   }
