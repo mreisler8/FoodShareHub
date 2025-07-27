@@ -1,4 +1,3 @@
-// Adding the settings route to the router using lazy loading for the settings page.
 import { Switch, Route } from "wouter";
 import { useEffect, lazy } from "react";
 import { addNativeAppClass } from "../lib/nativeAppBridge";
@@ -18,8 +17,7 @@ import Discover from "../pages/discover";
 import DiscoverFeed from "../pages/DiscoverFeed";
 import DiscoverByLocation from "../pages/discover-by-location";
 import ListDetails from "../pages/list-details";
-// import CreateList from "../pages/create-list";
-import CreateListEnhanced from "../pages/create-list-enhanced";
+import CreateList from "../pages/create-list";
 import CreateCircle from "../pages/create-circle";
 import CreateCircleAdvanced from "../pages/create-circle-advanced";
 import PostDetails from "../pages/post-details";
@@ -55,8 +53,8 @@ function Router() {
       <ProtectedRoute path="/discover-old" component={Discover} />
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/lists" component={Lists} />
-      <ProtectedRoute path="/lists/create" component={CreateListEnhanced} />
-      <ProtectedRoute path="/create-list" component={CreateListEnhanced} />
+      <ProtectedRoute path="/lists/create" component={CreateList} />
+      <ProtectedRoute path="/create-list" component={CreateList} />
       <ProtectedRoute path="/lists/:id" component={ListDetails} />
       <ProtectedRoute path="/posts/:id" component={PostDetails} />
       <ProtectedRoute path="/join" component={JoinPage} />

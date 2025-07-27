@@ -434,7 +434,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                         Create your first post
                       </Button>
                       <Button 
-                        onClick={() => setLocation('/create-list-enhanced')}
+                        onClick={() => setLocation('/create-list')}
                         variant="outline"
                       >
                         Create your first list
@@ -546,7 +546,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                             Create a post
                           </Button>
                           <Button 
-                            onClick={() => setLocation('/create-list-enhanced')}
+                            onClick={() => setLocation('/create-list')}
                             variant="outline"
                           >
                             Create a list
