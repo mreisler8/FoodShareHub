@@ -17,7 +17,8 @@ export function FloatingCreateButton({ className }: FloatingCreateButtonProps) {
       <Button
         onClick={() => setShowModal(true)}
         size="lg"
-        className="h-16 w-16 rounded-full bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 border-4 border-white relative overflow-hidden"
+        className="fixed bottom-24 right-4 h-16 w-16 rounded-full bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 border-4 border-white relative overflow-hidden"
+        style={{ zIndex: 10000 }}
       >
         {/* Shimmer effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
