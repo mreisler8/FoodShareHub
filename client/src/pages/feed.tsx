@@ -27,6 +27,8 @@ import { TagExploreCard } from '@/components/home/TagExploreCard';
 import { PendingInvites } from '@/components/circles/PendingInvites';
 import { FollowRequestCard } from '@/components/follow/FollowRequestCard';
 import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { InstagramFoodMomentModal } from '@/components/modals/InstagramFoodMomentModal';
+import { EnhancedCreateListModal } from '@/components/modals/EnhancedCreateListModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'wouter';
 // import { DiscoverFeed } from './DiscoverFeed'; // Temporarily removed due to import issues
@@ -144,6 +146,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   const [createCanvasTab, setCreateCanvasTab] = useState<'moment' | 'list'>('moment');
   const [showUnifiedShare, setShowUnifiedShare] = useState(false);
   const [shareModalTab, setShareModalTab] = useState<'moment' | 'list' | 'post'>('moment');
+  const [showFoodMomentModal, setShowFoodMomentModal] = useState(false);
+  const [showCreateListModal, setShowCreateListModal] = useState(false);
   const [isFoodMomentOpen, setIsFoodMomentOpen] = useState(false);
   const [, navigate] = useLocation();
   // Check URL parameters for tab selection
@@ -363,12 +367,9 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
               <div className="space-y-4">
                 {/* Quick Actions - FIXED UX: Food Moment Modal + Create List Navigation */}
                 <div className="grid grid-cols-2 gap-3 mb-6">
-                  {/* Food Moment - Opens Modal (Correct UX) */}
+                  {/* Food Moment - Opens Instagram-Style Modal (Fixed UX) */}
                   <Button
-                    onClick={() => {
-                      setShareModalTab('moment');
-                      setShowUnifiedShare(true);
-                    }}
+                    onClick={() => setShowFoodMomentModal(true)}
                     variant="outline"
                     className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200 transition-all duration-200 touch-action-manipulation"
                   >
@@ -376,9 +377,9 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     <span className="text-sm font-medium text-orange-800">Food Moment</span>
                   </Button>
 
-                  {/* Create List - Navigate to Enhanced Page (Fixed UX) */}
+                  {/* Create List - Opens Enhanced Modal (Fixed UX) */}
                   <Button
-                    onClick={() => setLocation('/create-list')}
+                    onClick={() => setShowCreateListModal(true)}
                     variant="outline"
                     className="flex flex-col items-center p-6 h-24 w-full bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200 touch-action-manipulation"
                   >
@@ -709,6 +710,18 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           isOpen={showUnifiedShare}
           onClose={() => setShowUnifiedShare(false)}
           defaultTab={shareModalTab}
+        />
+
+        {/* Instagram-Style Food Moment Modal */}
+        <InstagramFoodMomentModal
+          isOpen={showFoodMomentModal}
+          onClose={() => setShowFoodMomentModal(false)}
+        />
+
+        {/* Enhanced Create List Modal */}
+        <EnhancedCreateListModal
+          isOpen={showCreateListModal}
+          onClose={() => setShowCreateListModal(false)}
         />
 
         {/* Enhanced Floating Create Button */}

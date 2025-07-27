@@ -68,8 +68,13 @@ const shareOptions: ShareOption[] = [
   }
 ];
 
-export function UnifiedShareModal({ isOpen, onClose, contextData }: UnifiedShareModalProps) {
-  const [activeTab, setActiveTab] = useState<'moment' | 'list' | 'post'>('moment');
+export function UnifiedShareModal({ 
+  isOpen, 
+  onClose, 
+  defaultTab = 'moment',
+  contextData 
+}: UnifiedShareModalProps) {
+  const [activeTab, setActiveTab] = useState<'moment' | 'list' | 'post'>(defaultTab);
   const [privacy, setPrivacy] = useState<'public' | 'circle' | 'private'>('public');
   const { trackComponent, cleanupComponent } = useMemoryManagement();
   const { toast } = useToast();
