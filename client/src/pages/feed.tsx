@@ -310,13 +310,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       <Filter className="h-4 w-4" />
                       Filters
                     </Button>
-                    <Button 
-                      onClick={() => navigate('/create-moment')}
-                      className="flex items-center gap-2"
-                    >
-                      <Camera className="h-4 w-4" />
-                      Food Moment
-                    </Button>
+                    
                   </>
                 )}
               </div>
