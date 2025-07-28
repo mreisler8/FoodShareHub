@@ -56,7 +56,11 @@ export function CreateCanvas({ isOpen, onClose, defaultTab = 'moment' }: CreateC
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl w-full max-w-[95vw] h-[90vh] max-h-screen p-0 overflow-hidden" style={{ borderRadius: '4px !important' }}>
+      <DialogContent 
+        className="sm:max-w-2xl w-full max-w-[95vw] h-[90vh] max-h-screen p-0 overflow-hidden" 
+        style={{ borderRadius: '4px !important' }}
+        showCloseButton={false}
+      >
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b bg-white">
@@ -103,7 +107,7 @@ export function CreateCanvas({ isOpen, onClose, defaultTab = 'moment' }: CreateC
               
               <TabsContent value="list" className="h-full p-6 m-0">
                 <div className="h-full">
-                  <ListStarterForm onSuccess={handleSuccess} />
+                  <ListStarterForm onSuccess={handleSuccess} onCancel={handleClose} />
                 </div>
               </TabsContent>
             </Tabs>

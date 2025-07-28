@@ -90,7 +90,6 @@ export function UnifiedShareModal({
     toast({
       title: `${type} shared successfully! ✨`,
       description: "Your content is now live and visible to your network.",
-      duration: 3000,
     });
     onClose();
   };
@@ -99,7 +98,10 @@ export function UnifiedShareModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[95vh] p-0 gap-0 overflow-hidden">
+      <DialogContent 
+        className="max-w-4xl max-h-[95vh] p-0 gap-0 overflow-hidden"
+        showCloseButton={false}
+      >
         <div className="flex flex-col h-full">
           {/* Enhanced Header with Visual Hierarchy */}
           <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-orange-50 to-pink-50">
@@ -184,8 +186,6 @@ export function UnifiedShareModal({
                 <VisualFoodMoment
                   onSuccess={() => handleSuccessfulShare('Food Moment')}
                   onCancel={onClose}
-                  initialVisibility={privacy}
-                  contextData={contextData}
                 />
               </TabsContent>
 

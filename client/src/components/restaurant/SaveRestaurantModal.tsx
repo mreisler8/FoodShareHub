@@ -91,7 +91,10 @@ export default function SaveRestaurantModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent 
+        className="max-w-md"
+        showCloseButton={true}
+      >
         <DialogHeader>
           <DialogTitle>
             {isSaved ? 'Remove from Saved' : 'Save Restaurant'}

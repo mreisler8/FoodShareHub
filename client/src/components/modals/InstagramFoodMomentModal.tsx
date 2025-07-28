@@ -108,14 +108,14 @@ export function InstagramFoodMomentModal({ isOpen, onClose }: InstagramFoodMomen
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg w-full h-[95vh] p-0 gap-0 flex flex-col bg-white border-0 shadow-2xl">
+      <DialogContent 
+        className="max-w-lg w-full h-[95vh] p-0 gap-0 flex flex-col bg-white border-0 shadow-2xl"
+        showCloseButton={true}
+      >
         <div className="flex flex-col h-full">
           {/* Header - Fixed */}
-          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b bg-white">
+          <div className="flex-shrink-0 flex items-center justify-between p-4 pr-16 border-b bg-white">
             <h2 className="text-lg font-semibold text-gray-900">Share Food Moment</h2>
-            <Button variant="ghost" size="sm" onClick={handleClose}>
-              <X className="h-5 w-5" />
-            </Button>
           </div>
 
           {/* Scrollable Content */}

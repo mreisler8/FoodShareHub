@@ -106,7 +106,10 @@ export default function AddToListModal({ isOpen, onClose, restaurant }: AddToLis
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent 
+        className="max-w-md"
+        showCloseButton={true}
+      >
         <DialogHeader>
           <DialogTitle>Add to Lists</DialogTitle>
         </DialogHeader>

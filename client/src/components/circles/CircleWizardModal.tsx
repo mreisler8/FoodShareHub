@@ -172,18 +172,16 @@ export default function CircleWizardModal({ open, onOpenChange }: CircleWizardMo
   if (!open) return null;
 
   return (
-    <div className="circle-wizard-overlay">
-      <div className="circle-wizard-modal">
-        {/* Header */}
-        <div className="circle-wizard-header">
-          <h2 className="circle-wizard-title">Create New Circle</h2>
-          <button 
-            onClick={() => onOpenChange(false)}
-            className="circle-wizard-close"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className="max-w-2xl max-h-[90vh] p-0 overflow-hidden"
+        showCloseButton={true}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b bg-white">
+            <h2 className="text-xl font-semibold">Create New Circle</h2>
+          </div>
 
         {/* Step Indicator */}
         <div className="circle-wizard-steps">
@@ -415,7 +413,7 @@ export default function CircleWizardModal({ open, onOpenChange }: CircleWizardMo
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

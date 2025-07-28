@@ -181,7 +181,10 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] min-h-[400px] flex flex-col overflow-hidden">
+      <DialogContent 
+        className="sm:max-w-[600px] max-h-[90vh] min-h-[400px] flex flex-col overflow-hidden"
+        showCloseButton={true}
+      >
         <DialogHeader className="pb-4 flex-shrink-0 border-b">
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             🍽 What are you adding?
