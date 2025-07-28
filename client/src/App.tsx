@@ -33,7 +33,9 @@ function AppContent() {
   return (
     <ErrorBoundary>
       <div className={`mobile-page ${showBottomNav ? "mobile-content" : ""}`}>
-        <Router />
+        <RouteTransition>
+          <Router />
+        </RouteTransition>
       </div>
       {showBottomNav && <BottomNavigation />}
       {showFloatingCreate && <FloatingCreateButton />}

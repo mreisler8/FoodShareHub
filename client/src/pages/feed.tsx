@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import { motion } from 'framer-motion';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
@@ -35,6 +36,7 @@ import { InstagramFoodMomentModal } from '@/components/modals/InstagramFoodMomen
 import { EnhancedCreateListModal } from '@/components/modals/EnhancedCreateListModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'wouter';
+import { AnimatedCardGrid, AnimatedCard } from '@/components/transitions/AnimatedLayout';
 // import { DiscoverFeed } from './DiscoverFeed'; // Temporarily removed due to import issues
 import './FeedPage.css';
 
@@ -258,7 +260,13 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
   return (
     <FeedLayoutProvider>
       <OfflineBanner />
-      <div className="flex min-h-screen bg-background">
+      <motion.div 
+        className="flex min-h-screen bg-background"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
         <DesktopSidebar />
 
         <div className="flex-1 overflow-auto lg:ml-0">
@@ -776,7 +784,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
               <FloatingCreateButton />
             </div>
           </div>
-      </div>
+      </motion.div>
     </FeedLayoutProvider>
   );
 }
