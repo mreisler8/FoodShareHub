@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../auth';
 import { insertPostSchema, posts, restaurants, users } from '@shared/schema';
 import { db } from '../db';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { eq, desc, and, sql, or } from 'drizzle-orm';
 import { z } from 'zod';
 
 const router = Router();
@@ -11,7 +11,7 @@ const router = Router();
 router.post('/', authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
-    
+
     // Validate request body
     const validatedData = insertPostSchema.parse({
       ...req.body,
@@ -20,12 +20,12 @@ router.post('/', authenticate, async (req, res) => {
 
     // Handle restaurant creation/retrieval for Google Places restaurants
     let restaurantId = validatedData.restaurantId;
-    
+
     if (typeof restaurantId === 'string' && restaurantId.startsWith('google_')) {
       // Extract Google Place ID and create restaurant record
       const googlePlaceId = restaurantId.replace('google_', '');
       const metadata = validatedData.metadata as any;
-      
+
       // Check if restaurant already exists
       const existingRestaurant = await db
         .select()
@@ -50,7 +50,7 @@ router.post('/', authenticate, async (req, res) => {
             cuisine: 'Various',
           })
           .returning();
-        
+
         restaurantId = newRestaurant[0].id;
       }
     }
@@ -173,7 +173,7 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const postId = parseInt(req.params.id);
-    
+
     const post = await db
       .select({
         id: posts.id,
@@ -242,7 +242,7 @@ router.put('/:id', authenticate, async (req, res) => {
 
     // Validate update data
     const updateData = insertPostSchema.partial().parse(req.body);
-    
+
     // Update the post
     const updatedPost = await db
       .update(posts)

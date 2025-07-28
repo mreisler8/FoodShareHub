@@ -305,7 +305,7 @@ router.get('/users', authenticate, async (req, res) => {
   }
 });
 
-// Optimized unified search with database and Google Places integration
+// Enhanced unified search with database and Google Places integration
 router.get('/unified', authenticate, async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -319,7 +319,14 @@ router.get('/unified', authenticate, async (req, res) => {
       lng, 
       radius = '15000', 
       limit = '20',
-      type = 'all' 
+      type = 'all',
+      cuisines,
+      priceRange,
+      occasions,
+      tags,
+      dietaryRestrictions,
+      openNow,
+      rating
     } = req.query;
 
     if (!query || typeof query !== 'string' || query.trim().length < 2) {
