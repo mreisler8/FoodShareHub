@@ -35,6 +35,8 @@ import { useLocation } from "wouter";
 // Extended interface for optimistic list items
 interface OptimisticListItem extends RestaurantListItemWithDetails {
   isOptimistic?: boolean;
+  tags?: string[];
+  priceAssessment?: string | null;
 }
 
 // Sortable List Item Component
@@ -194,7 +196,7 @@ function SortableListItem({ item, rank, onEdit, onDelete, onUpdate, isEditing, i
             {/* Tags */}
             {item.tags && item.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2">
-                {item.tags.map((tag, i) => (
+                {item.tags.map((tag: string, i: number) => (
                   <Badge key={i} variant="outline" className="text-xs">
                     {tag}
                   </Badge>
@@ -282,7 +284,7 @@ export default function ListDetails() {
       // Optimistically remove item
       setListItems(prev => prev.filter(item => item.id !== itemId));
       
-      await apiRequest("DELETE", `/api/lists/items/${itemId}`, {});
+      await apiRequest("DELETE", `/api/lists/items/${itemId}`);
       
       queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
       toast({
@@ -311,7 +313,8 @@ export default function ListDetails() {
           : item
       ));
       
-      const updatedItem = await apiRequest("PUT", `/api/lists/items/${itemId}`, data);
+      const response = await apiRequest("PUT", `/api/lists/items/${itemId}`, data);
+      const updatedItem = await response.json();
       
       // Replace optimistic item with real data
       setListItems(prev => prev.map(item => 
@@ -333,6 +336,64 @@ export default function ListDetails() {
       toast({
         title: "Update failed",
         description: "Failed to update the item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle adding items from AddListItemModal
+  const handleAddItem = async (itemData: any) => {
+    try {
+      let restaurantId: number;
+      
+      // Handle restaurant creation for Google Places results
+      if (itemData.restaurant?.id) {
+        restaurantId = itemData.restaurant.id;
+      } else {
+        // Create new restaurant
+        const restaurantResponse = await apiRequest("POST", "/api/restaurants", {
+          name: itemData.restaurant?.name || "Unknown Restaurant",
+          location: itemData.restaurant?.location || itemData.restaurant?.city || "",
+          category: "Restaurant",
+          priceRange: "$$",
+          cuisine: "Restaurant",
+          imageUrl: null,
+          googlePlaceId: itemData.restaurant?.googlePlaceId || null,
+        });
+        const newRestaurant = await restaurantResponse.json();
+        restaurantId = newRestaurant.id;
+      }
+
+      // Add item to list
+      const response = await apiRequest("POST", `/api/lists/${listId}/items`, {
+        restaurantId: restaurantId,
+        rating: 5, // Default rating
+        liked: null,
+        disliked: null,
+        notes: itemData.notes || null,
+        tags: itemData.tags || [],
+      });
+      
+      const newItem = await response.json();
+      
+      // Update local state
+      setListItems(prev => [newItem, ...prev]);
+      
+      // Close modal
+      setShowAddItemModal(false);
+      
+      toast({
+        title: "Item added successfully!",
+        description: `${itemData.restaurant?.name} has been added to your list.`,
+      });
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
+      
+    } catch (error: any) {
+      toast({
+        title: "Failed to add item",
+        description: error.message || "Please try again.",
         variant: "destructive",
       });
     }
@@ -380,40 +441,12 @@ export default function ListDetails() {
     }
   };
 
-  // Add item from modal
-  const handleAddItem = async (itemData: any) => {
-    try {
-      const response = await apiRequest(`/api/lists/${listId}/restaurants`, {
-        method: "POST",
-        body: JSON.stringify({
-          name: itemData.restaurant?.name || itemData.name,
-          location: itemData.restaurant?.location || itemData.location,
-          googlePlaceId: itemData.restaurant?.googlePlaceId,
-          notes: itemData.notes || "",
-          tags: itemData.tags || []
-        }),
-      });
 
-      queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
-      setShowAddItemModal(false);
-      
-      toast({
-        title: "Restaurant Added",
-        description: `${itemData.restaurant?.name || itemData.name} has been added to your list.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to add restaurant",
-        description: "Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   // Delete list handler
   const deleteListMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("DELETE", `/api/lists/${listId}`, {});
+      return await apiRequest("DELETE", `/api/lists/${listId}`);
     },
     onSuccess: () => {
       toast({
@@ -526,6 +559,8 @@ export default function ListDetails() {
       position: 0,
       addedAt: new Date(),
       isOptimistic: true,
+      tags: [],
+      priceAssessment: "$$",
       restaurant: {
         id: parseInt(data.restaurantId.replace('google_', '')),
         name: data.restaurantName,
@@ -1016,7 +1051,7 @@ export default function ListDetails() {
       <AddListItemModal
         open={showAddItemModal}
         onOpenChange={setShowAddItemModal}
-        onAddItem={handleAddItem}
+        onSave={handleAddItem}
       />
       
       {/* Delete List Confirmation Dialog */}
