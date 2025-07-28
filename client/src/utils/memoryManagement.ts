@@ -255,3 +255,19 @@ export function getBrowserMemoryInfo(): BrowserMemoryInfo {
     jsMemoryLimit: typeof memory.jsHeapSizeLimit === 'number' ? memory.jsHeapSizeLimit : null,
   };
 }
+
+const getBrowserMemory = () => {
+    if (typeof window !== 'undefined' && 'performance' in window && 'memory' in performance) {
+      const memory = (performance as any).memory;
+      return {
+        usedJSMemory: Math.round(memory.usedJSHeapSize / 1024 / 1024 * 100) / 100,
+        totalJSMemory: Math.round(memory.totalJSHeapSize / 1024 / 1024 * 100) / 100,
+        jsMemoryLimit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024 * 100) / 100
+      };
+    }
+    return {
+      usedJSMemory: 0,
+      totalJSMemory: 0,
+      jsMemoryLimit: 0
+    };
+  };
