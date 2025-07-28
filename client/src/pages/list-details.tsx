@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { RestaurantList, RestaurantListItemWithDetails } from "@/lib/types";
 import { ShareListModal } from "@/components/lists/ShareListModal";
 import { EditListModal } from "@/components/lists/EditListModal";
-import { RestaurantSearch } from "@/components/lists/RestaurantSearch";
+import RestaurantSearch from "@/components/lists/RestaurantSearch";
 import { ListItemCard } from "@/components/lists/ListItemCard";
 import { ListItemForm } from "@/components/ListItemForm";
 import { FilterSortControls } from "@/components/lists/FilterSortControls";

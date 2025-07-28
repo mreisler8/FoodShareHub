@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MediaUploader } from '../MediaUploader';
-import { RestaurantSearch } from '../restaurant/RestaurantSearch';
+import RestaurantSearch from '../restaurant/RestaurantSearch';
 import { TagSelector } from '../post/TagSelector';
 import { ShareDestinationPicker } from '../post/ShareDestinationPicker';
 import { UtensilsCrossed, Star } from 'lucide-react';

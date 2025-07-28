@@ -1,20 +1,31 @@
 import React from 'react';
 import { RestaurantSearchComponent } from '@/components/shared/RestaurantSearchComponent';
-import { SearchResult } from '@/services/searchService';
 
-interface RestaurantSearchInputProps {
-  onSelect: (restaurant: SearchResult) => void;
-  placeholder?: string;
-  initialValue?: string;
+interface Restaurant {
+  id: number;
+  name: string;
+  location: string;
+  category?: string;
+  priceRange?: string;
+  imageUrl?: string;
+  averageRating?: number;
+  totalPosts?: number;
 }
 
-export function RestaurantSearchInput({ onSelect, placeholder, initialValue }: RestaurantSearchInputProps) {
+interface RestaurantSearchInputProps {
+  onSelect: (restaurant: Restaurant) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+export function RestaurantSearchInput({ onSelect, placeholder, className }: RestaurantSearchInputProps) {
   return (
     <RestaurantSearchComponent
       onSelect={onSelect}
       placeholder={placeholder}
-      initialValue={initialValue}
-      showRecentSearches={true}
+      className={className}
+      showLocationServices={true}
+      autoRequestLocation={true}
     />
   );
 }

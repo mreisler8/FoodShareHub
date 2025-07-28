@@ -159,8 +159,8 @@ export default function CreateListEnhanced() {
 
     if (listItems.length === 0) {
       toast({
-        title: "Add Items",
-        description: "Please add at least one restaurant or dish to your list.",
+        title: "Add Restaurants",
+        description: "Please add at least one restaurant to your list.",
         variant: "destructive",
       });
       return;
@@ -239,7 +239,7 @@ export default function CreateListEnhanced() {
                   <span className="text-sm font-medium text-gray-700">{status.completionPercentage}%</span>
                 </div>
                 {status.title && <Badge variant="secondary" className="bg-green-100 text-green-800">Title ✓</Badge>}
-                {status.items && <Badge variant="secondary" className="bg-green-100 text-green-800">{listItems.length} Items ✓</Badge>}
+                {status.items && <Badge variant="secondary" className="bg-green-100 text-green-800">{listItems.length} Restaurants ✓</Badge>}
               </div>
             </div>
 
@@ -322,7 +322,7 @@ export default function CreateListEnhanced() {
                   <CardTitle>Your List ({listItems.length} items)</CardTitle>
                   <Button onClick={() => setShowAddItemModal(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Item
+                    Add Restaurant
                   </Button>
                 </div>
               </CardHeader>
@@ -337,7 +337,7 @@ export default function CreateListEnhanced() {
                       className="bg-orange-500 hover:bg-orange-600"
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Item
+                      Add Your First Restaurant
                     </Button>
                   </div>
                 ) : (
@@ -391,7 +391,7 @@ export default function CreateListEnhanced() {
                     Create List
                   </>
                 ) : (
-                  `Create List (${!status.title ? 'Add title' : !status.items ? 'Add items' : 'Ready'})`
+                  `Create List (${!status.title ? 'Add title' : !status.items ? 'Add restaurants' : 'Ready'})`
                 )}
               </Button>
             </div>
@@ -467,7 +467,7 @@ export default function CreateListEnhanced() {
             {/* Mobile List Items */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <Label>Items ({listItems.length})</Label>
+                <Label>Restaurants ({listItems.length})</Label>
                 <Button onClick={() => setShowAddItemModal(true)} size="sm">
                   <Plus className="h-4 w-4 mr-1" />
                   Add
@@ -476,7 +476,7 @@ export default function CreateListEnhanced() {
               
               {listItems.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <p>No items yet - tap Add to start</p>
+                  <p>No restaurants yet - tap Add to start</p>
                 </div>
               ) : (
                 <div className="space-y-3">
