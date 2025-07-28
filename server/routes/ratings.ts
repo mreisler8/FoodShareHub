@@ -129,6 +129,15 @@ router.put('/', async (req, res) => {
         .returning();
     }
 
+    // CRITICAL FIX: Invalidate Circle Score cache immediately after rating update
+    console.log('🔄 Rating updated - invalidating Circle Score cache');
+    
+    // Clear cache for this specific restaurant/user combination
+    const circleScoreModule = await import('../lib/circleScore');
+    if (circleScoreModule.invalidateCircleScoreCache) {
+      circleScoreModule.invalidateCircleScoreCache(restaurantId, googlePlaceId, userId);
+    }
+    
     res.json(result);
   } catch (error) {
     console.error('Error creating/updating rating:', error);

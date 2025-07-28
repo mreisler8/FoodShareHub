@@ -5,6 +5,24 @@ import { and, eq, or, inArray, desc, gte, sql, count } from 'drizzle-orm';
 // Cache management for performance optimization
 const circleScoreCache = new Map<string, { data: CircleScoreResult | null; calculatedAt: Date }>();
 
+// Export cache invalidation function for real-time updates
+export function invalidateCircleScoreCache(
+  restaurantId: number | null,
+  googlePlaceId: string | null, 
+  userId: number
+) {
+  const cacheKey = `${restaurantId || 'null'}-${googlePlaceId || 'null'}-${userId}`;
+  console.log('🗑️ Invalidating Circle Score cache for:', cacheKey);
+  circleScoreCache.delete(cacheKey);
+  
+  // Also invalidate any user-specific caches for this restaurant
+  for (const [key] of circleScoreCache.entries()) {
+    if (key.includes(`${restaurantId || 'null'}-${googlePlaceId || 'null'}`)) {
+      circleScoreCache.delete(key);
+    }
+  }
+}
+
 // Circuit Breaker for error handling
 class CircuitBreaker {
   private failures = 0;
@@ -86,7 +104,8 @@ export async function calculateCircleScore(
   const cacheKey = `${restaurantId || 'null'}-${googlePlaceId || 'null'}-${requestingUserId}`;
   const cached = circleScoreCache.get(cacheKey);
   
-  if (cached && (Date.now() - cached.calculatedAt.getTime()) < 15 * 60 * 1000) { // 15 minute cache for MVP
+  // REAL-TIME FIX: Much shorter cache for immediate updates
+  if (cached && (Date.now() - cached.calculatedAt.getTime()) < 30 * 1000) { // 30 seconds for real-time feel
     return cached.data;
   }
   
@@ -162,6 +181,30 @@ export async function calculateCircleScore(
     
     if (contributors.length === 0) {
       return null; // No data from trusted sources or user
+    }
+    
+    // CRITICAL FIX: Handle single-user scenario properly
+    if (contributors.length === 1 && contributors[0].userId === requestingUserId) {
+      // User is the only contributor - show their rating proportionally
+      const userRating = contributors[0].value;
+      const singleUserScore = Math.round(userRating * 10); // Convert 0-10 to 0-100 scale
+      
+      const singleUserResult = {
+        score: singleUserScore,
+        confidence: 'low' as const, // Low confidence due to single data point
+        contributors,
+        totalContributors: 1,
+        breakdown: {
+          quickRatings: quickRatings.length,
+          listPlacements: listPlacements.length,
+          reactions: 0,
+          saves: 0
+        }
+      };
+      
+      // Cache the result with shorter TTL for single-user scenarios
+      circleScoreCache.set(cacheKey, { data: singleUserResult, calculatedAt: new Date() });
+      return singleUserResult;
     }
     
     // 5. Apply confidence modifier and normalize to 0-100
