@@ -17,13 +17,13 @@ import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
 import { useLocation } from "wouter";
 import { AlertTriangle, Eye, Utensils, X, Plus, Tag, Check } from "lucide-react";
+import PrivacySelector, { VisibilityLevel } from "@/components/privacy/PrivacySelector";
 
-// Enhanced form schema with custom tag support
+// Enhanced form schema with unified privacy
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  shareWithCircle: z.boolean().default(false),
-  makePublic: z.boolean().default(false),
+  visibility: z.enum(['public', 'circle', 'followers', 'private']).default('circle'),
   circleId: z.string().optional(),
 });
 
@@ -60,20 +60,19 @@ export function EnhancedCreateListModal({ open, onOpenChange, onSuccess }: Enhan
     queryKey: ["/api/circles"],
   });
 
-  // Form setup
+  // Form setup with smart defaults
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       description: "",
-      shareWithCircle: false,
-      makePublic: false,
+      visibility: 'circle', // Default to circle for food content
       circleId: undefined,
     },
   });
 
-  // Watch the sharing fields to show/hide circle selection
-  const shareWithCircle = form.watch("shareWithCircle");
+  // Watch fields for dynamic UI
+  const visibility = form.watch("visibility");
   const currentName = form.watch("name");
 
   // Debounced duplicate checking function
@@ -150,31 +149,25 @@ export function EnhancedCreateListModal({ open, onOpenChange, onSuccess }: Enhan
     }
   };
 
-  // Create list mutation
+  // Create list mutation with enhanced data contract
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Apply default sharing rules if neither option is selected
-      let shareWithCircle = values.shareWithCircle;
-      let makePublic = values.makePublic;
-      
-      if (!shareWithCircle && !makePublic) {
-        shareWithCircle = true; // Default to circle sharing
-      }
-
       // Convert circleId to number if provided
       const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
 
+      // Build payload with proper data contract alignment
       const payload = {
-        name: values.name,
-        description: values.description || null,
+        name: values.name.trim(),
+        description: values.description?.trim() || null,
         tags: customTags,
+        visibility: values.visibility,
         circleId: circleId,
-        isPublic: makePublic,
-        visibility: makePublic ? "public" : "circle",
-        shareWithCircle: shareWithCircle,
-        makePublic: makePublic,
+        shareWithCircle: values.visibility === 'circle' && circleId,
+        makePublic: values.visibility === 'public',
+        isPublic: values.visibility === 'public', // Backward compatibility
       };
 
+      console.log('Creating list with payload:', payload);
       return await apiRequest("/api/lists", { method: "POST", body: payload });
     },
     onSuccess: (data) => {
@@ -322,6 +315,55 @@ export function EnhancedCreateListModal({ open, onOpenChange, onSuccess }: Enhan
               )}
             />
 
+            {/* Enhanced Privacy Selector */}
+            <FormField
+              control={form.control}
+              name="visibility"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Privacy Settings</FormLabel>
+                  <FormControl>
+                    <PrivacySelector
+                      value={field.value}
+                      onChange={field.onChange}
+                      contentType="list"
+                      showPreview={true}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Circle selection for circle visibility */}
+            {visibility === 'circle' && (
+              <FormField
+                control={form.control}
+                name="circleId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Share with Circle</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a circle" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No specific circle</SelectItem>
+                        {circles?.map((circle) => (
+                          <SelectItem key={circle.id} value={circle.id.toString()}>
+                            {circle.name} ({circle.memberCount} members)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             {/* Enhanced Custom Tag System */}
             <div className="space-y-3">
               <FormLabel className="flex items-center gap-2">
@@ -426,79 +468,7 @@ export function EnhancedCreateListModal({ open, onOpenChange, onSuccess }: Enhan
               )}
             </div>
 
-            <div className="space-y-4 p-4 bg-neutral-50 rounded-xl border border-neutral-200">
-              <FormLabel className="text-base font-medium text-neutral-900">Sharing Settings</FormLabel>
-              
-              <FormField
-                control={form.control}
-                name="shareWithCircle"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value || false}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Share with Circle</FormLabel>
-                      <p className="text-sm text-neutral-600">
-                        Share this list with your circle members
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
 
-              {shareWithCircle && (
-                <FormField
-                  control={form.control}
-                  name="circleId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Select Circle</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose a circle" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">No specific circle</SelectItem>
-                          {circles?.map((circle) => (
-                            <SelectItem key={circle.id} value={circle.id.toString()}>
-                              {circle.name} ({circle.memberCount} members)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <FormField
-                control={form.control}
-                name="makePublic"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value || false}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Make Public</FormLabel>
-                      <p className="text-sm text-neutral-600">
-                        Allow anyone on the platform to discover this list
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button 
