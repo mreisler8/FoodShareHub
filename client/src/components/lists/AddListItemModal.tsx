@@ -181,47 +181,53 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader className="pb-4 flex-shrink-0">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] min-h-[400px] flex flex-col overflow-hidden">
+        <DialogHeader className="pb-4 flex-shrink-0 border-b">
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             🍽 What are you adding?
           </DialogTitle>
           {addedCount > 0 && (
-            <div className="text-sm text-green-600 font-medium">
+            <div className="text-sm text-green-600 font-medium bg-green-50 px-3 py-2 rounded-lg">
               ✓ {addedCount} restaurant{addedCount !== 1 ? 's' : ''} added to list
             </div>
           )}
         </DialogHeader>
 
         {showSuccess ? (
-          <div className="flex-1 flex flex-col items-center justify-center space-y-6 p-6">
-            <div className="text-center space-y-2">
-              <div className="text-4xl">✅</div>
-              <h3 className="text-lg font-semibold text-green-700">Restaurant Added Successfully!</h3>
-              <p className="text-sm text-gray-600">
-                {selectedRestaurant?.name || restaurantForm.getValues("name")} has been added to your list.
+          <div className="flex-1 flex flex-col items-center justify-center space-y-6 p-6 bg-gradient-to-br from-green-50 to-blue-50">
+            <div className="text-center space-y-4 bg-white p-6 rounded-xl shadow-sm border">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <div className="text-2xl">✅</div>
+              </div>
+              <h3 className="text-xl font-bold text-green-700">Successfully Added!</h3>
+              <p className="text-sm text-gray-700 font-medium">
+                "{selectedRestaurant?.name || restaurantForm.getValues("name")}" is now in your list
               </p>
+              <div className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
+                Total items: {addedCount}
+              </div>
             </div>
             
-            <div className="flex gap-3 w-full max-w-sm">
+            <div className="flex gap-3 w-full max-w-md">
               <Button 
                 onClick={handleAddAnother}
                 variant="outline"
-                className="flex-1"
+                className="flex-1 bg-white hover:bg-gray-50 border-2 border-blue-200 text-blue-700 font-semibold"
               >
-                Add Another Restaurant
+                + Add Another
               </Button>
               <Button 
                 onClick={handleDone}
-                className="flex-1"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
               >
                 Done Adding
               </Button>
             </div>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto min-h-0">
-          <Tabs value={itemType} onValueChange={(value) => setItemType(value as "restaurant" | "dish")} className="w-full">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto px-1" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+              <Tabs value={itemType} onValueChange={(value) => setItemType(value as "restaurant" | "dish")} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="restaurant" className="flex items-center gap-2">
                 🏙 Restaurant
@@ -379,12 +385,13 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                       )}
                     />
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <label className="text-sm font-medium">Tags</label>
                       <SmartTagInput
                         selectedTags={selectedTags}
                         onTagsChange={setSelectedTags}
                         maxTags={8}
+                        allowCustomTags={true}
                         contextRestaurants={selectedRestaurant ? [{ cuisine: selectedRestaurant.category, location: selectedRestaurant.location }] : []}
                       />
                     </div>
@@ -511,12 +518,13 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                       )}
                     />
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <label className="text-sm font-medium">Tags</label>
                       <SmartTagInput
                         selectedTags={selectedTags}
                         onTagsChange={setSelectedTags}
                         maxTags={8}
+                        allowCustomTags={true}
                         contextRestaurants={selectedRestaurant ? [{ cuisine: selectedRestaurant.category, location: selectedRestaurant.location }] : []}
                       />
                     </div>
@@ -544,7 +552,8 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                 </Form>
               )}
             </TabsContent>
-          </Tabs>
+              </Tabs>
+            </div>
           </div>
         )}
       </DialogContent>

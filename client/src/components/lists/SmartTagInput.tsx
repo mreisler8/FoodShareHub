@@ -11,6 +11,9 @@ interface SmartTagInputProps {
   listTitle?: string;
   contextRestaurants?: Array<{ cuisine?: string; location?: string }>;
   maxTags?: number;
+  allowCustomTags?: boolean;
+  placeholder?: string;
+  suggestions?: string[];
 }
 
 export function SmartTagInput({ 
@@ -18,7 +21,10 @@ export function SmartTagInput({
   onTagsChange, 
   listTitle = "",
   contextRestaurants = [],
-  maxTags = 10
+  maxTags = 10,
+  allowCustomTags = true,
+  placeholder = "Add custom tag...",
+  suggestions = []
 }: SmartTagInputProps) {
   const [inputValue, setInputValue] = useState("");
 
@@ -39,36 +45,43 @@ export function SmartTagInput({
 
   // Generate smart tag suggestions
   const getSmartSuggestions = () => {
-    const suggestions = new Set<string>();
+    const allSuggestions = new Set<string>();
 
-    // Context-based suggestions
-    contextRestaurants.forEach(restaurant => {
-      if (restaurant.cuisine) {
-        suggestions.add(restaurant.cuisine);
-      }
-    });
-
-    // Default high-value tags
-    const defaultTags = [
-      'Must Try',
-      'Hidden Gem',
-      'Great Value'
-    ];
-
-    defaultTags.forEach(tag => suggestions.add(tag));
-
-    // Add popular tags from backend
-    if (Array.isArray(popularTags)) {
-      popularTags.slice(0, 3).forEach((tag: any) => {
-        const tagName = typeof tag === 'string' ? tag : (tag?.name || tag?.value || String(tag));
-        if (tagName) suggestions.add(tagName);
+    // Add provided suggestions first
+    if (suggestions && suggestions.length > 0) {
+      suggestions.forEach(tag => allSuggestions.add(tag));
+    } else {
+      // Context-based suggestions
+      contextRestaurants.forEach(restaurant => {
+        if (restaurant.cuisine) {
+          allSuggestions.add(restaurant.cuisine);
+        }
       });
+
+      // Default high-value tags
+      const defaultTags = [
+        'Must Try',
+        'Hidden Gem',
+        'Great Value',
+        'casual', 'fine-dining', 'date-night', 'family-friendly', 
+        'brunch', 'lunch', 'dinner', 'cheap-eats'
+      ];
+
+      defaultTags.forEach(tag => allSuggestions.add(tag));
+
+      // Add popular tags from backend
+      if (Array.isArray(popularTags)) {
+        popularTags.slice(0, 5).forEach((tag: any) => {
+          const tagName = typeof tag === 'string' ? tag : (tag?.name || tag?.value || String(tag));
+          if (tagName) allSuggestions.add(tagName);
+        });
+      }
     }
 
-    // Filter out selected tags and limit
-    return Array.from(suggestions)
+    // Filter out selected tags and return array
+    return Array.from(allSuggestions)
       .filter(tag => !selectedTags.includes(tag))
-      .slice(0, 3);
+      .slice(0, 8);
   };
 
   const smartSuggestions = getSmartSuggestions();
@@ -137,9 +150,8 @@ export function SmartTagInput({
                 type="button"
                 variant="outline"
                 size="sm"
+                className="h-8 text-xs bg-gray-50 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
                 onClick={() => handleAddTag(suggestion)}
-                className="text-xs h-7 px-3 border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
-                disabled={selectedTags.length >= maxTags}
               >
                 + {suggestion}
               </Button>
@@ -149,31 +161,41 @@ export function SmartTagInput({
       )}
 
       {/* Custom Tag Input */}
-      <div className="flex gap-2">
-        <Input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleInputKeyDown}
-          placeholder={selectedTags.length >= maxTags ? `Maximum ${maxTags} tags` : "Add custom tag..."}
-          className="flex-1 text-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-          disabled={selectedTags.length >= maxTags}
-        />
-        <Button
-          type="button"
-          onClick={handleInputSubmit}
-          disabled={!inputValue.trim() || selectedTags.length >= maxTags}
-          size="sm"
-          className="px-3"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {selectedTags.length >= maxTags && (
-        <p className="text-xs text-amber-600">
-          Maximum {maxTags} tags selected
-        </p>
+      {allowCustomTags && selectedTags.length < maxTags && (
+        <div className="space-y-2">
+          <div className="text-xs text-gray-500 font-medium">
+            Add custom tag:
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleInputKeyDown}
+              placeholder={placeholder}
+              className="flex-1 text-sm"
+              maxLength={20}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleInputSubmit}
+              disabled={!inputValue.trim()}
+              className="px-3"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="text-xs text-gray-400">
+            Press Enter or click + to add. Max {maxTags} tags.
+          </div>
+        </div>
       )}
+
+      {/* Tag Count Indicator */}
+      <div className="text-xs text-gray-500">
+        {selectedTags.length} / {maxTags} tags selected
+      </div>
     </div>
   );
 }
