@@ -50,7 +50,10 @@ export function EditListModal({ open, onOpenChange, list }: EditListModalProps) 
         visibility: makePublic ? 'public' : (shareWithCircle ? 'circle' : 'private')
       };
       
-      return await apiRequest("PUT", `/api/lists/${list.id}`, data);
+      return await apiRequest(`/api/lists/${list.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       toast({

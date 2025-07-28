@@ -60,19 +60,10 @@ export function PostTypeModal({ open, onOpenChange, onSelectType }: PostTypeModa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <span className="text-orange-500">🍕</span>
-              Choose Post Type
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="text-orange-500">🍕</span>
+            Choose Post Type
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">

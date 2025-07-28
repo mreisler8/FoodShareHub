@@ -124,7 +124,7 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
 
   // Filter out circles the list is already shared with
   const availableCircles = circles?.filter(
-    (circle) => !sharedWith?.some((share) => share.circle.id === circle.id)
+    (circle: any) => !sharedWith?.some((share: any) => share.circle.id === circle.id)
   );
 
   const handleShare = () => {
@@ -158,7 +158,7 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
                   <SelectValue placeholder="Select a circle to share with" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableCircles?.map((circle) => (
+                  {availableCircles?.map((circle: any) => (
                     <SelectItem key={circle.id} value={circle.id.toString()}>
                       {circle.name}
                     </SelectItem>
@@ -198,7 +198,7 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-3">Currently Shared With</h3>
               <div className="space-y-3">
-                {sharedWith.map((share) => (
+                {sharedWith.map((share: any) => (
                   <div key={share.id} className="flex items-center justify-between border-b pb-2">
                     <div>
                       <p className="font-medium">{share.circle.name}</p>

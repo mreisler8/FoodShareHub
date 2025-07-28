@@ -131,24 +131,10 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <DialogTitle className="flex items-center gap-2">
-                <span className="text-orange-500">🍕</span>
-                Create Your Post
-              </DialogTitle>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="text-orange-500">🍕</span>
+            Create Your Post
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -158,9 +144,8 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
               Restaurant <span className="text-red-500">*</span>
             </label>
             <RestaurantSearchComponent
-              onSelect={(restaurant) => setFormData(prev => ({ ...prev, restaurant }))}
+              onSelect={(restaurant) => setFormData(prev => ({ ...prev, restaurant: { ...restaurant, source: 'search' } }))}
               placeholder="Search for a restaurant..."
-              initialValue={formData.restaurant?.name || ''}
               showRecentSearches={true}
             />
           </div>
