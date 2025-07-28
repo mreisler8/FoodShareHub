@@ -48,17 +48,9 @@ export function AppHeader({ showBackButton = false, title, onBackClick }: AppHea
             aria-label="Go to feed"
           >
             <img
-              src="/logo-brand.svg"
-              alt="Brand Logo"
+              src="/logo-new.svg"
+              alt="Circles Logo"
               className="h-8 w-8"
-              onError={(e) => {
-                console.error('Logo failed to load:', e);
-                // Replace with fallback text instead of hiding
-                const parent = e.currentTarget.parentElement;
-                if (parent) {
-                  parent.innerHTML = '<span class="text-lg font-bold text-primary">Circles</span>';
-                }
-              }}
             />
             {title && (
               <h1 className="text-lg font-semibold text-gray-900">{title}</h1>

@@ -36,10 +36,8 @@ import { InstagramFoodMomentModal } from '@/components/modals/InstagramFoodMomen
 import { EnhancedCreateListModal } from '@/components/modals/EnhancedCreateListModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'wouter';
-import { AnimatedCardGrid, AnimatedCard } from '@/components/transitions/AnimatedLayout';
 // import { DiscoverFeed } from './DiscoverFeed'; // Temporarily removed due to import issues
 import './FeedPage.css';
-import { FeedErrorBoundary } from '@/components/error/FeedErrorBoundary';
 
 interface FeedPageProps {
   scope?: 'feed' | 'circle';
@@ -402,8 +400,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   Posts and lists from people you follow
                 </p>
 
-                <FeedErrorBoundary>
-                  {isLoading && page === 1 ? (
+                {isLoading && page === 1 ? (
                     <div className="space-y-4">
                       {Array.from({ length: 3 }).map((_, index) => (
                         <SkeletonFeedCard key={index} />
@@ -459,7 +456,6 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     </div>
                   )}
                 </div>
-              </FeedErrorBoundary>
             </TabsContent>
 
             <TabsContent value="circle" className="mt-6">
