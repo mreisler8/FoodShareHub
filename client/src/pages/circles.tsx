@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { UnifiedHeader } from "@/components/ui/UnifiedHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -183,12 +183,7 @@ export default function CirclesPage() {
       {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
 
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
-        {/* App Header with logo */}
-        <PageHeader 
-          title="Circles" 
-          showBackButton={true}
-          showLogo={false}
-        />
+        <UnifiedHeader mode="back" title="Circles" />
 
         <div className="max-w-4xl mx-auto px-4 py-6 pt-14">
           <div className="flex items-center justify-between mb-6">

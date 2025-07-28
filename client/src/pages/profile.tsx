@@ -45,6 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
 import { SavedListsSection } from "@/components/SavedListsSection";
 import { useAuth } from "@/hooks/use-auth";
+import { UnifiedHeader } from "@/components/ui/UnifiedHeader";
 
 export default function Profile() {
   const { id } = useParams();
@@ -472,19 +473,9 @@ export default function Profile() {
       <DesktopSidebar />
 
       <div className="flex-1 max-w-5xl mx-auto">
-        {/* Back Button and Settings */}
-        <div className="p-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Feed
-          </Link>
-
-          {isOwnProfile && (
-            <Link href="/settings" className="inline-flex items-center text-gray-600 hover:text-gray-900">
-              <Settings className="h-5 w-5" />
-            </Link>
-          )}
-        </div>
+        <UnifiedHeader mode="back" title="Profile" />
+        
+        <div className="pt-14"></div>
 
         {/* Profile Cover & Header */}
         <div className="bg-white rounded-t-xl overflow-hidden">

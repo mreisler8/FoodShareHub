@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RecentRecommendations } from "@/components/recommendations/RecentRecommendations";
 // PageHeader replaced with AppHeader which is already imported
 import { useAuth } from '@/hooks/use-auth';
-import { AppHeader } from '@/components/ui/AppHeader';
+import { UnifiedHeader } from '@/components/ui/UnifiedHeader';
 import DiscoverItemRenderer from '@/components/discover/DiscoverItemRenderer';
 
 export default function Discover() {
@@ -63,10 +63,7 @@ export default function Discover() {
 
       {/* App Header */}
       <div className="flex-1">
-        <AppHeader 
-          title="Discover" 
-          showBackButton={true}
-        />
+        <UnifiedHeader mode="back" title="Discover" />
 
         {/* Main Content Area */}
         <div className="max-w-5xl mx-auto px-4 py-6 md:px-8 pt-14">

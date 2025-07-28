@@ -4,7 +4,7 @@ import { Plus, Search, X, GripVertical, MapPin, Star, Users, Globe, Lock, Eye, E
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { AppHeader } from '@/components/ui/AppHeader';
+import { UnifiedHeader } from '@/components/ui/UnifiedHeader';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -250,7 +250,7 @@ export default function CreateListEnhanced() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AppHeader title="Create List" showBackButton={true} />
+      <UnifiedHeader mode="back" title="Create List" />
 
       <div className="pt-14">
         {/* Desktop Layout */}
@@ -443,11 +443,7 @@ export default function CreateListEnhanced() {
 
         {/* Mobile Layout */}
         <div className="lg:hidden">
-          {/* App Header with back button and logo */}
-          <AppHeader 
-            title="Create List" 
-            showBackButton={true}
-          />
+          
 
           <div className="px-4 py-6 pb-24 pt-14">
             {/* Mobile Header */}
