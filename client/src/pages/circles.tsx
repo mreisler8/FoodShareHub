@@ -19,6 +19,7 @@ import { InviteMembersModal } from "@/components/circles/InviteMembersModal";
 import { CircleFeed } from "@/components/circles/CircleFeed";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "wouter";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 interface Circle {
   id: number;
@@ -188,6 +189,12 @@ export default function CirclesPage() {
       {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
       
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
+        {/* App Header with logo */}
+        <AppHeader 
+          title="Circles" 
+          showBackButton={false}
+        />
+        
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>

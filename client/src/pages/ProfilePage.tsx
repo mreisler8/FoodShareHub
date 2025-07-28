@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,10 +39,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 
 export default function ProfilePage() {
   const { id } = useParams();
+  const [, navigate] = useLocation();
   const { currentUser } = useCurrentUser();
   const [activeTab, setActiveTab] = useState("posts");
   const [showFindFriendsModal, setShowFindFriendsModal] = useState(false);
@@ -841,8 +843,16 @@ export default function ProfilePage() {
     <div className="flex min-h-screen mb-16 md:mb-0">
       <MobileNavigation />
       <DesktopSidebar />
-
+      
+      {/* Main Content Area */}
       <div className="flex-1 max-w-4xl mx-auto">
+        {/* App Header with back button and logo */}
+        <AppHeader 
+          title={profileUser?.name || profileUser?.username || "Profile"} 
+          showBackButton={true} 
+          onBack={() => window.history.back()}
+        />
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <ProfileHeader />
           <ProfileTabs />

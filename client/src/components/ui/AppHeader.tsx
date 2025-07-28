@@ -41,19 +41,20 @@ export function AppHeader({ title, showBackButton = true, onBack }: AppHeaderPro
           alt="Circles" 
           className="h-6 mx-auto" 
           onError={(e) => {
-            // Hide the image and show fallback text
+            // Hide the image and show fallback text immediately
             const target = e.target as HTMLImageElement;
             target.style.display = 'none';
             const parent = target.parentElement;
             if (parent) {
               const fallback = parent.querySelector('.logo-fallback') as HTMLSpanElement;
               if (fallback) {
-                fallback.style.display = 'block';
+                fallback.style.display = 'inline-block';
+                fallback.classList.remove('hidden');
               }
             }
           }}
         />
-        <span className="logo-fallback text-xl font-bold text-primary" style={{ display: 'none' }}>
+        <span className="logo-fallback text-xl font-bold text-primary hidden">
           Circles
         </span>
       </div>

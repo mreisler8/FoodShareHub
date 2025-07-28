@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocation } from "wouter";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 // Extended interface for optimistic list items
 interface OptimisticListItem extends RestaurantListItemWithDetails {
@@ -728,15 +729,17 @@ export default function ListDetails() {
       <DesktopSidebar />
       
       {/* Main Content Area */}
-      <div className="flex-1 max-w-5xl mx-auto px-4 py-6 md:px-8">
-        {/* Back Button */}
-        <div className="mb-4">
-          <Link href="/" className="inline-flex items-center text-neutral-700 hover:text-neutral-900">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Feed
-          </Link>
-        </div>
+      <div className="flex-1 max-w-5xl mx-auto">
+        {/* App Header with back button and logo */}
+        <AppHeader 
+          title={list?.name || "List Details"} 
+          showBackButton={true} 
+          onBack={() => window.history.back()}
+        />
         
-        {isLoading ? (
+        <div className="px-4 py-6 md:px-8">
+        
+          {isLoading ? (
           <div className="space-y-6">
             <Skeleton className="h-12 w-2/3" />
             <Skeleton className="h-6 w-1/2" />
@@ -1029,6 +1032,7 @@ export default function ListDetails() {
             </Link>
           </div>
         )}
+        </div>
       </div>
       
       {/* Share List Modal */}

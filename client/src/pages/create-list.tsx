@@ -19,6 +19,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { ListItemData } from "@/components/lists/AddListItemModal";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 interface ListFormData {
   title: string;
@@ -249,18 +250,17 @@ export default function CreateListEnhanced() {
       <div className="hidden lg:flex">
         <DesktopSidebar />
         <main className="flex-1 ml-64">
+          {/* App Header with back button and logo */}
+          <AppHeader 
+            title="Create List" 
+            showBackButton={true} 
+            onBack={() => navigate("/")}
+          />
+          
           <div className="max-w-4xl mx-auto px-6 py-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/")}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </Button>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">Let's build your list</h1>
                   <p className="text-gray-600">Start with one place or dish — you can always add more later</p>
@@ -439,16 +439,16 @@ export default function CreateListEnhanced() {
 
       {/* Mobile Layout */}
       <div className="lg:hidden">
+        {/* App Header with back button and logo */}
+        <AppHeader 
+          title="Create List" 
+          showBackButton={true} 
+          onBack={() => navigate("/")}
+        />
+        
         <div className="px-4 py-6 pb-24">
           {/* Mobile Header */}
           <div className="flex items-center gap-4 mb-6">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/")}
-              size="sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
             <div>
               <h1 className="text-xl font-bold">Let's build your list</h1>
               <p className="text-sm text-gray-600">Start with one place or dish</p>
