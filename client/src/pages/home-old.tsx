@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { HeroSection } from "@/components/HeroSection";
@@ -8,9 +10,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, Star, MapPin, Users } from "lucide-react";
+import { Plus, TrendingUp, Star, MapPin, Users, Bell, MessageSquare, Bookmark, PlusCircle, Utensils } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PostCard } from "@/components/home/PostCard";
+import { QuickAddRestaurant } from "@/components/restaurant/QuickAddRestaurant";
+import { QuickCaptureButton } from "@/components/shared/QuickCaptureButton";
+import { DesktopRightSidebar } from "@/components/navigation/DesktopRightSidebar";
+import { WelcomeSplash } from "@/components/onboarding/WelcomeSplash";
+import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { PostModal } from "@/components/post/PostModal";
 import "./HomePage.css";
 
 export default function Home() {
@@ -36,6 +46,27 @@ export default function Home() {
   const [limit] = useState(10);
   
   // Define a type for the paginated feed response
+  interface PostWithDetails {
+    id: number;
+    content: string;
+    authorId: number;
+    restaurantId?: number;
+    listId?: number;
+    createdAt: Date;
+    imageUrl?: string;
+    author: {
+      id: number;
+      name: string;
+      username: string;
+      profilePicture?: string;
+    };
+    restaurant?: {
+      id: number;
+      name: string;
+      location: string;
+    };
+  }
+
   interface PaginatedFeedResponse {
     posts: PostWithDetails[];
     pagination: {

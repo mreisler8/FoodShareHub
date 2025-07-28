@@ -21,7 +21,9 @@ export function QuickAddPanel() {
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  const { restaurants, isLoading } = useRestaurantSearch(searchTerm);
+  const searchResult = useRestaurantSearch(searchTerm);
+  const restaurants = searchResult?.data || [];
+  const isLoading = searchResult?.isLoading || false;
 
   const handleRestaurantSelect = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);

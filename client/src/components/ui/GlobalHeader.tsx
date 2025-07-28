@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
@@ -13,19 +13,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
   title,
   showBackButton = false
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [location, navigate] = useLocation();
 
   const handleLogoClick = () => {
     navigate('/feed');
   };
 
   const handleBackClick = () => {
-    navigate(-1);
+    window.history.back();
   };
 
   // Determine if we should show logo or back button based on current page
-  const isMainPage = ['/feed', '/discover', '/circles', '/profile'].includes(location.pathname);
+  const isMainPage = ['/feed', '/discover', '/circles', '/profile'].includes(location);
   const shouldShowLogo = isMainPage && !showBackButton;
   const shouldShowBackButton = !isMainPage || showBackButton;
 
