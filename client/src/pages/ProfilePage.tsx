@@ -158,10 +158,7 @@ export default function ProfilePage() {
           <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 relative">
             {/* Food-themed background elements */}
             <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute top-4 left-8 text-3xl opacity-20 rotate-12">🍕</div>
-              <div className="absolute top-8 right-16 text-2xl opacity-15 -rotate-6">🍔</div>
-              <div className="absolute bottom-6 left-16 text-2xl opacity-20 rotate-45">🍜</div>
-              <div className="absolute bottom-4 right-8 text-3xl opacity-15 -rotate-12">🍝</div>
+              {/* Clean background pattern - no emojis */}
             </div>
           </div>
         )}
@@ -680,7 +677,7 @@ export default function ProfilePage() {
               Followers
               {followers && Array.isArray(followers) && (
                 <Badge variant="secondary" className="ml-2">
-                  {followers.length}
+                  {followers.length.toString()}
                 </Badge>
               )}
             </CardTitle>
@@ -745,7 +742,7 @@ export default function ProfilePage() {
               Following
               {following && Array.isArray(following) && (
                 <Badge variant="secondary" className="ml-2">
-                  {following.length}
+                  {following.length.toString()}
                 </Badge>
               )}
             </CardTitle>
@@ -849,7 +846,6 @@ export default function ProfilePage() {
         <AppHeader 
           title={profileUser?.name || profileUser?.username || "Profile"} 
           showBackButton={true}
-          showLogo={false}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full pt-14">

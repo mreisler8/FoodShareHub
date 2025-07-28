@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Plus, Search, X, GripVertical, MapPin, Star, Users, Globe, Lock, Eye, EyeOff } from 'lucide-react';
+import { Plus, Search, X, GripVertical, MapPin, Star, Users, Globe, Lock, Eye, EyeOff, Utensils, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { ListItemData } from "@/components/lists/AddListItemModal";
 import { useMutation } from "@tanstack/react-query";
-import { PageHeader } from "@/components/ui/PageHeader";
+// PageHeader replaced with AppHeader which is already imported
 
 interface ListFormData {
   title: string;
@@ -257,12 +257,7 @@ export default function CreateListEnhanced() {
         <div className="hidden lg:flex">
           <DesktopSidebar />
           <main className="flex-1 ml-64">
-            {/* App Header with back button and logo */}
-            <PageHeader 
-              title="Create List" 
-              showBackButton={true}
-              showLogo={false}
-            />
+            {/* Desktop content - header handled by top-level AppHeader */}
 
             <div className="max-w-4xl mx-auto px-6 py-8 pt-14">
               {/* Header */}
@@ -306,7 +301,7 @@ export default function CreateListEnhanced() {
                           onClick={() => handleQuickTemplate(template)}
                           className="h-auto p-4 text-left flex flex-col items-start gap-1"
                         >
-                          <span className="text-lg">{template.emoji}</span>
+                          <Star className="h-5 w-5 text-yellow-500" />
                           <span className="font-medium">{template.text}</span>
                         </Button>
                       ))}
@@ -374,7 +369,9 @@ export default function CreateListEnhanced() {
                 <CardContent>
                   {listItems.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
-                      <div className="text-4xl mb-4">🍽️</div>
+                      <div className="text-4xl mb-4">
+                        <Utensils className="h-16 w-16 text-gray-300 mx-auto" />
+                      </div>
                       <p className="text-lg mb-2">Ready to add your first spot?</p>
                       <p className="mb-4">Great lists start with one amazing place</p>
                       <Button 
@@ -447,10 +444,9 @@ export default function CreateListEnhanced() {
         {/* Mobile Layout */}
         <div className="lg:hidden">
           {/* App Header with back button and logo */}
-          <PageHeader 
+          <AppHeader 
             title="Create List" 
             showBackButton={true}
-            showLogo={false}
           />
 
           <div className="px-4 py-6 pb-24 pt-14">

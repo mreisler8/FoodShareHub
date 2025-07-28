@@ -45,8 +45,14 @@ export function AppHeader({ title, showBackButton = false, onBackClick }: AppHea
             >
               <img 
                 src="/logo.svg" 
-                alt="Circles" 
+                alt="Circles Pizza Logo" 
                 className="h-8 w-8"
+                onError={(e) => {
+                  console.error('Logo failed to load:', e);
+                  // Fallback to text if image fails
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
               />
               <span className="text-xl font-bold text-gray-900">Circles</span>
             </button>
