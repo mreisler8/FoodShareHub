@@ -40,12 +40,12 @@ export interface ShareDestination {
 }
 
 const QUICK_TEMPLATES = [
-  { emoji: "🍕", text: "Best Pizza Places", tags: ["pizza", "casual"] },
-  { emoji: "💕", text: "Date Night Favorites", tags: ["romantic", "date-night"] },
-  { emoji: "💎", text: "Hidden Gems", tags: ["hidden-gem", "local"] },
-  { emoji: "🥐", text: "Brunch Spots", tags: ["brunch", "weekend"] },
-  { emoji: "💰", text: "Budget Eats", tags: ["cheap-eats", "value"] },
-  { emoji: "🏆", text: "Must Try Places", tags: ["must-try", "popular"] }
+  { text: "Best Pizza Places", tags: ["pizza", "casual"] },
+  { text: "Date Night Favorites", tags: ["romantic", "date-night"] },
+  { text: "Hidden Gems", tags: ["hidden-gem", "local"] },
+  { text: "Brunch Spots", tags: ["brunch", "weekend"] },
+  { text: "Budget Eats", tags: ["cheap-eats", "value"] },
+  { text: "Must Try Places", tags: ["must-try", "popular"] }
 ];
 
 const COMMON_TAGS = [
@@ -247,7 +247,6 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
                         className="h-auto p-3 text-left hover:bg-gray-50"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{template.emoji}</span>
                           <span className="text-sm">{template.text}</span>
                         </div>
                       </Button>
@@ -365,7 +364,6 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
                         <ListItemPreview
                           key={item.id}
                           item={item}
-                          onRemove={() => handleRemoveItem(item.id)}
                         />
                       ))}
                     </div>

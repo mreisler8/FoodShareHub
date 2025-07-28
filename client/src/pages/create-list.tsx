@@ -41,12 +41,12 @@ export interface ShareDestination {
 }
 
 const QUICK_TEMPLATES = [
-  { emoji: "🍕", text: "Best Pizza Places", tags: ["pizza", "casual"] },
-  { emoji: "💕", text: "Date Night Favorites", tags: ["romantic", "date-night"] },
-  { emoji: "💎", text: "Hidden Gems", tags: ["hidden-gem", "local"] },
-  { emoji: "🥐", text: "Brunch Spots", tags: ["brunch", "weekend"] },
-  { emoji: "💰", text: "Budget Eats", tags: ["cheap-eats", "value"] },
-  { emoji: "🏆", text: "Must Try Places", tags: ["must-try", "popular"] }
+  { text: "Best Pizza Places", tags: ["pizza", "casual"] },
+  { text: "Date Night Favorites", tags: ["romantic", "date-night"] },
+  { text: "Hidden Gems", tags: ["hidden-gem", "local"] },
+  { text: "Brunch Spots", tags: ["brunch", "weekend"] },
+  { text: "Budget Eats", tags: ["cheap-eats", "value"] },
+  { text: "Must Try Places", tags: ["must-try", "popular"] }
 ];
 
 export default function CreateListEnhanced() {
@@ -443,10 +443,10 @@ export default function CreateListEnhanced() {
       {/* Mobile Layout */}
       <div className="lg:hidden">
         {/* App Header with back button and logo */}
-        <AppHeader 
+        <PageHeader 
           title="Create List" 
-          showBackButton={true} 
-          onBack={() => window.history.back()}
+          showBackButton={true}
+          showLogo={false}
         />
 
         <div className="px-4 py-6 pb-24 pt-14">
@@ -472,7 +472,7 @@ export default function CreateListEnhanced() {
                       className="h-auto p-3 text-left"
                       size="sm"
                     >
-                      <span className="text-sm">{template.emoji} {template.text}</span>
+                      <span className="text-sm">{template.text}</span>
                     </Button>
                   ))}
                 </div>
