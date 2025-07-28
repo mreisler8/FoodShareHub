@@ -58,8 +58,18 @@ export function RestaurantSearchComponent({
         params.append('radius', '10000'); // 10km radius
       }
       
-      const response = await fetch(`/api/search/unified?${params}`);
+      const response = await fetch(`/api/search/unified?${params}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       const data = await response.json();
+      console.log("Search API response:", data);
+      // Handle both array response and object with restaurants property
+      if (Array.isArray(data)) {
+        return data;
+      }
       return data.restaurants || [];
     },
     enabled: searchTerm.length > 2,
@@ -169,7 +179,7 @@ export function RestaurantSearchComponent({
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : searchResults?.length > 0 ? (
+            ) : searchResults && searchResults.length > 0 ? (
               <div className="space-y-2">
                 {searchResults.map((restaurant: Restaurant) => (
                   <div
