@@ -171,6 +171,8 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                     onSelect={handleRestaurantSelect}
                     placeholder="Search for restaurants..."
                     className="w-full"
+                    showLocationServices={true}
+                    autoRequestLocation={true}
                   />
                   
                   {selectedRestaurant && (
@@ -258,9 +260,8 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Tags</label>
                         <SmartTagInput
-                          value={selectedTags}
-                          onChange={setSelectedTags}
-                          suggestions={["date-night", "family-friendly", "cheap-eats", "must-try", "hidden-gem"]}
+                          selectedTags={selectedTags}
+                          onTagsChange={setSelectedTags}
                         />
                       </div>
 
@@ -302,9 +303,8 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Tags</label>
                       <SmartTagInput
-                        value={selectedTags}
-                        onChange={setSelectedTags}
-                        suggestions={["date-night", "family-friendly", "cheap-eats", "must-try", "hidden-gem"]}
+                        selectedTags={selectedTags}
+                        onTagsChange={setSelectedTags}
                       />
                     </div>
 
