@@ -267,7 +267,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           {/* Enhanced App Header with Logo - FIXED POSITION */}
           <AppHeader 
             title={activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
-            showBackButton={false}
+            showBackButton={true}
+            onBack={() => window.history.back()}
           />
 
           {/* Stories Section - Instagram Style */}

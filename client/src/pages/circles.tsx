@@ -185,7 +185,8 @@ export default function CirclesPage() {
         {/* App Header with logo */}
         <AppHeader 
           title="Circles" 
-          showBackButton={false}
+          showBackButton={true}
+          onBack={() => window.history.back()}
         />
         
         <div className="max-w-4xl mx-auto px-4 py-6 pt-14">

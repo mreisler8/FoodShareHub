@@ -1,6 +1,5 @@
-
-import { ChevronLeft } from 'lucide-react';
-import { Link } from 'wouter';
+import { ArrowLeft } from "lucide-react";
+import { Button } from "./button";
 
 interface AppHeaderProps {
   title: string;
@@ -8,55 +7,56 @@ interface AppHeaderProps {
   onBack?: () => void;
 }
 
-export function AppHeader({ title, showBackButton = true, onBack }: AppHeaderProps) {
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else {
-      window.history.back();
-    }
-  };
-
+export function AppHeader({ title, showBackButton = false, onBack }: AppHeaderProps) {
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-      <div className="flex items-center justify-between px-4 py-3 h-14 min-h-[56px]">
-        {/* Back Button */}
-        {showBackButton && (
-          <button
-            onClick={handleBack}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Go back"
-          >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
-          </button>
-        )}
-        
-        {/* Logo/Title */}
-        <div className="flex-1 flex justify-center">
-          {!showBackButton ? (
-            <Link href="/" aria-label="Circles Home" className="flex items-center">
-              <img 
-                src="/logo.svg" 
-                alt="Circles" 
-                className="h-8 w-auto"
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  target.style.display = 'none';
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) {
-                    fallback.classList.remove('hidden');
-                  }
-                }}
-              />
-              <span className="hidden text-lg font-semibold text-gray-900">Circles</span>
-            </Link>
-          ) : (
-            <h1 className="text-lg font-semibold text-gray-900 text-center flex-1">{title}</h1>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 h-14">
+      <div className="flex items-center justify-between h-full px-4">
+        {/* Left side */}
+        <div className="flex items-center gap-3 min-w-0">
+          {showBackButton && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="p-2 hover:bg-gray-100 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
           )}
+
+          {/* Logo - Always visible */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <img 
+              src="/logo.svg" 
+              alt="Circles" 
+              className="h-8 w-8 flex-shrink-0"
+              onError={(e) => {
+                // Fallback to a simple circle if logo fails to load
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = target.nextElementSibling as HTMLDivElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+            <div 
+              className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm hidden flex-shrink-0"
+              aria-label="Circles logo"
+            >
+              C
+            </div>
+          </div>
         </div>
-        
-        {/* Spacer for centering when back button is present */}
-        {showBackButton && <div className="min-w-[44px]" />}
+
+        {/* Center - Title */}
+        <div className="flex-1 flex justify-center px-4">
+          <h1 className="text-lg font-semibold text-gray-900 truncate max-w-[200px]">{title}</h1>
+        </div>
+
+        {/* Right side - placeholder for potential actions */}
+        <div className="min-w-0 flex justify-end">
+          {/* Space for future header actions */}
+        </div>
       </div>
     </header>
   );

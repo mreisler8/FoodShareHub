@@ -257,7 +257,7 @@ export default function CreateListEnhanced() {
           <AppHeader 
             title="Create List" 
             showBackButton={true} 
-            onBack={() => navigate("/")}
+            onBack={() => window.history.back()}
           />
           
           <div className="max-w-4xl mx-auto px-6 py-8 pt-14">
@@ -446,7 +446,7 @@ export default function CreateListEnhanced() {
         <AppHeader 
           title="Create List" 
           showBackButton={true} 
-          onBack={() => navigate("/")}
+          onBack={() => window.history.back()}
         />
         
         <div className="px-4 py-6 pb-24 pt-14">

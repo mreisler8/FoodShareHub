@@ -62,7 +62,8 @@ export default function Discover() {
       <div className="flex-1">
         <AppHeader 
           title="Discover" 
-          showBackButton={false}
+          showBackButton={true}
+          onBack={() => window.history.back()}
         />
         
         {/* Main Content Area */}
