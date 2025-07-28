@@ -23,25 +23,23 @@ export default function EmptyState({
   children 
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+    <div className="flex flex-col items-center justify-center p-8 text-center">
       <div className="mb-4">
         {emoji && <div className="text-4xl mb-2">{emoji}</div>}
-        {Icon && <Icon size={48} className="text-gray-400 mx-auto" />}
+        {Icon && <Icon className="h-12 w-12 text-muted-foreground" />}
       </div>
       
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-lg font-medium">{title || "Nothing here yet"}</p>
       
-      {description && (
-        <p className="text-sm text-gray-600 mb-6 max-w-sm">{description}</p>
-      )}
+      <p className="text-sm text-muted-foreground mb-4">{description || "Start by tapping the + button below"}</p>
       
       {action && (
         <Button 
           onClick={action.onClick}
           variant="default"
-          className="min-w-[120px]"
+          className="min-h-[44px]"
         >
-          {action.label}
+          {action.label || "Create Something"}
         </Button>
       )}
       
