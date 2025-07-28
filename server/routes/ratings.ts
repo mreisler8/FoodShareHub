@@ -130,13 +130,12 @@ router.put('/', async (req, res) => {
     }
 
     // CRITICAL FIX: Invalidate Circle Score cache immediately after rating update
-    console.log('🔄 Rating updated - invalidating Circle Score cache');
+    console.log('🔄 Rating updated - invalidating Circle Score cache for user:', userId);
     
     // Clear cache for this specific restaurant/user combination
-    const circleScoreModule = await import('../lib/circleScore');
-    if (circleScoreModule.invalidateCircleScoreCache) {
-      circleScoreModule.invalidateCircleScoreCache(restaurantId, googlePlaceId, userId);
-    }
+    const { circleScorePreCalculator } = await import('../lib/circleScoreCache');
+    console.log('🗑️ Invalidating cache for:', { restaurantId, googlePlaceId, userId });
+    circleScorePreCalculator.invalidateRestaurantCache(restaurantId, googlePlaceId);
     
     res.json(result);
   } catch (error) {

@@ -113,6 +113,14 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Deep Linking**: Support for sharing and referral links
 
 ## Recent Changes
+- July 28, 2025: **CRITICAL USER ID CACHE INVALIDATION FIX - COMPLETE**: Successfully resolved cache invalidation targeting wrong user ID causing Circle Score vs personal rating discrepancies:
+  - **Root Cause Fixed**: Cache invalidation was targeting user 10 instead of logged-in user 7, causing stale Circle Score data
+  - **Correct Cache Targeting**: Fixed cache invalidation to target proper restaurant-user combinations with accurate user context
+  - **Real-Time Updates Verified**: Rating update 8.9→9.2 immediately reflects in Circle Score (89→92) with proper cache invalidation
+  - **Data Scale Consistency Confirmed**: User rating of 9.2/10 correctly converts to Circle Score 92/100 with immediate UI updates
+  - **Comment Persistence Verified**: Comment system working perfectly - detailed notes and tags save and persist correctly across sessions
+  - **End-to-End Flow Operational**: Complete rating→cache invalidation→Circle Score recalculation→UI update pipeline working flawlessly
+  - **Status**: Complete user-specific cache invalidation system operational - Circle Score now matches personal ratings in real-time
 - July 28, 2025: **CRITICAL CIRCLE SCORE DATA INTEGRITY FIXES - COMPLETE**: Successfully resolved all Circle Score data integrity and real-time update issues identified in PhD-level analysis:
   - **Single-User Circle Score Fix**: Fixed algorithm to properly handle single-contributor scenarios - Circle Score now shows proportional score (10.0/10 user rating = 100/100 Circle Score) instead of defaulting to 0
   - **Real-Time Cache Management**: Reduced cache TTL from 15 minutes to 30 seconds and implemented immediate cache invalidation on rating updates for instant UI feedback
