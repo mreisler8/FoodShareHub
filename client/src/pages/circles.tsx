@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
+import { AppHeader } from "@/components/ui/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +21,6 @@ import { InviteMembersModal } from "@/components/circles/InviteMembersModal";
 import { CircleFeed } from "@/components/circles/CircleFeed";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "wouter";
-import { AppHeader } from "@/components/ui/AppHeader";
 import { Circle } from "@shared/schema";
 
 interface CirclePageData extends Circle {
@@ -132,11 +133,11 @@ export default function CirclesPage() {
           )}
         </div>
       </div>
-      
+
       {circle.description && (
         <p className="text-sm text-gray-600">{circle.description}</p>
       )}
-      
+
       <div className="flex flex-wrap gap-2 text-xs text-gray-500">
         {circle.primaryCuisine && (
           <span className="flex items-center gap-1">
@@ -180,7 +181,7 @@ export default function CirclesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
-      
+
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
         {/* App Header with logo */}
         <AppHeader 
@@ -188,7 +189,7 @@ export default function CirclesPage() {
           showBackButton={true}
           onBack={() => window.history.back()}
         />
-        
+
         <div className="max-w-4xl mx-auto px-4 py-6 pt-14">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -207,7 +208,7 @@ export default function CirclesPage() {
               <TabsTrigger value="discover">Discover</TabsTrigger>
               <TabsTrigger value="invites">Invites</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="my-circles" className="mt-6">
               {isLoading ? (
                 <div className="grid gap-4 md:grid-cols-2">
@@ -235,7 +236,7 @@ export default function CirclesPage() {
                 </div>
               )}
             </TabsContent>
-            
+
             <TabsContent value="discover" className="mt-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -263,7 +264,7 @@ export default function CirclesPage() {
                 )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="invites" className="mt-6">
               <PendingInvites />
             </TabsContent>
@@ -274,7 +275,7 @@ export default function CirclesPage() {
             isOpen={wizardOpen}
             onClose={() => setWizardOpen(false)}
           />
-          
+
           <Dialog open={createFormOpen} onOpenChange={setCreateFormOpen}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <CreateCircleForm 
@@ -283,7 +284,7 @@ export default function CirclesPage() {
               />
             </DialogContent>
           </Dialog>
-          
+
           {inviteModalOpen && selectedCircle && (
             <InviteMembersModal
               isOpen={inviteModalOpen}

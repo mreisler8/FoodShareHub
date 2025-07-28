@@ -281,7 +281,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Main Content */}
             <div className="lg:col-span-3">
-            
+
             {/* Secondary Header with Search and Profile */}
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-4">
@@ -587,7 +587,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                           <Button 
                             onClick={() => navigate('/create-list')}
                             variant="outline"
-                            className="min-h-[44px]"
+                          className="min-h-[44px]"
                           >
                             Create a list
                           </Button>

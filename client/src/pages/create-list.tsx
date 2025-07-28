@@ -53,7 +53,7 @@ export default function CreateListEnhanced() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  
+
   // Form state
   const [listData, setListData] = useState<ListFormData>({
     title: "",
@@ -64,7 +64,7 @@ export default function CreateListEnhanced() {
   });
   const [listItems, setListItems] = useState<ListItem[]>([]);
   const [shareDestination, setShareDestination] = useState<ShareDestination>({ type: "private" });
-  
+
   // UI state
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -118,7 +118,7 @@ export default function CreateListEnhanced() {
 
       // Parse the response to get the actual list data
       const newList = await listResponse.json();
-      
+
       // Then add restaurants to the list if any
       if (data.restaurants && data.restaurants.length > 0) {
         const restaurantPromises = data.restaurants.map((restaurant: any, index: number) => 
@@ -133,7 +133,7 @@ export default function CreateListEnhanced() {
             }),
           })
         );
-        
+
         await Promise.all(restaurantPromises);
       }
 
@@ -234,7 +234,7 @@ export default function CreateListEnhanced() {
     const hasItems = listItems.length > 0;
     const hasDestination = shareDestination.type !== "private" || true; // Private is always valid
     const hasDescription = listData.description?.trim()?.length ?? 0 > 0;
-    
+
     return {
       title: hasTitle,
       items: hasItems,
@@ -259,7 +259,7 @@ export default function CreateListEnhanced() {
             showBackButton={true} 
             onBack={() => window.history.back()}
           />
-          
+
           <div className="max-w-4xl mx-auto px-6 py-8 pt-14">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
@@ -448,7 +448,7 @@ export default function CreateListEnhanced() {
           showBackButton={true} 
           onBack={() => window.history.back()}
         />
-        
+
         <div className="px-4 py-6 pb-24 pt-14">
           {/* Mobile Header */}
           <div className="flex items-center gap-4 mb-6">
@@ -514,7 +514,7 @@ export default function CreateListEnhanced() {
                   Add
                 </Button>
               </div>
-              
+
               {listItems.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <p>No restaurants yet - tap Add to start</p>

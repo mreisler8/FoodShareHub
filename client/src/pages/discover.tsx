@@ -29,22 +29,22 @@ export default function Discover() {
     cuisine: '',
     radius: 5000
   });
-  
+
   // Fetch restaurants
   const { data: restaurants, isLoading: isRestaurantsLoading } = useQuery<Restaurant[]>({
     queryKey: [`/api/restaurants${searchQuery ? `?query=${searchQuery}` : ""}`],
   });
-  
+
   // Fetch circles
   const { data: circles, isLoading: isCirclesLoading } = useQuery<CircleWithStats[]>({
     queryKey: ["/api/circles"],
   });
-  
+
   // Fetch users (not implemented in API yet)
   const { data: users = [], isLoading: isUsersLoading } = useQuery<any[]>({
     queryKey: ["/api/users"],
   });
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // The query will automatically update based on the state change
@@ -54,10 +54,10 @@ export default function Discover() {
     <div className="flex min-h-screen mb-16 md:mb-0">
       {/* Mobile navigation at bottom of screen */}
       <MobileNavigation />
-      
+
       {/* Desktop Sidebar */}
       <DesktopSidebar />
-      
+
       {/* App Header */}
       <div className="flex-1">
         <AppHeader 
@@ -65,12 +65,12 @@ export default function Discover() {
           showBackButton={true}
           onBack={() => window.history.back()}
         />
-        
+
         {/* Main Content Area */}
         <div className="max-w-5xl mx-auto px-4 py-6 md:px-8 pt-14">
           {/* Page Header */}
           <header className="mb-6">
-          
+
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative flex-1">
@@ -107,7 +107,7 @@ export default function Discover() {
             </div>
           </form>
         </header>
-        
+
         {/* Content Tabs */}
         <Tabs defaultValue="restaurants" className="mb-6" onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0">
@@ -153,7 +153,7 @@ export default function Discover() {
               Recommendations
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Restaurants Tab */}
           <TabsContent value="restaurants" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             {isRestaurantsLoading ? (
@@ -213,7 +213,7 @@ export default function Discover() {
               </div>
             )}
           </TabsContent>
-          
+
           {/* Food Circles Tab */}
           <TabsContent value="circles" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             {isCirclesLoading ? (
@@ -261,7 +261,7 @@ export default function Discover() {
               </div>
             )}
           </TabsContent>
-          
+
           {/* People Tab */}
           <TabsContent value="people" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             {isUsersLoading ? (
@@ -306,17 +306,17 @@ export default function Discover() {
               </div>
             )}
           </TabsContent>
-          
+
           {/* Recommendations Tab */}
           <TabsContent value="recommendations" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             <RecentRecommendations />
           </TabsContent>
         </Tabs>
-        
+
         {/* Floating Action Button */}
         <CreatePostButton />
         </div>
-        
+
         {/* Right Sidebar (Desktop Only) */}
         <DesktopRightSidebar />
       </div>

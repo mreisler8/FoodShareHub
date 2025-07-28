@@ -723,7 +723,8 @@ export default function ProfilePage() {
                   </Button>
                 )}
               </div>
-            ) : (
+            )```text
+: (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-sm text-gray-600">No followers yet</p>
@@ -843,7 +844,7 @@ export default function ProfilePage() {
     <div className="flex min-h-screen mb-16 md:mb-0">
       <MobileNavigation />
       <DesktopSidebar />
-      
+
       {/* Main Content Area */}
       <div className="flex-1 max-w-4xl mx-auto">
         {/* App Header with back button and logo */}

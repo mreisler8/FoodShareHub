@@ -1,62 +1,76 @@
-import { ArrowLeft } from "lucide-react";
-import { Button } from "./button";
+
+import React from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useLocation } from 'wouter';
 
 interface AppHeaderProps {
-  title: string;
+  title?: string;
   showBackButton?: boolean;
-  onBack?: () => void;
+  customBackAction?: () => void;
+  rightContent?: React.ReactNode;
 }
 
-export function AppHeader({ title, showBackButton = false, onBack }: AppHeaderProps) {
+export function AppHeader({ 
+  title, 
+  showBackButton = true, 
+  customBackAction,
+  rightContent 
+}: AppHeaderProps) {
+  const [, setLocation] = useLocation();
+
+  const handleBack = () => {
+    if (customBackAction) {
+      customBackAction();
+    } else {
+      window.history.back();
+    }
+  };
+
+  const handleLogoClick = () => {
+    setLocation('/');
+  };
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 h-14">
-      <div className="flex items-center justify-between h-full px-4">
-        {/* Left side */}
-        <div className="flex items-center gap-3 min-w-0">
-          {showBackButton && (
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100">
+      <div className="flex items-center justify-between h-14 px-4 max-w-md mx-auto">
+        {/* Left section: Back button or Logo */}
+        <div className="flex items-center space-x-3">
+          {showBackButton ? (
             <Button
               variant="ghost"
               size="sm"
-              onClick={onBack}
-              className="p-2 hover:bg-gray-100 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center"
-              aria-label="Go back"
+              onClick={handleBack}
+              className="p-2 hover:bg-gray-100 rounded-full"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5 text-gray-700" />
             </Button>
-          )}
-
-          {/* Logo - Always visible */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          ) : null}
+          
+          {/* Logo */}
+          <button
+            onClick={handleLogoClick}
+            className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+          >
             <img 
               src="/logo.svg" 
               alt="Circles" 
-              className="h-8 w-8 flex-shrink-0"
-              onError={(e) => {
-                // Fallback to a simple circle if logo fails to load
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const fallback = target.nextElementSibling as HTMLDivElement;
-                if (fallback) fallback.style.display = 'flex';
-              }}
+              className="h-8 w-8"
             />
-            <div 
-              className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm hidden flex-shrink-0"
-              aria-label="Circles logo"
-            >
-              C
-            </div>
+            {title && (
+              <h1 className="text-lg font-semibold text-gray-900 truncate">
+                {title}
+              </h1>
+            )}
+          </button>
+        </div>
+
+        {/* Right section: Custom content */}
+        {rightContent && (
+          <div className="flex items-center">
+            {rightContent}
           </div>
-        </div>
-
-        {/* Center - Title */}
-        <div className="flex-1 flex justify-center px-4">
-          <h1 className="text-lg font-semibold text-gray-900 truncate max-w-[200px]">{title}</h1>
-        </div>
-
-        {/* Right side - placeholder for potential actions */}
-        <div className="min-w-0 flex justify-end">
-          {/* Space for future header actions */}
-        </div>
+        )}
       </div>
     </header>
   );
