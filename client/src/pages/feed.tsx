@@ -267,7 +267,6 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           {/* Enhanced App Header with Logo - FIXED POSITION */}
           <AppHeader 
             showBackButton={false}
-            showLogo={true}
           />
 
           {/* Stories Section - Instagram Style */}
