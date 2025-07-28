@@ -4,7 +4,7 @@ import { Plus, Search, X, GripVertical, MapPin, Star, Users, Globe, Lock, Eye, E
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { AppHeader } from '@/components/ui/AppHeader';
+import { GlobalHeader } from '@/components/ui/GlobalHeader';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -250,7 +250,7 @@ export default function CreateListEnhanced() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AppHeader showBackButton={true} title="Create List" />
+      <GlobalHeader showBackButton={true} title="Create List" />
 
       <div className="pt-14">
         {/* Desktop Layout */}
