@@ -19,12 +19,11 @@ import { SimpleCircleWizard } from "@/components/circles/SimpleCircleWizard";
 import { CreateCircleForm } from "@/components/circles/CreateCircleForm";
 import { InviteMembersModal } from "@/components/circles/InviteMembersModal";
 import { CircleFeed } from "@/components/circles/CircleFeed";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "wouter";
 import { Circle } from "@shared/schema";
 
 interface CirclePageData extends Circle {
-  memberCount?: number;
+  memberCount?: number | null;
   role?: string;
 }
 
@@ -186,8 +185,7 @@ export default function CirclesPage() {
         {/* App Header with logo */}
         <AppHeader 
           title="Circles" 
-          showBackButton={true}
-          onBack={() => window.history.back()}
+          showBackButton={false}
         />
 
         <div className="max-w-4xl mx-auto px-4 py-6 pt-14">
@@ -289,7 +287,7 @@ export default function CirclesPage() {
             <InviteMembersModal
               isOpen={inviteModalOpen}
               onClose={() => setInviteModalOpen(false)}
-              circle={selectedCircle}
+              circle={selectedCircle as Circle}
             />
           )}
         </div>
