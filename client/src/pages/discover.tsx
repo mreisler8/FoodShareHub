@@ -17,7 +17,10 @@ import { Restaurant, Circle } from "@shared/schema";
 import { CircleWithStats } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecentRecommendations } from "@/components/recommendations/RecentRecommendations";
-import { AppHeader } from "@/components/ui/AppHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { useAuth } from '@/hooks/use-auth';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { DiscoverItemRenderer } from '@/components/discover/DiscoverItemRenderer';
 
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,7 +63,7 @@ export default function Discover() {
 
       {/* App Header */}
       <div className="flex-1">
-        <AppHeader 
+        <PageHeader 
           title="Discover" 
           showBackButton={true}
           showLogo={false}

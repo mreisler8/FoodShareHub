@@ -39,7 +39,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
-import { AppHeader } from "@/components/ui/AppHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { AppHeader } from '@/components/ui/AppHeader';
 
 
 export default function ProfilePage() {
@@ -719,8 +720,7 @@ export default function ProfilePage() {
                 ))}
                 {followers.length > 5 && (
                   <Button variant="outline" size="sm" className="w-full mt-4 border-gray-200 hover:bg-gray-50">
-                    View all {followers.length} followers
-                  </Button>
+                    View all {followers.length} followers                  </Button>
                 )}
               </div>
             ) : (
@@ -846,8 +846,7 @@ export default function ProfilePage() {
 
       {/* Main Content Area */}
       <div className="flex-1 max-w-4xl mx-auto">
-        {/* App Header with back button and logo */}
-        <PageHeader 
+        <AppHeader 
           title={profileUser?.name || profileUser?.username || "Profile"} 
           showBackButton={true}
           showLogo={false}
