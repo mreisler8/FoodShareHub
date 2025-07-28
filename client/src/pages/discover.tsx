@@ -63,7 +63,7 @@ export default function Discover() {
 
       {/* App Header */}
       <div className="flex-1">
-        <UnifiedHeader mode="back" title="Discover" />
+        <UnifiedHeader showBackButton={true} title="Discover" />
 
         {/* Main Content Area */}
         <div className="max-w-5xl mx-auto px-4 py-6 md:px-8 pt-14">

@@ -8,6 +8,10 @@ interface BackButtonProps {
   className?: string;
 }
 
+/**
+ * @deprecated Use AppHeader with showBackButton=true instead
+ * This component will be removed in the next version
+ */
 export function BackButton({ onClick, className = '' }: BackButtonProps) {
   const navigate = useNavigate();
 
@@ -18,6 +22,8 @@ export function BackButton({ onClick, className = '' }: BackButtonProps) {
       navigate(-1);
     }
   };
+
+  console.warn('BackButton is deprecated. Use AppHeader with showBackButton=true instead.');
 
   return (
     <button

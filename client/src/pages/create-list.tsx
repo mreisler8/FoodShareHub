@@ -250,7 +250,7 @@ export default function CreateListEnhanced() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <UnifiedHeader mode="back" title="Create List" />
+      <UnifiedHeader showBackButton={true} title="Create List" />
 
       <div className="pt-14">
         {/* Desktop Layout */}

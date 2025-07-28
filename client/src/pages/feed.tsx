@@ -265,7 +265,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
 
         <div className="flex-1 overflow-auto lg:ml-0">
           {/* Unified Header with Logo */}
-          <UnifiedHeader mode="logo" />
+          <UnifiedHeader showBackButton={false} />
 
           {/* Stories Section - Instagram Style */}
           <StoriesSection 

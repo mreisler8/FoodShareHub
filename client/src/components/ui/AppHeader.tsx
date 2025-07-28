@@ -51,6 +51,10 @@ export function AppHeader({ showBackButton = false, title, onBackClick }: AppHea
               src="/logo-brand.svg"
               alt="Brand Logo"
               className="h-8 w-8"
+              onError={(e) => {
+                console.error('Logo failed to load:', e);
+                e.currentTarget.style.display = 'none';
+              }}
             />
             {title && (
               <h1 className="text-lg font-semibold text-gray-900">{title}</h1>

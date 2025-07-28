@@ -473,7 +473,7 @@ export default function Profile() {
       <DesktopSidebar />
 
       <div className="flex-1 max-w-5xl mx-auto">
-        <UnifiedHeader mode="back" title="Profile" />
+        <UnifiedHeader showBackButton={true} title="Profile" />
 
         <div className="pt-14"></div>
 
