@@ -14,7 +14,7 @@ const createListSchema = z.object({
   description: z.string().nullable().optional(),
   tags: z.array(z.string()).optional().default([]),
   circleId: z.number().nullable().optional(),
-  visibility: z.enum(['public', 'circle', 'private']).optional().default('public'),
+  visibility: z.enum(['public', 'circle', 'followers', 'private']).optional().default('circle'),
   isPublic: z.boolean().optional().default(false),
   shareWithCircle: z.boolean().optional().default(false),
   makePublic: z.boolean().optional().default(false),
