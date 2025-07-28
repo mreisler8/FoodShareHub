@@ -179,116 +179,118 @@ export default function CirclesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
+    <>
+      <GlobalHeader />
+      <div className="min-h-screen bg-gray-50 pt-16">
+        {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
 
-      <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
-        <GlobalHeader showBackButton={false} />
+        <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
 
-        <div className="max-w-4xl mx-auto px-4 py-6 pt-14">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">My Circles</h1>
-              <p className="text-gray-600">Connect with food lovers who share your taste</p>
+          <div className="max-w-4xl mx-auto px-4 py-6 pt-14">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold">My Circles</h1>
+                <p className="text-gray-600">Connect with food lovers who share your taste</p>
+              </div>
+              <Button className="gap-2" onClick={() => setWizardOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Create Circle
+              </Button>
             </div>
-            <Button className="gap-2" onClick={() => setWizardOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Create Circle
-            </Button>
-          </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="my-circles">My Circles</TabsTrigger>
-              <TabsTrigger value="discover">Discover</TabsTrigger>
-              <TabsTrigger value="invites">Invites</TabsTrigger>
-            </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="my-circles">My Circles</TabsTrigger>
+                <TabsTrigger value="discover">Discover</TabsTrigger>
+                <TabsTrigger value="invites">Invites</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="my-circles" className="mt-6">
-              {isLoading ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {Array(4).fill(0).map((_, i) => (
-                    <LoadingCard key={i} />
-                  ))}
-                </div>
-              ) : circles.length === 0 ? (
-                <EmptyState
-                  icon={Users}
-                  title="No circles yet"
-                  description="Create your first circle to start connecting with other food enthusiasts"
-                  action={{
-                    label: "Create Your First Circle",
-                    onClick: () => setCreateFormOpen(true)
-                  }}
-                />
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {circles.map((circle) => (
-                    <Link key={circle.id} href={`/circles/${circle.id}`}>
-                      <CircleCard circle={circle} />
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="discover" className="mt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">Discover Public Circles</h2>
-                  <Badge variant="outline">
-                    {publicCircles.length} available
-                  </Badge>
-                </div>
-                {publicCircles.length === 0 ? (
+              <TabsContent value="my-circles" className="mt-6">
+                {isLoading ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {Array(4).fill(0).map((_, i) => (
+                      <LoadingCard key={i} />
+                    ))}
+                  </div>
+                ) : circles.length === 0 ? (
                   <EmptyState
-                    icon={Globe}
-                    title="No public circles found"
-                    description="Be the first to create a public circle for others to discover"
+                    icon={Users}
+                    title="No circles yet"
+                    description="Create your first circle to start connecting with other food enthusiasts"
                     action={{
-                      label: "Create Public Circle",
+                      label: "Create Your First Circle",
                       onClick: () => setCreateFormOpen(true)
                     }}
                   />
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
-                    {publicCircles.map((circle) => (
-                      <CircleCard key={circle.id} circle={circle} showJoinButton={true} />
+                    {circles.map((circle) => (
+                      <Link key={circle.id} href={`/circles/${circle.id}`}>
+                        <CircleCard circle={circle} />
+                      </Link>
                     ))}
                   </div>
                 )}
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="invites" className="mt-6">
-              <PendingInvites />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="discover" className="mt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Discover Public Circles</h2>
+                    <Badge variant="outline">
+                      {publicCircles.length} available
+                    </Badge>
+                  </div>
+                  {publicCircles.length === 0 ? (
+                    <EmptyState
+                      icon={Globe}
+                      title="No public circles found"
+                      description="Be the first to create a public circle for others to discover"
+                      action={{
+                        label: "Create Public Circle",
+                        onClick: () => setCreateFormOpen(true)
+                      }}
+                    />
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {publicCircles.map((circle) => (
+                        <CircleCard key={circle.id} circle={circle} showJoinButton={true} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
 
-          {/* Modals */}
-          <SimpleCircleWizard
-            isOpen={wizardOpen}
-            onClose={() => setWizardOpen(false)}
-          />
+              <TabsContent value="invites" className="mt-6">
+                <PendingInvites />
+              </TabsContent>
+            </Tabs>
 
-          <Dialog open={createFormOpen} onOpenChange={setCreateFormOpen}>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-              <CreateCircleForm 
-                onSuccess={handleCreateSuccess}
-                onCancel={() => setCreateFormOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
-
-          {inviteModalOpen && selectedCircle && (
-            <InviteMembersModal
-              isOpen={inviteModalOpen}
-              onClose={() => setInviteModalOpen(false)}
-              circle={selectedCircle as Circle}
+            {/* Modals */}
+            <SimpleCircleWizard
+              isOpen={wizardOpen}
+              onClose={() => setWizardOpen(false)}
             />
-          )}
+
+            <Dialog open={createFormOpen} onOpenChange={setCreateFormOpen}>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <CreateCircleForm 
+                  onSuccess={handleCreateSuccess}
+                  onCancel={() => setCreateFormOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+
+            {inviteModalOpen && selectedCircle && (
+              <InviteMembersModal
+                isOpen={inviteModalOpen}
+                onClose={() => setInviteModalOpen(false)}
+                circle={selectedCircle as Circle}
+              />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

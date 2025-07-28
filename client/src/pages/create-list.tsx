@@ -249,342 +249,74 @@ export default function CreateListEnhanced() {
   const status = getCompletionStatus();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <GlobalHeader showBackButton={true} title="Create List" />
-
-      <div className="pt-14">
-        {/* Desktop Layout */}
-        <div className="hidden lg:flex">
-          <DesktopSidebar />
-          <main className="flex-1 ml-64">
-            {/* Desktop content - header handled by top-level AppHeader */}
-
-            <div className="max-w-4xl mx-auto px-6 py-8 pt-14">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Let's build your list</h1>
-                    <p className="text-gray-600">Start with one place or dish — you can always add more later</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1">
-                    <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500 ease-out"
-                        style={{ width: `${status.completionPercentage}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">{status.completionPercentage}%</span>
-                  </div>
-                  {status.title && <Badge variant="secondary" className="bg-green-100 text-green-800">Title ✓</Badge>}
-                  {status.items && <Badge variant="secondary" className="bg-green-100 text-green-800">{listItems.length} Restaurants ✓</Badge>}
-                </div>
+    <>
+      <GlobalHeader title="Create a List" showBackButton={true} />
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <main className="max-w-2xl mx-auto pb-20">
+          {/* Content starts here - header removed since it's now in GlobalHeader */}
+          <div className="bg-white border-b sticky top-16 z-50 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <h1 className="text-lg font-semibold">Create a List</h1>
               </div>
 
-              {/* Quick Templates */}
-              {!listData.title && (
-                <Card className="mb-8">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-blue-600" />
-                      Quick Start Templates
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {QUICK_TEMPLATES.map((template, index) => (
-                        <Button
-                          key={index}
-                          variant="outline"
-                          onClick={() => handleQuickTemplate(template)}
-                          className="h-auto p-4 text-left flex flex-col items-start gap-1"
-                        >
-                          <Star className="h-5 w-5 text-yellow-500" />
-                          <span className="font-medium">{template.text}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* List Details Form */}
-              <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    List Details
-                    {!status.title && (
-                      <span className="text-sm text-gray-500 font-normal">Start by giving your list a memorable name</span>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <Label htmlFor="title">List Title *</Label>
-                    <Input
-                      id="title"
-                      value={listData.title}
-                      onChange={(e) => setListData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="e.g., Best Pizza in Toronto"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Description (optional)</Label>
-                    <Textarea
-                      id="description"
-                      value={listData.description}
-                      onChange={(e) => setListData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Tell people what makes this list special..."
-                      rows={3}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="ranked"
-                      checked={listData.isRanked}
-                      onCheckedChange={(checked) => setListData(prev => ({ ...prev, isRanked: checked }))}
-                    />
-                    <Label htmlFor="ranked">Make this a ranked list (1st, 2nd, 3rd...)</Label>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* List Items */}
-              <Card className="mb-8">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Your List ({listItems.length} items)</CardTitle>
-                    <Button onClick={() => setShowAddItemModal(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Restaurant
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {listItems.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                      <div className="text-4xl mb-4">
-                        <Utensils className="h-16 w-16 text-gray-300 mx-auto" />
-                      </div>
-                      <p className="text-lg mb-2">Ready to add your first spot?</p>
-                      <p className="mb-4">Great lists start with one amazing place</p>
-                      <Button 
-                        onClick={() => setShowAddItemModal(true)}
-                        className="bg-orange-500 hover:bg-orange-600"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Your First Restaurant
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {listItems.map((item, index) => (
-                        <div key={item.id} className="relative">
-                          <ListItemPreview 
-                            item={{...item, rank: listData.isRanked ? index + 1 : undefined}}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="absolute top-2 right-2 h-8 w-8 p-0 hover:bg-red-100"
-                          >
-                            <X className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Share Destination */}
-              <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle>Share With</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ShareDestinationCards
-                    selected={shareDestination}
-                    onChange={setShareDestination}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Submit Button */}
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!status.complete || createListMutation.isPending}
-                  size="lg"
-                  className="min-w-[200px]"
-                >
-                  {createListMutation.isPending ? (
-                    "Creating List..."
-                  ) : status.complete ? (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Create List
-                    </>
-                  ) : (
-                    `Create List (${!status.title ? 'Add title' : !status.items ? 'Add restaurants' : 'Ready'})`
-                  )}
-                </Button>
-              </div>
-            </div>
-          </main>
-        </div>
-
-        {/* Mobile Layout */}
-        <div className="lg:hidden">
-
-
-          <div className="px-4 py-6 pb-24 pt-14">
-            {/* Mobile Header */}
-            <div className="flex items-center gap-4 mb-6">
-              <div>
-                <h1 className="text-xl font-bold">Let's build your list</h1>
-                <p className="text-sm text-gray-600">Start with one place or dish</p>
-              </div>
-            </div>
-
-            {/* Mobile Content - Same structure but condensed */}
-            {/* Quick Templates */}
-            {!listData.title && (
-              <Card className="mb-6">
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    {QUICK_TEMPLATES.slice(0, 4).map((template, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        onClick={() => handleQuickTemplate(template)}
-                        className="h-auto p-3 text-left"
-                        size="sm"
-                      >
-                        <span className="text-sm">{template.text}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Mobile Form */}
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="mobile-title">List Title *</Label>
-                <Input
-                  id="mobile-title"
-                  value={listData.title}
-                  onChange={(e) => setListData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g., Best Pizza in Toronto"
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="mobile-description">Description</Label>
-                <Textarea
-                  id="mobile-description"
-                  value={listData.description}
-                  onChange={(e) => setListData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="What makes this list special..."
-                  rows={2}
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Mobile List Items */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <Label>Restaurants ({listItems.length})</Label>
-                  <Button onClick={() => setShowAddItemModal(true)} size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-
-                {listItems.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>No restaurants yet - tap Add to start</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {listItems.map((item, index) => (
-                      <div key={item.id} className="relative">
-                        <ListItemPreview 
-                          item={{...item, rank: listData.isRanked ? index + 1 : undefined}}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="absolute top-1 right-1 h-6 w-6 p-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile Share Options */}
-              <div>
-                <Label className="mb-4 block">Share With</Label>
-                <ShareDestinationCards
-                  selected={shareDestination}
-                  onChange={setShareDestination}
-                />
-              </div>
-
-              {/* Mobile Submit */}
-              <Button
-                onClick={handleSubmit}
-                disabled={!status.complete || createListMutation.isPending}
-                className="w-full"
-                size="lg"
-              >
-                {createListMutation.isPending ? "Creating..." : "Create List"}
-              </Button>
+              <div>{/* Completion status or other info */}</div>
             </div>
           </div>
-          <MobileNavigation />
-        </div>
 
-        {/* Modals */}
+          <div className="px-4 py-6">
+            {/* List creation form */}
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700">List Title</label>
+                <input
+                  type="text"
+                  id="title"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  value={listData.title}
+                  onChange={(e) => setListData({ ...listData, title: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  id="description"
+                  rows={3}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  value={listData.description}
+                  onChange={(e) => setListData({ ...listData, description: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Restaurants</label>
+                {listItems.length === 0 ? (
+                  <p className="mt-2 text-sm text-gray-500">No restaurants added yet.</p>
+                ) : (
+                  <ul>
+                    {listItems.map((item, index) => (
+                      <li key={item.id} className="py-2 border-b">
+                        {item.restaurant?.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Button onClick={() => setShowAddItemModal(true)} className="mt-2">Add Restaurant</Button>
+              </div>
+
+              <Button onClick={handleSubmit} className="w-full">Create List</Button>
+            </div>
+          </div>
+        </main>
+
+        {/* Add Item Modal */}
         <AddListItemModal
           open={showAddItemModal}
           onOpenChange={setShowAddItemModal}
           onSave={handleAddListItem}
         />
-
-        {createdListId && (
-          <PostSuccessModal
-            open={showSuccessModal}
-            onOpenChange={setShowSuccessModal}
-            listId={createdListId}
-            listTitle={listData.title}
-            destination={shareDestination}
-            options={{
-              view: `/lists/${createdListId}`,
-              new: "/create-list",
-              home: "/"
-            }}
-            onNavigate={(path) => {
-              setShowSuccessModal(false);
-              navigate(path);
-            }}
-          />
-        )}
       </div>
-    </div>
+    </>
   );
 }

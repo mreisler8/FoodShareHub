@@ -468,239 +468,109 @@ export default function Profile() {
   }
 
   return (
-    <div className="flex min-h-screen mb-16 md:mb-0">
-      <MobileNavigation />
-      <DesktopSidebar />
+    <>
+      <GlobalHeader />
+      <div className="flex min-h-screen mb-16 md:mb-0 pt-16">
+        <MobileNavigation />
+        <DesktopSidebar />
 
-      <div className="flex-1 max-w-5xl mx-auto">
-        <GlobalHeader showBackButton={false} />
+        <div className="flex-1 max-w-5xl mx-auto">
 
-        <div className="pt-14"></div>
+          <div className="pt-14"></div>
 
-        {/* Profile Cover & Header */}
-        <div className="bg-white rounded-t-xl overflow-hidden">
-          <ProfileCover />
-          <ProfileHeader />
-          <StatsBar />
-        </div>
+          {/* Profile Cover & Header */}
+          <div className="bg-white rounded-t-xl overflow-hidden">
+            <ProfileCover />
+            <ProfileHeader />
+            <StatsBar />
+          </div>
 
-        {/* Content Tabs */}
-        <div className="bg-white">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0 px-6 md:px-8">
-              <TabsTrigger 
-                value="reviews"
-                className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
-              >
-                <Star className="h-4 w-4 mr-2" />
-                Reviews
-              </TabsTrigger>
-              <TabsTrigger 
-                value="lists"
-                className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
-              >
-                <Bookmark className="h-4 w-4 mr-2" />
-                Lists
-              </TabsTrigger>
-              <TabsTrigger 
-                value="circles"
-                className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Circles
-              </TabsTrigger>
-              {isOwnProfile && (
+          {/* Content Tabs */}
+          <div className="bg-white">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0 px-6 md:px-8">
                 <TabsTrigger 
-                  value="saved"
+                  value="reviews"
                   className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
                 >
-                  <Heart className="h-4 w-4 mr-2" />
-                  Saved
+                  <Star className="h-4 w-4 mr-2" />
+                  Reviews
                 </TabsTrigger>
-              )}
-              <TabsTrigger 
-                value="connections"
-                className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                Connections
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="px-6 md:px-8 py-6">
-              <TabsContent value="reviews" className="mt-0">
-                {isPostsLoading ? (
-                  <div className="space-y-6">
-                    {Array(3).fill(0).map((_, i) => (
-                      <Card key={i}>
-                        <CardContent className="p-4">
-                          <div className="flex items-center mb-4">
-                            <Skeleton className="w-10 h-10 rounded-full mr-3" />
-                            <div>
-                              <Skeleton className="h-4 w-32 mb-2" />
-                              <Skeleton className="h-3 w-24" />
-                            </div>
-                          </div>
-                          <Skeleton className="h-20 w-full" />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : userPosts && userPosts.length > 0 ? (
-                  <div className="space-y-6">
-                    {userPosts.map((post) => (
-                      <PostCard key={post.id} post={post} />
-                    ))}
-                  </div>
-                ) : (
-                  <Card className="text-center py-12">
-                    <CardContent>
-                      <Star className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews yet</h3>
-                      <p className="text-gray-500">
-                        {isOwnProfile 
-                          ? "Share your first restaurant experience!" 
-                          : `${profileUser.name} hasn't shared any reviews yet.`
-                        }
-                      </p>
-                    </CardContent>
-                  </Card>
+                <TabsTrigger 
+                  value="lists"
+                  className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
+                >
+                  <Bookmark className="h-4 w-4 mr-2" />
+                  Lists
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="circles"
+                  className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Circles
+                </TabsTrigger>
+                {isOwnProfile && (
+                  <TabsTrigger 
+                    value="saved"
+                    className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
+                  >
+                    <Heart className="h-4 w-4 mr-2" />
+                    Saved
+                  </TabsTrigger>
                 )}
-              </TabsContent>
+                <TabsTrigger 
+                  value="connections"
+                  className="rounded-none border-b-2 pb-3 pt-0 px-4 font-medium data-[state=active]:border-primary data-[state=active]:text-primary"
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Connections
+                </TabsTrigger>
+              </TabsList>
 
-              <TabsContent value="lists" className="mt-0">
-                {isListsLoading ? (
-                  <div className="space-y-4">
-                    {Array(3).fill(0).map((_, i) => (
-                      <Card key={i}>
-                        <CardContent className="p-4">
-                          <Skeleton className="h-6 w-48 mb-2" />
-                          <Skeleton className="h-4 w-32 mb-2" />
-                          <Skeleton className="h-4 w-24" />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : userLists && userLists.length > 0 ? (
-                  <div className="space-y-4">
-                    {userLists.map((list: any) => (
-                      <Card key={list.id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg mb-2">{list.name}</h3>
-                              {list.description && (
-                                <p className="text-gray-600 mb-2">{list.description}</p>
-                              )}
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <span>{list.restaurantCount || 0} restaurants</span>
-                                <span>•</span>
-                                <span>{new Date(list.createdAt).toLocaleDateString()}</span>
-                              </div>
-                              <div className="flex items-center gap-2 mt-2">
-                                {list.makePublic && (
-                                  <Badge variant="secondary">Public</Badge>
-                                )}
-                                {list.shareWithCircle && (
-                                  <Badge variant="outline">Circle</Badge>
-                                )}
+              <div className="px-6 md:px-8 py-6">
+                <TabsContent value="reviews" className="mt-0">
+                  {isPostsLoading ? (
+                    <div className="space-y-6">
+                      {Array(3).fill(0).map((_, i) => (
+                        <Card key={i}>
+                          <CardContent className="p-4">
+                            <div className="flex items-center mb-4">
+                              <Skeleton className="w-10 h-10 rounded-full mr-3" />
+                              <div>
+                                <Skeleton className="h-4 w-32 mb-2" />
+                                <Skeleton className="h-3 w-24" />
                               </div>
                             </div>
-                            <Button variant="outline" size="sm" asChild>
-                              <Link href={`/lists/${list.id}`}>View</Link>
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <Card className="text-center py-12">
-                    <CardContent>
-                      <Bookmark className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No lists yet</h3>
-                      <p className="text-gray-500">
-                        {isOwnProfile 
-                          ? "Create your first restaurant list!" 
-                          : `${profileUser?.name} hasn't created any lists yet.`
-                        }
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
+                            <Skeleton className="h-20 w-full" />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : userPosts && userPosts.length > 0 ? (
+                    <div className="space-y-6">
+                      {userPosts.map((post) => (
+                        <PostCard key={post.id} post={post} />
+                      ))}
+                    </div>
+                  ) : (
+                    <Card className="text-center py-12">
+                      <CardContent>
+                        <Star className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews yet</h3>
+                        <p className="text-gray-500">
+                          {isOwnProfile 
+                            ? "Share your first restaurant experience!" 
+                            : `${profileUser.name} hasn't shared any reviews yet.`
+                          }
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
 
-              <TabsContent value="circles" className="mt-0">
-                {isCirclesLoading ? (
-                  <div className="space-y-4">
-                    {Array(3).fill(0).map((_, i) => (
-                      <Card key={i}>
-                        <CardContent className="p-4">
-                          <Skeleton className="h-6 w-48 mb-2" />
-                          <Skeleton className="h-4 w-32 mb-2" />
-                          <Skeleton className="h-4 w-24" />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : userCircles && userCircles.length > 0 ? (
-                  <div className="space-y-4">
-                    {userCircles.map((circle: any) => (
-                      <Card key={circle.id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg mb-2">{circle.name}</h3>
-                              {circle.description && (
-                                <p className="text-gray-600 mb-2">{circle.description}</p>
-                              )}
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <span>{circle.memberCount || 0} members</span>
-                                <span>•</span>
-                                <span>{new Date(circle.createdAt).toLocaleDateString()}</span>
-                              </div>
-                              <div className="flex items-center gap-2 mt-2">
-                                {circle.primaryCuisine && (
-                                  <Badge variant="secondary">{circle.primaryCuisine}</Badge>
-                                )}
-                                {circle.priceRange && (
-                                  <Badge variant="outline">{circle.priceRange}</Badge>
-                                )}
-                                {circle.creatorId === userId && (
-                                  <Badge variant="default">
-                                    <Crown className="h-3 w-3 mr-1" />
-                                    Owner
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <Button variant="outline" size="sm" asChild>
-                              <Link href={`/circles/${circle.id}`}>View</Link>
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <Card className="text-center py-12">
-                    <CardContent>
-                      <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No circles yet</h3>
-                      <p className="text-gray-500">
-                        {isOwnProfile 
-                          ? "Join or create your first circle!" 
-                          : `${profileUser?.name} isn't part of any public circles.`
-                        }
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              {isOwnProfile && (
-                <TabsContent value="saved" className="mt-0">
-                  {isSavedLoading ? (
+                <TabsContent value="lists" className="mt-0">
+                  {isListsLoading ? (
                     <div className="space-y-4">
                       {Array(3).fill(0).map((_, i) => (
                         <Card key={i}>
@@ -712,23 +582,33 @@ export default function Profile() {
                         </Card>
                       ))}
                     </div>
-                  ) : savedItems && savedItems.length > 0 ? (
+                  ) : userLists && userLists.length > 0 ? (
                     <div className="space-y-4">
-                      {savedItems.map((item: any) => (
-                        <Card key={item.id}>
+                      {userLists.map((list: any) => (
+                        <Card key={list.id}>
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <h3 className="font-semibold text-lg mb-2">{item.name}</h3>
-                                {item.description && (
-                                  <p className="text-gray-600 mb-2">{item.description}</p>
+                                <h3 className="font-semibold text-lg mb-2">{list.name}</h3>
+                                {list.description && (
+                                  <p className="text-gray-600 mb-2">{list.description}</p>
                                 )}
                                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                                  <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                                  <span>{list.restaurantCount || 0} restaurants</span>
+                                  <span>•</span>
+                                  <span>{new Date(list.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2">
+                                  {list.makePublic && (
+                                    <Badge variant="secondary">Public</Badge>
+                                  )}
+                                  {list.shareWithCircle && (
+                                    <Badge variant="outline">Circle</Badge>
+                                  )}
                                 </div>
                               </div>
                               <Button variant="outline" size="sm" asChild>
-                                <Link href={`/restaurants/${item.id}`}>View</Link>
+                                <Link href={`/lists/${list.id}`}>View</Link>
                               </Button>
                             </div>
                           </CardContent>
@@ -738,46 +618,168 @@ export default function Profile() {
                   ) : (
                     <Card className="text-center py-12">
                       <CardContent>
-                        <Heart className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Nothing saved yet</h3>
-                        <p className="text-gray-500">Save restaurants and posts to find them later!</p>
+                        <Bookmark className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No lists yet</h3>
+                        <p className="text-gray-500">
+                          {isOwnProfile 
+                            ? "Create your first restaurant list!" 
+                            : `${profileUser?.name} hasn't created any lists yet.`
+                          }
+                        </p>
                       </CardContent>
                     </Card>
                   )}
                 </TabsContent>
-              )}
 
-              <TabsContent value="connections" className="mt-0">
-                {userId ? (
-                  <FollowsPanel userId={userId} />
-                ) : (
-                  <div className="text-center py-12">
-                    <Globe className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Loading connections...</h3>
-                  </div>
+                <TabsContent value="circles" className="mt-0">
+                  {isCirclesLoading ? (
+                    <div className="space-y-4">
+                      {Array(3).fill(0).map((_, i) => (
+                        <Card key={i}>
+                          <CardContent className="p-4">
+                            <Skeleton className="h-6 w-48 mb-2" />
+                            <Skeleton className="h-4 w-32 mb-2" />
+                            <Skeleton className="h-4 w-24" />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : userCircles && userCircles.length > 0 ? (
+                    <div className="space-y-4">
+                      {userCircles.map((circle: any) => (
+                        <Card key={circle.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-lg mb-2">{circle.name}</h3>
+                                {circle.description && (
+                                  <p className="text-gray-600 mb-2">{circle.description}</p>
+                                )}
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                  <span>{circle.memberCount || 0} members</span>
+                                  <span>•</span>
+                                  <span>{new Date(circle.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2">
+                                  {circle.primaryCuisine && (
+                                    <Badge variant="secondary">{circle.primaryCuisine}</Badge>
+                                  )}
+                                  {circle.priceRange && (
+                                    <Badge variant="outline">{circle.priceRange}</Badge>
+                                  )}
+                                  {circle.creatorId === userId && (
+                                    <Badge variant="default">
+                                      <Crown className="h-3 w-3 mr-1" />
+                                      Owner
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href={`/circles/${circle.id}`}>View</Link>
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card className="text-center py-12">
+                      <CardContent>
+                        <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No circles yet</h3>
+                        <p className="text-gray-500">
+                          {isOwnProfile 
+                            ? "Join or create your first circle!" 
+                            : `${profileUser?.name} isn't part of any public circles.`
+                          }
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                {isOwnProfile && (
+                  <TabsContent value="saved" className="mt-0">
+                    {isSavedLoading ? (
+                      <div className="space-y-4">
+                        {Array(3).fill(0).map((_, i) => (
+                          <Card key={i}>
+                            <CardContent className="p-4">
+                              <Skeleton className="h-6 w-48 mb-2" />
+                              <Skeleton className="h-4 w-32 mb-2" />
+                              <Skeleton className="h-4 w-24" />
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : savedItems && savedItems.length > 0 ? (
+                      <div className="space-y-4">
+                        {savedItems.map((item: any) => (
+                          <Card key={item.id}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-lg mb-2">{item.name}</h3>
+                                  {item.description && (
+                                    <p className="text-gray-600 mb-2">{item.description}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                                  </div>
+                                </div>
+                                <Button variant="outline" size="sm" asChild>
+                                  <Link href={`/restaurants/${item.id}`}>View</Link>
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <Card className="text-center py-12">
+                        <CardContent>
+                          <Heart className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Nothing saved yet</h3>
+                          <p className="text-gray-500">Save restaurants and posts to find them later!</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
                 )}
-              </TabsContent>
-            </div>
-          </Tabs>
+
+                <TabsContent value="connections" className="mt-0">
+                  {userId ? (
+                    <FollowsPanel userId={userId} />
+                  ) : (
+                    <div className="text-center py-12">
+                      <Globe className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Loading connections...</h3>
+                    </div>
+                  )}
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
+
+          {/* Floating Action Button */}
+          {isOwnProfile && <CreatePostButton />}
         </div>
 
-        {/* Floating Action Button */}
-        {isOwnProfile && <CreatePostButton />}
+        {/* Find Friends Modal */}
+        {showFindFriendsModal && (
+          <UserSearchModal
+            isOpen={showFindFriendsModal}
+            onClose={() => setShowFindFriendsModal(false)}
+            onAddUser={handleFollowUser}
+            title="Find Friends"
+            subtitle="Discover people to follow"
+            actionLabel="Follow"
+            showFollowStatus={true}
+            excludeUserIds={[currentUser?.id || 0]}
+          />
+        )}
       </div>
-
-      {/* Find Friends Modal */}
-      {showFindFriendsModal && (
-        <UserSearchModal
-          isOpen={showFindFriendsModal}
-          onClose={() => setShowFindFriendsModal(false)}
-          onAddUser={handleFollowUser}
-          title="Find Friends"
-          subtitle="Discover people to follow"
-          actionLabel="Follow"
-          showFollowStatus={true}
-          excludeUserIds={[currentUser?.id || 0]}
-        />
-      )}
-    </div>
+    </>
   );
 }
