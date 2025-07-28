@@ -101,11 +101,29 @@ The application uses a comprehensive PostgreSQL schema including:
 - **Session Storage**: PostgreSQL session store for persistence
 - **Access Management**: Stable workflow configuration in .replit with "Start application" workflow for consistent preview access
 
-### Production Considerations
+### Production Deployment
 - **Build Process**: Vite production build with esbuild backend compilation
 - **Environment Variables**: Database URL and session secrets from environment
 - **Static Assets**: Frontend build served from Express static middleware
 - **Error Handling**: Comprehensive error boundaries and API error responses
+
+### Deployment Configuration
+The project is fully configured for production deployment:
+
+**Scripts Available:**
+- `npm run dev` - Development mode with Vite dev server
+- `npm run build` - Production build (frontend + backend)
+- `npm start` - Production server using built files
+
+**Production Build Process:**
+1. Frontend build: `vite build` → creates `dist/public/` with static assets
+2. Backend build: `esbuild server/index.ts` → creates `dist/index.js`
+3. Production server: Serves static files and API from single Express server
+
+**Deployment Requirements:**
+- `.replit` deployment configuration must use `npm start` instead of `npm run dev`
+- NODE_ENV should be set to "production" for deployment
+- Database URL and session secrets must be configured in environment variables
 
 ### Mobile Deployment
 - **Web App**: Progressive Web App with mobile optimizations
