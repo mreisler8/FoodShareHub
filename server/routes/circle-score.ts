@@ -32,13 +32,20 @@ router.get('/:id', async (req, res) => {
     let restaurantId: number | null = null;
     let googlePlaceId: string | null = null;
     
-    if (type === 'google_place') {
-      googlePlaceId = id;
-    } else {
+    // Enhanced ID detection for better compatibility
+    if (type === 'google_place' || id.startsWith('ChIJ') || id.length > 20) {
+      googlePlaceId = id.replace('google_', '');
+      console.log('🏢 Circle Score for Google Place ID:', googlePlaceId);
+    } else if (!isNaN(parseInt(id))) {
       restaurantId = parseInt(id);
-      if (isNaN(restaurantId)) {
-        return res.status(400).json({ error: 'Invalid restaurant ID' });
-      }
+      console.log('🏢 Circle Score for Database Restaurant ID:', restaurantId);
+    } else {
+      console.error('❌ Invalid restaurant ID format:', id);
+      return res.status(400).json({ 
+        error: 'Invalid restaurant ID format',
+        received: id,
+        expected: 'Numeric ID or Google Place ID starting with ChIJ'
+      });
     }
     
     // Calculate Circle Score with built-in caching
