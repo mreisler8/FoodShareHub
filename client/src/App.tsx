@@ -10,6 +10,7 @@ import { SmartPollingProvider } from "./components/optimized/SmartPollingProvide
 import { FloatingCreateButton } from "./components/common/FloatingCreateButton";
 import Router from "./components/Router";
 import BottomNavigation from "./components/navigation/BottomNavigation";
+import { RouteTransition } from "./components/transitions/RouteTransition";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { logViewportInfo } from "./utils/viewportDebug";
