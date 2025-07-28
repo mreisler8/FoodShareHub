@@ -52,6 +52,8 @@ import { momentsRouter } from './routes/moments';
 import tagsRouter from './routes/tags';
 import ratingsRouter from './routes/ratings';
 import discoverRouter from './routes/discover-basic';
+import discover from './routes/discover';
+import enhancedDiscover from './routes/enhanced-discover';
 import sharingRouter from './routes/sharing';
 import circleScoreRoutes from './routes/circle-score';
 import healthRoutes from './routes/health';
@@ -1349,7 +1351,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/following', followRoutes);
   app.use("/api/follow-requests", followRequestsRouter);
   app.use("/api/circles", circleRoutes.router); // Re-enabled for circle management
-  app.use("/api/discover", discoverRouter);
+  app.use("/api/discover", enhancedDiscover);
+  app.use("/api/discover-basic", discoverRouter);
   app.use("/api/sharing", sharingRouter);
   app.use("/api/circles/invites", circleInvitesRouter);
   app.use("/api/circles", circleRequestsRouter);

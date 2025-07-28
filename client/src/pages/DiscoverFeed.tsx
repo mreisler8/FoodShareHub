@@ -15,12 +15,15 @@ import {
   Users,
   Clock,
   ChefHat,
-  RefreshCw
+  RefreshCw,
+  Filter
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationService } from '@/services/locationService';
 import DiscoverItemRenderer from '@/components/discover/DiscoverItemRenderer';
+import { SmartDiscoveryFilters } from '@/components/discovery/SmartDiscoveryFilters';
+import { OccasionSearch } from '@/components/discovery/OccasionSearch';
 
 interface DiscoverItem {
   id: string;
@@ -44,11 +47,38 @@ interface DiscoverResponse {
 
 type TabType = 'for-you' | 'trending' | 'near-you';
 
+interface FilterState {
+  cuisines: string[];
+  location: {
+    type: 'near-me' | 'city' | 'neighborhood' | null;
+    value: string;
+    radius: number;
+    coordinates?: { lat: number; lng: number };
+  };
+  priceRange: number[];
+  minRating: number;
+  occasions: string[];
+  dietaryOptions: string[];
+  features: string[];
+  sortBy: 'relevance' | 'rating' | 'distance' | 'popularity' | 'recent';
+}
+
 export default function DiscoverFeed() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('for-you');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    cuisines: [],
+    location: { type: null, value: '', radius: 5 },
+    priceRange: [1, 4],
+    minRating: 0,
+    occasions: [],
+    dietaryOptions: [],
+    features: [],
+    sortBy: 'relevance'
+  });
 
   // Get user's location for "Near You" tab
   useEffect(() => {
@@ -87,21 +117,81 @@ export default function DiscoverFeed() {
     }
   };
 
-  // Query for discover feed data
+  // Clear filters function
+  const clearFilters = () => {
+    setFilters({
+      cuisines: [],
+      location: { type: null, value: '', radius: 5 },
+      priceRange: [1, 4],
+      minRating: 0,
+      occasions: [],
+      dietaryOptions: [],
+      features: [],
+      sortBy: 'relevance'
+    });
+  };
+
+  // Handle occasion search
+  const handleOccasionSearch = (query: string, tags: string[]) => {
+    setFilters(prev => ({
+      ...prev,
+      occasions: [...new Set([...prev.occasions, ...tags])]
+    }));
+  };
+
+  // Query for discover feed data with enhanced filtering
   const { data, isLoading, error, refetch } = useQuery<DiscoverResponse>({
-    queryKey: ['/api/discover', activeTab, location?.lat, location?.lng],
+    queryKey: ['/api/discover', activeTab, location?.lat, location?.lng, filters],
     queryFn: async () => {
-      let url = `/api/discover/${activeTab}?limit=20&offset=0`;
+      const params = new URLSearchParams({
+        tab: activeTab,
+        limit: '20',
+        offset: '0'
+      });
       
       if (activeTab === 'near-you' && location) {
-        url += `&lat=${location.lat}&lng=${location.lng}&radius=10000`;
+        params.append('lat', location.lat.toString());
+        params.append('lng', location.lng.toString());
+        params.append('radius', '10000');
+      }
+
+      // Add filter parameters
+      if (filters.cuisines.length > 0) {
+        params.append('cuisines', filters.cuisines.join(','));
+      }
+      if (filters.occasions.length > 0) {
+        params.append('occasions', filters.occasions.join(','));
+      }
+      if (filters.dietaryOptions.length > 0) {
+        params.append('dietary', filters.dietaryOptions.join(','));
+      }
+      if (filters.features.length > 0) {
+        params.append('features', filters.features.join(','));
+      }
+      if (filters.priceRange[0] > 1 || filters.priceRange[1] < 4) {
+        params.append('priceMin', filters.priceRange[0].toString());
+        params.append('priceMax', filters.priceRange[1].toString());
+      }
+      if (filters.minRating > 0) {
+        params.append('minRating', filters.minRating.toString());
+      }
+      if (filters.sortBy !== 'relevance') {
+        params.append('sortBy', filters.sortBy);
+      }
+      if (filters.location.type === 'city' && filters.location.value) {
+        params.append('city', filters.location.value);
+      }
+      if (filters.location.type === 'near-me' && filters.location.coordinates) {
+        params.append('lat', filters.location.coordinates.lat.toString());
+        params.append('lng', filters.location.coordinates.lng.toString());
+        params.append('radius', (filters.location.radius * 1000).toString());
       }
       
-      return apiRequest(url);
+      return apiRequest(`/api/discover/${activeTab}?${params}`);
     },
     enabled: activeTab !== 'near-you' || !!location,
     staleTime: activeTab === 'for-you' ? 30000 : activeTab === 'trending' ? 300000 : 120000,
-    cacheTime: 600000
+    gcTime: 600000
   });
 
   const getTabIcon = (tab: TabType) => {
@@ -142,14 +232,36 @@ export default function DiscoverFeed() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Discover</h1>
-          <p className="text-gray-600">Curated food experiences from your trusted network</p>
+    <div className="max-w-6xl mx-auto p-4 space-y-6">
+      {/* Occasion Search Section */}
+      <OccasionSearch onSearch={handleOccasionSearch} />
+      
+      {/* Smart Discovery Filters */}
+      <SmartDiscoveryFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        onClearFilters={clearFilters}
+        isCollapsed={!showFilters}
+        onToggleCollapse={() => setShowFilters(!showFilters)}
+      />
+
+      {/* Main Content */}
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Discover</h1>
+            <p className="text-gray-600">Curated food experiences from your trusted network</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={refetch}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
-      </div>
 
       {/* Tab Navigation */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -239,6 +351,7 @@ export default function DiscoverFeed() {
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
