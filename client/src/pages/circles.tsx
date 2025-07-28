@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { UnifiedHeader } from "@/components/ui/UnifiedHeader";
+import { AppHeader } from "@/components/ui/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import { InviteMembersModal } from "@/components/circles/InviteMembersModal";
 import { CircleFeed } from "@/components/circles/CircleFeed";
 import { Link } from "wouter";
 import { Circle } from "@shared/schema";
-import { AppHeader } from '@/components/ui/AppHeader';
+
 
 interface CirclePageData extends Circle {
   memberCount?: number | null;
@@ -183,7 +183,7 @@ export default function CirclesPage() {
       {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
 
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
-        <UnifiedHeader showBackButton={true} title="Circles" />
+        <AppHeader showBackButton={true} title="Circles" />
 
         <div className="max-w-4xl mx-auto px-4 py-6 pt-14">
           <div className="flex items-center justify-between mb-6">

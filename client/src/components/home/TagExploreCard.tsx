@@ -1,6 +1,6 @@
 import { Tag, TrendingUp, MapPin, Star } from "lucide-react";
 import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";

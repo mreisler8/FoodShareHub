@@ -1,6 +1,6 @@
 import { User, UserPlus } from "lucide-react";
 import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

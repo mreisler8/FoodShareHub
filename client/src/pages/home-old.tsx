@@ -7,7 +7,7 @@ import { MyLists } from "@/components/home/MyLists";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, Star, MapPin, Users } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";

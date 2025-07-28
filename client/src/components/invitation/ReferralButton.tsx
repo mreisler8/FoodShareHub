@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, ButtonProps } from "@/components/Button";
+import { Button, ButtonProps } from "@/components/ui/button";
 import { UserPlus, Share2, Users } from "lucide-react";
 import { InviteModal } from "./InviteModal";
 

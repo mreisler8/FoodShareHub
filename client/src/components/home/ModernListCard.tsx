@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Heart, Eye, User, Tag, MapPin, Users, Bookmark, Share2 } from "lucide-react";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/Card";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";

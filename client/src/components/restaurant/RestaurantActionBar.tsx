@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import QuickRateModal from '@/components/ratings/QuickRateModal';
 import AddToListModal from './AddToListModal';
 import SaveRestaurantModal from './SaveRestaurantModal';
-import ActionButton from './ActionButton';
+// ActionButton removed - using Button directly
 import { SendToFriendModal } from '@/components/sharing/SendToFriendModal';
 import { ShareLinkModal } from '@/components/sharing/ShareLinkModal';
 import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
@@ -188,21 +188,28 @@ export default function RestaurantActionBar({
           className
         )}>
           <div className="flex gap-2 max-w-sm mx-auto">
-            <ActionButton 
-              icon="bookmark" 
-              label={localSaved ? "Saved" : "Save"} 
-              active={localSaved}
+            <Button 
+              variant={localSaved ? "secondary" : "outline"}
+              size="sm"
               onClick={handleSave}
-            />
-            <ActionButton 
-              icon="zap" 
-              label={label} 
-              primary 
-              active={hasRated}
+              className={cn(localSaved && "bg-blue-50 text-blue-700 border-blue-200")}
+            >
+              <Bookmark className="h-4 w-4" />
+              {localSaved ? "Saved" : "Save"}
+            </Button>
+            <Button 
+              variant="primary"
+              size="sm"
               disabled={isLoading}
-            className={error ? 'border-red-200 text-red-600' : ''}
               onClick={handleQuickRate}
-            />
+              className={cn(
+                hasRated && "bg-blue-50 text-blue-700 border-blue-200",
+                error && "border-red-200 text-red-600"
+              )}
+            >
+              <Zap className="h-4 w-4" />
+              {label}
+            </Button>
             {isRecommendation && recommenderUserId && recommendationEntityId && restaurant.id && (
               <TriedItButton
                 entityType={recommendationEntityType}
@@ -214,21 +221,30 @@ export default function RestaurantActionBar({
                 variant="outline"
               />
             )}
-            <ActionButton 
-              icon="plus" 
-              label="Add to List" 
+            <Button 
+              variant="outline"
+              size="sm"
               onClick={handleAddToList}
-            />
-            <ActionButton 
-              icon="send" 
-              label="Send" 
+            >
+              <Plus className="h-4 w-4" />
+              Add to List
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
               onClick={handleSendToFriend}
-            />
-            <ActionButton 
-              icon="share-2" 
-              label="Share" 
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
               onClick={handleNativeShare}
-            />
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
           </div>
         </div>
         
@@ -286,20 +302,25 @@ export default function RestaurantActionBar({
         "flex flex-wrap gap-3 justify-start items-center px-4 py-3 border rounded-lg bg-white shadow-sm",
         className
       )}>
-        <ActionButton 
-          icon="bookmark" 
-          label={localSaved ? "Saved" : "Save"} 
-          active={localSaved}
+        <Button 
+          variant={localSaved ? "secondary" : "outline"}
+          size="default"
           onClick={handleSave}
-        />
-        <ActionButton 
-          icon="zap" 
-          label={label} 
-          primary 
-          active={hasRated}
+          className={cn(localSaved && "bg-blue-50 text-blue-700 border-blue-200")}
+        >
+          <Bookmark className="h-4 w-4" />
+          {localSaved ? "Saved" : "Save"}
+        </Button>
+        <Button 
+          variant="primary"
+          size="default"
           disabled={isLoading}
           onClick={handleQuickRate}
-        />
+          className={cn(hasRated && "bg-blue-50 text-blue-700 border-blue-200")}
+        >
+          <Zap className="h-4 w-4" />
+          {label}
+        </Button>
         {isRecommendation && recommenderUserId && recommendationEntityId && restaurant.id && (
           <TriedItButton
             entityType={recommendationEntityType}
@@ -311,21 +332,30 @@ export default function RestaurantActionBar({
             variant="outline"
           />
         )}
-        <ActionButton 
-          icon="plus" 
-          label="Add to List" 
+        <Button 
+          variant="outline"
+          size="default"
           onClick={handleAddToList}
-        />
-        <ActionButton 
-          icon="send" 
-          label="Send to Friend" 
+        >
+          <Plus className="h-4 w-4" />
+          Add to List
+        </Button>
+        <Button 
+          variant="outline"
+          size="default"
           onClick={handleSendToFriend}
-        />
-        <ActionButton 
-          icon="share-2" 
-          label="Share Restaurant" 
+        >
+          <Send className="h-4 w-4" />
+          Send to Friend
+        </Button>
+        <Button 
+          variant="outline"
+          size="default"
           onClick={handleNativeShare}
-        />
+        >
+          <Share2 className="h-4 w-4" />
+          Share Restaurant
+        </Button>
       </div>
 
       {/* Quick Rate Modal */}

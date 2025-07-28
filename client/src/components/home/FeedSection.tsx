@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { PostCard } from "./PostCard";
 import { PostWithDetails } from "@/lib/types";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";

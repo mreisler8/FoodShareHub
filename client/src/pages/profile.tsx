@@ -45,7 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
 import { SavedListsSection } from "@/components/SavedListsSection";
 import { useAuth } from "@/hooks/use-auth";
-import { UnifiedHeader } from "@/components/ui/UnifiedHeader";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 export default function Profile() {
   const { id } = useParams();
@@ -473,7 +473,7 @@ export default function Profile() {
       <DesktopSidebar />
 
       <div className="flex-1 max-w-5xl mx-auto">
-        <UnifiedHeader showBackButton={true} title="Profile" />
+        <AppHeader showBackButton={true} title="Profile" />
 
         <div className="pt-14"></div>
 

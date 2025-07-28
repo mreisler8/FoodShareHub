@@ -5,7 +5,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, MapPin, ChefHat, DollarSign, TrendingUp, Star } from "lucide-react";

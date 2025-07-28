@@ -6,7 +6,7 @@ import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { DesktopRightSidebar } from "@/components/navigation/DesktopRightSidebar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Rating } from "@/components/ui/rating";
@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RecentRecommendations } from "@/components/recommendations/RecentRecommendations";
 // PageHeader replaced with AppHeader which is already imported
 import { useAuth } from '@/hooks/use-auth';
-import { UnifiedHeader } from '@/components/ui/UnifiedHeader';
+import { AppHeader } from '@/components/ui/AppHeader';
 import DiscoverItemRenderer from '@/components/discover/DiscoverItemRenderer';
 
 export default function Discover() {
@@ -63,7 +63,7 @@ export default function Discover() {
 
       {/* App Header */}
       <div className="flex-1">
-        <UnifiedHeader showBackButton={true} title="Discover" />
+        <AppHeader showBackButton={true} title="Discover" />
 
         {/* Main Content Area */}
         <div className="max-w-5xl mx-auto px-4 py-6 md:px-8 pt-14">

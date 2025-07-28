@@ -3,7 +3,7 @@ import { RestaurantListCard } from "./RestaurantListCard";
 import { CreateListModal } from "./CreateListModal";
 import { ShareListToCircleModal } from "../circles/ShareListToCircleModal";
 import { useState } from "react";
-import { Button } from "../Button";
+import { Button } from "@/components/ui/button";
 import { Plus, Share2, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { RestaurantList } from "@shared/schema";

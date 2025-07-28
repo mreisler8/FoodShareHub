@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RestaurantListCard } from "./RestaurantListCard";
 import { CreateListModal } from "./CreateListModal";
 import { useState } from "react";
-import { Button } from "../Button";
+import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { RestaurantList } from "@shared/schema";

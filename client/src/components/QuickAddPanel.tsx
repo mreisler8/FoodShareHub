@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, MapPin, Star, FileText, Plus } from 'lucide-react';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/Card';
 import { PostModal } from '@/components/post/PostModal';
 import { useRestaurantSearch } from '@/hooks/useRestaurantSearch';

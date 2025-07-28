@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Clock, Users, Star, MapPin, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
