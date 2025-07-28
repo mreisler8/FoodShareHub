@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,7 +45,7 @@ export function AppHeader({
               <ArrowLeft className="h-5 w-5 text-gray-700" />
             </Button>
           ) : null}
-          
+
           {/* Logo */}
           <button
             onClick={handleLogoClick}
@@ -56,6 +55,7 @@ export function AppHeader({
               src="/logo.svg" 
               alt="Circles" 
               className="h-8 w-8"
+              key={Date.now()} 
             />
             {title && (
               <h1 className="text-lg font-semibold text-gray-900 truncate">
