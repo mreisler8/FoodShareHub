@@ -116,10 +116,13 @@ export default function CreateListEnhanced() {
         }),
       });
 
+      // Parse the response to get the actual list data
+      const newList = await listResponse.json();
+      
       // Then add restaurants to the list if any
       if (data.restaurants && data.restaurants.length > 0) {
         const restaurantPromises = data.restaurants.map((restaurant: any, index: number) => 
-          apiRequest(`/api/lists/${listResponse.id}/restaurants`, {
+          apiRequest(`/api/lists/${newList.id}/restaurants`, {
             method: "POST",
             body: JSON.stringify({
               name: restaurant.name,
@@ -134,7 +137,7 @@ export default function CreateListEnhanced() {
         await Promise.all(restaurantPromises);
       }
 
-      return listResponse;
+      return newList;
     },
     onSuccess: (data: any) => {
       setCreatedListId(data?.id || null);
@@ -257,7 +260,7 @@ export default function CreateListEnhanced() {
             onBack={() => navigate("/")}
           />
           
-          <div className="max-w-4xl mx-auto px-6 py-8">
+          <div className="max-w-4xl mx-auto px-6 py-8 pt-14">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
@@ -446,7 +449,7 @@ export default function CreateListEnhanced() {
           onBack={() => navigate("/")}
         />
         
-        <div className="px-4 py-6 pb-24">
+        <div className="px-4 py-6 pb-24 pt-14">
           {/* Mobile Header */}
           <div className="flex items-center gap-4 mb-6">
             <div>

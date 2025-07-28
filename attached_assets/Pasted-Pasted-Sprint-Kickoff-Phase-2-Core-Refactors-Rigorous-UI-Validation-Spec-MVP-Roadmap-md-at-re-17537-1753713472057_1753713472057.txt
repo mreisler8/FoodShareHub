@@ -1,0 +1,76 @@
+Pasted--Sprint-Kickoff-Phase-2-Core-Refactors-Rigorous-UI-Validation-Spec-MVP-Roadmap-md-at-re-1753712817381_1753712817382.txt
+🏁 Sprint Kickoff: Phase 2 – Core Refactors & Rigorous UI Validation
+
+**Spec:** MVP_Roadmap.md at repo root (Phase 2 section).
+
+**Implement the four refactor areas** (Buttons, Modals, Typography, Search) **and then** execute the UI validation plan below **in this order**:
+
+---
+
+## A. Core Refactors (as before)
+
+1. **Button System**  
+   - Build `/components/ui/Button.tsx` per spec  
+   - Migrate all existing button usages  
+   - Storybook: all variants, sizes, loading/disabled  
+
+2. **ModalWrapper**  
+   - Build `/components/ui/ModalWrapper.tsx` per spec  
+   - Migrate two modals (QuickRating, CreateCanvas)  
+   - Storybook: small/medium/large examples  
+
+3. **Typography Scale**  
+   - Add `/design-system/typography.ts` tokens  
+   - Refactor 20 key components to use tokens  
+   - Visual QA: verify contrast & hierarchy  
+
+4. **SearchInput / SearchResults**  
+   - Build unified components  
+   - Replace all search contexts  
+   - Storybook: loading, empty, populated  
+
+---
+
+## B. Explicit UI Validation
+
+Once the above is merged, **do not assume** things render correctly—**verify them**:
+
+1. **Header Checks**  
+   - **Logo**: Must appear on every page (Home, Feed, Detail, Canvas).  
+     - Screenshot or DOM query for `<img src="/logo.svg">` or fallback text “Circles”.  
+   - **Back Button**: Must exist on every non-root page.  
+     - Verify with `aria-label="Back"` and click → navigates back.  
+   - **Page Title**: Correct text rendered and centered.
+
+2. **Safe-Area & FAB**  
+   - On **iOS simulator** or dev device: FAB and bottom nav must respect safe-area inset (`pb-safe`).  
+   - Touch zones ≥44×44 px (use overlay grid to confirm).
+
+3. **Skeleton & Empty States**  
+   - Simulate slow network (network throttling): skeleton loaders appear immediately.  
+   - Navigate to empty resource pages: verify `EmptyState` component text and CTA.
+
+4. **Error & Offline Banners**  
+   - Inject network error (mock fetch failure): inline error message shows and “Try Again” works.  
+   - Toggle offline mode in Chrome DevTools: offline banner appears.
+
+5. **Accessibility Audits**  
+   - Run `axe-core` in Storybook: zero violations in the updated components.  
+   - Keyboard-only navigation: Tab through header, buttons, modals, confirm visible focus-rings.
+
+6. **End-to-End Smoke Test**  
+   - Deploy to staging.  
+   - Manually click through:  
+     - Open Feed → CreateCanvas → List Starter → Publish → verify toast.  
+     - Open Restaurant Detail → Rate → verify modal uses new ModalWrapper.  
+   - Log any console warnings/errors.
+
+---
+
+## Deliverables
+
+- **PRs**: one per refactor area, each with Storybook previews & QA notes.  
+- **UI Validation Report**: in the final PR, include a markdown checklist with screenshots or Storybook-addon-paged screenshots for each item above.  
+- **CHANGELOG.md**: add “Phase 2 Refactors & UI Validation” entry.  
+
+Thank you—this rigorous approach ensures we ship not just code, but a truly polished, error-free, user-validated MVP.  

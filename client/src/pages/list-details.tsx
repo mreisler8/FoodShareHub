@@ -737,7 +737,7 @@ export default function ListDetails() {
           onBack={() => window.history.back()}
         />
         
-        <div className="px-4 py-6 md:px-8">
+        <div className="px-4 py-6 md:px-8 pt-14">
         
           {isLoading ? (
           <div className="space-y-6">

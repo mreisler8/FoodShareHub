@@ -853,7 +853,7 @@ export default function ProfilePage() {
           onBack={() => window.history.back()}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full pt-14">
           <ProfileHeader />
           <ProfileTabs />
 

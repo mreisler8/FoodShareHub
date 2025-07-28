@@ -1,0 +1,114 @@
+🏁 Sprint Kick-off: Global Header Consistency
+
+**Context**
+• Spec file: `MVP_Roadmap.md` (Header section)  
+• Current issues (see latest screen recording):
+  – Logo mis-aligned / missing on some pages  
+  – No universal “Back” button on deep routes  
+  – Inconsistent header padding, safe-area, focus states
+
+**Goal**
+Ship an enterprise-grade global header (`AppHeader`) that renders
+consistently on **all** pages (Home, Feed, RestaurantDetail, ListDetail,
+CreateCanvas, etc.), with full a11y + visual QA.
+
+---
+
+## 1  Build /components/ui/AppHeader.tsx
+### Structure
+```jsx
+<header className="fixed top-0 inset-x-0 z-40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-b">
+  <div className="h-[56px] flex items-center justify-between px-4 md:px-6">
+    {/* Back button slot */}
+    {showBack && (
+      <button
+        aria-label="Back"
+        onClick={router.back}
+        className="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+      >
+        <ChevronLeft className="h-6 w-6 text-foreground" />
+      </button>
+    )}
+    {/* Logo */}
+    <Link href="/" aria-label="Circles Home" className="flex items-center gap-2">
+      <img
+        src="/assets/logo/circles-logo.svg"
+        alt=""
+        className="h-6 w-auto"
+      />
+      <span className="sr-only">Circles</span>
+    </Link>
+    {/* Page title slot */}
+    {title && (
+      <h1 className="flex-1 text-center translate-x-[-50%] left-1/2 absolute top-1/2 -translate-y-1/2 text-lg font-semibold">
+        {title}
+      </h1>
+    )}
+    {/* Right-hand spacer for symmetry */}
+    <div className="w-8" />
+  </div>
+</header>
+• Import and embed the existing BackButton component (extract from RestaurantDetail into /components/ui/BackButton.tsx) instead of creating a new inline button. Ensure all pages now use BackButton for consistency.
+Props
+ts
+Copy
+Edit
+interface AppHeaderProps {
+  showBack?: boolean; // default false on root pages
+  title?: string;     // optional page title
+}
+2 Integrate Header Globally
+Wrap every page (HomePage.tsx, FeedPage.tsx, RestaurantDetailPage.tsx,
+ListDetailPage.tsx, CreateCanvas.tsx, etc.) in a Layout component
+that renders <AppHeader …/> at the top.
+
+Root pages (/, /feed) → showBack={false}.
+
+All deeper routes → showBack.
+
+3 Safe-Area & Stacking
+Header height: 56px.
+
+Add pt-[56px] (or pt-safe-header) to each page container so content
+never scrolls under header.
+
+Confirm FAB and BottomNav still respect safe-area.
+
+4 Accessibility & Focus
+Back button ≥ 44 px touch area, focus ring as in sample.
+
+Logo link has aria-label="Circles Home" and sr-only span for screen
+readers.
+
+Page title uses semantic <h1> but is visually centered.
+
+5 Validation Checklist (must pass before merge)
+Visual QA (manual + Storybook screenshots)
+▢ Logo renders on every page (desktop & mobile)
+▢ Back button visible only on deep pages, works with router history
+▢ Header padding identical across breakpoints
+▢ No content hidden beneath header
+
+a11y
+▢ Run axe-core in Storybook → 0 violations for header
+▢ Keyboard nav: Tab → Back → Logo → next focusable element
+
+Safe-Area
+▢ On iOS simulator, header respects notch; bottom FAB/nav do not overlap
+
+Unit / E2E Tests
+▢ Jest test: renders header, back button triggers router.back mock
+▢ Playwright: visit RestaurantDetail, assert back navigates to previous
+
+6 Deliverables
+PR 1 – AppHeader.tsx + Storybook stories
+
+PR 2 – Layout integration for all pages
+
+PR 3 – Playwright e2e + Jest tests
+
+Update CHANGELOG.md under “Global Header Consistency”
+
+Note: Do not touch unrelated code. All classes must conform to existing design tokens.
+
+Thank you—this must ship pixel-perfect and fully accessible.

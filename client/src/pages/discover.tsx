@@ -41,7 +41,7 @@ export default function Discover() {
   });
   
   // Fetch users (not implemented in API yet)
-  const { data: users, isLoading: isUsersLoading } = useQuery({
+  const { data: users = [], isLoading: isUsersLoading } = useQuery<any[]>({
     queryKey: ["/api/users"],
   });
   
@@ -66,7 +66,7 @@ export default function Discover() {
         />
         
         {/* Main Content Area */}
-        <div className="max-w-5xl mx-auto px-4 py-6 md:px-8">
+        <div className="max-w-5xl mx-auto px-4 py-6 md:px-8 pt-14">
           {/* Page Header */}
           <header className="mb-6">
           
@@ -234,7 +234,7 @@ export default function Discover() {
                       <Card className="overflow-hidden transition-transform duration-200 hover:translate-y-[-4px]">
                         <div className="relative h-32">
                           <img 
-                            src={circle.image} 
+                            src={circle.coverImage || '/placeholder-circle.jpg'} 
                             alt={circle.name} 
                             className="w-full h-full object-cover"
                           />
