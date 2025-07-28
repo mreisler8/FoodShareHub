@@ -3,6 +3,8 @@ import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useLocation } from 'wouter';
 
+import ChatGPT_Image_Jul_28__2025__10_45_16_AM from "@assets/ChatGPT Image Jul 28, 2025, 10_45_16 AM.png";
+
 interface AppHeaderProps {
   title?: string;
   showBackButton?: boolean;
@@ -44,7 +46,7 @@ export function AppHeader({ title, showBackButton = false, onBackClick }: AppHea
               aria-label="Go to feed"
             >
               <img 
-                src="/logo.svg" 
+                src={ChatGPT_Image_Jul_28__2025__10_45_16_AM} 
                 alt="Circles Pizza Logo" 
                 className="h-8 w-8"
                 onError={(e) => {
