@@ -429,9 +429,8 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Tags</label>
                       <SmartTagInput
-                        value={selectedTags}
-                        onChange={setSelectedTags}
-                        suggestions={["spicy", "must-try", "signature-dish", "comfort-food", "healthy"]}
+                        selectedTags={selectedTags}
+                        onTagsChange={setSelectedTags}
                       />
                     </div>
 
