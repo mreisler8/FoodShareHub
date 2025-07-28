@@ -20,51 +20,48 @@ export function AppHeader({ title, showBackButton = true, onBack }: AppHeaderPro
   };
 
   return (
-    <header className="flex items-center justify-between bg-white p-4 shadow-sm relative">
-      {/* Back Button */}
+    <header className="sticky top-0 z-50 flex items-center justify-between bg-white px-4 py-3 border-b border-gray-100">
+      {/* Left side - Back Button or Logo */}
       {showBackButton ? (
         <button 
           onClick={goBack} 
-          aria-label="Back" 
+          aria-label="Go back" 
           className="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 transition-colors"
         >
-          <ChevronLeft className="h-6 w-6 text-foreground"/>
+          <ChevronLeft className="h-6 w-6 text-gray-700"/>
         </button>
       ) : (
-        <div className="w-[44px]" />
+        <div className="flex items-center">
+          <img 
+            src="/logo.svg" 
+            alt="Circles" 
+            className="h-8 w-auto" 
+            onError={(e) => {
+              // Hide the image and show fallback text immediately
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              const parent = target.parentElement;
+              if (parent) {
+                const fallback = parent.querySelector('.logo-fallback') as HTMLSpanElement;
+                if (fallback) {
+                  fallback.style.display = 'inline-block';
+                  fallback.classList.remove('hidden');
+                }
+              }
+            }}
+          />
+          <span className="logo-fallback text-2xl font-bold text-primary hidden">
+            Circles
+          </span>
+        </div>
       )}
       
-      {/* Logo with proper fallback */}
-      <div className="flex-1 text-center">
-        <img 
-          src="/logo.svg" 
-          alt="Circles" 
-          className="h-6 mx-auto" 
-          onError={(e) => {
-            // Hide the image and show fallback text immediately
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-            const parent = target.parentElement;
-            if (parent) {
-              const fallback = parent.querySelector('.logo-fallback') as HTMLSpanElement;
-              if (fallback) {
-                fallback.style.display = 'inline-block';
-                fallback.classList.remove('hidden');
-              }
-            }
-          }}
-        />
-        <span className="logo-fallback text-xl font-bold text-primary hidden">
-          Circles
-        </span>
-      </div>
-      
-      {/* Title overlay */}
-      <h1 className="absolute left-1/2 transform -translate-x-1/2 text-lg font-semibold pointer-events-none">
+      {/* Center - Page Title */}
+      <h1 className="text-lg font-semibold text-gray-900 flex-1 text-center">
         {title}
       </h1>
       
-      {/* Right spacer for symmetry */}
+      {/* Right side - Spacer for symmetry */}
       <div className="w-[44px]" />
     </header>
   );

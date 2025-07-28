@@ -17,6 +17,7 @@ import { Restaurant, Circle } from "@shared/schema";
 import { CircleWithStats } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecentRecommendations } from "@/components/recommendations/RecentRecommendations";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,11 +58,17 @@ export default function Discover() {
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       
-      {/* Main Content Area */}
-      <div className="flex-1 max-w-5xl mx-auto px-4 py-6 md:px-8">
-        {/* Page Header */}
-        <header className="mb-6">
-          <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-4">Discover</h1>
+      {/* App Header */}
+      <div className="flex-1">
+        <AppHeader 
+          title="Discover" 
+          showBackButton={false}
+        />
+        
+        {/* Main Content Area */}
+        <div className="max-w-5xl mx-auto px-4 py-6 md:px-8">
+          {/* Page Header */}
+          <header className="mb-6">
           
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="flex gap-2">
@@ -307,10 +314,11 @@ export default function Discover() {
         
         {/* Floating Action Button */}
         <CreatePostButton />
+        </div>
+        
+        {/* Right Sidebar (Desktop Only) */}
+        <DesktopRightSidebar />
       </div>
-      
-      {/* Right Sidebar (Desktop Only) */}
-      <DesktopRightSidebar />
     </div>
   );
 }

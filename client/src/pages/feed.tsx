@@ -267,16 +267,17 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             onCreateStory={() => navigate('/create-moment')}
           />
 
-          <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-            {/* Modern Feed Layout with Sidebar */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Main Content */}
-              <div className="lg:col-span-3">
-            {/* Enhanced App Header with Logo */}
-            <AppHeader 
-              title={activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
-              showBackButton={false}
-            />
+        {/* Enhanced App Header with Logo */}
+        <AppHeader 
+          title={activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
+          showBackButton={false}
+        />
+
+        <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+          {/* Modern Feed Layout with Sidebar */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Main Content */}
+            <div className="lg:col-span-3">
             
             {/* Secondary Header with Search and Profile */}
             <div className="flex justify-between items-center mb-6">
