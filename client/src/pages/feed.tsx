@@ -262,16 +262,16 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         <DesktopSidebar />
 
         <div className="flex-1 overflow-auto lg:ml-0">
+          {/* Enhanced App Header with Logo - FIXED POSITION */}
+          <AppHeader 
+            title={activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
+            showBackButton={false}
+          />
+
           {/* Stories Section - Instagram Style */}
           <StoriesSection 
             onCreateStory={() => navigate('/create-moment')}
           />
-
-        {/* Enhanced App Header with Logo */}
-        <AppHeader 
-          title={activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
-          showBackButton={false}
-        />
 
         <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
           {/* Modern Feed Layout with Sidebar */}

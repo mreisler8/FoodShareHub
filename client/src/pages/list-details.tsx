@@ -37,7 +37,7 @@ import { AppHeader } from "@/components/ui/AppHeader";
 interface OptimisticListItem extends RestaurantListItemWithDetails {
   isOptimistic?: boolean;
   tags?: string[];
-  priceAssessment?: string | null;
+  priceAssessment?: string | null | undefined;
 }
 
 // Sortable List Item Component
@@ -285,7 +285,7 @@ export default function ListDetails() {
       // Optimistically remove item
       setListItems(prev => prev.filter(item => item.id !== itemId));
       
-      await apiRequest("DELETE", `/api/lists/items/${itemId}`);
+      await apiRequest("DELETE", `/api/lists/items/${itemId}`, {});
       
       queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
       toast({
@@ -314,7 +314,7 @@ export default function ListDetails() {
           : item
       ));
       
-      const response = await apiRequest("PUT", `/api/lists/items/${itemId}`, data);
+      const response = await apiRequest("PUT", `/api/lists/items/${itemId}`, {}, data);
       const updatedItem = await response.json();
       
       // Replace optimistic item with real data
@@ -352,7 +352,7 @@ export default function ListDetails() {
         restaurantId = itemData.restaurant.id;
       } else {
         // Create new restaurant
-        const restaurantResponse = await apiRequest("POST", "/api/restaurants", {
+        const restaurantResponse = await apiRequest("POST", "/api/restaurants", {}, {
           name: itemData.restaurant?.name || "Unknown Restaurant",
           location: itemData.restaurant?.location || itemData.restaurant?.city || "",
           category: "Restaurant",
@@ -366,7 +366,7 @@ export default function ListDetails() {
       }
 
       // Add item to list
-      const response = await apiRequest("POST", `/api/lists/${listId}/items`, {
+      const response = await apiRequest("POST", `/api/lists/${listId}/items`, {}, {
         restaurantId: restaurantId,
         rating: 5, // Default rating
         liked: null,
@@ -417,7 +417,7 @@ export default function ListDetails() {
         try {
           // Update positions on server
           const updatePromises = reorderedItems.map((item, index) => 
-            apiRequest("PUT", `/api/lists/items/${item.id}`, { 
+            apiRequest("PUT", `/api/lists/items/${item.id}`, {}, { 
               position: index + 1 
             })
           );
@@ -447,7 +447,7 @@ export default function ListDetails() {
   // Delete list handler
   const deleteListMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("DELETE", `/api/lists/${listId}`);
+      return await apiRequest("DELETE", `/api/lists/${listId}`, {});
     },
     onSuccess: () => {
       toast({
@@ -514,13 +514,13 @@ export default function ListDetails() {
   const listStats = useMemo(() => {
     const totalItems = listItems.length;
     const avgRating = listItems.reduce((sum, item) => sum + (item.rating || 0), 0) / totalItems;
-    const cuisines = [...new Set(listItems.map(item => item.restaurant?.category).filter(Boolean))];
-    const cities = [...new Set(listItems.map(item => {
+    const cuisines = Array.from(new Set(listItems.map(item => item.restaurant?.category).filter(Boolean)));
+    const cities = Array.from(new Set(listItems.map(item => {
       // Extract city from location string
       const location = item.restaurant?.location || '';
       const cityMatch = location.match(/^([^,]+)/);
       return cityMatch ? cityMatch[1].trim() : location.trim();
-    }).filter(Boolean))];
+    }).filter(Boolean)));
     
     return {
       totalItems,
@@ -598,7 +598,7 @@ export default function ListDetails() {
       // Create restaurant if needed (Google Places result)
       let restaurantId: number;
       if (data.restaurantId.startsWith('google_')) {
-        const response = await apiRequest("POST", "/api/restaurants", {
+        const response = await apiRequest("POST", "/api/restaurants", {}, {
           name: data.restaurantName,
           location: "Unknown location",
           category: "Restaurant",
@@ -614,7 +614,7 @@ export default function ListDetails() {
       }
 
       // Add to list
-      const listResponse = await apiRequest("POST", `/api/lists/${listId}/items`, {
+      const listResponse = await apiRequest("POST", `/api/lists/${listId}/items`, {}, {
         restaurantId: restaurantId,
         rating: data.rating,
         liked: data.liked || null,
@@ -677,7 +677,7 @@ export default function ListDetails() {
     if (id) {
       const incrementViewCount = async () => {
         try {
-          await apiRequest("POST", `/api/lists/${id}/view`);
+          await apiRequest("POST", `/api/lists/${id}/view`, {});
         } catch (error) {
           console.error("Failed to increment view count", error);
         }
@@ -700,7 +700,7 @@ export default function ListDetails() {
   // Save list mutation
   const saveListMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/lists/${id}/save`);
+      const res = await apiRequest("POST", `/api/lists/${id}/save`, {});
       return res.json();
     },
     onSuccess: () => {

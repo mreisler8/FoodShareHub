@@ -20,18 +20,11 @@ import { CircleFeed } from "@/components/circles/CircleFeed";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "wouter";
 import { AppHeader } from "@/components/ui/AppHeader";
+import { Circle } from "@shared/schema";
 
-interface Circle {
-  id: number;
-  name: string;
-  description?: string;
+interface CirclePageData extends Circle {
   memberCount?: number;
-  primaryCuisine?: string;
-  location?: string;
-  priceRange?: string;
   role?: string;
-  inviteCode?: string;
-  allowPublicJoin?: boolean;
 }
 
 export default function CirclesPage() {
@@ -39,19 +32,19 @@ export default function CirclesPage() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [createFormOpen, setCreateFormOpen] = useState(false);
-  const [selectedCircle, setSelectedCircle] = useState<Circle | null>(null);
+  const [selectedCircle, setSelectedCircle] = useState<CirclePageData | null>(null);
   const [activeTab, setActiveTab] = useState("my-circles");
 
-  const { data: circles = [], isLoading } = useQuery<Circle[]>({
+  const { data: circles = [], isLoading } = useQuery<CirclePageData[]>({
     queryKey: ['/api/circles'],
   });
 
-  const { data: publicCircles = [] } = useQuery<Circle[]>({
+  const { data: publicCircles = [] } = useQuery<CirclePageData[]>({
     queryKey: ['/api/circles/public'],
     enabled: activeTab === "discover",
   });
 
-  const handleInvite = (circle: Circle) => {
+  const handleInvite = (circle: CirclePageData) => {
     setSelectedCircle(circle);
     setInviteModalOpen(true);
   };
@@ -83,7 +76,7 @@ export default function CirclesPage() {
     }
   };
 
-  const CircleCard = ({ circle, showJoinButton = false }: { circle: Circle; showJoinButton?: boolean }) => (
+  const CircleCard = ({ circle, showJoinButton = false }: { circle: CirclePageData; showJoinButton?: boolean }) => (
     <ContentCard hover={true} className="cursor-pointer">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
