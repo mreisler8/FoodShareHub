@@ -21,7 +21,7 @@ export const createRateLimit = (windowMs: number, max: number, message?: string)
         method: req.method,
         userId: req.user?.id
       });
-      
+
       res.status(429).json({
         error: message || 'Too many requests',
         code: 'RATE_LIMIT_EXCEEDED',

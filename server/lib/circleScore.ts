@@ -86,7 +86,7 @@ export async function calculateCircleScore(
   const cacheKey = `${restaurantId || 'null'}-${googlePlaceId || 'null'}-${requestingUserId}`;
   const cached = circleScoreCache.get(cacheKey);
   
-  if (cached && (Date.now() - cached.calculatedAt.getTime()) < 5 * 60 * 1000) { // 5 minute cache
+  if (cached && (Date.now() - cached.calculatedAt.getTime()) < 15 * 60 * 1000) { // 15 minute cache for MVP
     return cached.data;
   }
   
