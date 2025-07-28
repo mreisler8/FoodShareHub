@@ -61,6 +61,9 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [addedCount, setAddedCount] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const restaurantForm = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantFormSchema),
@@ -97,63 +100,127 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
     setShowManualEntry(false);
   };
 
-  const handleRestaurantSubmit = (data: RestaurantFormValues) => {
-    const item: ListItemData = {
-      type: "restaurant",
-      restaurant: {
-        id: selectedRestaurant?.id,
-        name: data.name,
-        location: data.city,
-        city: data.city,
-      },
-      tags: selectedTags,
-      notes: data.notes,
-      photo: data.photo,
-    };
-    onSave(item);
-    handleClose();
+  const handleRestaurantSubmit = async (data: RestaurantFormValues) => {
+    setIsSubmitting(true);
+    try {
+      const item: ListItemData = {
+        type: "restaurant",
+        restaurant: {
+          id: selectedRestaurant?.id,
+          name: data.name,
+          location: data.city,
+          city: data.city,
+        },
+        tags: selectedTags,
+        notes: data.notes,
+        photo: data.photo,
+      };
+      await onSave(item);
+      setAddedCount(prev => prev + 1);
+      setShowSuccess(true);
+      resetForm();
+    } catch (error) {
+      console.error("Failed to add restaurant:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDishSubmit = (data: DishFormValues) => {
-    const item: ListItemData = {
-      type: "dish",
-      restaurant: {
-        id: selectedRestaurant?.id,
-        name: data.restaurantName,
-        location: data.city,
-        city: data.city,
-      },
-      dish: {
-        name: data.dishName,
-      },
-      tags: selectedTags,
-      notes: data.notes,
-      photo: data.photo,
-    };
-    onSave(item);
-    handleClose();
+  const handleDishSubmit = async (data: DishFormValues) => {
+    setIsSubmitting(true);
+    try {
+      const item: ListItemData = {
+        type: "dish",
+        restaurant: {
+          id: selectedRestaurant?.id,
+          name: data.restaurantName,
+          location: data.city,
+          city: data.city,
+        },
+        dish: {
+          name: data.dishName,
+        },
+        tags: selectedTags,
+        notes: data.notes,
+        photo: data.photo,
+      };
+      await onSave(item);
+      setAddedCount(prev => prev + 1);
+      setShowSuccess(true);
+      resetForm();
+    } catch (error) {
+      console.error("Failed to add dish:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleClose = () => {
+  const resetForm = () => {
     setItemType("restaurant");
     setSelectedRestaurant(null);
     setSelectedTags([]);
     setShowManualEntry(false);
+    setShowSuccess(false);
     restaurantForm.reset();
     dishForm.reset();
+  };
+
+  const handleClose = () => {
+    resetForm();
+    setAddedCount(0);
     onOpenChange(false);
+  };
+
+  const handleAddAnother = () => {
+    resetForm();
+  };
+
+  const handleDone = () => {
+    handleClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden">
-        <DialogHeader className="pb-4">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="pb-4 flex-shrink-0">
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             🍽 What are you adding?
           </DialogTitle>
+          {addedCount > 0 && (
+            <div className="text-sm text-green-600 font-medium">
+              ✓ {addedCount} restaurant{addedCount !== 1 ? 's' : ''} added to list
+            </div>
+          )}
         </DialogHeader>
 
-        <div className="overflow-y-auto">
+        {showSuccess ? (
+          <div className="flex-1 flex flex-col items-center justify-center space-y-6 p-6">
+            <div className="text-center space-y-2">
+              <div className="text-4xl">✅</div>
+              <h3 className="text-lg font-semibold text-green-700">Restaurant Added Successfully!</h3>
+              <p className="text-sm text-gray-600">
+                {selectedRestaurant?.name || restaurantForm.getValues("name")} has been added to your list.
+              </p>
+            </div>
+            
+            <div className="flex gap-3 w-full max-w-sm">
+              <Button 
+                onClick={handleAddAnother}
+                variant="outline"
+                className="flex-1"
+              >
+                Add Another Restaurant
+              </Button>
+              <Button 
+                onClick={handleDone}
+                className="flex-1"
+              >
+                Done Adding
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto min-h-0">
           <Tabs value={itemType} onValueChange={(value) => setItemType(value as "restaurant" | "dish")} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="restaurant" className="flex items-center gap-2">
@@ -282,8 +349,12 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                         >
                           Back to Search
                         </Button>
-                        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                          Add Restaurant
+                        <Button 
+                          type="submit" 
+                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? "Adding..." : "Add Restaurant"}
                         </Button>
                       </div>
                     </form>
@@ -318,8 +389,12 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                       />
                     </div>
 
-                    <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                      Add Restaurant
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Adding Restaurant..." : "Add Restaurant"}
                     </Button>
                   </form>
                 </Form>
@@ -457,8 +532,12 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                           Back to Search
                         </Button>
                       )}
-                      <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                        Add Dish
+                      <Button 
+                        type="submit" 
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Adding Dish..." : "Add Dish"}
                       </Button>
                     </div>
                   </form>
@@ -466,7 +545,8 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
               )}
             </TabsContent>
           </Tabs>
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
