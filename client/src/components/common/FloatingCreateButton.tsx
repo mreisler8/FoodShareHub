@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Camera, UtensilsCrossed, ListPlus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

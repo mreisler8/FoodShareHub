@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -134,7 +133,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
       setAddedCount(prev => prev + 1);
       setAddedRestaurants(prev => [...prev, data.name]);
       setShowSuccess(true);
-      
+
       // Auto-hide success after 2 seconds and reset for next entry
       setTimeout(() => {
         setShowSuccess(false);
@@ -169,7 +168,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
       setAddedCount(prev => prev + 1);
       setAddedRestaurants(prev => [...prev, `${data.dishName} at ${data.restaurantName}`]);
       setShowSuccess(true);
-      
+
       // Auto-hide success after 2 seconds and reset for next entry
       setTimeout(() => {
         setShowSuccess(false);
@@ -251,7 +250,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                 </div>
               </div>
             </div>
-            
+
             <div className="flex gap-3 mt-6 w-full max-w-md">
               <Button 
                 onClick={handleContinueAdding}
@@ -295,7 +294,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                           showLocationServices={true}
                           autoRequestLocation={true}
                         />
-                        
+
                         {selectedRestaurant && (
                           <Card className="bg-blue-50 border-blue-200">
                             <CardContent className="p-3">
@@ -321,7 +320,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                             </CardContent>
                           </Card>
                         )}
-                        
+
                         <Button
                           type="button"
                           variant="outline"
@@ -349,7 +348,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                                 </FormItem>
                               )}
                             />
-                            
+
                             <FormField
                               control={restaurantForm.control}
                               name="city"
@@ -363,7 +362,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                                 </FormItem>
                               )}
                             />
-                            
+
                             <FormField
                               control={restaurantForm.control}
                               name="notes"
@@ -381,7 +380,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                             {/* Enhanced Custom Tags Section */}
                             <div className="space-y-3">
                               <label className="text-sm font-medium">Tags</label>
-                              
+
                               {/* Selected Tags Display */}
                               {selectedTags.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
@@ -489,7 +488,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                           {/* Enhanced Custom Tags Section for Selected Restaurant */}
                           <div className="space-y-3">
                             <label className="text-sm font-medium">Tags</label>
-                            
+
                             {/* Selected Tags Display */}
                             {selectedTags.length > 0 && (
                               <div className="flex flex-wrap gap-2">
@@ -563,7 +562,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                           placeholder="Search for the restaurant..."
                           className="w-full"
                         />
-                        
+
                         {selectedRestaurant && (
                           <Card className="bg-blue-50 border-blue-200">
                             <CardContent className="p-3">
@@ -589,7 +588,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                             </CardContent>
                           </Card>
                         )}
-                        
+
                         <Button
                           type="button"
                           variant="outline"
@@ -634,7 +633,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                                   </FormItem>
                                 )}
                               />
-                              
+
                               <FormField
                                 control={dishForm.control}
                                 name="city"
@@ -650,7 +649,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                               />
                             </>
                           )}
-                          
+
                           <FormField
                             control={dishForm.control}
                             name="notes"
@@ -668,7 +667,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                           {/* Enhanced Custom Tags Section for Dishes */}
                           <div className="space-y-3">
                             <label className="text-sm font-medium">Tags</label>
-                            
+
                             {/* Selected Tags Display */}
                             {selectedTags.length > 0 && (
                               <div className="flex flex-wrap gap-2">
