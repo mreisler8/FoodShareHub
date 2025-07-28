@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, X, Plus, Check, AlertCircle } from "lucide-react";
 import { RestaurantSearchComponent } from "../shared/RestaurantSearchComponent";
 import { LocationService, type LocationData } from '@/services/locationService';
 import { SmartTagInput } from "./SmartTagInput";
@@ -60,10 +62,12 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   const [itemType, setItemType] = useState<"restaurant" | "dish">("restaurant");
   const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [customTag, setCustomTag] = useState("");
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [addedCount, setAddedCount] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addedRestaurants, setAddedRestaurants] = useState<string[]>([]);
 
   const restaurantForm = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantFormSchema),
@@ -100,6 +104,17 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
     setShowManualEntry(false);
   };
 
+  const handleAddCustomTag = () => {
+    if (customTag.trim() && !selectedTags.includes(customTag.trim())) {
+      setSelectedTags(prev => [...prev, customTag.trim()]);
+      setCustomTag("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setSelectedTags(prev => prev.filter(tag => tag !== tagToRemove));
+  };
+
   const handleRestaurantSubmit = async (data: RestaurantFormValues) => {
     setIsSubmitting(true);
     try {
@@ -117,8 +132,14 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
       };
       await onSave(item);
       setAddedCount(prev => prev + 1);
+      setAddedRestaurants(prev => [...prev, data.name]);
       setShowSuccess(true);
-      resetForm();
+      
+      // Auto-hide success after 2 seconds and reset for next entry
+      setTimeout(() => {
+        setShowSuccess(false);
+        resetFormForNext();
+      }, 2000);
     } catch (error) {
       console.error("Failed to add restaurant:", error);
     } finally {
@@ -146,13 +167,27 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
       };
       await onSave(item);
       setAddedCount(prev => prev + 1);
+      setAddedRestaurants(prev => [...prev, `${data.dishName} at ${data.restaurantName}`]);
       setShowSuccess(true);
-      resetForm();
+      
+      // Auto-hide success after 2 seconds and reset for next entry
+      setTimeout(() => {
+        setShowSuccess(false);
+        resetFormForNext();
+      }, 2000);
     } catch (error) {
       console.error("Failed to add dish:", error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const resetFormForNext = () => {
+    setSelectedRestaurant(null);
+    setSelectedTags([]);
+    setShowManualEntry(false);
+    restaurantForm.reset();
+    dishForm.reset();
   };
 
   const resetForm = () => {
@@ -161,6 +196,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
     setSelectedTags([]);
     setShowManualEntry(false);
     setShowSuccess(false);
+    setCustomTag("");
     restaurantForm.reset();
     dishForm.reset();
   };
@@ -168,393 +204,548 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   const handleClose = () => {
     resetForm();
     setAddedCount(0);
+    setAddedRestaurants([]);
     onOpenChange(false);
   };
 
-  const handleAddAnother = () => {
-    resetForm();
-  };
-
-  const handleDone = () => {
-    handleClose();
+  const handleContinueAdding = () => {
+    setShowSuccess(false);
+    resetFormForNext();
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent 
-        className="sm:max-w-[600px] max-h-[90vh] min-h-[400px] flex flex-col overflow-hidden"
-        showCloseButton={true}
-      >
-        <DialogHeader className="pb-4 flex-shrink-0 border-b">
+      <DialogContent className="sm:max-w-[600px] h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="pb-4 flex-shrink-0 border-b bg-white sticky top-0 z-10">
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             🍽 What are you adding?
           </DialogTitle>
           {addedCount > 0 && (
-            <div className="text-sm text-green-600 font-medium bg-green-50 px-3 py-2 rounded-lg">
-              ✓ {addedCount} restaurant{addedCount !== 1 ? 's' : ''} added to list
+            <div className="text-sm text-green-600 font-medium bg-green-50 px-3 py-2 rounded-lg flex items-center gap-2">
+              <Check className="h-4 w-4" />
+              {addedCount} item{addedCount !== 1 ? 's' : ''} added to list
             </div>
           )}
         </DialogHeader>
 
-        {showSuccess ? (
-          <div className="flex-1 flex flex-col items-center justify-center space-y-6 p-6 bg-gradient-to-br from-green-50 to-blue-50">
-            <div className="text-center space-y-4 bg-white p-6 rounded-xl shadow-sm border">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <div className="text-2xl">✅</div>
+        {/* Success State - Enhanced */}
+        {showSuccess && (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-green-50 to-emerald-50">
+            <div className="text-center space-y-4 bg-white p-8 rounded-xl shadow-lg border border-green-200 max-w-md">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto animate-pulse">
+                <Check className="text-3xl text-green-600 h-10 w-10" />
               </div>
-              <h3 className="text-xl font-bold text-green-700">Successfully Added!</h3>
-              <p className="text-sm text-gray-700 font-medium">
+              <h3 className="text-2xl font-bold text-green-700">Added Successfully!</h3>
+              <p className="text-base text-gray-700 font-medium">
                 "{selectedRestaurant?.name || restaurantForm.getValues("name")}" is now in your list
               </p>
-              <div className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
-                Total items: {addedCount}
+              <div className="bg-gray-50 px-4 py-3 rounded-lg">
+                <p className="text-sm font-medium text-gray-600">Recent additions:</p>
+                <div className="mt-2 space-y-1">
+                  {addedRestaurants.slice(-3).map((name, index) => (
+                    <div key={index} className="text-xs text-gray-700 flex items-center gap-1">
+                      <Check className="h-3 w-3 text-green-500" />
+                      {name}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             
-            <div className="flex gap-3 w-full max-w-md">
+            <div className="flex gap-3 mt-6 w-full max-w-md">
               <Button 
-                onClick={handleAddAnother}
-                variant="outline"
-                className="flex-1 bg-white hover:bg-gray-50 border-2 border-blue-200 text-blue-700 font-semibold"
+                onClick={handleContinueAdding}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
               >
                 + Add Another
               </Button>
               <Button 
-                onClick={handleDone}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                onClick={handleClose}
+                variant="outline"
+                className="flex-1 border-2 border-gray-300 hover:bg-gray-50 font-semibold"
               >
-                Done Adding
+                Done
               </Button>
             </div>
           </div>
-        ) : (
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 overflow-y-auto px-1" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+        )}
+
+        {/* Main Content - Scrollable */}
+        {!showSuccess && (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto px-1">
               <Tabs value={itemType} onValueChange={(value) => setItemType(value as "restaurant" | "dish")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="restaurant" className="flex items-center gap-2">
-                🏙 Restaurant
-              </TabsTrigger>
-              <TabsTrigger value="dish" className="flex items-center gap-2">
-                🍽 Dish @ Restaurant
-              </TabsTrigger>
-            </TabsList>
+                <TabsList className="grid w-full grid-cols-2 mb-6 sticky top-0 bg-white z-10">
+                  <TabsTrigger value="restaurant" className="flex items-center gap-2">
+                    🏙 Restaurant
+                  </TabsTrigger>
+                  <TabsTrigger value="dish" className="flex items-center gap-2">
+                    🍽 Dish @ Restaurant
+                  </TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="restaurant" className="space-y-4">
-              {!showManualEntry ? (
-                <div className="space-y-4">
-                  <RestaurantSearchComponent
-                    onSelect={handleRestaurantSelect}
-                    placeholder="Search for restaurants..."
-                    className="w-full"
-                    showLocationServices={true}
-                    autoRequestLocation={true}
-                  />
-                  
-                  {selectedRestaurant && (
-                    <Card className="bg-blue-50 border-blue-200">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="font-medium">{selectedRestaurant.name}</h5>
-                            {selectedRestaurant.location && (
-                              <p className="text-sm text-gray-600 flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {selectedRestaurant.location}
-                              </p>
-                            )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedRestaurant(null)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowManualEntry(true)}
-                    className="w-full"
-                  >
-                    Can't find it? Add manually
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <Form {...restaurantForm}>
-                    <form onSubmit={restaurantForm.handleSubmit(handleRestaurantSubmit)} className="space-y-4">
-                      <FormField
-                        control={restaurantForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Restaurant Name *</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="e.g., Joe's Pizza" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={restaurantForm.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Location</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="e.g., Toronto, ON" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={restaurantForm.control}
-                        name="notes"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Notes (optional)</FormLabel>
-                            <FormControl>
-                              <Textarea {...field} placeholder="Why do you recommend this place?" rows={3} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Tags</label>
-                        <SmartTagInput
-                          selectedTags={selectedTags}
-                          onTagsChange={setSelectedTags}
-                          placeholder="Add tags (e.g., spicy, romantic, casual)..."
-                          maxTags={8}
-                          suggestions={[
-                            "casual", "fine-dining", "romantic", "family-friendly", 
-                            "quick-bite", "brunch", "date-night", "business-lunch",
-                            "spicy", "vegetarian", "vegan", "seafood", "steakhouse",
-                            "pizza", "sushi", "italian", "mexican", "asian", "american"
-                          ]}
-                        />
-                      </div>
-
-                      <div className="flex gap-3 pt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setShowManualEntry(false)}
-                          className="flex-1"
-                        >
-                          Back to Search
-                        </Button>
-                        <Button 
-                          type="submit" 
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? "Adding..." : "Add Restaurant"}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </div>
-              )}
-
-              {selectedRestaurant && !showManualEntry && (
-                <Form {...restaurantForm}>
-                  <form onSubmit={restaurantForm.handleSubmit(handleRestaurantSubmit)} className="space-y-4">
-                    <FormField
-                      control={restaurantForm.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes (optional)</FormLabel>
-                          <FormControl>
-                            <Textarea {...field} placeholder="Why do you recommend this place?" rows={3} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium">Tags</label>
-                      <SmartTagInput
-                        selectedTags={selectedTags}
-                        onTagsChange={setSelectedTags}
-                        maxTags={8}
-                        allowCustomTags={true}
-                        contextRestaurants={selectedRestaurant ? [{ cuisine: selectedRestaurant.category, location: selectedRestaurant.location }] : []}
-                      />
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? "Adding Restaurant..." : "Add Restaurant"}
-                    </Button>
-                  </form>
-                </Form>
-              )}
-            </TabsContent>
-
-            <TabsContent value="dish" className="space-y-4">
-              {!showManualEntry ? (
-                <div className="space-y-4">
-                  <RestaurantSearchComponent
-                    onSelect={handleRestaurantSelect}
-                    placeholder="Search for the restaurant..."
-                    className="w-full"
-                  />
-                  
-                  {selectedRestaurant && (
-                    <Card className="bg-blue-50 border-blue-200">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="font-medium">{selectedRestaurant.name}</h5>
-                            {selectedRestaurant.location && (
-                              <p className="text-sm text-gray-600 flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {selectedRestaurant.location}
-                              </p>
-                            )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedRestaurant(null)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowManualEntry(true)}
-                    className="w-full"
-                  >
-                    Can't find restaurant? Add manually
-                  </Button>
-                </div>
-              ) : null}
-
-              {(selectedRestaurant || showManualEntry) && (
-                <Form {...dishForm}>
-                  <form onSubmit={dishForm.handleSubmit(handleDishSubmit)} className="space-y-4">
-                    <FormField
-                      control={dishForm.control}
-                      name="dishName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Dish Name *</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., Margherita Pizza" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {showManualEntry && (
-                      <>
-                        <FormField
-                          control={dishForm.control}
-                          name="restaurantName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Restaurant Name *</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Joe's Pizza" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                <div className="space-y-6 pb-6">
+                  <TabsContent value="restaurant" className="space-y-4 mt-0">
+                    {!showManualEntry ? (
+                      <div className="space-y-4">
+                        <RestaurantSearchComponent
+                          onSelect={handleRestaurantSelect}
+                          placeholder="Search for restaurants..."
+                          className="w-full"
+                          showLocationServices={true}
+                          autoRequestLocation={true}
                         />
                         
-                        <FormField
-                          control={dishForm.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Location</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Toronto, ON" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </>
-                    )}
-                    
-                    <FormField
-                      control={dishForm.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes (optional)</FormLabel>
-                          <FormControl>
-                            <Textarea {...field} placeholder="What makes this dish special?" rows={3} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium">Tags</label>
-                      <SmartTagInput
-                        selectedTags={selectedTags}
-                        onTagsChange={setSelectedTags}
-                        maxTags={8}
-                        allowCustomTags={true}
-                        contextRestaurants={selectedRestaurant ? [{ cuisine: selectedRestaurant.category, location: selectedRestaurant.location }] : []}
-                      />
-                    </div>
-
-                    <div className="flex gap-3 pt-4">
-                      {showManualEntry && (
+                        {selectedRestaurant && (
+                          <Card className="bg-blue-50 border-blue-200">
+                            <CardContent className="p-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h5 className="font-medium">{selectedRestaurant.name}</h5>
+                                  {selectedRestaurant.location && (
+                                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                                      <MapPin className="h-3 w-3" />
+                                      {selectedRestaurant.location}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setSelectedRestaurant(null)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => setShowManualEntry(false)}
-                          className="flex-1"
+                          size="sm"
+                          onClick={() => setShowManualEntry(true)}
+                          className="w-full"
                         >
-                          Back to Search
+                          Can't find it? Add manually
                         </Button>
-                      )}
-                      <Button 
-                        type="submit" 
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? "Adding Dish..." : "Add Dish"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              )}
-            </TabsContent>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <Form {...restaurantForm}>
+                          <form onSubmit={restaurantForm.handleSubmit(handleRestaurantSubmit)} className="space-y-4">
+                            <FormField
+                              control={restaurantForm.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Restaurant Name *</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="e.g., Joe's Pizza" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={restaurantForm.control}
+                              name="city"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Location</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="e.g., Toronto, ON" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={restaurantForm.control}
+                              name="notes"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Notes (optional)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="Why do you recommend this place?" rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {/* Enhanced Custom Tags Section */}
+                            <div className="space-y-3">
+                              <label className="text-sm font-medium">Tags</label>
+                              
+                              {/* Selected Tags Display */}
+                              {selectedTags.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedTags.map((tag) => (
+                                    <Badge key={tag} variant="secondary" className="gap-1">
+                                      {tag}
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleRemoveTag(tag)}
+                                        className="h-auto p-0 hover:bg-transparent"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Custom Tag Input */}
+                              <div className="flex gap-2">
+                                <Input
+                                  value={customTag}
+                                  onChange={(e) => setCustomTag(e.target.value)}
+                                  placeholder="Add custom tag..."
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      handleAddCustomTag();
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  onClick={handleAddCustomTag}
+                                  disabled={!customTag.trim() || selectedTags.includes(customTag.trim())}
+                                  size="sm"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+
+                              {/* Quick Tag Suggestions */}
+                              <div className="flex flex-wrap gap-1">
+                                {[
+                                  "casual", "fine-dining", "romantic", "family-friendly", 
+                                  "quick-bite", "brunch", "date-night", "business-lunch",
+                                  "spicy", "vegetarian", "vegan", "seafood", "steakhouse",
+                                  "pizza", "sushi", "italian", "mexican", "asian", "american"
+                                ].filter(tag => !selectedTags.includes(tag)).slice(0, 6).map((tag) => (
+                                  <Button
+                                    key={tag}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSelectedTags(prev => [...prev, tag])}
+                                    className="h-7 px-2 text-xs"
+                                  >
+                                    + {tag}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowManualEntry(false)}
+                                className="flex-1"
+                              >
+                                Back to Search
+                              </Button>
+                              <Button 
+                                type="submit" 
+                                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                disabled={isSubmitting}
+                              >
+                                {isSubmitting ? "Adding..." : "Add Restaurant"}
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </div>
+                    )}
+
+                    {selectedRestaurant && !showManualEntry && (
+                      <Form {...restaurantForm}>
+                        <form onSubmit={restaurantForm.handleSubmit(handleRestaurantSubmit)} className="space-y-4">
+                          <FormField
+                            control={restaurantForm.control}
+                            name="notes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Notes (optional)</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} placeholder="Why do you recommend this place?" rows={3} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Enhanced Custom Tags Section for Selected Restaurant */}
+                          <div className="space-y-3">
+                            <label className="text-sm font-medium">Tags</label>
+                            
+                            {/* Selected Tags Display */}
+                            {selectedTags.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {selectedTags.map((tag) => (
+                                  <Badge key={tag} variant="secondary" className="gap-1">
+                                    {tag}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleRemoveTag(tag)}
+                                      className="h-auto p-0 hover:bg-transparent"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Custom Tag Input */}
+                            <div className="flex gap-2">
+                              <Input
+                                value={customTag}
+                                onChange={(e) => setCustomTag(e.target.value)}
+                                placeholder="Add custom tag..."
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddCustomTag();
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                onClick={handleAddCustomTag}
+                                disabled={!customTag.trim() || selectedTags.includes(customTag.trim())}
+                                size="sm"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* Smart Tag Suggestions */}
+                            <SmartTagInput
+                              selectedTags={selectedTags}
+                              onTagsChange={setSelectedTags}
+                              maxTags={8}
+                              allowCustomTags={true}
+                              contextRestaurants={selectedRestaurant ? [{ cuisine: selectedRestaurant.category, location: selectedRestaurant.location }] : []}
+                            />
+                          </div>
+
+                          <Button 
+                            type="submit" 
+                            className="w-full bg-blue-600 hover:bg-blue-700"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? "Adding Restaurant..." : "Add Restaurant"}
+                          </Button>
+                        </form>
+                      </Form>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="dish" className="space-y-4 mt-0">
+                    {!showManualEntry ? (
+                      <div className="space-y-4">
+                        <RestaurantSearchComponent
+                          onSelect={handleRestaurantSelect}
+                          placeholder="Search for the restaurant..."
+                          className="w-full"
+                        />
+                        
+                        {selectedRestaurant && (
+                          <Card className="bg-blue-50 border-blue-200">
+                            <CardContent className="p-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h5 className="font-medium">{selectedRestaurant.name}</h5>
+                                  {selectedRestaurant.location && (
+                                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                                      <MapPin className="h-3 w-3" />
+                                      {selectedRestaurant.location}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setSelectedRestaurant(null)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowManualEntry(true)}
+                          className="w-full"
+                        >
+                          Can't find restaurant? Add manually
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    {(selectedRestaurant || showManualEntry) && (
+                      <Form {...dishForm}>
+                        <form onSubmit={dishForm.handleSubmit(handleDishSubmit)} className="space-y-4">
+                          <FormField
+                            control={dishForm.control}
+                            name="dishName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Dish Name *</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="e.g., Margherita Pizza" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {showManualEntry && (
+                            <>
+                              <FormField
+                                control={dishForm.control}
+                                name="restaurantName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Restaurant Name *</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} placeholder="e.g., Joe's Pizza" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={dishForm.control}
+                                name="city"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Location</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} placeholder="e.g., Toronto, ON" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </>
+                          )}
+                          
+                          <FormField
+                            control={dishForm.control}
+                            name="notes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Notes (optional)</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} placeholder="What makes this dish special?" rows={3} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Enhanced Custom Tags Section for Dishes */}
+                          <div className="space-y-3">
+                            <label className="text-sm font-medium">Tags</label>
+                            
+                            {/* Selected Tags Display */}
+                            {selectedTags.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {selectedTags.map((tag) => (
+                                  <Badge key={tag} variant="secondary" className="gap-1">
+                                    {tag}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleRemoveTag(tag)}
+                                      className="h-auto p-0 hover:bg-transparent"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Custom Tag Input */}
+                            <div className="flex gap-2">
+                              <Input
+                                value={customTag}
+                                onChange={(e) => setCustomTag(e.target.value)}
+                                placeholder="Add custom tag..."
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddCustomTag();
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                onClick={handleAddCustomTag}
+                                disabled={!customTag.trim() || selectedTags.includes(customTag.trim())}
+                                size="sm"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* Smart Tag Suggestions */}
+                            <SmartTagInput
+                              selectedTags={selectedTags}
+                              onTagsChange={setSelectedTags}
+                              maxTags={8}
+                              allowCustomTags={true}
+                              contextRestaurants={selectedRestaurant ? [{ cuisine: selectedRestaurant.category, location: selectedRestaurant.location }] : []}
+                            />
+                          </div>
+
+                          <div className="flex gap-3 pt-4">
+                            {showManualEntry && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowManualEntry(false)}
+                                className="flex-1"
+                              >
+                                Back to Search
+                              </Button>
+                            )}
+                            <Button 
+                              type="submit" 
+                              className="flex-1 bg-blue-600 hover:bg-blue-700"
+                              disabled={isSubmitting}
+                            >
+                              {isSubmitting ? "Adding Dish..." : "Add Dish"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    )}
+                  </TabsContent>
+                </div>
               </Tabs>
             </div>
           </div>

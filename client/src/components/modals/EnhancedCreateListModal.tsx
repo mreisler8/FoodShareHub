@@ -411,8 +411,8 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
 
       <AddListItemModal
         open={showAddItemModal}
-        onClose={() => setShowAddItemModal(false)}
-        onAddItem={handleAddItem}
+        onOpenChange={setShowAddItemModal}
+        onSave={handleAddItem}
       />
     </>
   );
