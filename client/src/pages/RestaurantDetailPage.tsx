@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  ArrowLeft, 
   MapPin, 
   Star, 
   Phone, 
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
+import { AppHeader } from '@/components/ui/AppHeader';
 
 import { useCircleScore } from '@/hooks/useCircleScore';
 import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
@@ -331,21 +331,10 @@ export default function RestaurantDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
-      {/* Back Button */}
-      <div className="absolute top-4 left-4 z-10">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setLocation('/')}
-          className="bg-white/90 backdrop-blur-sm hover:bg-white"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-      </div>
-
+      <AppHeader title={restaurant.name} showBackButton={true} />
+      
       {/* Hero Section with enhanced mobile-first design */}
-      <div className="relative h-48 md:h-64 w-full overflow-hidden">
+      <div className="relative h-48 md:h-64 w-full overflow-hidden pt-14">
         {heroImageData && heroImageData.src ? (
           <>
             <img 

@@ -4,13 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, Star, Phone, Globe, ExternalLink, Clock } from 'lucide-react';
+import { MapPin, Star, Phone, Globe, ExternalLink, Clock } from 'lucide-react';
 import { CircleScoreEnhancement } from '@/components/mvp/CircleScoreEnhancement';
 import { MobileResponsiveLayout } from '@/components/mvp/MobileResponsiveLayout';
 import RestaurantActionBar from '@/components/restaurant/RestaurantActionBar';
 import ReservationCard from '@/components/restaurant/ReservationCard';
 import OrderOptionsCard from '@/components/restaurant/OrderOptionsCard';
 import MoreRestaurantActions from '@/components/restaurant/MoreRestaurantActions';
+import { AppHeader } from '@/components/ui/AppHeader';
 
 /**
  * MVP-Optimized Restaurant Detail Page
@@ -77,24 +78,9 @@ export default function MVPOptimizedRestaurantPage() {
 
   return (
     <MobileResponsiveLayout variant="page" className="bg-gray-50 pb-20">
-      {/* Header - Mobile Optimized */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => window.history.back()}
-            className="flex items-center gap-2 min-h-[44px]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <h1 className="font-semibold text-lg truncate max-w-[200px]">{restaurant.name}</h1>
-          <div className="w-20" />
-        </div>
-      </div>
+      <AppHeader title={restaurant.name} showBackButton={true} />
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 pt-20">
         {/* Hero Image Card */}
         <Card className="overflow-hidden">
           <div className="relative h-64 sm:h-80 lg:h-96">
