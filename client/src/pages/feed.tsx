@@ -272,12 +272,16 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Main Content */}
               <div className="lg:col-span-3">
-            {/* Modern Feed Header with Search and Profile */}
+            {/* Enhanced App Header with Logo */}
+            <AppHeader 
+              title={activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
+              showBackButton={false}
+            />
+            
+            {/* Secondary Header with Search and Profile */}
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
-                </h1>
+                {/* Header moved to AppHeader component above */}
               </div>
 
               <div className="flex items-center gap-3">
@@ -429,20 +433,26 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     <FeedContentWithLayout allItems={allItems} onListClick={handleListClick} />
                   </InfiniteScroll>
                 ) : (
-                  <div className="text-center p-8">
-                    <p className="text-muted-foreground">No posts or lists in your feed yet</p>
-                    <div className="flex gap-2 mt-4 justify-center">
+                  <div className="text-center p-8 space-y-4">
+                    <div className="text-4xl mb-4">🍽️</div>
+                    <h3 className="text-lg font-semibold text-foreground">Your feed is empty</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      Start following people and joining circles to see restaurant recommendations and food moments here.
+                    </p>
+                    <div className="flex gap-2 mt-6 justify-center">
                       <Button 
-                        onClick={() => setShowPostModal(true)}
+                        onClick={() => setShowFoodMomentModal(true)}
                         variant="outline"
+                        className="min-h-[44px]"
                       >
-                        Create your first post
+                        Share a food moment
                       </Button>
                       <Button 
                         onClick={() => setLocation('/create-list')}
                         variant="outline"
+                        className="min-h-[44px]"
                       >
-                        Create your first list
+                        Create a list
                       </Button>
                     </div>
                   </div>
@@ -453,10 +463,18 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
             <TabsContent value="circle" className="mt-6">
               <div className="space-y-4">
                 {userCircles.length === 0 ? (
-                  <div className="text-center p-8">
-                    <p className="text-muted-foreground mb-4">You're not part of any circles yet</p>
-                    <Button onClick={() => setLocation('/circles')} variant="outline">
-                      Join a Circle
+                  <div className="text-center p-8 space-y-4">
+                    <div className="text-4xl mb-4">🔍</div>
+                    <h3 className="text-lg font-semibold text-foreground">No circles yet</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      Join circles to discover restaurant recommendations from people you trust.
+                    </p>
+                    <Button 
+                      onClick={() => setLocation('/circles')} 
+                      variant="outline"
+                      className="min-h-[44px]"
+                    >
+                      Explore Circles
                     </Button>
                   </div>
                 ) : (
@@ -548,18 +566,24 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                         </div>
                       </InfiniteScroll>
                     ) : (
-                      <div className="text-center p-8">
-                        <p className="text-muted-foreground">No posts or lists shared with your circles yet</p>
-                        <div className="flex gap-2 mt-4 justify-center">
+                      <div className="text-center p-8 space-y-4">
+                        <div className="text-4xl mb-4">👥</div>
+                        <h3 className="text-lg font-semibold text-foreground">No circle content yet</h3>
+                        <p className="text-muted-foreground max-w-md mx-auto">
+                          Circle members haven't shared any restaurant content yet. Be the first to share something!
+                        </p>
+                        <div className="flex gap-2 mt-6 justify-center">
                           <Button 
-                            onClick={() => setShowPostModal(true)}
+                            onClick={() => setShowFoodMomentModal(true)}
                             variant="outline"
+                            className="min-h-[44px]"
                           >
-                            Create a post
+                            Share with circle
                           </Button>
                           <Button 
                             onClick={() => navigate('/create-list')}
                             variant="outline"
+                            className="min-h-[44px]"
                           >
                             Create a list
                           </Button>

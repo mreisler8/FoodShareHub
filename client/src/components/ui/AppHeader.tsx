@@ -44,10 +44,11 @@ export function AppHeader({ title, showBackButton = true, onBack }: AppHeaderPro
             const fallback = target.nextElementSibling as HTMLSpanElement;
             if (fallback) {
               fallback.style.display = 'block';
+              fallback.classList.remove('sr-only');
             }
           }}
         />
-        <span className="sr-only text-xl font-bold" style={{ display: 'none' }}>Circles</span>
+        <span className="sr-only text-xl font-bold text-primary" style={{ display: 'none' }}>Circles</span>
       </div>
       
       <h1 className="absolute left-1/2 transform -translate-x-1/2 text-lg font-semibold pointer-events-none">
