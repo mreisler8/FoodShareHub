@@ -1,17 +1,27 @@
-import { ArrowLeft } from "lucide-react";
-import { useLocation } from "wouter";
+
+import React from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 interface AppHeaderProps {
   title?: string;
   showBackButton?: boolean;
-  showLogo?: boolean;
+  onBackClick?: () => void;
 }
 
-export function AppHeader({ title, showBackButton = false, showLogo = true }: AppHeaderProps) {
+export function AppHeader({ title, showBackButton = false, onBackClick }: AppHeaderProps) {
   const [, navigate] = useLocation();
 
   const handleBackClick = () => {
-    navigate("/feed");
+    if (onBackClick) {
+      onBackClick();
+    } else {
+      navigate('/feed');
+    }
+  };
+
+  const handleLogoClick = () => {
+    navigate('/feed');
   };
 
   return (
@@ -27,21 +37,20 @@ export function AppHeader({ title, showBackButton = false, showLogo = true }: Ap
             >
               <ArrowLeft className="h-5 w-5 text-gray-700" />
             </button>
-          ) : showLogo ? (
-            <div className="flex items-center gap-2">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 2 L28 28 L4 28 Z" fill="#FF6B35" stroke="#E55A2B" strokeWidth="1"/>
-                <path d="M4 28 L28 28" stroke="#D4501F" strokeWidth="2" strokeLinecap="round"/>
-                <circle cx="12" cy="18" r="2" fill="#C4321A"/>
-                <circle cx="20" cy="20" r="2" fill="#C4321A"/>
-                <circle cx="16" cy="14" r="1.5" fill="#C4321A"/>
-                <circle cx="10" cy="24" r="1.5" fill="#C4321A"/>
-                <ellipse cx="14" cy="22" rx="2" ry="1" fill="#FFB366" opacity="0.7"/>
-                <ellipse cx="22" cy="24" rx="1.5" ry="0.8" fill="#FFB366" opacity="0.7"/>
-              </svg>
+          ) : (
+            <button
+              onClick={handleLogoClick}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              aria-label="Go to feed"
+            >
+              <img 
+                src="/logo.svg" 
+                alt="Circles" 
+                className="h-8 w-8"
+              />
               <span className="text-xl font-bold text-gray-900">Circles</span>
-            </div>
-          ) : null}
+            </button>
+          )}
         </div>
 
         {/* Center - Title (only when back button is shown) */}
@@ -51,7 +60,7 @@ export function AppHeader({ title, showBackButton = false, showLogo = true }: Ap
           </div>
         )}
 
-        {/* Right side - Empty for now */}
+        {/* Right side - Empty for balance */}
         <div className="w-11"></div>
       </div>
     </header>

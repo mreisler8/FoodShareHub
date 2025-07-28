@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { AppHeader } from "@/components/ui/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -140,7 +140,7 @@ export default function CirclesPage() {
       <div className="flex flex-wrap gap-2 text-xs text-gray-500">
         {circle.primaryCuisine && (
           <span className="flex items-center gap-1">
-            🍽️ {circle.primaryCuisine}
+            {circle.primaryCuisine}
           </span>
         )}
         {circle.location && (
@@ -183,7 +183,7 @@ export default function CirclesPage() {
 
       <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
         {/* App Header with logo */}
-        <PageHeader 
+        <AppHeader 
           title="Circles" 
           showBackButton={true}
           showLogo={false}
