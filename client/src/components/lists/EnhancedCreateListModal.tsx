@@ -1,8 +1,8 @@
-import { z } from "zod";
+import React, { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState, useCallback, useEffect } from "react";
+import { z } from "zod";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface CreateListModalProps {
+interface EnhancedCreateListModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (listId: number) => void;
@@ -43,7 +43,7 @@ const PREDEFINED_TAGS = [
   "coffee", "dessert", "bakery", "bar", "cocktails"
 ];
 
-export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListModalProps) {
+export function EnhancedCreateListModal({ open, onOpenChange, onSuccess }: EnhancedCreateListModalProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [duplicateInfo, setDuplicateInfo] = useState<{id: number, name: string} | null>(null);
@@ -66,7 +66,6 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
     defaultValues: {
       name: "",
       description: "",
-      tags: "",
       shareWithCircle: false,
       makePublic: false,
       circleId: undefined,
@@ -99,7 +98,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
         }
       }
     } catch (error) {
-      console.error("Error checking duplicate:", error);
+      console.error('Error checking duplicate:', error);
     } finally {
       setCheckingDuplicate(false);
     }
@@ -116,13 +115,40 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
     return () => clearTimeout(timeoutId);
   }, [currentName, checkDuplicate, continueAnyway]);
 
-  // Reset duplicate state when modal opens/closes
+  // Reset state when modal opens/closes
   useEffect(() => {
     if (!open) {
       setDuplicateInfo(null);
       setContinueAnyway(false);
+      setCustomTags([]);
+      setNewTagInput("");
+      setShowTagInput(false);
     }
   }, [open]);
+
+  // Add custom tag
+  const addCustomTag = (tag: string) => {
+    const trimmedTag = tag.trim().toLowerCase();
+    if (trimmedTag && !customTags.includes(trimmedTag)) {
+      setCustomTags(prev => [...prev, trimmedTag]);
+    }
+    setNewTagInput("");
+    setShowTagInput(false);
+  };
+
+  // Remove custom tag
+  const removeCustomTag = (tagToRemove: string) => {
+    setCustomTags(prev => prev.filter(tag => tag !== tagToRemove));
+  };
+
+  // Toggle predefined tag
+  const togglePredefinedTag = (tag: string) => {
+    if (customTags.includes(tag)) {
+      removeCustomTag(tag);
+    } else {
+      addCustomTag(tag);
+    }
+  };
 
   // Create list mutation
   const createList = useMutation({
@@ -138,13 +164,10 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
       // Convert circleId to number if provided
       const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
 
-      // Parse tags into array
-      const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
-
       const payload = {
         name: values.name,
         description: values.description || null,
-        tags: tags,
+        tags: customTags,
         circleId: circleId,
         isPublic: makePublic,
         visibility: makePublic ? "public" : "circle",
@@ -152,7 +175,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
         makePublic: makePublic,
       };
 
-      return await apiRequest("/api/lists", "POST", payload);
+      return await apiRequest("/api/lists", { method: "POST", body: payload });
     },
     onSuccess: (data) => {
       // Invalidate relevant caches
@@ -166,10 +189,11 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
 
       // Reset form and close modal
       form.reset();
+      setCustomTags([]);
       onOpenChange(false);
 
-      // Navigate directly to the list - handle different response structures
-      const listId = data?.id || (data as any)?.id;
+      // Navigate directly to the list
+      const listId = data?.id;
       if (listId) {
         try {
           navigate(`/lists/${listId}`);
@@ -194,43 +218,29 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
       }
     },
     onError: (error: any) => {
-      // Handle 409 conflict for duplicate names
-      if (error.status === 409 && error.data?.error === 'duplicate_list') {
-        setDuplicateInfo({ 
-          id: error.data.existingId, 
-          name: form.getValues("name") 
-        });
-        return;
-      }
-      
+      console.error("Create list error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create list. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const onSubmit = (values: FormValues) => {
     createList.mutate(values);
   };
 
-  // Check if form is valid (name is non-empty)
-  const isFormValid = form.watch("name").trim().length > 0;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="sm:max-w-[500px]"
-        showCloseButton={true}
-      >
-        <DialogHeader className="text-center pb-6">
-          <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
-            <Utensils className="h-6 w-6 text-white" />
-          </div>
-          <DialogTitle className="text-2xl font-heading font-bold text-neutral-900">Create New List</DialogTitle>
-          <DialogDescription className="text-neutral-600 text-base leading-relaxed">
-            Create a themed list of restaurant recommendations to share with your circles and help others discover amazing places.
+      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Utensils className="h-5 w-5 text-green-600" />
+            Create New List
+          </DialogTitle>
+          <DialogDescription>
+            Create a curated list of restaurants to share with your circles.
           </DialogDescription>
         </DialogHeader>
 
@@ -312,111 +322,199 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="tags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tags (Optional)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="e.g., pizza, italian, family-friendly" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            {/* Enhanced Custom Tag System */}
+            <div className="space-y-3">
+              <FormLabel className="flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Tags (Optional)
+              </FormLabel>
+              
+              {/* Selected tags display */}
+              {customTags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {customTags.map((tag) => (
+                    <Badge 
+                      key={tag} 
+                      variant="secondary" 
+                      className="flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-200"
+                    >
+                      {tag}
+                      <X 
+                        className="h-3 w-3 cursor-pointer hover:text-green-600" 
+                        onClick={() => removeCustomTag(tag)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
               )}
-            />
+
+              {/* Quick tag buttons */}
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Quick tags:</p>
+                <div className="flex flex-wrap gap-2">
+                  {PREDEFINED_TAGS.slice(0, 8).map((tag) => (
+                    <Button
+                      key={tag}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => togglePredefinedTag(tag)}
+                      className={`text-xs ${
+                        customTags.includes(tag) 
+                          ? 'bg-green-100 border-green-300 text-green-800' 
+                          : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      {customTags.includes(tag) && <Check className="h-3 w-3 mr-1" />}
+                      {tag}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom tag input */}
+              {showTagInput ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    placeholder="Enter custom tag..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomTag(newTagInput);
+                      }
+                      if (e.key === 'Escape') {
+                        setShowTagInput(false);
+                        setNewTagInput("");
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => addCustomTag(newTagInput)}
+                    disabled={!newTagInput.trim()}
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowTagInput(false);
+                      setNewTagInput("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTagInput(true)}
+                  className="w-full border-dashed"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Custom Tag
+                </Button>
+              )}
+            </div>
 
             <div className="space-y-4 p-4 bg-neutral-50 rounded-xl border border-neutral-200">
-                  <FormLabel className="text-base font-medium text-neutral-900">Sharing Settings</FormLabel>
-                  
-                  <FormField
-                    control={form.control}
-                    name="shareWithCircle"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 bg-white rounded-lg border border-neutral-200 hover:border-blue-300 transition-colors">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="mt-1"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="font-medium text-neutral-900">Share with Circle</FormLabel>
-                          <p className="text-sm text-neutral-600">
-                            Allow members of your circles to view this list
-                          </p>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="makePublic"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 bg-white rounded-lg border border-neutral-200 hover:border-blue-300 transition-colors">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="mt-1"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="font-medium text-neutral-900">Make Public</FormLabel>
-                          <p className="text-sm text-neutral-600">
-                            Anyone can view and share this list
-                          </p>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-            {shareWithCircle && (
+              <FormLabel className="text-base font-medium text-neutral-900">Sharing Settings</FormLabel>
+              
               <FormField
                 control={form.control}
-                name="circleId"
+                name="shareWithCircle"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Select Circle</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a circle" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {circles?.map((circle) => (
-                          <SelectItem key={circle.id} value={circle.id.toString()}>
-                            {circle.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value || false}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Share with Circle</FormLabel>
+                      <p className="text-sm text-neutral-600">
+                        Share this list with your circle members
+                      </p>
+                    </div>
                   </FormItem>
                 )}
               />
-            )}
 
-            <div className="flex justify-end space-x-2 pt-4">
+              {shareWithCircle && (
+                <FormField
+                  control={form.control}
+                  name="circleId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Circle</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a circle" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">No specific circle</SelectItem>
+                          {circles?.map((circle) => (
+                            <SelectItem key={circle.id} value={circle.id.toString()}>
+                              {circle.name} ({circle.memberCount} members)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="makePublic"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value || false}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Make Public</FormLabel>
+                      <p className="text-sm text-neutral-600">
+                        Allow anyone on the platform to discover this list
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => onOpenChange(false)}
+                disabled={createList.isPending}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                disabled={!isFormValid || createList.isPending}
+                disabled={createList.isPending || (duplicateInfo && !continueAnyway)}
+                className="bg-green-600 hover:bg-green-700"
               >
-                {createList.isPending ? "Creating..." : "Create"}
+                {createList.isPending ? "Creating..." : "Create List"}
               </Button>
             </div>
           </form>

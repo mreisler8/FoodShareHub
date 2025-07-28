@@ -8,58 +8,16 @@ import { tempSavedListStorage } from '../temp-storage';
 
 const router = Router();
 
-// Enhanced validation schemas with better error messages and security
+// Simplified schema that matches frontend payload
 const createListSchema = z.object({
-  name: z.string()
-    .min(1, 'List name is required')
-    .max(100, 'List name must be less than 100 characters')
-    .trim()
-    .refine(name => !/[<>\"'&]/g.test(name), {
-      message: 'List name contains invalid characters'
-    }), // Basic XSS protection
-  description: z.string()
-    .max(500, 'Description must be less than 500 characters')
-    .nullable()
-    .optional()
-    .transform(val => val ? val.trim() : val), // Clean whitespace
-  circleId: z.number()
-    .int('Circle ID must be an integer')
-    .positive('Circle ID must be a positive number')
-    .max(2147483647, 'Circle ID too large') // Prevent integer overflow
-    .nullable()
-    .optional(),
-  visibility: z.enum(['public', 'circle', 'private'])
-    .default('public'),
-  isPublic: z.boolean().optional(),
-  tags: z.array(
-    z.string()
-      .max(50, 'Tag must be less than 50 characters')
-      .trim()
-      .refine(tag => !/[<>\"'&]/g.test(tag), {
-        message: 'Tag contains invalid characters'
-      })
-  )
-    .max(10, 'Maximum 10 tags allowed')
-    .optional()
-    .default([]),
-  shareWithCircle: z.boolean().optional(),
-  makePublic: z.boolean().optional(),
-  // Enhanced Create & Rank Lists fields
-  type: z.enum(['restaurant', 'dish']).default('restaurant'),
-  audience: z.enum(['profile', 'circle', 'public']).default('profile'),
-  coverImage: z.string().nullable().optional(),
-  // createdById will be set server-side from authenticated user
-  items: z.array(z.object({
-    name: z.string().min(1, 'Item name is required'),
-    notes: z.string().optional(),
-    tags: z.array(z.string()).optional(),
-    city: z.string().optional(),
-    mediaUrl: z.string().optional(),
-    rank: z.number().int().min(1).optional(),
-    rating: z.number().int().min(1).max(5).optional(),
-    restaurantId: z.number().int().positive().optional(),
-    addedById: z.number().int().positive().optional(),
-  })).optional().default([]),
+  name: z.string().min(1, 'List name is required'),
+  description: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional().default([]),
+  circleId: z.number().nullable().optional(),
+  visibility: z.enum(['public', 'circle', 'private']).optional().default('public'),
+  isPublic: z.boolean().optional().default(false),
+  shareWithCircle: z.boolean().optional().default(false),
+  makePublic: z.boolean().optional().default(false),
 });
 
 const updateListSchema = z.object({
@@ -282,17 +240,20 @@ router.get('/', authenticate, async (req, res) => {
 router.post("/", authenticate, async (req, res) => {
   try {
     const userId = req.user!.id;
+    console.log('Creating list for user:', userId);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
 
     // Validate request body using schema
     const validatedData = createListSchema.parse(req.body);
+    console.log('Validated data:', JSON.stringify(validatedData, null, 2));
 
     const { 
       name, 
       description, 
-      type, 
-      audience, 
-      visibility, 
+      tags,
       circleId, 
+      visibility,
+      isPublic,
       shareWithCircle, 
       makePublic 
     } = validatedData;
@@ -352,23 +313,22 @@ router.post("/", authenticate, async (req, res) => {
         });
       }
 
-      // Handle the frontend's sharing model
-      const isPublic = makePublic || false;
-      const shareWithCircle = shareWithCircle || false;
-      const visibility = isPublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
+      // Determine final visibility
+      const finalVisibility = makePublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
 
       const newList = await db.insert(restaurantLists).values({
         name: name.trim(),
         description: description?.trim() || null,
         createdById: userId,
-        type: type || "restaurant",
-        audience: audience || "profile",
-        visibility: visibility || { public: false, followers: false, circleIds: [] },
+        type: "restaurant",
+        audience: "profile", 
+        visibility: finalVisibility,
         circleId: circleId || null,
         shareWithCircle: shareWithCircle || false,
         makePublic: makePublic || false,
-        allowSharing: true, // Enterprise default
-        isPublic: isPublic || false, // Backward compatibility
+        allowSharing: true,
+        isPublic: makePublic || false,
+        tags: tags || [],
       }).returning();
 
       // If sharing to circle, create shared list relationship
@@ -385,87 +345,23 @@ router.post("/", authenticate, async (req, res) => {
         console.log(`List "${name}" shared to circle ${circleId} by user ${userId}`);
       }
 
-      // Handle items array - store each item in restaurant_list_items table
-      if (validatedData.items && validatedData.items.length > 0) {
-        const itemPromises = validatedData.items.map(async (item, index) => {
-          let restaurantId = item.restaurantId;
+      console.log('Created list:', newList[0]);
 
-          // If no restaurantId provided, create a placeholder restaurant
-          if (!restaurantId) {
-            const [restaurant] = await db
-              .insert(restaurants)
-              .values({
-                name: item.name,
-                location: item.city || 'Unknown location',
-                category: 'Restaurant',
-                priceRange: '$$',
-                cuisine: 'General',
-              })
-              .returning();
-            restaurantId = restaurant.id;
-          }
-
-          return db
-            .insert(restaurantListItems)
-            .values({
-              listId: newList[0].id,
-              restaurantId: restaurantId,
-              name: item.name,
-              notes: item.notes || null,
-              tags: item.tags || [],
-              city: item.city || null,
-              mediaUrl: item.mediaUrl || null,
-              rank: item.rank || index + 1,
-              rating: item.rating || null,
-              addedById: userId,
-            });
-        });
-
-        await Promise.all(itemPromises);
-      }
-
-      res.json({ success: true, listId: list.id });
+      res.status(201).json(newList[0]);
     } catch (dbError) {
-      console.error('Database error, using temp storage for list creation:', dbError);
-
-      // Fallback to temp storage when database is unavailable
-      try {
-        // Check for duplicate name in temp storage
-        const existingLists = await tempSavedListStorage.getRestaurantListsByUser(userId);
-        const duplicate = existingLists.find(list => list.name === data.name);
-
-        if (duplicate) {
-          return res.status(409).json({
-            error: 'duplicate_list',
-            existingId: duplicate.id
-          });
-        }
-
-        // Create list using temp storage with enhanced data
-        const listData = {
-          name: data.name,
-          description: data.description || null,
-          createdById: userId,
-          circleId: data.circleId || null,
-          tags: data.tags || [],
-          type: data.type || 'restaurant',
-          audience: data.audience || 'profile',
-          coverImage: data.coverImage || null,
-          shareWithCircle: data.shareWithCircle || false,
-          makePublic: data.makePublic || false,
-          visibility: data.visibility || { public: false, followers: true, circleIds: [] },
-          items: data.items || []
-        };
-
-        const newList = await tempSavedListStorage.createRestaurantList(listData);
-        res.json({ success: true, listId: newList.id });
-      } catch (tempError) {
-        console.error('Error creating list in temp storage:', tempError);
-        res.status(500).json({ error: 'Failed to create list' });
-      }
+      console.error('Database error creating list:', dbError);
+      res.status(500).json({ error: 'Failed to create list' });
     }
   } catch (error) {
     console.error('Error creating list:', error);
+    if (error instanceof z.ZodError) {
+      console.error('Zod validation errors:', error.errors);
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: error.errors,
+        code: "VALIDATION_ERROR"
+      });
+    }
     res.status(500).json({ error: 'Failed to create list' });
   }
 });
