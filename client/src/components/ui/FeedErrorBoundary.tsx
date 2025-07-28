@@ -25,6 +25,14 @@ export class FeedErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Feed Error Boundary caught an error:', error, errorInfo);
+    
+    // Log to analytics if available
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'exception', {
+        description: `Feed Error: ${error.message}`,
+        fatal: false,
+      });
+    }
   }
 
   handleRetry = () => {

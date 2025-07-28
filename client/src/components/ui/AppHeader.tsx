@@ -48,7 +48,7 @@ export function AppHeader({ showBackButton = false, title, onBackClick }: AppHea
             aria-label="Go to feed"
           >
             <img
-              src="/logo-new.svg"
+              src="/logo-brand.svg"
               alt="Circles Logo"
               className="h-8 w-8"
             />

@@ -214,7 +214,13 @@ export function enableMemoryDebugging() {
     // Log memory on page visibility change
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        logMemoryUsage('Page Visible');
+        const memoryInfo = getMemoryUsage();
+        if (memoryInfo) {
+          const used = memoryInfo.usedJSMemory ? (memoryInfo.usedJSMemory / 1024 / 1024).toFixed(2) : 'N/A';
+          const total = memoryInfo.totalJSMemory ? (memoryInfo.totalJSMemory / 1024 / 1024).toFixed(2) : 'N/A';
+          const limit = memoryInfo.jsMemoryLimit ? (memoryInfo.jsMemoryLimit / 1024 / 1024).toFixed(2) : 'N/A';
+          console.log(`[Memory - Page Visible] Used: ${used}MB, Total: ${total}MB, Limit: ${limit}MB`);
+        }
       }
     });
   }
@@ -226,3 +232,26 @@ export const formatMemorySize = (bytes: number | null): string => {
   }
   return (bytes / 1024 / 1024).toFixed(2);
 };
+
+interface BrowserMemoryInfo {
+  usedJSMemory: number | null;
+  totalJSMemory: number | null;
+  jsMemoryLimit: number | null;
+}
+
+export function getBrowserMemoryInfo(): BrowserMemoryInfo {
+  const memory = (performance as any).memory;
+  if (!memory) {
+    return {
+      usedJSMemory: null,
+      totalJSMemory: null,
+      jsMemoryLimit: null,
+    };
+  }
+
+  return {
+    usedJSMemory: typeof memory.usedJSHeapSize === 'number' ? memory.usedJSHeapSize : null,
+    totalJSMemory: typeof memory.totalJSHeapSize === 'number' ? memory.totalJSHeapSize : null,
+    jsMemoryLimit: typeof memory.jsHeapSizeLimit === 'number' ? memory.jsHeapSizeLimit : null,
+  };
+}

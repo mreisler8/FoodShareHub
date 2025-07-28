@@ -115,3 +115,7 @@ export const validateButtons = () => {
 };
 
 export const validateButtonIntegrity = () => {
+  const results = ButtonValidator.validateAllButtons();
+  ButtonValidator.logValidationResults(results);
+  return results;
+};

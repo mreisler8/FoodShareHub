@@ -1,23 +1,29 @@
-
 import React from 'react';
-import { AppHeader } from './AppHeader';
 
-interface UnifiedHeaderProps {
+interface AppHeaderProps {
   showBackButton?: boolean;
   title?: string;
   onBackClick?: () => void;
-  mode?: 'logo' | 'back';
 }
 
-export function UnifiedHeader({ showBackButton = false, title, onBackClick, mode }: UnifiedHeaderProps) {
-  // If mode is explicitly set, use it to determine showBackButton
-  const shouldShowBack = mode === 'back' ? true : (mode === 'logo' ? false : showBackButton);
-  
+export function AppHeader({ showBackButton = false, title, onBackClick }: AppHeaderProps) {
   return (
-    <AppHeader 
-      showBackButton={shouldShowBack}
-      title={title}
-      onBackClick={onBackClick}
-    />
+    <header className="bg-white shadow">
+      <div className="mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div className="flex items-center">
+          {showBackButton && (
+            <button onClick={onBackClick} className="mr-4">
+              Back
+            </button>
+          )}
+          <img
+            src="/logo-brand.svg"
+            alt="Circles Logo"
+            className="h-8 w-8"
+          />
+          {title && <h1 className="text-xl font-bold ml-2">{title}</h1>}
+        </div>
+      </div>
+    </header>
   );
 }

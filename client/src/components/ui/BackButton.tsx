@@ -23,7 +23,9 @@ export function BackButton({ onClick, className = '' }: BackButtonProps) {
     }
   };
 
-  console.warn('BackButton is deprecated. Use AppHeader with showBackButton=true instead.');
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('BackButton is deprecated. Use AppHeader with showBackButton=true instead.');
+  }
 
   return (
     <button

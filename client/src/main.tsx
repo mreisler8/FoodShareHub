@@ -7,6 +7,10 @@ if (process.env.NODE_ENV === 'development') {
   import('./utils/buttonValidation').then(({ validateButtons }) => {
     (window as any).validateButtons = validateButtons;
   });
+  
+  import('./utils/qaValidation').then(({ QAValidator }) => {
+    (window as any).QAValidator = QAValidator;
+  });
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
