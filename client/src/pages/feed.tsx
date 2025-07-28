@@ -13,7 +13,7 @@ import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernS
 import { SkeletonFeedCard, SkeletonListCard } from '@/components/ui/SkeletonFeedCard';
 import { InlineError } from '@/components/ui/InlineError';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { PageHeader } from '@/components/ui/PageHeader';
+import { AppHeader } from '@/components/ui/AppHeader';
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
@@ -265,7 +265,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
 
         <div className="flex-1 overflow-auto lg:ml-0">
           {/* Enhanced App Header with Logo - FIXED POSITION */}
-          <PageHeader 
+          <AppHeader 
             showBackButton={false}
             showLogo={true}
           />
@@ -437,7 +437,6 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   </InfiniteScroll>
                 ) : (
                   <div className="text-center p-8 space-y-4">
-                    <div className="text-4xl mb-4">🍽️</div>
                     <h3 className="text-lg font-semibold text-foreground">Your feed is empty</h3>
                     <p className="text-muted-foreground max-w-md mx-auto">
                       Start following people and joining circles to see restaurant recommendations and food moments here.
@@ -467,7 +466,6 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
               <div className="space-y-4">
                 {userCircles.length === 0 ? (
                   <div className="text-center p-8 space-y-4">
-                    <div className="text-4xl mb-4">🔍</div>
                     <h3 className="text-lg font-semibold text-foreground">No circles yet</h3>
                     <p className="text-muted-foreground max-w-md mx-auto">
                       Join circles to discover restaurant recommendations from people you trust.
