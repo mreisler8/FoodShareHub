@@ -1,0 +1,40 @@
+Based on your detailed requirements and the identified issues with list editing/reordering functionality, here's a comprehensive prompt you can use:
+
+Prompt:
+
+Improve List Editing and Restaurant Management for MVP Success
+
+We need to fix critical issues with our list management system to ensure a smooth user experience for 100 users. The current implementation has several problems that are blocking our MVP goals:
+
+Critical Issues to Fix:
+
+List Creation Failure After First Restaurant: The create list function from the home page begins to fail once you add one restaurant - it doesn't have an easy function to add more restaurants to it. Users get stuck after adding their first item.
+
+Missing Tagging Integration: The list creation flow doesn't use our best tagging work and functionality that we've already built.
+
+Profile Integration Problems: Once you create a list, users can't easily find it in their profile, edit it, or share it. The connection between list creation and profile management is broken.
+
+List Editing/Reordering Issues:
+
+Ensure editing and reordering features are clear and accessible in the UI
+Add immediate feedback mechanisms (confirmation messages, visual indicators) after editing or reordering
+Implement smooth drag-and-drop functionality for reordering items
+Add edit confirmation prompts before applying changes to prevent accidental modifications
+Requirements:
+
+Fix the restaurant addition flow so users can continuously add restaurants without the interface breaking
+Integrate the existing tagging system into list creation
+Ensure created lists appear properly in user profiles with full edit/share capabilities
+Implement intuitive drag-and-drop reordering with visual feedback
+Add proper confirmation dialogs for destructive actions
+Maintain mobile responsiveness throughout all flows
+Use our existing unified search API (/api/search/unified) for restaurant search consistency
+Success Criteria:
+
+Users can create a list and add multiple restaurants in 3 clicks or less
+Lists are immediately visible and editable from user profiles
+Drag-and-drop reordering works smoothly on both desktop and mobile
+All changes provide clear visual feedback to users
+No console errors or broken states when managing lists
+Focus on the user experience flow from list creation → adding restaurants → finding in profile → editing/sharing. These are core functions that our user personas (especially Tracker Taylor) depend on for quick list management.
+
