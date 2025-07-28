@@ -24,14 +24,15 @@ export function CircleScoreCard({ circleScore, isLoading }: CircleScoreCardProps
     );
   }
 
-  if (!circleScore || circleScore.totalContributors === 0) {
+  // Enhanced null checking for MVP consistency
+  if (!circleScore || !circleScore.totalContributors || circleScore.totalContributors === 0) {
     return (
       <div className="rounded-xl shadow-sm bg-white p-4 space-y-4">
         <div className="text-center py-6">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Circle Score Yet</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Circle Score Available</h3>
           <p className="text-sm text-muted-foreground">
-            Be the first in your network to rate this restaurant. Use the "Quick Rate" button below to share your experience.
+            Circle Scores show ratings from people you follow. Rate this restaurant to contribute to your network's recommendations.
           </p>
         </div>
       </div>
@@ -49,7 +50,7 @@ export function CircleScoreCard({ circleScore, isLoading }: CircleScoreCardProps
         <div>
           <div className="flex items-center gap-3">
             <Badge className={`${scoreColor} text-lg font-bold px-3 py-1`}>
-              {displayScore ? (displayScore / 10).toFixed(1) : 'N/A'}/10.0
+              {displayScore ? (displayScore / 10).toFixed(1) : '0.0'}/10.0
             </Badge>
             <div>
               <p className="text-sm font-medium">Circle Score</p>
@@ -60,7 +61,7 @@ export function CircleScoreCard({ circleScore, isLoading }: CircleScoreCardProps
           </div>
         </div>
         
-        <SocialProofAvatars contributors={circleScore.contributors} limit={3} />
+        <SocialProofAvatars contributors={circleScore.contributors} />
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

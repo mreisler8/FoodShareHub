@@ -1,0 +1,91 @@
+Looking at your codebase and the critical MVP priorities, here's a comprehensive prompt to address the three key issues:
+
+AGENT PROMPT: Critical MVP Infrastructure Fixes - Circle Score, Search, and Mobile Responsiveness
+
+OBJECTIVE: Fix three critical blocking issues preventing MVP readiness for 100 users. These fixes must work consistently across all components with no regressions.
+
+CONTEXT: We have a social restaurant network with:
+
+Circle Score trust-based rating system (backend functional, display inconsistent)
+Restaurant search across multiple components (working but unreliable)
+Mobile-first user base requiring flawless responsive design
+CRITICAL ISSUES TO FIX:
+
+1. Circle Score Display Consistency
+Current State: Circle Score calculation works (see server/lib/circleScore.ts) but displays "N/A" inconsistently across components.
+
+Required Fix:
+
+Verify CircleScoreCard component in client/src/components/restaurant/CircleScoreCard.tsx handles all data states correctly
+Ensure useCircleScore hook returns proper fallback values when no data exists
+Fix any caching issues preventing Circle Score updates from appearing immediately
+Test Circle Score display in:
+RestaurantDetailPage.tsx (main implementation)
+SearchResultsList.tsx (search results integration)
+Any other components using Circle Score
+Success Criteria: Circle Score either shows actual score OR clear "No Circle Score Yet" state with proper CTA, never "N/A"
+
+2. Restaurant Search Reliability
+Current State: Search works in some places but fails in others, causing user frustration.
+
+Required Fix:
+
+Audit all restaurant search implementations:
+UnifiedSearchModal.tsx
+RestaurantSearchInput.tsx
+RestaurantSearch.tsx (multiple instances)
+Any quick-add restaurant functionality
+Ensure consistent API endpoint usage (/api/search vs /api/restaurants)
+Fix any debouncing or caching issues causing search results to not appear
+Standardize search result formatting across all components
+Handle empty states and loading states consistently
+Success Criteria: Restaurant search works identically everywhere - fast, reliable, consistent results
+
+3. Mobile Responsiveness Critical Fixes
+Current State: App targets mobile-first users but has responsive design issues.
+
+Required Fix:
+
+Audit key mobile flows for breakage:
+Restaurant detail pages (hero section, action bars)
+Search modal and results
+Circle Score display on mobile
+List creation and management
+Navigation (bottom nav, floating buttons)
+Fix any viewport issues, touch targets, or overflow problems
+Ensure all modals work properly on mobile (no cut-off content)
+Verify floating action buttons don't conflict with navigation
+Test responsiveness breakpoints (especially 375px mobile width)
+Success Criteria: All core functionality works flawlessly on mobile devices
+
+NON-FUNCTIONAL REQUIREMENTS:
+
+Performance: All fixes must maintain current performance levels
+Accessibility: Maintain existing ARIA labels and keyboard navigation
+Error Handling: Graceful degradation when APIs fail
+Consistency: Use existing design system components and patterns
+Backwards Compatibility: Don't break existing approved functionality
+UI CONSISTENCY REQUIREMENTS:
+
+Use existing shadcn/ui components consistently
+Maintain current color scheme (green: #10B981, orange: #F59E0B)
+Follow existing loading states and empty state patterns
+Keep existing button styles and interaction patterns
+Preserve current spacing and typography scales
+TECHNICAL CONSTRAINTS:
+
+Work within existing React Query caching patterns
+Maintain current authentication flow
+Don't modify database schema or API contracts
+Use existing error boundary and toast notification systems
+Preserve current routing structure
+TESTING REQUIREMENTS:
+
+Test each fix in isolation before integration
+Verify fixes work across different viewport sizes
+Test with real data and empty data states
+Validate fixes don't break existing approved features
+DELIVERY EXPECTATION:
+
+Provide working, tested fixes that can be immediately deployed to 100 users without any regressions to existing functionality.
+

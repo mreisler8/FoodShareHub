@@ -28,6 +28,8 @@ import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
 // New modular components for the redesign
 import { HeaderCard } from '@/components/restaurant/HeaderCard';
 import { CircleScoreCard } from '@/components/restaurant/CircleScoreCard';
+import { CircleScoreEnhancement } from '@/components/mvp/CircleScoreEnhancement';
+import { MobileResponsiveLayout } from '@/components/mvp/MobileResponsiveLayout';
 import { YourRatingCard } from '@/components/restaurant/YourRatingCard';
 import { ListMentionsCard } from '@/components/restaurant/ListMentionsCard';
 import { PostMentionsCard } from '@/components/restaurant/PostMentionsCard';
@@ -500,7 +502,7 @@ export default function RestaurantDetailPage() {
                 style={{ height: `${circlesScore}%` }}
               />
               <div className="relative z-10 bg-white rounded-full w-16 h-16 flex items-center justify-center shadow-sm">
-                <span className="text-xl font-bold text-orange-600">{circlesScore || 'N/A'}</span>
+                <span className="text-xl font-bold text-orange-600">{circlesScore !== null ? circlesScore : '—'}</span>
               </div>
             </div>
             <div className="text-sm font-bold text-gray-800">Circle Score</div>
@@ -510,10 +512,11 @@ export default function RestaurantDetailPage() {
           </div>
         </div>
 
-        {/* Circle Score Section */}
-        <CircleScoreCard
-          circleScore={circleScore ?? null}
-          isLoading={isCircleScoreLoading}
+        {/* Circle Score Section - MVP Enhanced with Consistent Display */}
+        <CircleScoreEnhancement
+          restaurantId={queryMethod === 'id' ? Number(restaurantId) : undefined}
+          googlePlaceId={queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId}
+          variant="detailed"
         />
 
         {/* Top Mentions - Enhanced with better mobile display */}
@@ -581,7 +584,7 @@ export default function RestaurantDetailPage() {
         {/* Your Activity Section */}
         <YourRatingCard 
           userRating={userRating ? {
-            rating: parseFloat(userRating.ratingValue) || 0,
+            rating: parseFloat(userRating.ratingValue.toString()) || 0,
             note: userRating.note,
             tags: userRating.tags
           } : undefined}

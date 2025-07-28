@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { LocationService, type LocationData } from '@/services/locationService';
 import { SearchResultsList } from './SearchResultsList';
+import { SearchReliabilityFix } from '@/components/mvp/SearchReliabilityFix';
 import './UnifiedSearchModal.css';
 
 interface SearchResult {
@@ -33,6 +34,10 @@ interface SearchResult {
   // Restaurant-specific fields
   cuisine?: string;
   priceRange?: string;
+  metadata?: {
+    googlePlaceId?: string;
+    [key: string]: any;
+  };
 }
 
 interface SearchResults {

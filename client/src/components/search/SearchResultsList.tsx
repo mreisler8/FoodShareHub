@@ -21,6 +21,7 @@ import { SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import CircleScoreCard from '@/components/circle-score/CircleScoreCard';
+import { CircleScoreEnhancement } from '@/components/mvp/CircleScoreEnhancement';
 import { useCircleScore } from '@/hooks/useCircleScore';
 import { TriedItButton } from '@/components/recommendations';
 
@@ -51,13 +52,13 @@ function CircleScoreDisplay({ restaurantId, googlePlaceId }: {
     enabled: !!(restaurantId || googlePlaceId) 
   });
 
-  // Always show Circle Score (either data, loading, or N/A state)
+  // Always show Circle Score (either data, loading, or N/A state) - MVP Enhanced
   return (
-    <CircleScoreCard 
-      data={circleScore || null} 
-      variant="compact" 
+    <CircleScoreEnhancement
+      restaurantId={restaurantId}
+      googlePlaceId={googlePlaceId}
+      variant="compact"
       className="text-xs"
-      isLoading={isLoading}
     />
   );
 }
@@ -82,8 +83,8 @@ export function SearchResultsList({
   const handleResultClick = (result: SearchResult) => {
     // Direct navigation for restaurants when enabled
     if (enableDirectNavigation && result.type === 'restaurant') {
-      if (result.metadata?.googlePlaceId || result.id.toString().startsWith('google_')) {
-        const googlePlaceId = result.metadata?.googlePlaceId || result.id.toString().replace('google_', '');
+      if ((result as any).metadata?.googlePlaceId || result.id.toString().startsWith('google_')) {
+        const googlePlaceId = (result as any).metadata?.googlePlaceId || result.id.toString().replace('google_', '');
         setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
       } else {
         setLocation(`/restaurants/${result.id}`);
