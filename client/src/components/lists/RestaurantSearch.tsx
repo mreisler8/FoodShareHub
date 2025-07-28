@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Search, Plus, Star, MapPin, X, Loader2 } from "lucide-react";
+import { Search, Plus, Star, MapPin, X, Loader2, Navigation, User } from "lucide-react";
+import { LocationService, type LocationData } from '@/services/locationService';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,6 +40,10 @@ function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: Restaur
   const [isAdding, setIsAdding] = useState(false);
   const { toast } = useToast();
   const searchRef = useRef<HTMLDivElement>(null);
+  
+  // Location services - matching homepage best practices
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
 
   // Debounced search
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -50,11 +55,23 @@ function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: Restaur
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Restaurant search query
+  // Enhanced restaurant search with location services - matching homepage
   const { data: searchResults, isLoading: searchLoading } = useQuery({
-    queryKey: ['/api/search/unified', debouncedQuery],
+    queryKey: ['/api/search/unified', debouncedQuery, location?.lat, location?.lng],
     queryFn: async () => {
-      const response = await fetch(`/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`);
+      const params = new URLSearchParams({
+        q: debouncedQuery,
+        type: 'restaurants'
+      });
+      
+      // Include location for better local results
+      if (location?.lat && location?.lng) {
+        params.append('lat', location.lat.toString());
+        params.append('lng', location.lng.toString());
+        params.append('radius', '10000'); // 10km radius like homepage
+      }
+      
+      const response = await fetch(`/api/search/unified?${params}`);
       if (!response.ok) {
         throw new Error('Failed to search restaurants');
       }
@@ -64,6 +81,33 @@ function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: Restaur
     enabled: debouncedQuery.length > 2,
     staleTime: 300000, // 5 minutes
   });
+
+  // Location services integration
+  const requestLocation = async () => {
+    setIsLocationLoading(true);
+    try {
+      const locationData = await LocationService.getCurrentLocation();
+      setLocation(locationData);
+      toast({
+        title: "Location enabled",
+        description: "Now showing restaurants near you",
+      });
+    } catch (error) {
+      console.error('Location error:', error);
+      toast({
+        title: "Location unavailable",
+        description: "Using general search results",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLocationLoading(false);
+    }
+  };
+
+  // Auto-request location on mount (like homepage)
+  useEffect(() => {
+    requestLocation();
+  }, []);
 
   // Handle restaurant selection
   const handleRestaurantSelect = (result: SearchResult) => {
@@ -155,13 +199,48 @@ function RestaurantSearch({ listId, onRestaurantAdded, onAddCompleted }: Restaur
 
   return (
     <div className="space-y-4">
+      {/* Location Status Bar - like homepage */}
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center gap-2">
+          {location ? (
+            <>
+              <MapPin className="h-3 w-3 text-green-500" />
+              <span>Searching near {location.city || 'your location'}</span>
+            </>
+          ) : (
+            <>
+              <MapPin className="h-3 w-3" />
+              <span>General search</span>
+            </>
+          )}
+        </div>
+        {!location && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={requestLocation}
+            disabled={isLocationLoading}
+            className="h-6 px-2 text-xs"
+          >
+            {isLocationLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <>
+                <Navigation className="h-3 w-3 mr-1" />
+                Enable location
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+
       {/* Search Input */}
       <div className="relative" ref={searchRef}>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search restaurants..."
+            placeholder={location ? "Search restaurants near you..." : "Search restaurants..."}
             value={searchQuery}
             onChange={handleSearchChange}
             className="pl-10 pr-10"

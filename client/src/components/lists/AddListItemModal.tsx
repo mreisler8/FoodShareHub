@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, X } from "lucide-react";
 import { RestaurantSearchComponent } from "../shared/RestaurantSearchComponent";
+import { LocationService, type LocationData } from '@/services/locationService';
 import { SmartTagInput } from "./SmartTagInput";
 
 const restaurantFormSchema = z.object({
