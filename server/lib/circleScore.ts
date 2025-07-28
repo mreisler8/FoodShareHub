@@ -119,7 +119,12 @@ export async function calculateCircleScore(
       
       const recencyDays = Math.floor((Date.now() - new Date(rating.createdAt).getTime()) / (1000 * 60 * 60 * 24));
       const recencyDecay = calculateRecencyDecay(recencyDays);
-      const weightedScore = rating.ratingValue * 3 * recencyDecay;
+      
+      // Convert rating value to number and normalize to 0-10 scale
+      const ratingValue = typeof rating.ratingValue === 'string' ? parseFloat(rating.ratingValue) : rating.ratingValue;
+      const normalizedRating = ratingValue; // Assuming already on 0-10 scale
+      
+      const weightedScore = normalizedRating * 3 * recencyDecay;
       
       totalScore += weightedScore;
       contributors.push({
@@ -127,7 +132,7 @@ export async function calculateCircleScore(
         username: user.username,
         name: user.name,
         actionType: 'rating',
-        value: rating.ratingValue,
+        value: normalizedRating,
         recency: recencyDays
       });
     });
@@ -163,7 +168,9 @@ export async function calculateCircleScore(
     const confidence = calculateConfidence(contributors);
     const confidenceModifier = confidence === 'high' ? 1.1 : confidence === 'moderate' ? 1.0 : 0.9;
     
-    const normalizedScore = Math.min(100, Math.max(0, (totalScore / contributors.length) * confidenceModifier));
+    // Calculate average score from contributors (already normalized to 0-10 scale)
+    const averageScore = totalScore / (contributors.length * 3); // Divide by weight factor
+    const normalizedScore = Math.min(100, Math.max(0, averageScore * 10 * confidenceModifier)); // Convert to 0-100 scale
     
     // 6. Create breakdown
     const breakdown = {
@@ -271,7 +278,6 @@ async function getQuickRatings(
   const allUserIds = [...trustedUserIds, requestingUserId];
   
   const whereConditions = [
-    inArray(ratings.userId, allUserIds),
     // For the requesting user, include all their ratings (private or shared)
     // For trusted users, only include shared ratings
     or(

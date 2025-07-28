@@ -38,8 +38,9 @@ export function CircleScoreCard({ circleScore, isLoading }: CircleScoreCardProps
     );
   }
 
-  const scoreColor = circleScore.averageScore >= 7.0 ? "bg-green-100 text-green-800" : 
-                    circleScore.averageScore >= 5.0 ? "bg-yellow-100 text-yellow-800" : 
+  const displayScore = circleScore.score || circleScore.averageScore;
+  const scoreColor = displayScore >= 70 ? "bg-green-100 text-green-800" : 
+                    displayScore >= 50 ? "bg-yellow-100 text-yellow-800" : 
                     "bg-red-100 text-red-800";
 
   return (
@@ -48,7 +49,7 @@ export function CircleScoreCard({ circleScore, isLoading }: CircleScoreCardProps
         <div>
           <div className="flex items-center gap-3">
             <Badge className={`${scoreColor} text-lg font-bold px-3 py-1`}>
-              {circleScore.averageScore?.toFixed(1) || 'N/A'}/10.0
+              {displayScore ? (displayScore / 10).toFixed(1) : 'N/A'}/10.0
             </Badge>
             <div>
               <p className="text-sm font-medium">Circle Score</p>
