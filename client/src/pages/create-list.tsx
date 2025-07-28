@@ -443,7 +443,7 @@ export default function CreateListEnhanced() {
 
         {/* Mobile Layout */}
         <div className="lg:hidden">
-          
+
 
           <div className="px-4 py-6 pb-24 pt-14">
             {/* Mobile Header */}
