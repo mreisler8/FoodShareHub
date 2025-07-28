@@ -262,6 +262,14 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                         <SmartTagInput
                           selectedTags={selectedTags}
                           onTagsChange={setSelectedTags}
+                          placeholder="Add tags (e.g., spicy, romantic, casual)..."
+                          maxTags={8}
+                          suggestions={[
+                            "casual", "fine-dining", "romantic", "family-friendly", 
+                            "quick-bite", "brunch", "date-night", "business-lunch",
+                            "spicy", "vegetarian", "vegan", "seafood", "steakhouse",
+                            "pizza", "sushi", "italian", "mexican", "asian", "american"
+                          ]}
                         />
                       </div>
 
@@ -305,6 +313,14 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                       <SmartTagInput
                         selectedTags={selectedTags}
                         onTagsChange={setSelectedTags}
+                        placeholder="Add tags (e.g., spicy, romantic, casual)..."
+                        maxTags={8}
+                        suggestions={[
+                          "casual", "fine-dining", "romantic", "family-friendly", 
+                          "quick-bite", "brunch", "date-night", "business-lunch",
+                          "spicy", "vegetarian", "vegan", "seafood", "steakhouse",
+                          "pizza", "sushi", "italian", "mexican", "asian", "american"
+                        ]}
                       />
                     </div>
 
@@ -431,6 +447,14 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                       <SmartTagInput
                         selectedTags={selectedTags}
                         onTagsChange={setSelectedTags}
+                        placeholder="Add tags (e.g., spicy, must-try, vegan)..."
+                        maxTags={8}
+                        suggestions={[
+                          "must-try", "signature-dish", "spicy", "mild", "sweet", "savory",
+                          "vegetarian", "vegan", "gluten-free", "dairy-free", "keto",
+                          "appetizer", "main-course", "dessert", "drink", "comfort-food",
+                          "healthy", "indulgent", "shareable", "instagram-worthy"
+                        ]}
                       />
                     </div>
 

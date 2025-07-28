@@ -100,27 +100,65 @@ export default function CreateListEnhanced() {
 
   const createListMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("/api/lists", {
+      // First create the list
+      const listResponse = await apiRequest("/api/lists", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          tags: data.tags,
+          shareWithCircle: data.shareWithCircle,
+          makePublic: data.makePublic,
+          circleId: data.circleId,
+          type: "restaurant",
+          audience: data.makePublic ? "public" : (data.shareWithCircle ? "circle" : "profile")
+        }),
       });
-      return response;
+
+      // Then add restaurants to the list if any
+      if (data.restaurants && data.restaurants.length > 0) {
+        const restaurantPromises = data.restaurants.map((restaurant: any, index: number) => 
+          apiRequest(`/api/lists/${listResponse.id}/restaurants`, {
+            method: "POST",
+            body: JSON.stringify({
+              name: restaurant.name,
+              location: restaurant.location || "Location not specified",
+              notes: restaurant.notes || "",
+              position: index + 1,
+              tags: restaurant.tags || []
+            }),
+          })
+        );
+        
+        await Promise.all(restaurantPromises);
+      }
+
+      return listResponse;
     },
     onSuccess: (data: any) => {
       setCreatedListId(data?.id || null);
       setShowSuccessModal(true);
       localStorage.removeItem('list-creation-draft');
       toast({
-        title: "Success!",
-        description: "Your list has been created successfully.",
+        title: "List Created Successfully!",
+        description: `"${listData.title}" with ${listItems.length} restaurant${listItems.length !== 1 ? 's' : ''} has been created.`,
       });
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to create list. Please try again.",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      console.error('Create list error:', error);
+      if (error.message?.includes("409") || error.toString().includes("duplicate")) {
+        toast({
+          title: "List Already Exists",
+          description: "You already have a list with this name. Try a different name.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error Creating List",
+          description: "There was a problem creating your list. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
   });
 

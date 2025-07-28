@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/Button";
 import { 
   ArrowLeft, Edit, MapPin, Utensils, ChefHat, Clock, Plus, Star, 
-  Share2, Eye, BookmarkPlus, BookmarkCheck, Users, Trash2, MoreVertical
+  Share2, Eye, BookmarkPlus, BookmarkCheck, Users, Trash2, MoreVertical, GripVertical
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,10 +16,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { RestaurantList, RestaurantListItemWithDetails } from "@/lib/types";
 import { ShareListModal } from "@/components/lists/ShareListModal";
 import { EditListModal } from "@/components/lists/EditListModal";
+import { AddListItemModal } from "@/components/lists/AddListItemModal";
 import RestaurantSearch from "@/components/lists/RestaurantSearch";
 import { ListItemCard } from "@/components/lists/ListItemCard";
 import { ListItemForm } from "@/components/ListItemForm";
 import { FilterSortControls } from "@/components/lists/FilterSortControls";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -31,6 +37,209 @@ interface OptimisticListItem extends RestaurantListItemWithDetails {
   isOptimistic?: boolean;
 }
 
+// Sortable List Item Component
+interface SortableListItemProps {
+  item: OptimisticListItem;
+  rank: number;
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
+  onUpdate: (id: number, data: any) => void;
+  isEditing: boolean;
+  isOwner: boolean;
+}
+
+function SortableListItem({ item, rank, onEdit, onDelete, onUpdate, isEditing, isOwner }: SortableListItemProps) {
+  const [editingNotes, setEditingNotes] = useState(item.notes || "");
+  const [editingRating, setEditingRating] = useState(item.rating || 0);
+  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id.toString() });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const handleSaveEdit = () => {
+    onUpdate(item.id, {
+      notes: editingNotes,
+      rating: editingRating > 0 ? editingRating : undefined,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNotes(item.notes || "");
+    setEditingRating(item.rating || 0);
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={`transition-all duration-200 ${isDragging ? "shadow-lg scale-105 z-50" : "hover:shadow-md"} ${
+        item.isOptimistic ? "opacity-75 bg-blue-50" : ""
+      }`}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start space-x-4">
+          {/* Drag Handle - Only for owners */}
+          {isOwner && (
+            <div
+              {...attributes}
+              {...listeners}
+              className="flex items-center justify-center w-8 h-8 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing mt-2"
+            >
+              <GripVertical className="h-4 w-4" />
+            </div>
+          )}
+
+          {/* Rank Badge */}
+          <div className="flex items-center justify-center w-8 h-8 bg-primary/10 text-primary rounded-full font-semibold text-sm mt-2">
+            {rank}
+          </div>
+
+          {/* Restaurant Info */}
+          <div className="flex-1">
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                {item.restaurant?.imageUrl ? (
+                  <img 
+                    src={item.restaurant.imageUrl} 
+                    alt={item.restaurant.name}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="text-primary font-semibold text-sm">
+                      {item.restaurant?.name?.charAt(0) || "R"}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium">{item.restaurant?.name || "Restaurant"}</h4>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span>{item.restaurant?.location || "Location not specified"}</span>
+                  {item.restaurant?.category && (
+                    <Badge variant="secondary" className="text-xs">
+                      {item.restaurant.category}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Rating */}
+            {isEditing ? (
+              <div className="mb-3">
+                <label className="text-sm font-medium mb-1 block">Rating</label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => setEditingRating(rating)}
+                      className={`text-lg ${
+                        rating <= editingRating ? "text-yellow-400" : "text-gray-300"
+                      } hover:text-yellow-400 transition-colors`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              item.rating && (
+                <div className="flex items-center space-x-1 mb-2">
+                  <div className="flex">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-4 w-4 ${
+                          i < item.rating! ? "text-yellow-400 fill-current" : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm text-muted-foreground">({item.rating}/5)</span>
+                </div>
+              )
+            )}
+
+            {/* Notes */}
+            {isEditing ? (
+              <div className="mb-3">
+                <label className="text-sm font-medium mb-1 block">Notes</label>
+                <Textarea
+                  value={editingNotes}
+                  onChange={(e) => setEditingNotes(e.target.value)}
+                  placeholder="Add your thoughts about this restaurant..."
+                  className="resize-none"
+                  rows={3}
+                />
+              </div>
+            ) : (
+              item.notes && (
+                <p className="text-sm text-muted-foreground mb-2">{item.notes}</p>
+              )
+            )}
+
+            {/* Tags */}
+            {item.tags && item.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {item.tags.map((tag, i) => (
+                  <Badge key={i} variant="outline" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Actions - Only for owners */}
+            {isOwner && (
+              <div className="flex space-x-2 pt-2">
+                {isEditing ? (
+                  <>
+                    <Button size="sm" onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-700">
+                      Save
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => onEdit(item.id)}>
+                      <Edit className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => onDelete(item.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Remove
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ListDetails() {
   const { id } = useParams();
   const listId = parseInt(id || "0");
@@ -39,6 +248,7 @@ export default function ListDetails() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [listItems, setListItems] = useState<OptimisticListItem[]>([]);
   const [sortBy, setSortBy] = useState('position');
@@ -47,6 +257,18 @@ export default function ListDetails() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [, navigate] = useLocation();
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   
   // Edit item handler
   const handleEdit = (itemId: number) => {
@@ -111,6 +333,78 @@ export default function ListDetails() {
       toast({
         title: "Update failed",
         description: "Failed to update the item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle drag end for reordering
+  const handleDragEnd = async (event: any) => {
+    const { active, over } = event;
+    
+    if (active.id !== over.id) {
+      const oldIndex = listItems.findIndex(item => item.id.toString() === active.id);
+      const newIndex = listItems.findIndex(item => item.id.toString() === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedItems = arrayMove(listItems, oldIndex, newIndex);
+        
+        // Optimistically update local state
+        setListItems(reorderedItems);
+        
+        try {
+          // Update positions on server
+          const updatePromises = reorderedItems.map((item, index) => 
+            apiRequest("PUT", `/api/lists/items/${item.id}`, { 
+              position: index + 1 
+            })
+          );
+          
+          await Promise.all(updatePromises);
+          
+          queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
+          toast({
+            title: "List reordered",
+            description: "Your list order has been saved.",
+          });
+        } catch (error) {
+          // Revert on error
+          setListItems(listItems);
+          toast({
+            title: "Reorder failed",
+            description: "Failed to save the new order. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
+    }
+  };
+
+  // Add item from modal
+  const handleAddItem = async (itemData: any) => {
+    try {
+      const response = await apiRequest(`/api/lists/${listId}/restaurants`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: itemData.restaurant?.name || itemData.name,
+          location: itemData.restaurant?.location || itemData.location,
+          googlePlaceId: itemData.restaurant?.googlePlaceId,
+          notes: itemData.notes || "",
+          tags: itemData.tags || []
+        }),
+      });
+
+      queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
+      setShowAddItemModal(false);
+      
+      toast({
+        title: "Restaurant Added",
+        description: `${itemData.restaurant?.name || itemData.name} has been added to your list.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to add restaurant",
+        description: "Please try again.",
         variant: "destructive",
       });
     }
@@ -610,28 +904,17 @@ export default function ListDetails() {
               <h2 className="text-xl font-heading font-bold text-neutral-900">
                 Restaurants in this list ({listItems?.length || 0})
               </h2>
-              <Button 
-                size="sm" 
-                className="flex items-center gap-1"
-                onClick={() => setShowRestaurantSearch(!showRestaurantSearch)}
-              >
-                <Plus className="h-4 w-4" />
-                <span>{showRestaurantSearch ? "Cancel" : "Add Restaurant"}</span>
-              </Button>
+              {user && list.createdById === user.id && (
+                <Button 
+                  size="sm" 
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => setShowAddItemModal(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Restaurant
+                </Button>
+              )}
             </div>
-            
-            {/* Restaurant Search Interface */}
-            {showRestaurantSearch && (
-              <div className="mb-6">
-                <RestaurantSearch 
-                  listId={listId}
-                  onRestaurantAdded={handleOptimisticAdd}
-                  onAddCompleted={() => {
-                    setShowRestaurantSearch(false);
-                  }}
-                />
-              </div>
-            )}
             
             {/* Filter & Sort Controls */}
             {listItems && listItems.length > 0 && (
@@ -646,42 +929,34 @@ export default function ListDetails() {
               </div>
             )}
             
-            {/* Restaurant List Items */}
+            {/* Drag and Drop Restaurant List */}
             {listItems && listItems.length > 0 ? (
               filteredAndSortedItems.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredAndSortedItems.map((item: OptimisticListItem) => {
-                  // Show edit form if this item is being edited
-                  if (editingId === item.id) {
-                    return (
-                      <ListItemForm
-                        key={item.id}
-                        restaurantId={item.restaurantId.toString()}
-                        restaurantName={item.restaurant?.name || "Restaurant"}
-                        initial={{
-                          rating: item.rating,
-                          liked: item.liked,
-                          disliked: item.disliked,
-                          notes: item.notes
-                        }}
-                        onSave={(data) => handleUpdate(item.id, data)}
-                        onCancel={() => setEditingId(null)}
-                      />
-                    );
-                  }
-
-                  // Show regular list item card
-                  return (
-                    <ListItemCard
-                      key={item.id}
-                      data={item}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      isOptimistic={item.isOptimistic}
-                    />
-                  );
-                  })}
-                </div>
+                <DndContext 
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext 
+                    items={filteredAndSortedItems.map(item => item.id.toString())}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-4">
+                      {filteredAndSortedItems.map((item: OptimisticListItem, index: number) => (
+                        <SortableListItem
+                          key={item.id}
+                          item={item}
+                          rank={index + 1}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                          onUpdate={handleUpdate}
+                          isEditing={editingId === item.id}
+                          isOwner={user?.id === list.createdById}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               ) : (
                 <div className="text-center py-10 bg-white rounded-xl shadow-sm">
                   <p className="text-neutral-500">No restaurants match your filters.</p>
@@ -691,11 +966,23 @@ export default function ListDetails() {
                 </div>
               )
             ) : (
-              <div className="text-center py-10 bg-white rounded-xl shadow-sm">
-                <p className="text-neutral-500">This list doesn't have any restaurants yet.</p>
-                <p className="text-neutral-500 mt-2">
+              <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+                <div className="mb-4">
+                  <Utensils className="h-12 w-12 text-neutral-300 mx-auto" />
+                </div>
+                <p className="text-neutral-500 text-lg font-medium">This list is empty</p>
+                <p className="text-neutral-400 mt-2">
                   Add restaurants to start building your collection!
                 </p>
+                {user && list.createdById === user.id && (
+                  <Button 
+                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setShowAddItemModal(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Restaurant
+                  </Button>
+                )}
               </div>
             )}
           </>
@@ -724,6 +1011,13 @@ export default function ListDetails() {
           list={list}
         />
       )}
+
+      {/* Add Item Modal */}
+      <AddListItemModal
+        open={showAddItemModal}
+        onOpenChange={setShowAddItemModal}
+        onAddItem={handleAddItem}
+      />
       
       {/* Delete List Confirmation Dialog */}
       <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
