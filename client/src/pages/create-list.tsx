@@ -19,7 +19,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { ListItemData } from "@/components/lists/AddListItemModal";
-import { AppHeader } from "@/components/ui/AppHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface ListFormData {
   title: string;
@@ -254,10 +254,10 @@ export default function CreateListEnhanced() {
         <DesktopSidebar />
         <main className="flex-1 ml-64">
           {/* App Header with back button and logo */}
-          <AppHeader 
+          <PageHeader 
             title="Create List" 
-            showBackButton={true} 
-            onBack={() => window.history.back()}
+            showBackButton={true}
+            showLogo={false}
           />
 
           <div className="max-w-4xl mx-auto px-6 py-8 pt-14">

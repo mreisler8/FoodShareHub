@@ -39,7 +39,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
-import { AppHeader } from "@/components/ui/AppHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 
 export default function ProfilePage() {
@@ -847,10 +847,10 @@ export default function ProfilePage() {
       {/* Main Content Area */}
       <div className="flex-1 max-w-4xl mx-auto">
         {/* App Header with back button and logo */}
-        <AppHeader 
+        <PageHeader 
           title={profileUser?.name || profileUser?.username || "Profile"} 
-          showBackButton={true} 
-          onBack={() => window.history.back()}
+          showBackButton={true}
+          showLogo={false}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full pt-14">

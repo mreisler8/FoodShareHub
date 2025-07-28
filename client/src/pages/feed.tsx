@@ -13,7 +13,7 @@ import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernS
 import { SkeletonFeedCard, SkeletonListCard } from '@/components/ui/SkeletonFeedCard';
 import { InlineError } from '@/components/ui/InlineError';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { AppHeader } from '@/components/ui/AppHeader';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
@@ -265,10 +265,9 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
 
         <div className="flex-1 overflow-auto lg:ml-0">
           {/* Enhanced App Header with Logo - FIXED POSITION */}
-          <AppHeader 
-            title={activeTab === 'feed' ? 'Your Feed' : activeTab === 'discover' ? 'Discover' : 'Circle Feed'}
-            showBackButton={true}
-            onBack={() => window.history.back()}
+          <PageHeader 
+            showBackButton={false}
+            showLogo={true}
           />
 
           {/* Stories Section - Instagram Style */}
