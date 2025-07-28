@@ -1,4 +1,3 @@
-
 // Button Validation Utility for Testing and Debugging
 
 export interface ButtonTestResult {
@@ -24,7 +23,7 @@ export class ButtonValidator {
     const hasOnClick = buttonElement.onclick !== null;
     const hasEventListeners = buttonElement.hasAttribute('data-has-listeners');
     const hasHref = buttonElement.hasAttribute('href');
-    
+
     result.hasHandler = hasOnClick || hasEventListeners || hasHref;
 
     if (!result.hasHandler) {
@@ -40,16 +39,16 @@ export class ButtonValidator {
 
   static validateAllButtons(): ButtonTestResult[] {
     const results: ButtonTestResult[] = [];
-    
+
     // Find all interactive elements
     const buttons = document.querySelectorAll('button, [role="button"], a[href], input[type="button"], input[type="submit"]');
-    
+
     buttons.forEach((button, index) => {
       const buttonName = button.textContent?.trim() || 
                         button.getAttribute('aria-label') || 
                         button.getAttribute('title') || 
                         `Button-${index}`;
-      
+
       results.push(this.validateButton(button as HTMLElement, buttonName));
     });
 
@@ -58,13 +57,13 @@ export class ButtonValidator {
 
   static logValidationResults(results: ButtonTestResult[]): void {
     console.group('🔘 Button Validation Results');
-    
+
     const workingButtons = results.filter(r => r.isClickable && r.hasHandler);
     const brokenButtons = results.filter(r => !r.isClickable || !r.hasHandler);
-    
+
     console.log(`✅ Working buttons: ${workingButtons.length}`);
     console.log(`❌ Broken buttons: ${brokenButtons.length}`);
-    
+
     if (brokenButtons.length > 0) {
       console.group('❌ Broken Buttons:');
       brokenButtons.forEach(button => {
@@ -72,7 +71,7 @@ export class ButtonValidator {
       });
       console.groupEnd();
     }
-    
+
     console.groupEnd();
   }
 }
@@ -85,3 +84,34 @@ if (typeof window !== 'undefined') {
     return results;
   };
 }
+
+// Development button validation utilities
+export const validateButtons = () => {
+  console.log('🔧 Button Integrity Check Started');
+
+  const buttons = document.querySelectorAll('button');
+  const issues: string[] = [];
+
+  buttons.forEach((button, index) => {
+    const rect = button.getBoundingClientRect();
+    const minSize = 44; // 44px minimum touch target
+
+    if (rect.width < minSize || rect.height < minSize) {
+      issues.push(`Button ${index}: Too small (${rect.width}x${rect.height}px)`);
+    }
+
+    if (!button.getAttribute('aria-label') && !button.textContent?.trim()) {
+      issues.push(`Button ${index}: Missing accessible label`);
+    }
+  });
+
+  if (issues.length === 0) {
+    console.log('✅ All buttons pass validation');
+  } else {
+    console.warn('⚠️ Button issues found:', issues);
+  }
+
+  return { total: buttons.length, issues };
+};
+
+export const validateButtonIntegrity = () => {

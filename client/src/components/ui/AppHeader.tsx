@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 
 interface AppHeaderProps {
   showBackButton?: boolean;
@@ -10,18 +10,18 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ showBackButton = false, title, onBackClick }: AppHeaderProps) {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   const handleBackClick = () => {
     if (onBackClick) {
       onBackClick();
     } else {
-      navigate(-1);
+      window.history.back();
     }
   };
 
   const handleLogoClick = () => {
-    navigate('/feed');
+    setLocation('/feed');
   };
 
   return (
@@ -53,7 +53,11 @@ export function AppHeader({ showBackButton = false, title, onBackClick }: AppHea
               className="h-8 w-8"
               onError={(e) => {
                 console.error('Logo failed to load:', e);
-                e.currentTarget.style.display = 'none';
+                // Replace with fallback text instead of hiding
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  parent.innerHTML = '<span class="text-lg font-bold text-primary">Circles</span>';
+                }
               }}
             />
             {title && (

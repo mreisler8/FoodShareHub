@@ -20,33 +20,33 @@ export class MemoryManager {
   // Event listener management
   addEventListener(componentId: string, element: EventTarget, event: string, handler: EventListener, options?: boolean | AddEventListenerOptions) {
     element.addEventListener(event, handler, options);
-    
+
     if (!this.eventListeners.has(componentId)) {
       this.eventListeners.set(componentId, []);
     }
-    
+
     this.eventListeners.get(componentId)!.push({ element, event, handler });
   }
 
   // Timer management
   setTimeout(componentId: string, callback: () => void, delay: number): NodeJS.Timeout {
     const timer = setTimeout(callback, delay);
-    
+
     if (!this.timers.has(componentId)) {
       this.timers.set(componentId, []);
     }
-    
+
     this.timers.get(componentId)!.push(timer);
     return timer;
   }
 
   setInterval(componentId: string, callback: () => void, delay: number): NodeJS.Timeout {
     const interval = setInterval(callback, delay);
-    
+
     if (!this.intervals.has(componentId)) {
       this.intervals.set(componentId, []);
     }
-    
+
     this.intervals.get(componentId)!.push(interval);
     return interval;
   }
@@ -56,7 +56,7 @@ export class MemoryManager {
     if (!this.observationTargets.has(componentId)) {
       this.observationTargets.set(componentId, []);
     }
-    
+
     this.observationTargets.get(componentId)!.push({ observer, target });
   }
 
@@ -107,7 +107,7 @@ export class MemoryManager {
     const timerKeys = Array.from(this.timers.keys());
     const intervalKeys = Array.from(this.intervals.keys());
     const observerKeys = Array.from(this.observationTargets.keys());
-    
+
     return {
       eventListeners: eventListenerKeys.length,
       timers: timerKeys.length,
@@ -128,7 +128,7 @@ export class MemoryManager {
     const timerKeys = Array.from(this.timers.keys());
     const intervalKeys = Array.from(this.intervals.keys());
     const observerKeys = Array.from(this.observationTargets.keys());
-    
+
     const allComponentIds = new Set([
       ...eventListenerKeys,
       ...timerKeys,
@@ -199,12 +199,12 @@ export function logMemoryUsage(context: string) {
 export function enableMemoryDebugging() {
   if (process.env.NODE_ENV === 'development') {
     const memoryManager = MemoryManager.getInstance();
-    
+
     // Log memory stats every 30 seconds
     setInterval(() => {
       const stats = memoryManager.getStats();
       const memory = getMemoryUsage();
-      
+
       console.log('Memory Debug Stats:', {
         memoryManager: stats,
         browserMemory: memory
@@ -219,3 +219,10 @@ export function enableMemoryDebugging() {
     });
   }
 }
+
+export const formatMemorySize = (bytes: number | null): string => {
+  if (bytes === null || bytes === undefined || isNaN(bytes)) {
+    return '0.00';
+  }
+  return (bytes / 1024 / 1024).toFixed(2);
+};

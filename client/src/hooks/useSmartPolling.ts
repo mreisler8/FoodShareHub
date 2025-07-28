@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -18,7 +17,7 @@ const requestQueue = new Map<string, Promise<any>>();
 export function useSmartPolling({
   queryKey,
   enabled = true,
-  baseInterval = 60000, // 1 minute default (reduced from 30 seconds)
+  baseInterval = 60000, // 60 seconds (reduced from 30s)
   maxInterval = 600000, // 10 minutes max
   backoffMultiplier = 1.5,
   activityThreshold = 120000 // 2 minutes
@@ -69,7 +68,7 @@ export function useSmartPolling({
     }
 
     activeRequests.add(queryKeyString);
-    
+
     const queryPromise = queryClient.fetchQuery({
       queryKey,
       staleTime: isUserActive ? 30000 : 120000, // Different stale times based on activity

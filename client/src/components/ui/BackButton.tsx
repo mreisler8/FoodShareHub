@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 
 interface BackButtonProps {
   onClick?: () => void;
@@ -13,13 +13,13 @@ interface BackButtonProps {
  * This component will be removed in the next version
  */
 export function BackButton({ onClick, className = '' }: BackButtonProps) {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   const handleClick = () => {
     if (onClick) {
       onClick();
     } else {
-      navigate(-1);
+      window.history.back();
     }
   };
 

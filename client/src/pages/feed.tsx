@@ -39,6 +39,7 @@ import { Link } from 'wouter';
 import { AnimatedCardGrid, AnimatedCard } from '@/components/transitions/AnimatedLayout';
 // import { DiscoverFeed } from './DiscoverFeed'; // Temporarily removed due to import issues
 import './FeedPage.css';
+import { FeedErrorBoundary } from '@/components/error/FeedErrorBoundary';
 
 interface FeedPageProps {
   scope?: 'feed' | 'circle';
@@ -401,62 +402,64 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                   Posts and lists from people you follow
                 </p>
 
-                {isLoading && page === 1 ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: 3 }).map((_, index) => (
-                      <SkeletonFeedCard key={index} />
-                    ))}
-                  </div>
-                ) : error ? (
-                  <InlineError 
-                    error={error} 
-                    message="Couldn't load content."
-                    onRetry={() => window.location.reload()}
-                  />
-                ) : allItems.length > 0 ? (
-                  <InfiniteScroll
-                    dataLength={allItems.length}
-                    next={fetchMoreItems}
-                    hasMore={hasMore}
-                    loader={
-                      <div className="py-6 space-y-4">
-                        <SkeletonFeedCard />
-                        <SkeletonFeedCard />
-                      </div>
-                    }
-                    endMessage={
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">You've reached the end.</p>
-                      </div>
-                    }
-                  >
-                    <FeedContentWithLayout allItems={allItems} onListClick={handleListClick} />
-                  </InfiniteScroll>
-                ) : (
-                  <div className="text-center p-8 space-y-4">
-                    <h3 className="text-lg font-semibold text-foreground">Your feed is empty</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                      Start following people and joining circles to see restaurant recommendations and food moments here.
-                    </p>
-                    <div className="flex gap-2 mt-6 justify-center">
-                      <Button 
-                        onClick={() => setShowFoodMomentModal(true)}
-                        variant="outline"
-                        className="min-h-[44px]"
-                      >
-                        Share a food moment
-                      </Button>
-                      <Button 
-                        onClick={() => setLocation('/create-list')}
-                        variant="outline"
-                        className="min-h-[44px]"
-                      >
-                        Create a list
-                      </Button>
+                <FeedErrorBoundary>
+                  {isLoading && page === 1 ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <SkeletonFeedCard key={index} />
+                      ))}
                     </div>
-                  </div>
-                )}
-              </div>
+                  ) : error ? (
+                    <InlineError 
+                      error={error} 
+                      message="Couldn't load content."
+                      onRetry={() => window.location.reload()}
+                    />
+                  ) : allItems.length > 0 ? (
+                    <InfiniteScroll
+                      dataLength={allItems.length}
+                      next={fetchMoreItems}
+                      hasMore={hasMore}
+                      loader={
+                        <div className="py-6 space-y-4">
+                          <SkeletonFeedCard />
+                          <SkeletonFeedCard />
+                        </div>
+                      }
+                      endMessage={
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">You've reached the end.</p>
+                        </div>
+                      }
+                    >
+                      <FeedContentWithLayout allItems={allItems} onListClick={handleListClick} />
+                    </InfiniteScroll>
+                  ) : (
+                    <div className="text-center p-8 space-y-4">
+                      <h3 className="text-lg font-semibold text-foreground">Your feed is empty</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto">
+                        Start following people and joining circles to see restaurant recommendations and food moments here.
+                      </p>
+                      <div className="flex gap-2 mt-6 justify-center">
+                        <Button 
+                          onClick={() => setShowFoodMomentModal(true)}
+                          variant="outline"
+                          className="min-h-[44px]"
+                        >
+                          Share a food moment
+                        </Button>
+                        <Button 
+                          onClick={() => setLocation('/create-list')}
+                          variant="outline"
+                          className="min-h-[44px]"
+                        >
+                          Create a list
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </FeedErrorBoundary>
             </TabsContent>
 
             <TabsContent value="circle" className="mt-6">
