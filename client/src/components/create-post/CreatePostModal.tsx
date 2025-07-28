@@ -79,8 +79,9 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
         priceAssessment: null,
         atmosphere: null,
         serviceRating: null,
-        dietaryOptions: []
-      }, formData.restaurant);
+        dietaryOptions: [],
+        restaurant: formData.restaurant
+      });
 
       // Add post-specific metadata
       processedData.postType = 'dish';
@@ -146,7 +147,6 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
             <RestaurantSearchComponent
               onSelect={(restaurant) => setFormData(prev => ({ ...prev, restaurant: { ...restaurant, source: 'search' } }))}
               placeholder="Search for a restaurant..."
-              showRecentSearches={true}
             />
           </div>
 
