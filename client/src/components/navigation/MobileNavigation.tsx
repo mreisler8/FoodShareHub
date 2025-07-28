@@ -26,16 +26,16 @@ export function MobileNavigation() {
 
   return (
     <div className="nav-mobile">
-      <div className="flex justify-around items-center h-16 px-3 max-w-screen-sm mx-auto">
+      <div className="flex justify-around items-center h-16 px-3 max-w-screen-sm mx-auto pb-safe">
         <Link href="/feed" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/feed') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${isActive('/feed') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`} aria-label="Feed">
             <Home className="h-5 w-5" />
             <span className="text-xs mt-1 font-medium">Feed</span>
           </div>
         </Link>
 
         <Link href="/discover" className="flex-1 h-full">
-          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg ${isActive('/discover') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`}>
+          <div className={`h-full flex flex-col items-center justify-center transition-all duration-200 mobile-button rounded-lg min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${isActive('/discover') ? 'text-primary bg-primary/10' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5 touch-manipulation`} aria-label="Discover">
             <Search className="h-5 w-5" />
             <span className="text-xs mt-1 font-medium">Discover</span>
           </div>

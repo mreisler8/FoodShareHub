@@ -9,6 +9,10 @@ import { FeedLayoutProvider, useFeedLayout, getFeedLayoutClasses } from '@/compo
 import { FeedViewControls } from '@/components/feed/FeedViewControls';
 import { StoriesSection } from '@/components/feed/StoriesSection';
 import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernShimmerLoader';
+import { SkeletonFeedCard, SkeletonListCard } from '@/components/ui/SkeletonFeedCard';
+import { InlineError } from '@/components/ui/InlineError';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
+import { AppHeader } from '@/components/ui/AppHeader';
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
@@ -253,6 +257,7 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
 
   return (
     <FeedLayoutProvider>
+      <OfflineBanner />
       <div className="flex min-h-screen bg-background">
         <DesktopSidebar />
 
@@ -393,19 +398,26 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                 </p>
 
                 {isLoading && page === 1 ? (
-                  <FeedLoadingState viewMode="list" />
-                ) : error ? (
-                  <div className="text-center p-8">
-                    <p className="text-red-500">Failed to load feed posts</p>
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <SkeletonFeedCard key={index} />
+                    ))}
                   </div>
+                ) : error ? (
+                  <InlineError 
+                    error={error} 
+                    message="Couldn't load content."
+                    onRetry={() => window.location.reload()}
+                  />
                 ) : allItems.length > 0 ? (
                   <InfiniteScroll
                     dataLength={allItems.length}
                     next={fetchMoreItems}
                     hasMore={hasMore}
                     loader={
-                      <div className="py-6">
-                        <ModernShimmerLoader viewMode="list" count={2} />
+                      <div className="py-6 space-y-4">
+                        <SkeletonFeedCard />
+                        <SkeletonFeedCard />
                       </div>
                     }
                     endMessage={
@@ -454,19 +466,26 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     </p>
 
                     {isLoading && page === 1 ? (
-                      <FeedLoadingState viewMode="list" />
-                    ) : error ? (
-                      <div className="text-center p-8">
-                        <p className="text-red-500">Failed to load circle posts</p>
+                      <div className="space-y-4">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <SkeletonFeedCard key={index} />
+                        ))}
                       </div>
+                    ) : error ? (
+                      <InlineError 
+                        error={error} 
+                        message="Couldn't load circle posts."
+                        onRetry={() => window.location.reload()}
+                      />
                     ) : allItems.length > 0 ? (
                       <InfiniteScroll
                         dataLength={allItems.length}
                         next={fetchMoreItems}
                         hasMore={hasMore}
                         loader={
-                          <div className="flex justify-center py-6">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <div className="py-6 space-y-4">
+                            <SkeletonFeedCard />
+                            <SkeletonFeedCard />
                           </div>
                         }
                         endMessage={
