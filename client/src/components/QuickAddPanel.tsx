@@ -100,7 +100,7 @@ export function QuickAddPanel() {
         <div className="quick-add-actions">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             onClick={() => setIsPostModalOpen(true)}
             className="quick-add-btn"
           >
@@ -108,8 +108,8 @@ export function QuickAddPanel() {
             Write Review
           </Button>
           <Button
-            variant="primary"
-            size="md"
+            variant="default"
+            size="sm"
             onClick={() => setIsPostModalOpen(true)}
             className="quick-add-btn"
             disabled={!selectedRestaurant && searchTerm.length === 0}
@@ -128,7 +128,7 @@ export function QuickAddPanel() {
         <div className="quick-add-actions">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             onClick={() => window.location.href = '/lists'}
             className="quick-add-btn"
           >
@@ -136,8 +136,8 @@ export function QuickAddPanel() {
             View Lists
           </Button>
           <Button
-            variant="primary"
-            size="md"
+            variant="default"
+            size="sm"
             onClick={() => window.location.href = '/lists/create'}
             className="quick-add-btn"
           >
