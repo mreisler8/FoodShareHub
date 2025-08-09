@@ -22,7 +22,7 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
   });
 
   // Check if current list is in saved lists
-  const isListSaved = savedLists?.some((saved: any) => saved.listId === parseInt(listId));
+  const isListSaved = Array.isArray(savedLists) && savedLists.some((saved: any) => saved.listId === parseInt(listId));
 
   // Save/unsave mutation
   const saveListMutation = useMutation({
@@ -30,7 +30,10 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
       if (action === 'save') {
         return await apiRequest('/api/saved-lists', {
           method: 'POST',
-          body: { listId: parseInt(listId) }
+          body: JSON.stringify({ listId: parseInt(listId) }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
       } else {
         return await apiRequest(`/api/saved-lists/${listId}`, {

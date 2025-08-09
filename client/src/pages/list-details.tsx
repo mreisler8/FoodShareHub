@@ -37,7 +37,7 @@ import { useLocation } from "wouter";
 interface OptimisticListItem extends RestaurantListItemWithDetails {
   isOptimistic?: boolean;
   tags?: string[];
-  priceAssessment?: string | null | undefined;
+  priceAssessment?: string | null;
 }
 
 // Sortable List Item Component
@@ -700,8 +700,10 @@ export default function ListDetails() {
   // Save list mutation
   const saveListMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/lists/${id}/save`, {});
-      return res.json();
+      const res = await apiRequest(`/api/lists/${id}/save`, {
+        method: 'POST'
+      });
+      return res;
     },
     onSuccess: () => {
       setIsSaved(true);
