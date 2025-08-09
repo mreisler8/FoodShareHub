@@ -1,0 +1,73 @@
+You are working in a React (TypeScript, Vite) frontend and a Node.js/Express backend with PostgreSQL.
+
+Your task is to produce a COMPLETE SEARCH FUNCTIONALITY AUDIT REPORT for the Circles application.  
+This report must fully document every search feature in the application — across restaurants, users, lists, themes/tags, and any other entity types — covering both frontend and backend.  
+The output must be written as a structured report, not a table.
+
+Follow these steps exactly:
+
+---
+
+1. **Executive Summary**
+   - Summarize the total number of search features found.
+   - Provide counts by entity type (restaurants, users, lists, themes/tags, other).
+   - Highlight major inconsistencies, redundancies, and missing features.
+   - State if the system is currently unified or fragmented.
+
+---
+
+2. **Entity-by-Entity Analysis**
+   For each entity type (restaurants, users, lists, themes/tags, other):
+   - **Search Entry Points**
+     - List each page or feature where this entity type can be searched.
+     - Include file path(s) to the relevant frontend components.
+   - **Search UI & UX**
+     - Describe the search interface (inline bar, modal, dropdown, filter panel).
+     - Note available filters, sorting options, and interaction patterns.
+   - **Backend/API**
+     - Document the API endpoint used, query parameters, expected payload, and result structure.
+     - Identify if it’s shared with other searches or is unique.
+   - **Known Issues / Differences**
+     - Flag any inconsistencies in query logic, result ordering, or filtering.
+     - Note where the same entity type is handled differently across pages.
+
+---
+
+3. **Cross-Page Consistency Analysis**
+   - Compare the same search type across multiple pages.
+   - Highlight differences in:
+     - UI layout and behavior
+     - Backend API usage
+     - Query parameters and filtering
+     - Result display and formatting
+
+---
+
+4. **Technical Architecture Mapping**
+   - Describe how search requests flow from frontend to backend to database.
+   - List all database tables and fields involved for each entity type.
+   - Identify indexing, full-text search usage, and any performance bottlenecks.
+   - Flag duplicate or redundant search logic in the codebase.
+
+---
+
+5. **Opportunities for Unification**
+   - Recommend where search implementations could be merged to reduce code duplication and improve consistency.
+   - Identify candidate APIs for consolidation into a unified search endpoint.
+
+---
+
+6. **Success Criteria for MVP**
+   - Unified or clearly documented search API usage for all entity types.
+   - Consistent UI/UX for search across the app.
+   - Clear performance plan for supporting 100 concurrent users.
+   - Search response times under 300ms P95 for core entities.
+
+---
+
+**Output Requirements:**
+- Write as a professional audit report with clear section headings.
+- Include bullet points for lists of findings.
+- Use inline code formatting (`/api/example`) for file paths and API endpoints.
+- No tables — all information must be in narrative/bullet form.
+- Ensure no search feature is omitted.
