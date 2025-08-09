@@ -11,18 +11,19 @@ router.get(['/', ''], async (req, res) => {
   res.status(400).json({ error: 'List ID required' });
 });
 
-// Create new reaction - handle both with and without trailing slash
-router.post(['/', ''], authenticate, async (req, res) => {
+// Create new reaction for specific list
+router.post('/:listId', authenticate, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const { listId, reaction } = req.body;
+    const listId = parseInt(req.params.listId);
+    const { type: reaction } = req.body;
 
-    if (!listId || !reaction) {
-      return res.status(400).json({ error: 'List ID and reaction required' });
+    if (!listId || isNaN(listId) || !reaction) {
+      return res.status(400).json({ error: 'Valid list ID and reaction required' });
     }
 
     if (!['like', 'love', 'fire', 'clap'].includes(reaction)) {
@@ -33,7 +34,7 @@ router.post(['/', ''], authenticate, async (req, res) => {
     const existingReaction = await db.select()
       .from(listReactions)
       .where(and(
-        eq(listReactions.listId, parseInt(listId)),
+        eq(listReactions.listId, listId),
         eq(listReactions.userId, userId)
       ))
       .limit(1);
@@ -43,13 +44,13 @@ router.post(['/', ''], authenticate, async (req, res) => {
       await db.update(listReactions)
         .set({ reaction })
         .where(and(
-          eq(listReactions.listId, parseInt(listId)),
+          eq(listReactions.listId, listId),
           eq(listReactions.userId, userId)
         ));
     } else {
       // Create new reaction
       await db.insert(listReactions).values({
-        listId: parseInt(listId),
+        listId,
         userId,
         reaction
       });
@@ -82,7 +83,7 @@ router.get('/:listId', authenticate, async (req, res) => {
     })
     .from(listReactions)
     .innerJoin(users, eq(listReactions.userId, users.id))
-    .where(eq(listReactions.listId, parseInt(listId)))
+    .where(eq(listReactions.listId, listId))
     .orderBy(desc(listReactions.createdAt));
 
     const reactionCounts = await db.select({
@@ -90,14 +91,14 @@ router.get('/:listId', authenticate, async (req, res) => {
       count: sql<number>`COUNT(*)`
     })
     .from(listReactions)
-    .where(eq(listReactions.listId, parseInt(listId)))
+    .where(eq(listReactions.listId, listId))
     .groupBy(listReactions.reaction);
 
     // Check if current user has reacted
     const userReaction = await db.select()
       .from(listReactions)
       .where(and(
-        eq(listReactions.listId, parseInt(listId)),
+        eq(listReactions.listId, listId),
         eq(listReactions.userId, userId)
       ))
       .limit(1);
@@ -114,52 +115,6 @@ router.get('/:listId', authenticate, async (req, res) => {
   }
 });
 
-// Add reaction to list - handle both with and without trailing slash
-router.post(['/:listId/react', '/:listId/react/'], authenticate, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
 
-    const { listId } = req.params;
-    const { reaction } = req.body;
-
-    if (!reaction || !['like', 'love', 'fire', 'clap'].includes(reaction)) {
-      return res.status(400).json({ error: 'Invalid reaction type' });
-    }
-
-    // Check if user already reacted
-    const existingReaction = await db.select()
-      .from(listReactions)
-      .where(and(
-        eq(listReactions.listId, parseInt(listId)),
-        eq(listReactions.userId, userId)
-      ))
-      .limit(1);
-
-    if (existingReaction.length > 0) {
-      // Update existing reaction
-      await db.update(listReactions)
-        .set({ reaction })
-        .where(and(
-          eq(listReactions.listId, parseInt(listId)),
-          eq(listReactions.userId, userId)
-        ));
-    } else {
-      // Create new reaction
-      await db.insert(listReactions).values({
-        listId: parseInt(listId),
-        userId,
-        reaction
-      });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error adding list reaction:', error);
-    res.status(500).json({ error: 'Failed to add reaction' });
-  }
-});
 
 export default router;

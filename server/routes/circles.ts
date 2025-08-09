@@ -187,7 +187,7 @@ router.get('/', authenticate, validateUserId, async (req, res) => {
   }
 });
 
-// Get user's circles with enhanced security
+// Get user's circles with enhanced security - /me endpoint
 router.get('/me', authenticate, validateUserId, async (req, res) => {
   try {
     const userId = req.user!.id;
@@ -877,6 +877,43 @@ router.get('/invites/pending', authenticate, circleDataCache, asyncHandler(async
     throw createApiError("Failed to fetch pending circle invites", 500, "INVITES_FETCH_ERROR");
   }
 }));
+
+// Get user's circles - MUST come before /:id route to avoid conflicts
+router.get('/my-circles', authenticate, validateUserId, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const userCircles = await db
+      .select({
+        id: circles.id,
+        name: circles.name,
+        description: circles.description,
+        primaryCuisine: circles.primaryCuisine,
+        priceRange: circles.priceRange,
+        location: circles.location,
+        memberCount: circles.memberCount,
+        featured: circles.featured,
+        trending: circles.trending,
+        role: circleMembers.role,
+        joinedAt: circleMembers.joinedAt,
+        coverImage: circles.coverImage
+      })
+      .from(circleMembers)
+      .innerJoin(circles, eq(circleMembers.circleId, circles.id))
+      .where(
+        and(
+          eq(circleMembers.userId, userId),
+          eq(circleMembers.status, 'active')
+        )
+      )
+      .orderBy(circleMembers.joinedAt);
+
+    res.json(userCircles);
+  } catch (error) {
+    console.error('Error fetching user circles:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Get circle details with enhanced access control
 router.get('/:id', authenticate, validateUserId, validateCircleId(), async (req, res) => {

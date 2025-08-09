@@ -1,0 +1,90 @@
+Prompt: Fix Missing List Reactions, Circle API Bug, Save Verification, and TS Errors
+You are working in a React (TypeScript, Vite) frontend and a Node.js/Express backend with PostgreSQL.
+Follow these instructions exactly. The goal is to fix four issues found during MVP validation.
+
+1. Implement Missing List Reactions API
+File: server/routes/list-reactions.ts
+
+Add:
+
+POST /api/list-reactions
+
+Body: { listId: number, reaction: 'like' | 'love' | 'fire' | 'clap' }
+
+Validate reaction matches allowed values.
+
+If reaction exists for (userId, listId), update it. Otherwise, insert new record.
+
+Update reactionCount in restaurantLists table.
+
+GET /api/list-reactions/:listId
+
+Return aggregated reaction counts + current user’s reaction (if any).
+
+Database: Ensure listReactions table is used (schema already exists).
+
+2. Fix Circle API Bug
+File: server/routes/circles.ts
+
+Fix /api/circles/my-circles so it:
+
+Retrieves all circles where userId is a member.
+
+Returns [] if none found.
+
+Does not throw 400 for valid authenticated users.
+
+Test with:
+
+No circle memberships.
+
+Multiple memberships.
+
+3. Add Save Verification Endpoint
+File: server/routes/saved-lists.ts
+
+Add GET /api/saved-lists/:listId/status
+
+Returns { saved: true } if (userId, listId) exists in savedLists, else { saved: false }.
+
+Frontend:
+
+File: client/src/components/SaveListButton.tsx
+
+After save/unsave action, call the status endpoint.
+
+Update icon state accordingly.
+
+Maintain optimistic UI update.
+
+4. Fix TypeScript Errors
+File: client/src/pages/list-details.tsx
+
+Resolve 13 TypeScript diagnostics:
+
+Add missing prop types.
+
+Ensure API data types match backend responses.
+
+Fix undefined checks for listId, items, circleId.
+
+Avoid any where possible — use existing interfaces in /types.
+
+Testing Instructions
+After changes:
+
+Create a list → React to it → See reaction count & personal reaction.
+
+Share list to a circle → Circle appears in ShareListModal without error.
+
+Save list → Refresh page → Saved icon remains consistent.
+
+No TypeScript errors in list-details.tsx.
+
+Success Criteria
+✅ List reactions fully functional (add, update, display).
+✅ Circle API no longer errors for valid users.
+✅ Save verification confirms status after reload.
+✅ Zero TS errors in list-details.tsx.
+✅ All features work without regressions.
+
