@@ -1,4 +1,4 @@
-import logo from "/logo.svg";
+import logo from "../../assets/logo.png";
 
 interface PizzaLogoProps {
   size?: "sm" | "md" | "lg";
