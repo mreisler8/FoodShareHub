@@ -1,0 +1,70 @@
+TITLE: READ-ONLY Audit — Lists, Sharing, and Social Flow (NO CODE CHANGES)
+
+MODE: DISCOVERY ONLY — do not modify any files.
+
+OBJECTIVES:
+1. **List Creation**
+   - Locate all components, hooks, and API calls involved in creating a list (title, items, ordering).
+   - Identify where the list state is stored during creation (local state, global store, or server).
+   - Confirm if cover image, notes, or tags are supported.
+
+2. **List Persistence**
+   - Map API endpoints for creating, updating, reordering, deleting lists and list items.
+   - Document expected payloads for each endpoint and their current server-side validation.
+
+3. **Sharing & Visibility**
+   - Locate logic that sets list visibility (public | circle | private).
+   - Identify how visibility is stored (DB field, API contract).
+   - Confirm endpoints and UI for updating visibility after creation.
+
+4. **Profile Integration**
+   - Trace how a user’s lists are fetched for their profile.
+   - Document where and how lists are displayed on the profile page.
+   - Confirm visibility rules are respected (e.g., private lists hidden from others).
+
+5. **Circle Integration**
+   - Trace how lists are fetched/rendered in a Circle.
+   - Identify filtering logic (only lists shared to that Circle).
+   - Confirm any Circle-specific metadata (e.g., who shared it, when).
+
+6. **Public/Discover Integration**
+   - Locate components and API calls for listing public lists in Discover or other public feeds.
+   - Document filtering/pagination logic.
+   - Confirm any ranking/scoring logic for public lists.
+
+7. **Interaction by Others**
+   - Identify any features for viewing, rating, commenting on another user’s list.
+   - Document whether “Save list” or “Copy list” exists and how it’s implemented.
+
+8. **Data Storage & Ownership**
+   - Confirm DB schema for lists, items, and sharing relationships.
+   - Identify how ownership is tied to user ID.
+   - Note if there is any orphaned data risk when users are deleted.
+
+9. **End-to-End Social Flow**
+   - Describe the current flow for:
+     a) User A creates a list
+     b) User A shares it (public / Circle)
+     c) User B navigates to see it
+     d) User B interacts with it (view / rate / save)
+   - Identify any broken steps or missing UI in this flow.
+
+OUTPUT:
+- /docs/LISTS_SOCIAL_AUDIT.md:
+  • Component map (frontend & backend)
+  • API endpoint list with payload examples
+  • Visibility/ownership model
+  • Integration points with profile, circles, discover
+  • Current user flow description (create → share → view → interact)
+- /docs/LISTS_FIX_PLAN.md:
+  • Minimal, safe changes needed to complete the full social loop for MVP
+  • File paths + line numbers for changes
+  • Any database migrations or new API endpoints needed
+  • Edge cases to handle (empty lists, deleted owners, visibility changes)
+
+CONSTRAINTS:
+- No code edits.
+- If any ambiguity, add a QUESTIONS section to LISTS_FIX_PLAN.md and STOP.
+
+SUCCESS:
+We can read the two docs and decide exactly what to fix or build so that lists and their social sharing work end-to-end for MVP.
