@@ -3,7 +3,7 @@ import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { HeroSection } from "@/components/HeroSection";
 import { QuickAddPanel } from "@/components/QuickAddPanel";
 import { FeedSection } from "@/components/home/FeedSection";
-
+import { MyLists } from "@/components/home/MyLists";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/Card";
@@ -27,8 +27,8 @@ function TopPicks() {
     );
   }
 
-  const restaurants = topPicks?.restaurants || [];
-  const posts = topPicks?.posts || [];
+  const restaurants = (topPicks as any)?.restaurants || [];
+  const posts = (topPicks as any)?.posts || [];
 
   return (
     <div className="picks-grid">

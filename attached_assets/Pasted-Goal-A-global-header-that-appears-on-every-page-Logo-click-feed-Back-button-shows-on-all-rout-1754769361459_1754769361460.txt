@@ -1,0 +1,147 @@
+Goal: A global header that appears on every page.
+
+Logo click → /feed
+
+Back button shows on all routes except /feed
+
+Back uses history; if none, fallback to /feed
+
+Only change these files:
+
+app/web/src/lib/routes.ts
+
+app/web/src/components/ui/BackButton.tsx
+
+app/web/src/components/layout/AppHeader.tsx
+
+app/web/src/App.tsx (router wrapper)
+
+Exact implementation (copy into those files):
+
+app/web/src/lib/routes.ts
+
+ts
+Copy
+Edit
+export const routes = {
+  feed: "/feed",
+  discover: "/discover",
+  circles: "/circles",
+  profile: "/profile",
+  create: "/create-list-enhanced",
+  restaurant: (id: string) => `/r/${id}`,
+};
+app/web/src/components/ui/BackButton.tsx
+
+tsx
+Copy
+Edit
+import { useNavigate, useLocation } from "react-router-dom";
+import { routes } from "@/lib/routes";
+
+export default function BackButton({ fallback = routes.feed }: { fallback?: string }) {
+  const nav = useNavigate();
+  const { key } = useLocation(); // 'default' means no prior history in this tab
+  const canGoBack = key !== "default";
+
+  return (
+    <button
+      type="button"
+      aria-label="Go back"
+      onClick={() => (canGoBack ? nav(-1) : nav(fallback))}
+      className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm hover:bg-gray-100"
+    >
+      <span aria-hidden>←</span>
+      <span>Back</span>
+    </button>
+  );
+}
+app/web/src/components/layout/AppHeader.tsx
+
+tsx
+Copy
+Edit
+import { Link, useLocation } from "react-router-dom";
+import { routes } from "@/lib/routes";
+import BackButton from "@/components/ui/BackButton";
+
+export default function AppHeader() {
+  const { pathname } = useLocation();
+  const showBack = pathname !== routes.feed;
+
+  return (
+    <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="mx-auto flex h-14 max-w-screen-md items-center justify-between px-3">
+        <div className="flex items-center gap-2">
+          {showBack ? <BackButton /> : null}
+          <Link to={routes.feed} className="flex items-center gap-2" aria-label="Go to feed">
+            {/* Temporarily render a text mark; swap in your logo later */}
+            <div className="h-6 w-6 rounded-full border" aria-hidden />
+            <span className="font-semibold">Circles</span>
+          </Link>
+        </div>
+        <nav className="flex items-center gap-2" />
+      </div>
+    </header>
+  );
+}
+app/web/src/App.tsx
+
+tsx
+Copy
+Edit
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import AppHeader from "@/components/layout/AppHeader";
+
+// Replace with your real pages:
+import FeedPage from "@/pages/FeedPage";
+
+function RootLayout() {
+  return (
+    <div className="min-h-screen bg-white">
+      <AppHeader />
+      <main className="mx-auto max-w-screen-md px-3 py-3">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <RootLayout />,
+    children: [
+      { path: "/feed", element: <FeedPage /> },
+      // add discover/profile/circles/create/restaurant here as they exist
+    ],
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}
+Acceptance Criteria
+
+Header renders on every route.
+
+Clicking the header brand navigates to /feed.
+
+Back button is hidden on /feed, shown elsewhere.
+
+Back prefers history; if none (e.g., deep-link), it routes to /feed.
+
+No console warnings; keyboard focus visible on Back + brand link.
+
+Manual Test Script (run in the browser)
+
+Navigate Feed → Discover → Restaurant; click Back twice → you land on /feed.
+
+Open /r/123 in a new tab; click Back → you land on /feed.
+
+On /feed, Back is not visible.
+
+Tab to focus the brand link; press Enter → goes to /feed.
+
+Check dev console → no warnings/errors.
+

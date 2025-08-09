@@ -395,7 +395,7 @@ export default function Profile() {
             </>
           ) : (
             <>
-              <Button variant="outline" size="default">
+              <Button variant="outline" size="sm">
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Message
               </Button>
@@ -547,9 +547,9 @@ export default function Profile() {
                         </Card>
                       ))}
                     </div>
-                  ) : userPosts && userPosts.length > 0 ? (
+                  ) : userPosts && (userPosts as any[]).length > 0 ? (
                     <div className="space-y-6">
-                      {userPosts.map((post) => (
+                      {(userPosts as any[]).map((post: any) => (
                         <PostCard key={post.id} post={post} />
                       ))}
                     </div>
@@ -582,9 +582,9 @@ export default function Profile() {
                         </Card>
                       ))}
                     </div>
-                  ) : userLists && userLists.length > 0 ? (
+                  ) : userLists && (userLists as any[]).length > 0 ? (
                     <div className="space-y-4">
-                      {userLists.map((list: any) => (
+                      {(userLists as any[]).map((list: any) => (
                         <Card key={list.id}>
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between">
@@ -644,9 +644,9 @@ export default function Profile() {
                         </Card>
                       ))}
                     </div>
-                  ) : userCircles && userCircles.length > 0 ? (
+                  ) : userCircles && (userCircles as any[]).length > 0 ? (
                     <div className="space-y-4">
-                      {userCircles.map((circle: any) => (
+                      {(userCircles as any[]).map((circle: any) => (
                         <Card key={circle.id}>
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between">
