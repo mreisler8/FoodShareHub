@@ -713,9 +713,9 @@ export default function Profile() {
                           </Card>
                         ))}
                       </div>
-                    ) : savedItems && savedItems.length > 0 ? (
+                    ) : savedItems && (savedItems as any[]).length > 0 ? (
                       <div className="space-y-4">
-                        {savedItems.map((item: any) => (
+                        {(savedItems as any[]).map((item: any) => (
                           <Card key={item.id}>
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">

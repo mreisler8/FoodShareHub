@@ -10,6 +10,7 @@ import { SmartPollingProvider } from "./components/optimized/SmartPollingProvide
 import { FloatingCreateButton } from "./components/common/FloatingCreateButton";
 import Router from "./components/Router";
 import BottomNavigation from "./components/navigation/BottomNavigation";
+import AppHeader from "./components/layout/AppHeader";
 
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -32,8 +33,11 @@ function AppContent() {
 
   return (
     <ErrorBoundary>
-      <div className={`mobile-page ${showBottomNav ? "mobile-content" : ""}`}>
-        <Router />
+      <div className="min-h-screen bg-white">
+        {location !== "/auth" && <AppHeader />}
+        <main className={`mx-auto max-w-screen-md px-3 py-3 ${showBottomNav ? "mobile-content" : ""}`}>
+          <Router />
+        </main>
       </div>
       {showBottomNav && <BottomNavigation />}
       {showFloatingCreate && <FloatingCreateButton />}

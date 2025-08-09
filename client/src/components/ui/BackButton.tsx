@@ -1,39 +1,27 @@
+import { useLocation } from "wouter";
+import { routes } from "@/lib/routes";
 
-import React from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { useLocation } from 'wouter';
-
-interface BackButtonProps {
-  onClick?: () => void;
-  className?: string;
-}
-
-/**
- * @deprecated Use AppHeader with showBackButton=true instead
- * This component will be removed in the next version
- */
-export function BackButton({ onClick, className = '' }: BackButtonProps) {
-  const [, setLocation] = useLocation();
-
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
-    } else {
-      window.history.back();
-    }
-  };
-
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('BackButton is deprecated. Use AppHeader with showBackButton=true instead.');
-  }
+export default function BackButton({ fallback = routes.feed }: { fallback?: string }) {
+  const [location, setLocation] = useLocation();
+  
+  // In wouter, we can check if there's history by looking at window.history.length
+  const canGoBack = window.history.length > 1;
 
   return (
     <button
-      onClick={handleClick}
-      className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${className}`}
+      type="button"
       aria-label="Go back"
+      onClick={() => {
+        if (canGoBack) {
+          window.history.back();
+        } else {
+          setLocation(fallback);
+        }
+      }}
+      className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm hover:bg-gray-100"
     >
-      <ArrowLeft className="h-5 w-5 text-gray-700" />
+      <span aria-hidden>←</span>
+      <span>Back</span>
     </button>
   );
 }
