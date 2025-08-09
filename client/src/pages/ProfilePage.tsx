@@ -40,7 +40,7 @@ import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { AppHeader } from '@/components/ui/AppHeader';
+
 
 
 export default function ProfilePage() {

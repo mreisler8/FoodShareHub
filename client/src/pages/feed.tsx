@@ -13,7 +13,7 @@ import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernS
 import { SkeletonFeedCard, SkeletonListCard } from '@/components/ui/SkeletonFeedCard';
 import { InlineError } from '@/components/ui/InlineError';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { GlobalHeader } from '@/components/ui/GlobalHeader';
+
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
 import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 import { CreateCanvas } from '@/components/create/CreateCanvas';
@@ -263,9 +263,6 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         <DesktopSidebar />
 
         <div className="flex-1 overflow-auto lg:ml-0">
-          {/* Unified Header with Logo */}
-          <GlobalHeader showBackButton={false} />
-
           {/* Stories Section - Instagram Style */}
           <StoriesSection 
             onCreateStory={() => navigate('/create-moment')}

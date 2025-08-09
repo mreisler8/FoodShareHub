@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
-import { GlobalHeader } from "@/components/ui/GlobalHeader";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -180,8 +180,7 @@ export default function CirclesPage() {
 
   return (
     <>
-      <GlobalHeader />
-      <div className="min-h-screen bg-gray-50 pt-16">
+      <div className="min-h-screen bg-gray-50">
         {isMobile ? <MobileNavigation /> : <DesktopSidebar />}
 
         <div className={`${isMobile ? 'pb-16' : 'md:ml-64'}`}>
