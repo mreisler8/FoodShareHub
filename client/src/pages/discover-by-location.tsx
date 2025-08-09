@@ -68,7 +68,6 @@ export default function DiscoverByLocation() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Discover by Location</h1>
       <div className="flex gap-2 mb-8">
         <Input
           placeholder="Enter location (e.g. New York City, Chicago)"

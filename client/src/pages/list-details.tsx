@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useLocation } from "wouter";
-import { AppHeader } from "@/components/ui/AppHeader";
+
 
 // Extended interface for optimistic list items
 interface OptimisticListItem extends RestaurantListItemWithDetails {
@@ -730,14 +730,7 @@ export default function ListDetails() {
       
       {/* Main Content Area */}
       <div className="flex-1 max-w-5xl mx-auto">
-        {/* App Header with back button and logo */}
-        <AppHeader 
-          title={list?.name || "List Details"} 
-          showBackButton={true} 
-          onBack={() => window.history.back()}
-        />
-        
-        <div className="px-4 py-6 md:px-8 pt-14">
+        <div className="px-4 py-6 md:px-8">
         
           {isLoading ? (
           <div className="space-y-6">

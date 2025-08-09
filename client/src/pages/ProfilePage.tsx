@@ -39,7 +39,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
-import { PageHeader } from "@/components/ui/PageHeader";
 
 
 

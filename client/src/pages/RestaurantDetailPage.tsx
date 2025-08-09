@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
-import { AppHeader } from '@/components/ui/AppHeader';
+
 
 import { useCircleScore } from '@/hooks/useCircleScore';
 import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
@@ -331,10 +331,8 @@ export default function RestaurantDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
-      <AppHeader title={restaurant.name} showBackButton={true} />
-      
       {/* Hero Section with enhanced mobile-first design */}
-      <div className="relative h-48 md:h-64 w-full overflow-hidden pt-14">
+      <div className="relative h-48 md:h-64 w-full overflow-hidden">
         {heroImageData && heroImageData.src ? (
           <>
             <img 

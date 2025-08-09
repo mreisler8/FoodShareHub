@@ -19,7 +19,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RecentRecommendations } from "@/components/recommendations/RecentRecommendations";
 // PageHeader replaced with AppHeader which is already imported
 import { useAuth } from '@/hooks/use-auth';
-import { GlobalHeader } from '@/components/ui/GlobalHeader';
 import DiscoverItemRenderer from '@/components/discover/DiscoverItemRenderer';
 
 export default function Discover() {
