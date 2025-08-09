@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { errorReporter } from '@/utils/errorReporting';
 
 interface Props {
   children: ReactNode;
@@ -37,15 +38,16 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       errorInfo
     });
 
-    // Send to analytics in production
-    if (process.env.NODE_ENV === 'production') {
-      // TODO: Send error to analytics service
-      console.error('Production error:', {
-        message: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack
-      });
-    }
+    // Report error through centralized system
+    errorReporter.report({
+      type: 'component',
+      message: error.message,
+      stack: error.stack,
+      context: {
+        componentStack: errorInfo.componentStack,
+        boundary: 'GlobalErrorBoundary'
+      }
+    });
   }
 
   handleRetry = () => {
@@ -126,18 +128,38 @@ export function setupGlobalErrorHandling() {
     event.preventDefault();
     
     // Show user-friendly error message
-    const errorMessage = event.reason?.message || 'An unexpected error occurred';
+    const errorMessage = event.reason?.message || event.reason || 'An unexpected error occurred';
     
-    // You can integrate with your toast system here
-    console.error('Promise rejection:', errorMessage);
+    // Handle different types of promise rejections
+    if (event.reason instanceof Error) {
+      console.error('Promise rejection error:', {
+        message: event.reason.message,
+        stack: event.reason.stack,
+        name: event.reason.name
+      });
+    } else if (typeof event.reason === 'string') {
+      console.error('Promise rejection string:', event.reason);
+    } else {
+      console.error('Promise rejection unknown:', event.reason);
+    }
     
     // Send to analytics in production
     if (process.env.NODE_ENV === 'production') {
-      // TODO: Send to analytics service
-      console.error('Production promise rejection:', {
+      // Send structured error data
+      const errorData = {
+        type: 'unhandled_promise_rejection',
         message: errorMessage,
-        stack: event.reason?.stack
-      });
+        stack: event.reason?.stack,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href
+      };
+      
+      // Log for now, can be replaced with actual analytics service
+      console.error('Production promise rejection:', errorData);
+      
+      // Could send to external service here
+      // analytics.track('error', errorData);
     }
   });
 

@@ -177,15 +177,24 @@ export function useMemoryManagement(componentName: string) {
 
 // Memory monitoring utilities
 export function getMemoryUsage() {
-  const perf = performance as any;
-  if (perf.memory) {
-    return {
-      usedJSMemory: Math.round(perf.memory.usedJSMemory / 1024 / 1024),
-      totalJSMemory: Math.round(perf.memory.totalJSMemory / 1024 / 1024),
-      jsMemoryLimit: Math.round(perf.memory.jsMemoryLimit / 1024 / 1024),
-    };
+  try {
+    if ('memory' in performance && (performance as any).memory) {
+      const memory = (performance as any).memory;
+      return {
+        usedJSMemory: memory.usedJSHeapSize ? Math.round(memory.usedJSHeapSize / 1024 / 1024) : null,
+        totalJSMemory: memory.totalJSHeapSize ? Math.round(memory.totalJSHeapSize / 1024 / 1024) : null,
+        jsMemoryLimit: memory.jsHeapSizeLimit ? Math.round(memory.jsHeapSizeLimit / 1024 / 1024) : null
+      };
+    }
+  } catch (error) {
+    console.warn('Memory API not available or failed:', error);
   }
-  return null;
+
+  return {
+    usedJSMemory: null,
+    totalJSMemory: null,
+    jsMemoryLimit: null
+  };
 }
 
 export function logMemoryUsage(context: string) {
