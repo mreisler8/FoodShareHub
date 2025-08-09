@@ -18,7 +18,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
 import { MediaUploader } from '@/components/MediaUploader';
-import { RestaurantSearchInput } from '@/components/search/RestaurantSearchInput';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 
 interface Restaurant {
   id: string;
@@ -56,6 +56,7 @@ export function RecommendDishForm({
   onStateChange
 }: RecommendDishFormProps) {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [isRestaurantSearchOpen, setIsRestaurantSearchOpen] = useState(false);
   const [dishName, setDishName] = useState('');
   const [dishCategory, setDishCategory] = useState('');
   const [rating, setRating] = useState(0);
@@ -169,12 +170,28 @@ export function RecommendDishForm({
       {/* Restaurant Search */}
       <div className="space-y-2">
         <Label htmlFor="restaurant">Restaurant *</Label>
-        <RestaurantSearchInput
-          onSelect={handleRestaurantSelect}
-          selectedRestaurant={selectedRestaurant}
-          placeholder="Search for a restaurant..."
-          required
-        />
+        <Button
+          variant="outline"
+          onClick={() => setIsRestaurantSearchOpen(true)}
+          className="w-full justify-start text-left h-10"
+        >
+          {selectedRestaurant ? (
+            <div className="flex items-center gap-2">
+              <UtensilsCrossed className="h-4 w-4" />
+              <div>
+                <div className="font-medium">{selectedRestaurant.name}</div>
+                {selectedRestaurant.location && (
+                  <div className="text-xs text-muted-foreground">{selectedRestaurant.location}</div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <UtensilsCrossed className="h-4 w-4" />
+              Search for a restaurant...
+            </div>
+          )}
+        </Button>
       </div>
 
       {/* Dish Details */}
@@ -339,6 +356,27 @@ export function RecommendDishForm({
           )}
         </Button>
       </div>
+
+      <OptimizedSearchModal
+        open={isRestaurantSearchOpen}
+        onOpenChange={setIsRestaurantSearchOpen}
+        searchType="restaurants"
+        title="Select Restaurant"
+        placeholder="Search for a restaurant..."
+        showLocationServices={true}
+        onSelect={(result) => {
+          const restaurant: Restaurant = {
+            id: result.id,
+            name: result.name,
+            location: result.location,
+            cuisine: result.cuisine,
+            rating: result.avgRating,
+            source: result.metadata?.googlePlaceId ? 'google' : 'database'
+          };
+          handleRestaurantSelect(restaurant);
+          setIsRestaurantSearchOpen(false);
+        }}
+      />
     </div>
   );
 }

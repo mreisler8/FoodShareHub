@@ -339,7 +339,6 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
       <DialogContent 
         className="max-w-2xl max-h-[80vh] p-0" 
         aria-describedby="search-description"
-        showCloseButton={true}
       >
         <div className="sr-only">
           <h2 id="search-title">Search</h2>

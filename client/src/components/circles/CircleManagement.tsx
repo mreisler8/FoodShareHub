@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserSearchModal } from '@/components/search/UserSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { InviteModal } from '@/components/circles/InviteModal';
 import { EditCircleModal } from '@/components/circles/EditCircleModal';
 import { ShareListToCircleModal } from '@/components/circles/ShareListToCircleModal';
@@ -280,31 +280,33 @@ export function CircleManagement({ circleId, onClose }: CircleManagementProps) {
       </div>
 
       {/* Modals */}
-      {showUserSearch && (
-        <UserSearchModal
-          isOpen={showUserSearch}
-          onClose={() => setShowUserSearch(false)}
-          onUserSelect={(user) => {
-            // Send invite to user
-            apiRequest(`/api/circles/${circleId}/invites`, {
-              method: 'POST',
-              body: JSON.stringify({ userId: user.id }),
-            }).then(() => {
-              toast({
-                title: 'Invite sent',
-                description: `Invite sent to ${user.name}`,
-              });
-              setShowUserSearch(false);
-            }).catch((error) => {
-              toast({
-                title: 'Error sending invite',
-                description: error.message || 'Failed to send invite',
-                variant: 'destructive',
-              });
+      <OptimizedSearchModal
+        open={showUserSearch}
+        onOpenChange={setShowUserSearch}
+        searchType="users"
+        title="Add Members"
+        placeholder="Search for users to add to circle..."
+        showLocationServices={false}
+        onSelect={(result) => {
+          // Send invite to user
+          apiRequest(`/api/circles/${circleId}/invites`, {
+            method: 'POST',
+            body: JSON.stringify({ userId: result.id }),
+          }).then(() => {
+            toast({
+              title: 'Invite sent',
+              description: `Invite sent to ${result.name}`,
             });
-          }}
-        />
-      )}
+            setShowUserSearch(false);
+          }).catch((error) => {
+            toast({
+              title: 'Error sending invite',
+              description: error.message || 'Failed to send invite',
+              variant: 'destructive',
+            });
+          });
+        }}
+      />
 
       {showInviteModal && (
         <InviteModal

@@ -1,0 +1,45 @@
+You are working in a React (TypeScript, Vite) frontend with a Node.js/Express backend and PostgreSQL database.
+The goal is to unify all search experiences across the application to use OptimizedSearchModal for consistent UI/UX, keeping location services where currently implemented, without making any backend changes at this stage.
+
+Scope & Instructions
+1. Identify All Search Implementations
+
+Search client/src for components containing UnifiedSearchModal, EnhancedUnifiedSearchModal, or any other search modal.
+
+Identify inline search components (restaurant, user, list, theme/tag search) that could be replaced with OptimizedSearchModal.
+
+At the top of your output, include a commented list of all affected file paths.
+
+2. Refactor to OptimizedSearchModal
+
+Replace any other search modal or inline search with OptimizedSearchModal.
+
+Maintain all current props and functionality, including location services where they are already implemented.
+
+Ensure entity-specific tabs (restaurants, users, lists, themes/tags) remain functional inside OptimizedSearchModal.
+
+3. UI/UX Consistency
+
+Ensure search bars, modals, and results have consistent styling and interaction patterns.
+
+Apply the same placeholder text, icon positioning, and loading state from OptimizedSearchModal to all search triggers.
+
+Remove any redundant modal imports or unused search components after refactor.
+
+4. Testing Requirements
+After refactor, test the following flows:
+
+Restaurants: Search from home feed, discovery, list creation, and post creation — confirm location services work where they did before.
+
+Users: Search from profile, circle creation, and unified modal.
+
+Lists & Themes: Search from discovery, profile, and list creation flows.
+
+Confirm consistent appearance, sorting, and filtering behavior across all pages.
+
+Success Criteria
+✅ All search triggers in the app open OptimizedSearchModal.
+✅ Location services remain available where they currently exist.
+✅ No duplicate modals or styling inconsistencies remain.
+✅ All search entity types remain fully functional after refactor.
+

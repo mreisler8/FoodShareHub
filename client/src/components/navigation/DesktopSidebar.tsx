@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 
@@ -40,7 +40,7 @@ export function DesktopSidebar() {
   const isAuthenticated = !!currentUser;
 
   // Calculate total notifications
-  const totalNotifications = (pendingInvites?.length || 0) + (pendingRequests?.length || 0) + (followRequests?.length || 0);
+  const totalNotifications = (Array.isArray(pendingInvites) ? pendingInvites.length : 0) + (Array.isArray(pendingRequests) ? pendingRequests.length : 0) + (Array.isArray(followRequests) ? followRequests.length : 0);
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -244,10 +244,11 @@ export function DesktopSidebar() {
         </div>
       </div>
 
-      {/* Unified Search Modal */}
-      <UnifiedSearchModal
+      {/* Optimized Search Modal */}
+      <OptimizedSearchModal
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
+        showLocationServices={true}
       />
     </div>
   );

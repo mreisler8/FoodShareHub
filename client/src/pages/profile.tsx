@@ -39,7 +39,7 @@ import { ReferralButton } from "@/components/invitation/ReferralButton";
 import { FollowButton } from "@/components/FollowButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { FollowsPanel } from "@/components/user/FollowsPanel";
-import { UserSearchModal } from "@/components/search/UserSearchModal";
+import { OptimizedSearchModal } from "@/components/search/OptimizedSearchModal";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";
@@ -767,18 +767,21 @@ export default function Profile() {
         </div>
 
         {/* Find Friends Modal */}
-        {showFindFriendsModal && (
-          <UserSearchModal
-            isOpen={showFindFriendsModal}
-            onClose={() => setShowFindFriendsModal(false)}
-            onAddUser={handleFollowUser}
-            title="Find Friends"
-            subtitle="Discover people to follow"
-            actionLabel="Follow"
-            showFollowStatus={true}
-            excludeUserIds={[currentUser?.id || 0]}
-          />
-        )}
+        <OptimizedSearchModal
+          open={showFindFriendsModal}
+          onOpenChange={setShowFindFriendsModal}
+          searchType="users"
+          title="Find Friends"
+          placeholder="Search for friends to follow..."
+          showLocationServices={false}
+          onSelect={(result) => {
+            // Handle user selection for following
+            if (handleFollowUser) {
+              handleFollowUser(result);
+            }
+            setShowFindFriendsModal(false);
+          }}
+        />
       </div>
     </>
   );
