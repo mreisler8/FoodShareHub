@@ -200,14 +200,15 @@ export default function CreateListEnhanced() {
       return;
     }
 
-    if (listItems.length === 0) {
-      toast({
-        title: "Add Restaurants",
-        description: "Please add at least one restaurant to your list.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Allow creating empty lists for MVP
+    // if (listItems.length === 0) {
+    //   toast({
+    //     title: "Add Restaurants",
+    //     description: "Please add at least one restaurant to your list.",
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
 
     const submitData = {
       name: listData.title,
@@ -317,6 +318,24 @@ export default function CreateListEnhanced() {
           onSave={handleAddListItem}
         />
       </div>
+
+      {/* Success Modal */}
+      <PostSuccessModal
+        open={showSuccessModal}
+        onOpenChange={setShowSuccessModal}
+        listId={createdListId || undefined}
+        listTitle={listData.title}
+        destination={shareDestination}
+        options={{
+          view: `/lists/${createdListId}`,
+          new: '/create-list',
+          home: '/feed'
+        }}
+        onNavigate={(path) => {
+          setShowSuccessModal(false);
+          navigate(path);
+        }}
+      />
     </>
   );
 }

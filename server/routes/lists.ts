@@ -14,7 +14,7 @@ const createListSchema = z.object({
   description: z.string().nullable().optional(),
   tags: z.array(z.string()).optional().default([]),
   circleId: z.number().nullable().optional(),
-  visibility: z.enum(['public', 'circle', 'followers', 'private']).optional().default('circle'),
+  visibility: z.enum(['public', 'circle', 'followers', 'private']).optional().default('private'),
   isPublic: z.boolean().optional().default(false),
   shareWithCircle: z.boolean().optional().default(false),
   makePublic: z.boolean().optional().default(false),
@@ -23,9 +23,10 @@ const createListSchema = z.object({
 const updateListSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
-  visibility: z.enum(['public', 'circle']).optional(),
+  visibility: z.enum(['public', 'circle', 'private', 'followers']).optional(),
   shareWithCircle: z.boolean().optional(),
   makePublic: z.boolean().optional(),
+
 });
 
 const addItemSchema = z.object({
@@ -610,9 +611,9 @@ router.get('/:id', authenticate, async (req, res) => {
     // Calculate aggregated stats
     const stats = {
       totalItems: items.length,
-      avgRating: items.length > 0 ? items.reduce((sum, item) => sum + (item.rating || 0), 0) / items.filter(item => item.rating).length : 0,
-      cuisines: [...new Set(items.map(item => item.restaurant.cuisine).filter(Boolean))],
-      cities: [...new Set(items.map(item => item.restaurant.city).filter(Boolean))],
+      avgRating: items.length > 0 ? items.reduce((sum: number, item: any) => sum + (item.rating || 0), 0) / items.filter((item: any) => item.rating).length : 0,
+      cuisines: Array.from(new Set(items.map((item: any) => item['restaurant.cuisine']).filter(Boolean))),
+      cities: Array.from(new Set(items.map((item: any) => item['restaurant.city']).filter(Boolean))),
     };
 
     res.json({
@@ -647,7 +648,7 @@ router.put('/:id', authenticate, async (req, res) => {
     }
 
     // Handle visibility logic consistently with creation
-    let updateData = { ...data };
+    let updateData: any = { ...data };
     if (data.shareWithCircle !== undefined || data.makePublic !== undefined) {
       const shareWithCircle = data.shareWithCircle !== undefined ? data.shareWithCircle : existingList.shareWithCircle;
       const makePublic = data.makePublic !== undefined ? data.makePublic : existingList.makePublic;
@@ -895,9 +896,9 @@ router.get('/:id/items', authenticate, async (req, res) => {
     // Calculate aggregated stats
     const stats = {
       totalItems: items.length,
-      avgRating: items.length > 0 ? items.reduce((sum, item) => sum + (item.rating ||0), 0) / items.filter(item => item.rating).length : 0,
-      cuisines: [...new Set(items.map(item => item.restaurant.cuisine).filter(Boolean))],
-      cities: [...new Set(items.map(item => item.restaurant.city).filter(Boolean))],
+      avgRating: items.length > 0 ? items.reduce((sum: number, item: any) => sum + (item.rating || 0), 0) / items.filter((item: any) => item.rating).length : 0,
+      cuisines: Array.from(new Set(items.map((item: any) => item['restaurant.cuisine']).filter(Boolean))),
+      cities: Array.from(new Set(items.map((item: any) => item['restaurant.city']).filter(Boolean))),
     };
 
     res.json({

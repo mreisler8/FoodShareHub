@@ -1,0 +1,103 @@
+You are working on the Circles web application (React + TypeScript + Vite, TailwindCSS, PostgreSQL backend, custom auth).  
+
+Objective:  
+Fix the current issue where users cannot successfully create and publish a list, ensuring the List feature works end-to-end with all MVP social sharing functionality enabled.
+
+---
+
+### Requirements & Scope
+
+1. **Core Fix – List Creation**
+   - Ensure the `/create-list` flow successfully:
+     - Captures all required fields (name, description, tags, visibility, audience, circle selection).
+     - Validates required fields (`name` is mandatory, ≤ 100 chars).
+     - Persists the list to the backend via `POST /api/lists`.
+     - Redirects to `/lists/:id` or shows a success confirmation after creation.
+   - Validate backend logic:
+     - Owner permissions are enforced.
+     - Duplicate name prevention works per user.
+     - Circle member validation applies if `circleId` is provided.
+
+2. **Add Items to List**
+   - Ensure that after creating a list, the user can:
+     - Add restaurants via `POST /api/lists/:id/restaurants`.
+     - See newly added items without manual page refresh (React Query cache invalidation).
+     - Reorder items (drag-and-drop via `DraggableRestaurantList`) and persist order via `PUT /api/lists/items/:itemId`.
+
+3. **Publishing & Visibility**
+   - Confirm visibility rules:
+     - Public, Circle, Followers, Private — enforced at backend and respected in frontend.
+   - Ensure “Make Public” option correctly sets `isPublic` and `visibility` JSON.
+   - Ensure `shareWithCircle` works:
+       - Shares list to selected circle(s).
+       - Creates entry in `circleSharedLists` table.
+
+4. **Social Integration**
+   - “Share” button from List Details should open `ShareListModal` and allow:
+       - Circle sharing (with permission flags).
+       - Copy link for public lists.
+   - Saving & reactions must work:
+       - `SaveListButton` → `POST /api/saved-lists`
+       - Reactions → `POST /api/list-reactions`
+   - Ensure state updates instantly (optimistic UI) and backend persists changes.
+
+5. **Edge Cases**
+   - Mobile experience: Ensure tabbed creation flow works on mobile without broken modals.
+   - Prevent list creation without items (unless explicitly allowed in MVP).
+   - Handle backend/network errors gracefully (error toasts, not silent fails).
+   - No double submissions on slow networks.
+
+---
+
+### Implementation Plan
+
+**Phase 1 – Backend Verification**
+- Check `/server/routes/lists.ts` to ensure `POST /api/lists` handles:
+    - All required fields from frontend.
+    - Proper defaults for `visibility`, `shareWithCircle`, `isPublic`.
+- Verify circle member validation logic.
+- Verify that `makePublic` flag updates both `isPublic` and `visibility`.
+
+**Phase 2 – Frontend Flow Fix**
+- In `create-list.tsx` and `EnhancedCreateListModal.tsx`:
+    - Fix form submission so it calls `POST /api/lists` with correct payload.
+    - On success, redirect to `/lists/:id` OR show confirmation modal with “View List” CTA.
+    - Ensure tab navigation (Basic Info → Add Items → Share) does not lose form state.
+
+**Phase 3 – Add Items**
+- In `AddListItemModal.tsx`:
+    - Ensure selected restaurant data is sent to backend.
+    - Confirm UI updates immediately after adding an item.
+- Confirm `DraggableRestaurantList.tsx` updates positions in DB.
+
+**Phase 4 – Publish & Share**
+- Ensure `ShareListModal.tsx`:
+    - Shows available circles for sharing.
+    - Calls correct API route to share.
+    - Shows visual confirmation after share.
+
+**Phase 5 – Testing**
+- Create public list → Verify in Discover Feed.
+- Create circle-only list → Verify visible in that circle’s “Lists” tab.
+- Save and react to a list → Verify persistence and state sync.
+- Reorder items → Verify persisted order.
+- Try creating list with duplicate name → Verify error.
+
+---
+
+### Success Criteria
+✅ User can create, add items to, and publish a list without error.  
+✅ Visibility rules work exactly as expected.  
+✅ Lists appear where they should (profile, circles, discover).  
+✅ Save & reaction features work and update instantly.  
+✅ No console errors, TS errors, or broken UI flows.  
+✅ Fully functional on mobile.  
+
+---
+
+### Validation Checklist
+1. `/create-list` works start-to-finish.
+2. Items can be added, reordered, and removed.
+3. Visibility settings respected in all views.
+4. Social actions (share, save, react) work with instant UI updates.
+5. All relevant database tables update correctly.
