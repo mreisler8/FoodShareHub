@@ -1,0 +1,74 @@
+Prompt for Replit – MVP Validation: List Functionality with Automated Mock User Test
+
+Objective:
+Validate that List Creation & Social Flow is fully functional and bug-free after recent fixes, based on the Lists Social Flow Audit.
+This validation must include an automated mock user test that simulates the entire process from a clean environment.
+
+Scope:
+
+List creation (public, circle, followers, private)
+
+Adding restaurants/items to a list
+
+Sharing lists to circles
+
+Saving (bookmark) lists
+
+Reacting to lists (like, love, fire, clap)
+
+Validation Steps:
+
+Initialize Test Data
+
+Reset any test DB or seed data to ensure clean state.
+
+Create two mock users: userA (list creator) and userB (viewer).
+
+List Creation Tests
+
+From /create-list, create 4 lists (one per visibility setting: public, circle, followers, private) as userA.
+
+Add at least two restaurants per list via "Add Items" flow. Confirm order persists after drag-drop reorder.
+
+Sharing Tests
+
+As userA, share the circle visibility list to Test Circle 1.
+
+Switch to userB, navigate to Test Circle 1 → "Lists" tab, and confirm list is visible.
+
+Saving Tests
+
+As userB, save userA’s public list. Confirm it appears in /my-lists → "Saved Lists".
+
+Reactions Tests
+
+As userB, react to userA’s list with each reaction type (like, love, fire, clap). Confirm reactions appear in list details for both users.
+
+Checks to Perform (Automated Assertions):
+
+No duplicate header issues during list flows (must inherit global AppHeader).
+
+Correct visibility enforcement for each list type.
+
+Permission rules correct (only owner can edit/delete, circle members can view, public can view/save).
+
+API endpoints return correct HTTP codes and payloads.
+
+No console errors, TypeScript warnings, or network failures.
+
+Mobile viewport simulation works for all flows.
+
+Deliverable:
+Return a pass/fail matrix for:
+
+List creation (each visibility type)
+
+Adding items
+
+Sharing to circles
+
+Saving lists
+
+Reacting to lists
+Include: file + line number references for any failures and clear fix recommendations.
+
