@@ -100,11 +100,6 @@ export const queryClient = new QueryClient({
           });
 
           console.log("Query response status:", response.status, response.statusText);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Query failed: ${response.status} ${response.statusText} - ${errorText}`);
-          }
 
           if (!response.ok) {
             const errorText = await response.text();
