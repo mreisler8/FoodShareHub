@@ -1,0 +1,161 @@
+Prompt for Replit Agent — Search Unification & Optimization (Post-Audit)
+Tech Stack:
+Frontend: React (TypeScript, Vite, Tailwind CSS)
+Backend: Node.js/Express, PostgreSQL (Drizzle ORM), Redis (to be added for caching)
+
+Goal:
+Fully unify and optimize search functionality across all entities (restaurants, users, lists, themes) by:
+
+Replacing all legacy search implementations with OptimizedSearchModal
+
+Standardizing backend APIs and parameters
+
+Implementing database indexing and caching for performance
+
+Ensuring consistent UI/UX across all search contexts
+
+Meeting MVP performance targets (P95 ≤ 300ms under 100 concurrent users)
+
+1. Remove Legacy Search Components
+Legacy Components to Remove:
+
+UnifiedSearchModal.tsx
+
+EnhancedUnifiedSearchModal.tsx
+
+RestaurantSearchComponent.tsx
+
+RestaurantSearchInput.tsx
+
+UserSearchModal.tsx
+
+Actions:
+
+Replace all imports/usages of these components with OptimizedSearchModal.
+
+Known pages/components to update:
+
+UnifiedPostModal.tsx
+
+ModernCreatePost.tsx
+
+PostModal.tsx
+
+AddListItemModal.tsx
+
+Any other restaurant/user/list search entry points.
+
+Confirm location services toggle ON for restaurant searches, OFF for other entity types.
+
+2. UI/UX Standardization
+OptimizedSearchModal Updates:
+
+Props:
+
+entityType (restaurant, user, list, theme)
+
+enableLocation (boolean)
+
+filters (optional JSON for advanced filtering)
+
+Ensure:
+
+Placeholder text, icon placement, spacing, and modal animations are identical across all contexts.
+
+Loading state = spinner + text
+
+Error state = AlertCircle + retry button
+
+Debounce timing = 300ms (consistent)
+
+Replace all inconsistent result card layouts with the standardized SearchResultsList style.
+
+3. Backend/API Standardization
+Endpoints to Unify:
+
+/api/search/restaurants
+
+/api/search/users
+
+/api/search/lists
+
+/api/search/themes
+
+/api/search/unified
+
+/api/discover/:tab
+
+Actions:
+
+Standardize parameters:
+
+q = search term
+
+lat, lng = coordinates (optional)
+
+filters = JSON string for advanced filtering
+
+limit = results per page
+
+Standardize response format:
+
+json
+Copy
+Edit
+{
+  "results": [...],
+  "total": 42,
+  "entity": "restaurant",
+  "meta": { "page": 1, "hasMore": true }
+}
+Add location-based search logic to relevant endpoints.
+
+Remove redundant logic and consolidate search handling into a SearchService.
+
+4. Database Performance Optimization
+Indexes:
+
+sql
+Copy
+Edit
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX idx_restaurants_name 
+  ON restaurants USING gin (to_tsvector('english', name));
+
+CREATE INDEX idx_users_username 
+  ON users USING gin (to_tsvector('english', username));
+
+CREATE INDEX idx_lists_name 
+  ON restaurantLists USING gin (to_tsvector('english', name));
+Other Optimizations:
+
+Add full-text search for primary entity fields.
+
+Enable Redis caching for hot queries (60s TTL).
+
+Implement connection pooling and query optimization.
+
+5. Testing & Validation
+From each search entry point:
+
+Verify consistent UI and results formatting.
+
+Confirm location-based searches return correct results.
+
+Test filtering/sorting functionality.
+
+Confirm backend returns identical results for the same query across all pages.
+
+Validate DB indexes are being used via EXPLAIN ANALYZE.
+
+Stress test with 100 concurrent users, validate P95 ≤ 300ms.
+
+MVP Success Criteria
+✅ Single search component (OptimizedSearchModal) across entire app.
+✅ Location services applied correctly per entity type.
+✅ Unified API contract across all search endpoints.
+✅ Database indexed + caching implemented.
+✅ UI/UX fully consistent on all devices.
+✅ Meets P95 ≤ 300ms latency target under 100 concurrent users.
+

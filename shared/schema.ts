@@ -47,7 +47,13 @@ export const follows = pgTable('follows', {
   followerId: integer('follower_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   followingId: integer('following_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+  // Optimized indexes for follow system queries
+  followerIdIdx: index("follows_follower_id_idx").on(table.followerId),
+  followingIdIdx: index("follows_following_id_idx").on(table.followingId),
+  // Unique constraint for preventing duplicate follows
+  uniqueFollowIdx: unique("follows_unique_follow").on(table.followerId, table.followingId),
+}));
 
 // Restaurant model
 export const restaurants = pgTable("restaurants", {
@@ -80,7 +86,18 @@ export const restaurants = pgTable("restaurants", {
   verified: boolean("verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  // Database indexing for optimized search performance
+  nameSearchIdx: index("restaurants_name_search_idx").on(table.name),
+  locationSearchIdx: index("restaurants_location_search_idx").on(table.location),
+  categorySearchIdx: index("restaurants_category_search_idx").on(table.category),
+  googlePlaceIdIdx: index("restaurants_google_place_id_idx").on(table.googlePlaceId),
+  citySearchIdx: index("restaurants_city_search_idx").on(table.city),
+  cuisineSearchIdx: index("restaurants_cuisine_search_idx").on(table.cuisine),
+  // Composite indexes for complex queries
+  locationCategoryIdx: index("restaurants_location_category_idx").on(table.location, table.category),
+  nameCityIdx: index("restaurants_name_city_idx").on(table.name, table.city),
+}));
 
 export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
   name: true,
@@ -130,7 +147,17 @@ export const posts = pgTable("posts", {
   postType: text("post_type").notNull().default("moment"), // "list", "moment", "dish"
   metadata: json("metadata"), // Type-specific data: { dishName?, listId?, etc. }
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Database indexing for optimized post search
+  userIdIdx: index("posts_user_id_idx").on(table.userId),
+  restaurantIdIdx: index("posts_restaurant_id_idx").on(table.restaurantId),
+  postTypeIdx: index("posts_post_type_idx").on(table.postType),
+  createdAtIdx: index("posts_created_at_idx").on(table.createdAt),
+  tagsSearchIdx: index("posts_tags_search_idx").on(table.tags),
+  // Composite indexes for complex queries
+  userPostTypeIdx: index("posts_user_post_type_idx").on(table.userId, table.postType),
+  restaurantCreatedIdx: index("posts_restaurant_created_idx").on(table.restaurantId, table.createdAt),
+}));
 
 export const insertPostSchema = createInsertSchema(posts).pick({
   userId: true,

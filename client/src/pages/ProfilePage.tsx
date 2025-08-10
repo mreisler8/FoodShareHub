@@ -31,7 +31,7 @@ import { UserWithStats } from "@/lib/types";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { FollowButton } from "@/components/FollowButton";
 import { ProfileStats } from "@/components/ProfileStats";
-import { UserSearchModal } from "@/components/search/UserSearchModal";
+import { OptimizedSearchModal } from "@/components/search/OptimizedSearchModal";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RestaurantListsSection } from "@/components/lists/RestaurantListsSection";

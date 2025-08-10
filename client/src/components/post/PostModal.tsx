@@ -16,7 +16,7 @@ import { RestaurantList } from '@shared/schema';
 import MediaUploader from '@/components/MediaUploader';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
 import { postService } from '@/services/postService';
-import { RestaurantSearchComponent } from '@/components/shared/RestaurantSearchComponent';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { Restaurant } from '@/types/restaurant';
 
 interface PostModalProps {
@@ -29,6 +29,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const isEditMode = !!post;
 
   // Form state
@@ -217,6 +218,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   const isFormValid = selectedRestaurant && rating > 0 && liked.trim().length > 0;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -227,13 +229,17 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
           {/* Restaurant Search */}
           <div className="space-y-2">
             <Label htmlFor="restaurant-search">Find a restaurant</Label>
-            <RestaurantSearchComponent
-              onSelect={handleRestaurantSelect}
-              placeholder="Search for a restaurant..."
-              initialValue={selectedRestaurant?.name || ''}
-              showRecentSearches={true}
-            />
-            {selectedRestaurant && (
+            {!selectedRestaurant ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => setSearchModalOpen(true)}
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Search for a restaurant...
+              </Button>
+            ) : (
               <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{selectedRestaurant.name}</p>
@@ -405,5 +411,24 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
         }}
       />
     </Dialog>
+    
+    <OptimizedSearchModal
+      open={searchModalOpen}
+      onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for a restaurant..."
+      onSelect={(result) => {
+        setSelectedRestaurant({
+          id: result.id,
+          name: result.name,
+          location: result.location || result.subtitle,
+          address: result.location,
+          avgRating: result.avgRating
+        });
+        setSearchModalOpen(false);
+      }}
+    />
+    </>
   );
 }

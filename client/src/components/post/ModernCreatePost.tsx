@@ -10,7 +10,7 @@ import { X, ArrowLeft, Star, Upload, Search, MapPin, ArrowRight, Plus } from 'lu
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { RestaurantSearchInput } from '@/components/search/RestaurantSearchInput';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 
 interface ModernCreatePostProps {
   open: boolean;
@@ -29,6 +29,7 @@ interface Restaurant {
 export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCreatePostProps) {
   const [step, setStep] = useState<'type' | 'form'>('type');
   const [selectedType, setSelectedType] = useState<string>('');
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -145,8 +146,9 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
   const isSubmitDisabled = !formData.restaurant || !formData.rating || !formData.dishName.trim();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             {step === 'form' && (
@@ -218,12 +220,37 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
               <label className="block text-sm font-medium mb-2">
                 Restaurant <span className="text-red-500">*</span>
               </label>
-              <RestaurantSearchInput
-                onSelect={handleRestaurantSelect}
-                selectedRestaurant={formData.restaurant}
-                placeholder="Search for a restaurant..."
-                required
-              />
+              {!formData.restaurant ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                  onClick={() => setSearchModalOpen(true)}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Search for a restaurant...
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{formData.restaurant.name}</p>
+                    {formData.restaurant.location && (
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {formData.restaurant.location}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFormData(prev => ({ ...prev, restaurant: null }))}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Rating */}
@@ -380,5 +407,27 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
         )}
       </DialogContent>
     </Dialog>
-  );
+    
+    <OptimizedSearchModal
+      open={searchModalOpen}
+      onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for a restaurant..."
+      onSelect={(result) => {
+        setFormData(prev => ({ 
+          ...prev, 
+          restaurant: {
+            id: result.id,
+            name: result.name,
+            location: result.location || result.subtitle,
+            address: result.location,
+            avgRating: result.avgRating
+          }
+        }));
+        setSearchModalOpen(false);
+      }}
+    />
+  </>
+);
 }

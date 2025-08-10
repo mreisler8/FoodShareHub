@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, X, Plus, Check, AlertCircle } from "lucide-react";
-import { RestaurantSearchComponent } from "../shared/RestaurantSearchComponent";
+import { OptimizedSearchModal } from '../search/OptimizedSearchModal';
 import { LocationService, type LocationData } from '@/services/locationService';
 import { SmartTagInput } from "./SmartTagInput";
 
@@ -67,6 +67,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addedRestaurants, setAddedRestaurants] = useState<string[]>([]);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   const restaurantForm = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantFormSchema),
@@ -213,6 +214,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="pb-4 flex-shrink-0 border-b bg-white sticky top-0 z-10">
@@ -287,13 +289,15 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                   <TabsContent value="restaurant" className="space-y-4 mt-0">
                     {!showManualEntry ? (
                       <div className="space-y-4">
-                        <RestaurantSearchComponent
-                          onSelect={handleRestaurantSelect}
-                          placeholder="Search for restaurants..."
-                          className="w-full"
-                          showLocationServices={true}
-                          autoRequestLocation={true}
-                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          onClick={() => setSearchModalOpen(true)}
+                        >
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Search for restaurants...
+                        </Button>
 
                         {selectedRestaurant && (
                           <Card className="bg-blue-50 border-blue-200">
@@ -751,5 +755,24 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
         )}
       </DialogContent>
     </Dialog>
-  );
+    
+    <OptimizedSearchModal
+      open={searchModalOpen}
+      onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for restaurants..."
+      onSelect={(result) => {
+        handleRestaurantSelect({
+          id: result.id,
+          name: result.name,
+          location: result.location || result.subtitle,
+          address: result.location,
+          avgRating: result.avgRating
+        });
+        setSearchModalOpen(false);
+      }}
+    />
+  </>
+);
 }

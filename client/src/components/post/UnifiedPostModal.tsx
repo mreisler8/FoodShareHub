@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { ArrowLeft, MapPin, Star, X, Loader2, Plus, Camera, UtensilsCrossed, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { RestaurantSearchComponent } from '@/components/shared/RestaurantSearchComponent';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { Restaurant } from '@/types/restaurant';
 import { PostType, PostFormData, PostSubmissionData } from '@/types/post';
 import MediaUploader from '@/components/MediaUploader';
@@ -60,6 +60,7 @@ const POST_TYPE_OPTIONS = [
 export function UnifiedPostModal({ open, onOpenChange, post, initialType }: UnifiedPostModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const isEditMode = !!post;
   
   // Step management
@@ -321,6 +322,7 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -387,13 +389,17 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
             {/* Restaurant Search */}
             <div className="space-y-2">
               <Label>Restaurant *</Label>
-              <RestaurantSearchComponent
-                onSelect={(restaurant) => updateFormData({ restaurant })}
-                placeholder="Search for a restaurant..."
-                initialValue={formData.restaurant?.name || ''}
-                showRecentSearches={true}
-              />
-              {formData.restaurant && (
+              {!formData.restaurant ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                  onClick={() => setSearchModalOpen(true)}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Search for a restaurant...
+                </Button>
+              ) : (
                 <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{formData.restaurant.name}</p>
@@ -553,5 +559,26 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
         }}
       />
     </Dialog>
+    
+    <OptimizedSearchModal
+      open={searchModalOpen}
+      onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for a restaurant..."
+      onSelect={(result) => {
+        updateFormData({ 
+          restaurant: {
+            id: result.id,
+            name: result.name,
+            location: result.location || result.subtitle,
+            address: result.location,
+            avgRating: result.avgRating
+          }
+        });
+        setSearchModalOpen(false);
+      }}
+    />
+    </>
   );
 }

@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, ArrowLeft, Star, Upload } from 'lucide-react';
-import { RestaurantSearchComponent } from '@/components/shared/RestaurantSearchComponent';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { postService } from '@/services/postService';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +28,7 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
     media: null as File | null,
     tasteNotes: [] as string[]
   });
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -129,6 +130,7 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -144,10 +146,34 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
             <label className="block text-sm font-medium mb-2">
               Restaurant <span className="text-red-500">*</span>
             </label>
-            <RestaurantSearchComponent
-              onSelect={(restaurant) => setFormData(prev => ({ ...prev, restaurant: { ...restaurant, source: 'search' } }))}
-              placeholder="Search for a restaurant..."
-            />
+            {!formData.restaurant ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => setSearchModalOpen(true)}
+              >
+                <Star className="h-4 w-4 mr-2" />
+                Search for a restaurant...
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">{formData.restaurant.name}</p>
+                  {formData.restaurant.location && (
+                    <p className="text-sm text-gray-500">{formData.restaurant.location}</p>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setFormData(prev => ({ ...prev, restaurant: null }))}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Rating */}
@@ -280,5 +306,27 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
         </div>
       </DialogContent>
     </Dialog>
+    
+    <OptimizedSearchModal
+      open={searchModalOpen}
+      onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for a restaurant..."
+      onSelect={(result) => {
+        setFormData(prev => ({ 
+          ...prev, 
+          restaurant: {
+            id: result.id,
+            name: result.name,
+            location: result.location || result.subtitle,
+            address: result.location,
+            avgRating: result.avgRating
+          }
+        }));
+        setSearchModalOpen(false);
+      }}
+    />
+    </>
   );
 }
