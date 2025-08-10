@@ -561,11 +561,17 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                   <TabsContent value="dish" className="space-y-4 mt-0">
                     {!showManualEntry ? (
                       <div className="space-y-4">
-                        <RestaurantSearchComponent
-                          onSelect={handleRestaurantSelect}
-                          placeholder="Search for the restaurant..."
-                          className="w-full"
-                        />
+                        {!selectedRestaurant ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                            onClick={() => setSearchModalOpen(true)}
+                          >
+                            <Search className="h-4 w-4 mr-2" />
+                            Search for the restaurant...
+                          </Button>
+                        ) : null}
 
                         {selectedRestaurant && (
                           <Card className="bg-blue-50 border-blue-200">

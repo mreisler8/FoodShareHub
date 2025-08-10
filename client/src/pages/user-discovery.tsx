@@ -284,11 +284,13 @@ export default function UserDiscovery() {
         </Tabs>
 
         {/* User Search Modal */}
-        <UserSearchModal
-          isOpen={showUserSearch}
-          onClose={() => setShowUserSearch(false)}
-          showAddToCircle={managedCircles.length > 0}
-          availableCircles={managedCircles}
+        <OptimizedSearchModal
+          open={showUserSearch}
+          onOpenChange={setShowUserSearch}
+          searchType="users"
+          showLocationServices={false}
+          placeholder="Search for users to connect with..."
+          title="Find Users"
         />
       </div>
     </div>

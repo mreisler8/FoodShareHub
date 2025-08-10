@@ -873,9 +873,12 @@ export default function ProfilePage() {
         </Tabs>
 
         {/* Find Friends Modal */}
-        <UserSearchModal
-          isOpen={showFindFriendsModal}
-          onClose={() => setShowFindFriendsModal(false)}
+        <OptimizedSearchModal
+          open={showFindFriendsModal}
+          onOpenChange={setShowFindFriendsModal}
+          searchType="users"
+          showLocationServices={false}
+          placeholder="Search for users to follow..."
           title="Find Friends"
         />
 

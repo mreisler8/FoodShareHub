@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, Plus } from "lucide-react";
-import { Button } from "./Button";
-import { UnifiedSearchModal } from "./search/UnifiedSearchModal";
+import { Button } from "@/components/ui/button";
+import { OptimizedSearchModal } from "./search/OptimizedSearchModal";
 import { useLocation } from "wouter";
 import "./HeroSection.css";
 
@@ -75,9 +75,12 @@ export function HeroSection() {
         </div>
       </div>
 
-      <UnifiedSearchModal
+      <OptimizedSearchModal
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
+        searchType="unified"
+        showLocationServices={true}
+        placeholder="Search restaurants, lists, posts, people…"
       />
     </section>
   );

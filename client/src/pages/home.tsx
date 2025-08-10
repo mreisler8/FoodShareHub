@@ -15,7 +15,7 @@ import { useLocation } from "wouter";
 import "./HomePage.css";
 import { FollowRequestCard } from "@/components/follow/FollowRequestCard";
 import { PendingInvites } from "@/components/circles/PendingInvites";
-import { UnifiedSearchModal } from "@/components/search/UnifiedSearchModal";
+import { OptimizedSearchModal } from "@/components/search/OptimizedSearchModal";
 import { FloatingCreateButton } from "@/components/create/FloatingCreateButton";
 import { UnifiedPostModal } from "@/components/post/UnifiedPostModal";
 import { CreateCanvas } from "@/components/create/CreateCanvas";
@@ -201,9 +201,12 @@ export default function HomePage() {
       )}
 
       {/* Unified Search Modal */}
-      <UnifiedSearchModal
+      <OptimizedSearchModal
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
+        searchType="unified"
+        showLocationServices={true}
+        placeholder="Search restaurants, lists, posts, people…"
       />
 
       {/* Post Modal */}
