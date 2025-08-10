@@ -4,6 +4,9 @@ import { db } from '../db';
 import { users, restaurants, restaurantLists, posts, userFollowers } from '@shared/schema';
 import { eq, ilike, or, and, sql, desc, asc } from 'drizzle-orm';
 import { searchGooglePlaces } from '../services/google-places';
+import { SearchCache } from '../services/searchCache';
+import { placesService, PlacesService } from '../services/placesService';
+import { SearchTimingHelper } from '../middleware/searchTiming';
 
 const router = Router();
 
@@ -219,7 +222,7 @@ function isPersonNameQuery(query: string): boolean {
   return false;
 }
 
-// Dedicated restaurant search endpoint
+// Dedicated restaurant search endpoint with caching and parallel execution
 router.get('/restaurants', authenticate, async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -245,25 +248,76 @@ router.get('/restaurants', authenticate, async (req, res) => {
     const searchRadius = parseInt(radius as string);
     const resultLimit = Math.min(parseInt(limit as string), 50);
 
-    console.log(`Restaurant search for "${searchTerm}" by user ${userId}`);
+    // Check cache first
+    const cached = await SearchCache.getCachedRestaurantSearch(
+      searchTerm, 
+      searchLat, 
+      searchLng, 
+      { radius: searchRadius, limit: resultLimit }
+    );
 
-    // Use the working searchRestaurants function
-    try {
-      const restaurants = await searchRestaurants(searchTerm, searchLat, searchLng, searchRadius, resultLimit);
-
-      console.log(`Restaurant search results: ${restaurants ? restaurants.length : 'undefined'} restaurants`);
-      console.log(`Type of restaurants: ${typeof restaurants}`);
-
-      if (!restaurants || !Array.isArray(restaurants)) {
-        console.error('SearchRestaurants returned invalid result:', restaurants);
-        return res.json({ restaurants: [] });
-      }
-
-      res.json({ restaurants });
-    } catch (searchError) {
-      console.error('SearchRestaurants function error:', searchError);
-      return res.json({ restaurants: [] });
+    if (cached) {
+      SearchTimingHelper.markCacheHit(req);
+      SearchTimingHelper.setPlacesStatus(req, 'hit');
+      SearchTimingHelper.recordResultCount(req, cached.length);
+      return res.json({ restaurants: cached });
     }
+
+    SearchTimingHelper.markCacheMiss(req);
+    
+    // Execute database search and Places API in parallel
+    const dbStartTime = performance.now();
+    const placesStartTime = performance.now();
+
+    const [dbResult, placesResult] = await Promise.allSettled([
+      // Database search
+      searchRestaurants(searchTerm, searchLat, searchLng, searchRadius, resultLimit),
+      // Places API search with timeout
+      placesService.searchPlaces(searchTerm, searchLat, searchLng)
+    ]);
+
+    SearchTimingHelper.recordDbTime(req, dbStartTime);
+
+    // Process database results
+    const dbRestaurants = dbResult.status === 'fulfilled' ? (dbResult.value || []) : [];
+    
+    // Process Places results
+    let placesRestaurants: any[] = [];
+    let placesStatus: 'hit' | 'miss' | 'timeout' | 'circuit' | 'disabled' = 'miss';
+    
+    if (placesResult.status === 'fulfilled') {
+      placesRestaurants = placesResult.value || [];
+      placesStatus = placesRestaurants.length > 0 ? 'miss' : 'miss';
+    } else {
+      console.log('Places API failed:', placesResult.reason?.message || 'Unknown error');
+      placesStatus = placesResult.reason?.message?.includes('timeout') ? 'timeout' : 'circuit';
+    }
+
+    SearchTimingHelper.recordPlacesTime(req, placesStartTime, placesStatus);
+
+    // Merge results (DB first, then unique Places results)
+    const mergedRestaurants = PlacesService.mergeRestaurantResults(dbRestaurants, placesRestaurants);
+
+    // Cache the merged results
+    await SearchCache.cacheRestaurantSearch(
+      searchTerm, 
+      mergedRestaurants, 
+      searchLat, 
+      searchLng, 
+      { radius: searchRadius, limit: resultLimit }
+    );
+
+    SearchTimingHelper.recordResultCount(req, mergedRestaurants.length);
+    
+    res.json({ 
+      restaurants: mergedRestaurants,
+      total: mergedRestaurants.length,
+      meta: {
+        dbResults: dbRestaurants.length,
+        placesResults: placesRestaurants.length,
+        placesStatus
+      }
+    });
 
   } catch (error) {
     console.error('Restaurant search error:', error);
@@ -487,8 +541,8 @@ router.get('/unified', authenticate, async (req, res) => {
                  dr.location?.toLowerCase() === gr.location?.toLowerCase())
               ))
               .slice(0, 12 - dbRestaurants.length)
-              .map(r => ({
-                id: `google_${r.googlePlaceId}`,
+              .map((r, index) => ({
+                id: parseInt(`99${index}${Date.now().toString().slice(-5)}`), // Convert to number for compatibility
                 name: r.name,
                 location: r.location,
                 category: r.category,
@@ -518,7 +572,7 @@ router.get('/unified', authenticate, async (req, res) => {
             .map(r => {
               // Calculate relevance score for each restaurant
               const nameRelevance = calculateRelevanceScore(r.name, searchTerm);
-              const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm) || 0;
+              const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine || '', searchTerm) || 0;
               const totalRelevance = Math.max(nameRelevance, categoryRelevance);
 
               return {
@@ -874,8 +928,8 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
       const formattedGoogleResults = googleResults
         .filter(gr => !allResults.some(dr => dr.googlePlaceId === gr.googlePlaceId))
         .slice(0, limit - allResults.length)
-        .map(r => ({
-          id: `google_${r.googlePlaceId}`,
+        .map((r, index) => ({
+          id: parseInt(`88${index}${Date.now().toString().slice(-5)}`), // Convert to number for compatibility
           name: r.name,
           location: r.location,
           category: r.category,
@@ -900,7 +954,7 @@ async function searchRestaurants(searchTerm: string, lat?: number, lng?: number,
     .map(r => {
       // Calculate relevance score for filtering
       const nameRelevance = calculateRelevanceScore(r.name, searchTerm);
-      const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine, searchTerm) || 0;
+      const categoryRelevance = calculateCategoryRelevance(r.category, r.cuisine || '', searchTerm) || 0;
       const baseRelevance = Math.max(nameRelevance, categoryRelevance);
 
       // Give tag-based results high relevance score for thematic searches
@@ -1080,7 +1134,7 @@ router.get('/trending', authenticate, async (req, res) => {
 
     console.log(`Fetching trending content for user ${userId}${searchLat && searchLng ? ` at ${searchLat}, ${searchLng}` : ''}`);
 
-    let trendingRestaurants = [];
+    let trendingRestaurants: any[] = [];
 
     // Prioritize location-based results if GPS is available
     if (searchLat && searchLng) {
@@ -1099,7 +1153,7 @@ router.get('/trending', authenticate, async (req, res) => {
           category: r.category,
           cuisine: r.cuisine,
           imageUrl: r.imageUrl,
-          avgRating: r.rating || 4.0,
+          avgRating: (r as any).rating || 4.0,
           postCount: 0,
         }));
 

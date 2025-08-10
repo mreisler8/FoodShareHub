@@ -42,7 +42,7 @@ import savedListsRouter from './routes/saved-lists';
 import listReactionsRouter from './routes/list-reactions';
 // import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
-import { userFollowers, posts, restaurants, users } from "@shared/schema";
+import { userFollowers, posts, restaurants, users, restaurantLists, ratings, tags, followRequests, listReactions, listItems, savedLists } from "@shared/schema";
 import { getPlaceDetails } from './services/google-places';
 import locationRoutes from "./routes/location";
 import restaurantsRouter from "./routes/restaurants";
@@ -70,6 +70,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(performanceMonitoring);
     app.use(autoOptimizer);
     app.use(generalRateLimit);
+    
+    // Apply search timing middleware specifically for search routes
+    const { createSearchTimingMiddleware } = await import('./middleware/searchTiming');
+    app.use(createSearchTimingMiddleware());
     console.log("Performance optimization middleware applied");
   } catch (error) {
     console.error("Failed to setup authentication:", error);

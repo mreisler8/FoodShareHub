@@ -1,0 +1,180 @@
+IMPLEMENTATION PASS — Search Performance Optimization (MVP Scope Only)
+Mode: IMPLEMENT CHANGES (backend only).
+Do not modify frontend/UI or existing API contracts.
+Branch: feature/search-perf-mvp
+
+Goal
+Meet MVP target P95 ≤ 300ms for all search endpoints under 100 concurrent users by:
+
+Making Google Places non-blocking with strict timeouts + circuit breaker
+
+Adding Redis caching for search & Places results
+
+Parallelizing unified search execution
+…and proving it with a before/after performance report.
+
+0) Environment & Safety
+No UI edits. No endpoint shape/params changes.
+
+If Redis is unavailable, the server must run with caching disabled (no crashes).
+
+Work in a new branch and produce one PR.
+
+Env vars (document in README):
+
+ini
+Copy
+Edit
+REDIS_URL=redis://localhost:6379
+PLACES_TIMEOUT_MS=200
+SEARCH_CACHE_TTL_S=60
+PLACES_CACHE_TTL_S=300
+PLACES_CIRCUIT_FAILURES=5
+PLACES_CIRCUIT_COOLDOWN_S=60
+ENABLE_PLACES=true
+1) Redis Cache (shared)
+New file: server/lib/redis.ts
+
+Export a singleton Redis client.
+
+Graceful error handling; log once if not connected; expose enabled flag.
+
+New util: server/services/searchCache.ts
+
+getCached(key: string), setCached(key, value, ttlSeconds: number)
+
+Simple in-flight request dedupe (Map of pending promises).
+
+Key patterns:
+
+search:restaurants:q=<q>:lat=<lat>:lng=<lng>:filters=<hash>
+
+search:users:q=<q>:filters=<hash>
+
+search:lists:q=<q>:filters=<hash>
+
+places:q=<q>:lat=<lat>:lng=<lng> and places:details:<placeId>
+
+2) Google Places: async + timeout + circuit breaker
+New file: server/services/placesService.ts
+
+async searchPlaces(query, lat?, lng?) and async getPlaceDetails(placeId)
+
+Wrap the underlying Places calls with:
+
+Timeout: Promise.race([placesCall, timeout(PLACES_TIMEOUT_MS)])
+
+Circuit breaker: count consecutive failures; on threshold, short-circuit for PLACES_CIRCUIT_COOLDOWN_S (return null quickly).
+
+Redis cache: cache hits and empties (TTL = PLACES_CACHE_TTL_S).
+
+Never block DB results on Places. If timeout/breaker triggers, return null (we’ll merge DB-first).
+
+Merge rule: DB results are primary; append unique Places hits (dedupe by googlePlaceId or normalized name+geo).
+
+3) Route integration (non-blocking)
+Update restaurant search route (e.g., server/routes/search.ts or server/routes/restaurants.ts):
+
+Compute cache key; on hit → return.
+
+In miss path, run DB search and Places in parallel:
+
+ts
+Copy
+Edit
+const dbPromise = searchRestaurantsInDB(q, lat, lng, filters);
+const placesPromise = ENABLE_PLACES
+  ? Promise.race([
+      placesService.searchPlaces(q, lat, lng),
+      timeout(PLACES_TIMEOUT_MS)
+    ]).catch(() => null)
+  : Promise.resolve(null);
+
+const [dbRes, placesRes] = await Promise.allSettled([dbPromise, placesPromise]);
+const dbResults = dbRes.status === 'fulfilled' ? dbRes.value : [];
+const placesResults = placesRes.status === 'fulfilled' ? (placesRes.value || []) : [];
+
+const merged = mergeRestaurants(dbResults, placesResults); // dedupe + rank
+await cache.setCached(cacheKey, merged, SEARCH_CACHE_TTL_S);
+return res.json({ results: merged, total: merged.length, entity: 'restaurant', meta: { page: 1, hasMore: false } });
+If Places is slow or fails → DB results still return fast.
+
+4) Unified search: parallelize entities
+In /api/search/unified route:
+
+Add top-level cache (60s).
+
+Execute entities in parallel (restaurants, users, lists, themes).
+
+Do not allow a slow source to block others:
+
+ts
+Copy
+Edit
+const tasks = {
+  restaurants: searchRestaurants(q, coords, filters), // non-blocking Places inside
+  users: searchUsers(q, filters),
+  lists: searchLists(q, filters),
+  themes: searchThemes(q, filters),
+};
+const settled = await Promise.allSettled(Object.values(tasks));
+Assemble results with your existing unified response shape.
+
+Cache final response (60s).
+
+5) Middleware instrumentation
+New file: server/middleware/searchTiming.ts
+
+Wrap /api/search/* endpoints; log structured JSON:
+
+js
+Copy
+Edit
+{"t":"search","path":"/api/search/restaurants","ms":123,"cacheHit":true,"places":"timeout|hit|miss"}
+Add to app only for search routes.
+
+6) Validation (must run after changes)
+Load test @ 100 concurrent users (repeat queries to warm cache):
+
+/api/search/restaurants?q=pizza (with/without coords)
+
+/api/search/users?q=test
+
+/api/search/unified?q=food
+
+Pass criteria:
+
+P95 ≤ 300ms on all endpoints (post-warm).
+
+Error rate ≤ 1%.
+
+Cache hit rate ≥ 60% for hot queries.
+
+Logs show Places timeouts don’t impact latency (DB returns fast).
+
+7) Deliverables
+One PR on feature/search-perf-mvp touching only backend files.
+
+docs/performance_report.md with:
+
+Before/after P50/P95/P99 latencies per endpoint
+
+Cache hit/miss, Redis status
+
+Confirmation UI/UX unchanged
+
+Note of Places circuit breaker events during tests
+
+Acceptance Criteria (all required)
+UI unchanged; existing API contracts unchanged.
+
+DB queries remain sub-100ms baseline (as per prior report).
+
+P95 ≤ 300ms @ 100 concurrent after cache warm-up.
+
+Error rate ≤ 1%; cache hit ≥ 60%.
+
+Places timeouts/circuit breaker never block DB results.
+
+Unified search executes entities in parallel; no serial bottlenecks.
+
