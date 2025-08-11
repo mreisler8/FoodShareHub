@@ -1268,4 +1268,103 @@ function truncateText(text: string, maxLength: number): string {
   return text.substring(0, maxLength).trim() + '...';
 }
 
+// Lists search endpoint - matches standard format
+router.get('/lists', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { 
+      q: query, 
+      limit = '20',
+      filters
+    } = req.query;
+
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
+      return res.json({
+        results: [],
+        total: 0,
+        entity: 'list',
+        meta: { page: 1, hasMore: false }
+      });
+    }
+
+    const searchTerm = query.trim();
+    const resultLimit = Math.min(parseInt(limit as string), 50);
+
+    console.log(`🔍 Lists search for "${searchTerm}" by user ${userId}`);
+
+    // Use existing searchLists function with enhanced visibility filtering
+    const lists = await db.select({
+      id: restaurantLists.id,
+      name: restaurantLists.name,
+      description: restaurantLists.description,
+      type: restaurantLists.type,
+      coverImage: restaurantLists.coverImage,
+      viewCount: restaurantLists.viewCount,
+      saveCount: restaurantLists.saveCount,
+      reactionCount: restaurantLists.reactionCount,
+      tags: restaurantLists.tags,
+      primaryLocation: restaurantLists.primaryLocation,
+      createdById: restaurantLists.createdById,
+      visibility: restaurantLists.visibility,
+      isPublic: restaurantLists.isPublic,
+      createdAt: restaurantLists.createdAt,
+    })
+    .from(restaurantLists)
+    .where(
+      and(
+        or(
+          ilike(restaurantLists.name, `%${searchTerm}%`),
+          ilike(restaurantLists.description, `%${searchTerm}%`),
+          sql`${restaurantLists.tags}::text ILIKE ${'%' + searchTerm + '%'}`
+        ),
+        // Visibility filtering: public lists or user's own lists
+        or(
+          eq(restaurantLists.isPublic, true),
+          eq(restaurantLists.createdById, userId)
+        )
+      )
+    )
+    .orderBy(desc(restaurantLists.viewCount), desc(restaurantLists.saveCount))
+    .limit(resultLimit);
+
+    // Format results to match standard search response
+    const results = lists.map(list => ({
+      id: list.id,
+      name: list.name,
+      description: list.description,
+      type: list.type,
+      coverImage: list.coverImage,
+      viewCount: list.viewCount,
+      saveCount: list.saveCount,
+      reactionCount: list.reactionCount,
+      tags: list.tags,
+      location: list.primaryLocation,
+      createdById: list.createdById,
+      visibility: list.visibility,
+      isPublic: list.isPublic,
+      createdAt: list.createdAt,
+    }));
+
+    console.log(`Lists search results: ${results.length} lists found`);
+
+    res.json({
+      results,
+      total: results.length,
+      entity: 'list',
+      meta: { 
+        page: 1, 
+        hasMore: results.length === resultLimit 
+      }
+    });
+
+  } catch (error) {
+    console.error('Lists search error:', error);
+    res.status(500).json({ error: 'List search failed' });
+  }
+});
+
 export default router;
