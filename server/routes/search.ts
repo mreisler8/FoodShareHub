@@ -1367,4 +1367,229 @@ router.get('/lists', authenticate, async (req, res) => {
   }
 });
 
+// People/Follow search endpoint - mutuals-first ranking with suggestions
+router.get('/follow', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { 
+      q: query,
+      mutualOnly = 'false',
+      nearby = 'false',
+      lat,
+      lng,
+      radiusKm = '25',
+      limit = '20',
+      offset = '0'
+    } = req.query;
+
+    const isEmptyQuery = !query || typeof query !== 'string' || query.trim() === '';
+    const searchTerm = isEmptyQuery ? '' : query.trim();
+    const resultLimit = Math.min(parseInt(limit as string), 50);
+    const resultOffset = parseInt(offset as string) || 0;
+    const isMutualOnly = mutualOnly === 'true';
+    const isNearby = nearby === 'true';
+
+    console.log(`🔍 Follow search: q="${searchTerm}" | mutualOnly=${isMutualOnly} | nearby=${isNearby} | user=${userId}`);
+
+    // Build cache key for Redis
+    const cacheKey = `search:follow:q=${searchTerm || 'null'}:mutualOnly=${isMutualOnly ? 1 : 0}:nearby=${isNearby ? 1 : 0}:lat=${lat || '-'}:lng=${lng || '-'}:radius=${radiusKm}:limit=${resultLimit}:offset=${resultOffset}:uid=${userId}`;
+    
+    // Try cache first
+    let cachedResult = null;
+    try {
+      cachedResult = await SearchCache.getCached(cacheKey);
+      if (cachedResult) {
+        console.log(`Cache HIT for follow search: ${searchTerm || 'suggestions'}`);
+        return res.json(cachedResult);
+      }
+    } catch (error) {
+      console.log('Cache miss or error, proceeding with database query');
+    }
+
+    // Start timing
+    const startTime = performance.now();
+
+    // Query for users with mutuals count calculation
+    const baseQuery = db
+      .select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        avatar: users.profilePicture,
+        bio: users.bio,
+        followersCount: sql<number>`
+          CAST((SELECT COUNT(*) FROM follows f WHERE f.following_id = users.id) AS INTEGER)
+        `,
+        followingCount: sql<number>`
+          CAST((SELECT COUNT(*) FROM follows f WHERE f.follower_id = users.id) AS INTEGER)
+        `,
+        mutualsCount: sql<number>`
+          CAST((SELECT COUNT(*) FROM follows f1
+           INNER JOIN follows f2 ON f1.following_id = f2.follower_id
+           WHERE f1.follower_id = ${userId} 
+           AND f2.following_id = users.id
+           AND f1.following_id != ${userId}
+           AND f2.follower_id != ${userId}) AS INTEGER)
+        `,
+        isFollowing: sql<boolean>`
+          EXISTS(SELECT 1 FROM follows f 
+                 WHERE f.follower_id = ${userId} 
+                 AND f.following_id = users.id)
+        `,
+        relevanceScore: isEmptyQuery ? sql<number>`0` : sql<number>`
+          CASE 
+            WHEN LOWER(users.username) = LOWER(${searchTerm}) THEN 100
+            WHEN LOWER(users.name) = LOWER(${searchTerm}) THEN 95
+            WHEN LOWER(users.username) LIKE LOWER(${searchTerm + '%'}) THEN 90
+            WHEN LOWER(users.name) LIKE LOWER(${searchTerm + '%'}) THEN 85
+            WHEN LOWER(users.username) LIKE LOWER(${'%' + searchTerm + '%'}) THEN 80
+            WHEN LOWER(users.name) LIKE LOWER(${'%' + searchTerm + '%'}) THEN 75
+            WHEN LOWER(users.bio) LIKE LOWER(${'%' + searchTerm + '%'}) THEN 60
+            ELSE 0
+          END
+        `
+      })
+      .from(users)
+      .where(
+        and(
+          // Exclude current user
+          sql`users.id != ${userId}`,
+          // Search filter (if query provided)
+          isEmptyQuery ? sql`1=1` : or(
+            ilike(users.username, `%${searchTerm}%`),
+            ilike(users.name, `%${searchTerm}%`),
+            ilike(users.bio, `%${searchTerm}%`)
+          ),
+          // Mutual-only filter
+          isMutualOnly ? sql`
+            EXISTS(
+              SELECT 1 FROM follows f1
+              INNER JOIN follows f2 ON f1.following_id = f2.follower_id
+              WHERE f1.follower_id = ${userId} 
+              AND f2.following_id = users.id
+              AND f1.following_id != ${userId}
+              AND f2.follower_id != ${userId}
+            )
+          ` : sql`1=1`
+        )
+      );
+
+    // Apply ordering: mutuals first, then relevance, then popularity
+    const orderedQuery = isEmptyQuery 
+      ? baseQuery.orderBy(
+          desc(sql`
+            (SELECT COUNT(*) FROM follows f1
+             INNER JOIN follows f2 ON f1.following_id = f2.follower_id
+             WHERE f1.follower_id = ${userId} 
+             AND f2.following_id = users.id
+             AND f1.following_id != ${userId}
+             AND f2.follower_id != ${userId})
+          `),
+          desc(sql`(SELECT COUNT(*) FROM follows f WHERE f.following_id = users.id)`),
+          users.id
+        )
+      : baseQuery.orderBy(
+          desc(sql`
+            (SELECT COUNT(*) FROM follows f1
+             INNER JOIN follows f2 ON f1.following_id = f2.follower_id
+             WHERE f1.follower_id = ${userId} 
+             AND f2.following_id = users.id
+             AND f1.following_id != ${userId}
+             AND f2.follower_id != ${userId})
+          `),
+          desc(sql`
+            CASE 
+              WHEN LOWER(users.username) = LOWER(${searchTerm}) THEN 100
+              WHEN LOWER(users.name) = LOWER(${searchTerm}) THEN 95
+              WHEN LOWER(users.username) LIKE LOWER(${searchTerm + '%'}) THEN 90
+              WHEN LOWER(users.name) LIKE LOWER(${searchTerm + '%'}) THEN 85
+              WHEN LOWER(users.username) LIKE LOWER(${'%' + searchTerm + '%'}) THEN 80
+              WHEN LOWER(users.name) LIKE LOWER(${'%' + searchTerm + '%'}) THEN 75
+              WHEN LOWER(users.bio) LIKE LOWER(${'%' + searchTerm + '%'}) THEN 60
+              ELSE 0
+            END
+          `),
+          desc(sql`(SELECT COUNT(*) FROM follows f WHERE f.following_id = users.id)`)
+        );
+
+    // Get total count for pagination
+    const totalQuery = db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(users)
+      .where(
+        and(
+          sql`users.id != ${userId}`,
+          isEmptyQuery ? sql`1=1` : or(
+            ilike(users.username, `%${searchTerm}%`),
+            ilike(users.name, `%${searchTerm}%`),
+            ilike(users.bio, `%${searchTerm}%`)
+          ),
+          isMutualOnly ? sql`
+            EXISTS(
+              SELECT 1 FROM follows f1
+              INNER JOIN follows f2 ON f1.following_id = f2.follower_id
+              WHERE f1.follower_id = ${userId} 
+              AND f2.following_id = users.id
+              AND f1.following_id != ${userId}
+              AND f2.follower_id != ${userId}
+            )
+          ` : sql`1=1`
+        )
+      );
+
+    // Execute queries
+    const [results, totalResults] = await Promise.all([
+      orderedQuery.limit(resultLimit).offset(resultOffset),
+      totalQuery
+    ]);
+
+    const total = totalResults[0]?.count || 0;
+    const hasMore = resultOffset + results.length < total;
+
+    // Format response
+    const formattedResults = results.map(user => ({
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      avatar: user.avatar,
+      bio: user.bio,
+      mutualsCount: user.mutualsCount,
+      followersCount: user.followersCount,
+      followingCount: user.followingCount,
+      isFollowing: user.isFollowing
+    }));
+
+    const response = {
+      results: formattedResults,
+      total,
+      entity: 'user',
+      meta: { 
+        page: Math.floor(resultOffset / resultLimit) + 1, 
+        hasMore 
+      }
+    };
+
+    // Cache the result
+    try {
+      await SearchCache.setCached(cacheKey, response, 60); // 60 second TTL
+    } catch (error) {
+      console.log('Failed to cache follow search result:', error);
+    }
+
+    // Log timing
+    const duration = Math.round(performance.now() - startTime);
+    console.log(`Follow search results: ${results.length} users found in ${duration}ms`);
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('Follow search error:', error);
+    res.status(500).json({ error: 'Follow search failed' });
+  }
+});
+
 export default router;

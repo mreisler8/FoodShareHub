@@ -133,9 +133,16 @@ export function OptimizedSearchModal({
   const { data: searchResults, isLoading, error, refetch } = useQuery<SearchResults>({
     queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation, type: searchType }],
     queryFn: async () => {
-      let searchUrl = searchType === 'unified' 
-        ? `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`
-        : `/api/search/${searchType}?q=${encodeURIComponent(debouncedQuery)}`;
+      let searchUrl: string;
+      
+      if (searchType === 'unified') {
+        searchUrl = `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`;
+      } else if (searchType === 'users') {
+        // Use new follow endpoint for users tab with mutuals-first ranking
+        searchUrl = `/api/search/follow?q=${encodeURIComponent(debouncedQuery)}`;
+      } else {
+        searchUrl = `/api/search/${searchType}?q=${encodeURIComponent(debouncedQuery)}`;
+      }
 
       // Add location parameters if available and enabled
       if (showLocationServices && userLocation) {
@@ -167,8 +174,16 @@ export function OptimizedSearchModal({
           posts: data.posts || [],
           users: data.users || []
         };
+      } else if (searchType === 'users') {
+        // Handle follow endpoint response format
+        return {
+          restaurants: [],
+          lists: [],
+          posts: [],
+          users: data.results || [] // Follow endpoint returns results in 'results' field
+        };
       } else {
-        // For specific types, wrap in unified format
+        // For other specific types, wrap in unified format
         const results = {
           restaurants: [],
           lists: [],
@@ -192,8 +207,39 @@ export function OptimizedSearchModal({
       if (!response.ok) return { trending: [], suggested: [] };
       return response.json();
     },
-    enabled: open && !debouncedQuery,
+    enabled: open && !debouncedQuery && activeTab !== 'users',
     staleTime: 300000, // 5 minutes
+  });
+
+  // Fetch suggested users when no search query (Users tab only)
+  const { data: suggestedUsers } = useQuery<SearchResults>({
+    queryKey: ['/api/search/follow/suggested'],
+    queryFn: async () => {
+      const response = await fetch('/api/search/follow', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        throw new Error(`Suggested users failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return {
+        restaurants: [],
+        lists: [],
+        posts: [],
+        users: data.results || []
+      };
+    },
+    enabled: open && !debouncedQuery && activeTab === 'users',
+    staleTime: 60000, // 1 minute for suggested users
+    retry: 2,
   });
 
   useEffect(() => {
@@ -298,8 +344,10 @@ export function OptimizedSearchModal({
     }
   };
 
-  const hasResults = searchResults && Object.values(searchResults).some(arr => arr.length > 0);
-  const totalResults = searchResults ? Object.values(searchResults).reduce((acc, arr) => acc + arr.length, 0) : 0;
+  // Combine search results with suggested users for display
+  const displayResults = debouncedQuery ? searchResults : (activeTab === 'users' ? suggestedUsers : searchResults);
+  const hasResults = displayResults && Object.values(displayResults).some(arr => arr.length > 0);
+  const totalResults = displayResults ? Object.values(displayResults).reduce((acc, arr) => acc + arr.length, 0) : 0;
 
   // Determine which tabs to show based on search type
   const visibleTabs = searchType === 'unified' 
@@ -491,7 +539,7 @@ export function OptimizedSearchModal({
                           </div>
                         ) : (
                           <SearchResultsList
-                            results={searchResults?.[tab as keyof SearchResults] || []}
+                            results={displayResults?.[tab as keyof SearchResults] || []}
                             isLoading={isLoading}
                             onResultClick={handleResultClick}
                             onFollowToggle={handleFollowToggle}

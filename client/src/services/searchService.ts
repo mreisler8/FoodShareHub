@@ -14,6 +14,9 @@ export interface SearchResult {
   bio?: string;
   profilePicture?: string;
   isFollowing?: boolean;
+  followersCount?: number;
+  followingCount?: number;
+  mutualsCount?: number;
   // List-specific fields
   description?: string;
   tags?: string[];

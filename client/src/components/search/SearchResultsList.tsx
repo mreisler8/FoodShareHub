@@ -230,6 +230,14 @@ export function SearchResultsList({
                       </p>
                     )}
 
+                    {result.type === 'user' && result.mutualsCount && result.mutualsCount > 0 && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          {result.mutualsCount} mutual{result.mutualsCount !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
+
                     {result.location && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
