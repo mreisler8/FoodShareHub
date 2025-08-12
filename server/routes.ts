@@ -59,6 +59,8 @@ import circleScoreRoutes from './routes/circle-score';
 import healthRoutes from './routes/health';
 import feedCountsRoutes from './routes/feed-counts';
 import userPrivacyRoutes from './routes/user-privacy';
+import debugRoutes from './routes/debug';
+import { forensicsTracingMiddleware } from './middleware/forensicsTracing';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
@@ -71,6 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(performanceMonitoring);
     app.use(autoOptimizer);
     app.use(generalRateLimit);
+    
+    // Apply forensics tracing for debug analysis
+    app.use(forensicsTracingMiddleware);
     
     // Apply search timing middleware specifically for search routes
     const { createSearchTimingMiddleware } = await import('./middleware/searchTiming');
@@ -1361,6 +1366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/health', healthRoutes);
   app.use('/api/feed', feedCountsRoutes);
   app.use('/api/user', userPrivacyRoutes);
+  app.use('/api/_debug', debugRoutes);
 
   // Unified Feed API - Lists and Posts together
   app.get('/api/unified-feed', authenticate, async (req: any, res: any) => {

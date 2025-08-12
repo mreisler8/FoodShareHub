@@ -1,226 +1,253 @@
 import React, { useState, useEffect } from 'react';
-import { useSearch } from 'wouter';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Bug } from 'lucide-react';
 
-interface DebugData {
+interface DebugOriginProps {
+  label: string;
+  endpoint?: string;
+  queryKey?: string[];
   restaurantId?: number;
-  googlePlaceId?: string;
-  activeComponents: string[];
-  ratingsData: {
+  placeId?: string;
+  lastFetch?: Date;
+  status?: number;
+  children: React.ReactNode;
+}
+
+interface RestaurantSnapshot {
+  resolved: {
+    restaurantId?: number;
+    placeId?: string;
+  };
+  dbRow: any;
+  userRatingByRestaurantId: any;
+  userRatingByPlaceId: any;
+  circleScore: any;
+  featuredLists: {
+    source: string;
     count: number;
-    sources: string[];
-    mismatches: number;
   };
-  circleScoreData: {
-    values: Array<{ widget: string; value: number | null; queryKey: string }>;
-    inconsistencies: number;
-  };
-  fetchStats: {
-    ratingsRequests: number;
-    circleScoreRequests: number;
-    totalRequests: number;
+  testDataPresent: {
+    ratings: number;
+    details: any[];
   };
 }
 
-interface RestaurantDebugPanelProps {
-  restaurantId?: number;
-  googlePlaceId?: string;
+/**
+ * DEBUG ORIGIN WRAPPER
+ * Shows data source information only when ?debug=1
+ */
+export function DebugOrigin({ 
+  label, 
+  endpoint, 
+  queryKey, 
+  restaurantId, 
+  placeId, 
+  lastFetch, 
+  status, 
+  children 
+}: DebugOriginProps) {
+  const isDebugMode = typeof window !== 'undefined' && 
+    new URLSearchParams(window.location.search).get('debug') === '1';
+
+  if (!isDebugMode) {
+    return <>{children}</>;
+  }
+
+  const getStatusColor = (status?: number) => {
+    if (!status) return 'secondary';
+    if (status >= 200 && status < 300) return 'default';
+    if (status >= 400) return 'destructive';
+    return 'secondary';
+  };
+
+  return (
+    <div className="relative">
+      {/* Original content */}
+      {children}
+      
+      {/* Debug overlay */}
+      <div className="absolute top-0 right-0 z-50">
+        <Card className="bg-yellow-50 border-yellow-300 text-xs min-w-[200px] shadow-lg">
+          <CardContent className="p-2 space-y-1">
+            <div className="font-semibold text-yellow-800">{label}</div>
+            {endpoint && (
+              <div>
+                <span className="text-gray-600">Endpoint:</span>
+                <div className="font-mono text-yellow-700">{endpoint}</div>
+              </div>
+            )}
+            {queryKey && (
+              <div>
+                <span className="text-gray-600">Query Key:</span>
+                <div className="font-mono text-yellow-700">
+                  {JSON.stringify(queryKey)}
+                </div>
+              </div>
+            )}
+            <div className="flex gap-1 flex-wrap">
+              {restaurantId && (
+                <Badge variant="outline" className="text-xs">
+                  ID: {restaurantId}
+                </Badge>
+              )}
+              {placeId && (
+                <Badge variant="outline" className="text-xs">
+                  Place: {placeId.substring(0, 8)}...
+                </Badge>
+              )}
+              {status && (
+                <Badge variant={getStatusColor(status)} className="text-xs">
+                  {status}
+                </Badge>
+              )}
+            </div>
+            {lastFetch && (
+              <div className="text-xs text-gray-500">
+                {lastFetch.toLocaleTimeString()}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
 
-export function RestaurantDebugPanel({ restaurantId, googlePlaceId }: RestaurantDebugPanelProps) {
-  const search = useSearch();
-  const [isOpen, setIsOpen] = useState(false);
-  const [debugData, setDebugData] = useState<DebugData>({
-    restaurantId,
-    googlePlaceId,
-    activeComponents: [],
-    ratingsData: { count: 0, sources: [], mismatches: 0 },
-    circleScoreData: { values: [], inconsistencies: 0 },
-    fetchStats: { ratingsRequests: 0, circleScoreRequests: 0, totalRequests: 0 }
-  });
+/**
+ * RESTAURANT DEBUG PANEL
+ * Main debug panel showing complete data snapshot
+ */
+export function RestaurantDebugPanel({ restaurantId, placeId }: { 
+  restaurantId?: number; 
+  placeId?: string; 
+}) {
+  const [snapshot, setSnapshot] = useState<RestaurantSnapshot | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Only show debug panel if ?debug=true is in URL
-  const searchParams = new URLSearchParams(search);
-  const isDebugMode = searchParams.get('debug') === 'true';
+  const isDebugMode = typeof window !== 'undefined' && 
+    new URLSearchParams(window.location.search).get('debug') === '1';
+
+  const fetchSnapshot = async () => {
+    if (!restaurantId && !placeId) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const params = new URLSearchParams();
+      if (restaurantId) params.set('restaurantId', restaurantId.toString());
+      if (placeId) params.set('placeId', placeId);
+      
+      const response = await fetch(`/api/_debug/restaurant-snapshot?${params}`);
+      if (!response.ok) {
+        throw new Error(`Debug snapshot failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setSnapshot(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!isDebugMode) return;
-
-    // Collect debug information
-    collectDebugData();
-    
-    // Set up periodic data collection
-    const interval = setInterval(collectDebugData, 2000);
-    return () => clearInterval(interval);
-  }, [isDebugMode, restaurantId, googlePlaceId]);
-
-  function collectDebugData() {
-    // Scan for active rating/score components
-    const activeComponents = scanActiveComponents();
-    
-    // Monitor React Query cache
-    const fetchStats = analyzeFetchStats();
-    
-    setDebugData(prev => ({
-      ...prev,
-      restaurantId,
-      googlePlaceId,
-      activeComponents,
-      fetchStats
-    }));
-  }
-
-  function scanActiveComponents(): string[] {
-    const components: string[] = [];
-    
-    // Look for rating-related components in the DOM
-    const selectors = [
-      '[data-testid*="rating"]',
-      '[data-component*="Rating"]',
-      '[data-component*="CircleScore"]',
-      '[class*="rating"]',
-      '[class*="circle-score"]'
-    ];
-    
-    selectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(el => {
-        const componentName = el.getAttribute('data-component') || 
-                             el.getAttribute('data-testid') || 
-                             el.className.split(' ').find(c => c.includes('rating') || c.includes('score')) ||
-                             'Unknown Component';
-        if (!components.includes(componentName)) {
-          components.push(componentName);
-        }
-      });
-    });
-    
-    return components;
-  }
-
-  function analyzeFetchStats() {
-    // This would need to integrate with React Query cache inspection
-    // For now, return mock data structure
-    return {
-      ratingsRequests: 0, // Would be collected from React Query
-      circleScoreRequests: 0,
-      totalRequests: 0
-    };
-  }
+    if (isDebugMode) {
+      fetchSnapshot();
+    }
+  }, [isDebugMode, restaurantId, placeId]);
 
   if (!isDebugMode) {
     return null;
   }
 
   return (
-    <div className="sticky top-0 z-50 bg-red-50 border-b-2 border-red-200">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full justify-between p-2 text-red-800 hover:bg-red-100"
-          >
-            <div className="flex items-center gap-2">
-              <Bug size={16} />
-              <span className="font-medium">Restaurant Debug Panel</span>
-              <Badge variant="destructive" className="text-xs">
-                DEBUG MODE
-              </Badge>
+    <div className="fixed bottom-4 right-4 z-50 max-w-md">
+      <Card className="bg-red-50 border-red-300 shadow-lg">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-red-800">🔍 Debug Panel</h3>
+            <Button 
+              onClick={fetchSnapshot} 
+              disabled={loading}
+              size="sm"
+              variant="outline"
+            >
+              {loading ? 'Loading...' : 'Refresh'}
+            </Button>
+          </div>
+          
+          {error && (
+            <div className="text-red-600 text-sm mb-2">
+              Error: {error}
             </div>
-            {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </Button>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <div className="p-4 space-y-4 bg-red-50">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Identity Information */}
-              <Card className="p-3">
-                <h4 className="font-semibold text-sm mb-2">Identity</h4>
-                <div className="text-xs space-y-1">
-                  <div><strong>Restaurant ID:</strong> {debugData.restaurantId || 'N/A'}</div>
-                  <div><strong>Google Place ID:</strong> {debugData.googlePlaceId || 'N/A'}</div>
+          )}
+          
+          {snapshot && (
+            <div className="space-y-3 text-xs">
+              {/* Identity Resolution */}
+              <div>
+                <div className="font-semibold text-red-700">Identity Resolution</div>
+                <div className="bg-white p-2 rounded border">
+                  <div>Restaurant ID: {snapshot.resolved.restaurantId || 'None'}</div>
+                  <div>Place ID: {snapshot.resolved.placeId?.substring(0, 12)}... || 'None'</div>
                 </div>
-              </Card>
-
-              {/* Active Components */}
-              <Card className="p-3">
-                <h4 className="font-semibold text-sm mb-2">Active Components ({debugData.activeComponents.length})</h4>
-                <div className="text-xs space-y-1 max-h-20 overflow-y-auto">
-                  {debugData.activeComponents.length > 0 ? (
-                    debugData.activeComponents.map((comp, i) => (
-                      <div key={i} className="truncate">{comp}</div>
-                    ))
-                  ) : (
-                    <div className="text-gray-500">No rating components detected</div>
+              </div>
+              
+              {/* Rating Sources */}
+              <div>
+                <div className="font-semibold text-red-700">Rating Sources</div>
+                <div className="bg-white p-2 rounded border">
+                  <div>By Restaurant ID: {snapshot.userRatingByRestaurantId ? '✓' : '✗'}</div>
+                  <div>By Place ID: {snapshot.userRatingByPlaceId ? '✓' : '✗'}</div>
+                  {snapshot.userRatingByRestaurantId?.note?.includes('Villa di Roma') && (
+                    <div className="text-red-600 font-semibold">⚠️ Villa di Roma contamination detected!</div>
                   )}
                 </div>
-              </Card>
-
-              {/* Fetch Statistics */}
-              <Card className="p-3">
-                <h4 className="font-semibold text-sm mb-2">Fetch Stats</h4>
-                <div className="text-xs space-y-1">
-                  <div><strong>Rating Requests:</strong> {debugData.fetchStats.ratingsRequests}</div>
-                  <div><strong>Circle Score Requests:</strong> {debugData.fetchStats.circleScoreRequests}</div>
-                  <div><strong>Total Requests:</strong> {debugData.fetchStats.totalRequests}</div>
+              </div>
+              
+              {/* Circle Score */}
+              <div>
+                <div className="font-semibold text-red-700">Circle Score</div>
+                <div className="bg-white p-2 rounded border">
+                  {snapshot.circleScore?.error ? (
+                    <div className="text-red-600">Error: {snapshot.circleScore.error}</div>
+                  ) : (
+                    <div>Score: {snapshot.circleScore?.score || 0}</div>
+                  )}
                 </div>
-              </Card>
-            </div>
-
-            {/* Data Snapshot */}
-            <Card className="p-3">
-              <h4 className="font-semibold text-sm mb-2">Data Snapshot (Read-Only)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              </div>
+              
+              {/* Test Data */}
+              {snapshot.testDataPresent.ratings > 0 && (
                 <div>
-                  <strong>Ratings Data:</strong>
-                  <div className="mt-1 space-y-1">
-                    <div>Count: {debugData.ratingsData.count}</div>
-                    <div>Sources: {debugData.ratingsData.sources.join(', ') || 'None'}</div>
-                    <div>Mismatches: {debugData.ratingsData.mismatches}</div>
-                  </div>
-                </div>
-                <div>
-                  <strong>Circle Score:</strong>
-                  <div className="mt-1 space-y-1">
-                    <div>Widgets: {debugData.circleScoreData.values.length}</div>
-                    <div>Inconsistencies: {debugData.circleScoreData.inconsistencies}</div>
-                    {debugData.circleScoreData.values.map((value, i) => (
+                  <div className="font-semibold text-red-700">⚠️ Test Data Found</div>
+                  <div className="bg-yellow-100 p-2 rounded border">
+                    <div>{snapshot.testDataPresent.ratings} test ratings</div>
+                    {snapshot.testDataPresent.details.map((detail, i) => (
                       <div key={i} className="text-xs">
-                        {value.widget}: {value.value} (key: {value.queryKey})
+                        • {detail.restaurantName} ({detail.note?.substring(0, 20)}...)
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            </Card>
-
-            {/* Warnings */}
-            {(debugData.ratingsData.mismatches > 0 || debugData.circleScoreData.inconsistencies > 0) && (
-              <Card className="p-3 border-red-300 bg-red-100">
-                <h4 className="font-semibold text-sm mb-2 text-red-800">⚠️ Data Integrity Warnings</h4>
-                <div className="text-xs text-red-700 space-y-1">
-                  {debugData.ratingsData.mismatches > 0 && (
-                    <div>• {debugData.ratingsData.mismatches} rating(s) have restaurant ID mismatches</div>
-                  )}
-                  {debugData.circleScoreData.inconsistencies > 0 && (
-                    <div>• {debugData.circleScoreData.inconsistencies} Circle Score inconsistency(ies) detected</div>
-                  )}
+              )}
+              
+              {/* Featured Lists */}
+              <div>
+                <div className="font-semibold text-red-700">Featured Lists</div>
+                <div className="bg-white p-2 rounded border">
+                  <div>Source: {snapshot.featuredLists.source}</div>
+                  <div>Count: {snapshot.featuredLists.count}</div>
                 </div>
-              </Card>
-            )}
-
-            <div className="text-xs text-gray-600 mt-2">
-              Debug mode is active. Remove ?debug=true from URL to hide this panel.
+              </div>
             </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

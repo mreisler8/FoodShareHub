@@ -27,6 +27,7 @@ import { getErrorMessage, isValidId } from '@/lib/error-utils';
 
 
 import { useStandardizedRestaurantQueries } from '@/hooks/useStandardizedRestaurantQueries';
+import { DebugOrigin, RestaurantDebugPanel } from '@/components/debug/RestaurantDebugPanel';
 
 // New modular components for the redesign
 import { HeaderCard } from '@/components/restaurant/HeaderCard';
@@ -40,7 +41,7 @@ import RestaurantActionBar from '@/components/restaurant/RestaurantActionBar';
 import ReservationCard from '@/components/restaurant/ReservationCard';
 import MoreRestaurantActions from '@/components/restaurant/MoreRestaurantActions';
 import OrderOptionsCard from '@/components/restaurant/OrderOptionsCard';
-import { RestaurantDebugPanel } from '@/components/debug/RestaurantDebugPanel';
+
 
 interface RestaurantDetails {
   id: string;
@@ -491,7 +492,14 @@ export default function RestaurantDetailPage() {
         </Card>
 
         {/* Dual Score Display - Google vs Circle Score (Rotten Tomatoes Style) */}
-        <div className="flex justify-center items-center gap-12 mb-6 bg-white rounded-xl p-6 shadow-sm border">
+        <DebugOrigin 
+          label="Circle Score Tile"
+          endpoint="/api/restaurant/:id/circle-score"
+          queryKey={['circleScore', restaurant?.id]}
+          restaurantId={typeof restaurant?.id === 'string' ? parseInt(restaurant.id) : restaurant?.id}
+          placeId={restaurant?.googlePlaceId}
+        >
+          <div className="flex justify-center items-center gap-12 mb-6 bg-white rounded-xl p-6 shadow-sm border">
           <div className="text-center">
             <div className="w-24 h-24 rounded-full bg-green-50 border-4 border-green-500 flex items-center justify-center mb-3 relative overflow-hidden">
               <div 
@@ -525,7 +533,8 @@ export default function RestaurantDetailPage() {
               {circleScoreData?.ratingsCount || 0} in your network
             </div>
           </div>
-        </div>
+          </div>
+        </DebugOrigin>
 
         {/* Circle Score Section - MVP Enhanced with Consistent Display */}
         <CircleScoreEnhancement
@@ -597,22 +606,30 @@ export default function RestaurantDetailPage() {
         </div>
 
         {/* Your Activity Section */}
-        <YourRatingCard 
-          userRating={userRatingData ? {
-            rating: parseFloat(userRatingData.ratingValue.toString()) || 0,
-            note: userRatingData.note,
-            tags: userRatingData.tags
-          } : undefined}
-          onRate={(rating, note, tags) => {
-            console.log('Rating updated:', { rating, note, tags });
-            submitRating.mutate({
-              ratingValue: rating,
-              note,
-              tags,
-              isPrivate: false
-            });
-          }}
-        />
+        <DebugOrigin
+          label="Your Rating Block"
+          endpoint="/api/ratings/restaurant/:id"
+          queryKey={['userRating', restaurant?.id]}
+          restaurantId={typeof restaurant?.id === 'string' ? parseInt(restaurant.id) : restaurant?.id}
+          placeId={restaurant?.googlePlaceId}
+        >
+          <YourRatingCard 
+            userRating={userRatingData ? {
+              rating: parseFloat(userRatingData.ratingValue.toString()) || 0,
+              note: userRatingData.note,
+              tags: userRatingData.tags
+            } : undefined}
+            onRate={(rating, note, tags) => {
+              console.log('Rating updated:', { rating, note, tags });
+              submitRating.mutate({
+                ratingValue: rating,
+                note,
+                tags,
+                isPrivate: false
+              });
+            }}
+          />
+        </DebugOrigin>
 
         {/* Lists Mentioned In Section */}
         <ListMentionsCard 
@@ -651,6 +668,12 @@ export default function RestaurantDetailPage() {
           }}
           isSaved={false} // TODO: fetch from API
           variant="mobile"
+        />
+
+        {/* Debug Panel - only visible with ?debug=1 */}
+        <RestaurantDebugPanel 
+          restaurantId={typeof restaurant?.id === 'string' ? parseInt(restaurant.id) : restaurant?.id}
+          placeId={restaurant?.googlePlaceId}
         />
       </div>
     </div>
