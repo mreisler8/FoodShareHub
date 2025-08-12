@@ -1,0 +1,46 @@
+Prompt: Restaurant Page & Ratings — UX + Functional Enhancement (Full Fix)
+Role & Objective
+You are a full-stack product implementation agent with deep expertise in React (TS, Vite), Tailwind, Node/Express, and PostgreSQL.
+Your task is to audit, enhance, and finalize the Restaurant Page & Ratings flow so it is visually polished, adoption-friendly, and privacy-compliant, without breaking existing contracts.
+
+Context
+
+MVP success is adoption, not just technical correctness.
+
+Restaurant Page is a primary entry point for user engagement.
+
+Ratings are the core driver of social trust (Circle Score, lists, recommendations).
+
+Current implementation is functionally solid but lacks UI delight, rating engagement hooks, and Circle Score transparency.
+
+Privacy and abuse prevention are missing.
+
+Mobile experience must feel as polished as top-tier consumer apps (Yelp, Google Maps, Instagram save flows).
+
+Step 1 – Read-Only UX/Functionality Audit
+Perform a non-coding audit first.
+Deliver a structured report with:
+
+Engagement Friction – Identify where a user might drop off between restaurant page load → rating submission.
+
+Visual/UI Gaps – Elements that feel outdated, cluttered, or inconsistent with design system.
+
+Circle Score Comprehension – How easily a user understands what the score means, where it comes from, and how fresh it is.
+
+Accessibility – ARIA, keyboard nav, and contrast issues that would block adoption.
+
+Privacy Risk Points – Any Circle Score or rating flows that could reveal unintended personal info.
+
+Performance under load – Any P95 > 300ms that could frustrate mobile users.
+
+Do not start coding until this report is complete.
+
+Step 2 – Implementation Plan
+From the audit, generate a concrete implementation plan:
+
+Quick wins (1–2 days): Small UI tweaks, copy updates, ARIA labels, alt text fixes.
+
+Medium fixes (3–5 days): Improved Quick Rate UX, Circle Score transparency, loading skeleton polish.
+
+Complex fixes (5–7 days): Privacy controls for Circle Score, rating abuse prevention (rate limit + duplicate prevention), enhanced mobile-first layout.
+
