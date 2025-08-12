@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
 import { ratings, insertRatingSchema, restaurants, circles, circleMembers } from '../../shared/schema';
-import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, sql, gte } from 'drizzle-orm';
 import { onNewRating } from '../lib/circleScoreJobs';
+import { ratingsRateLimit } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -56,7 +57,7 @@ router.get('/', async (req, res) => {
 });
 
 // PUT /api/ratings - Create or update rating
-router.put('/', async (req, res) => {
+router.put('/', ratingsRateLimit, async (req, res) => {
   if (!req.user?.id) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -94,6 +95,22 @@ router.put('/', async (req, res) => {
           eq(ratings.googlePlaceId, googlePlaceId)
         ))
         .limit(1);
+    }
+
+    // ABUSE PREVENTION: Duplicate rating check (24-hour cooldown for new ratings)
+    const rateLimitEnabled = process.env.FEATURE_RATING_LIMITS === 'true';
+    if (rateLimitEnabled && existingRating) {
+      const lastUpdate = new Date(existingRating.updatedAt || existingRating.createdAt);
+      const now = new Date();
+      const hoursSinceLastRating = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursSinceLastRating < 24) {
+        return res.status(429).json({
+          error: "You've already rated this restaurant today. You can update your rating tomorrow.",
+          type: 'duplicate_rating',
+          retryAfter: Math.ceil((24 - hoursSinceLastRating) * 3600)
+        });
+      }
     }
 
     let result;
@@ -144,7 +161,7 @@ router.put('/', async (req, res) => {
   }
 });
 
-// GET /api/ratings/restaurant/:id - Get user's rating for specific restaurant
+// GET /api/ratings/restaurant/:id - Get user's rating for specific restaurant  
 router.get('/restaurant/:id', async (req, res) => {
   if (!req.user?.id) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -156,10 +173,13 @@ router.get('/restaurant/:id', async (req, res) => {
     console.log('Rating API - Fetching rating for ID:', id, 'User:', req.user.id, 'Type:', type);
 
     let rating;
+    let expectedRestaurantId: number | null = null;
+    let expectedGooglePlaceId: string | null = null;
 
     if (type === 'google_place' || (!type && (id.startsWith('ChIJ') || id.length > 10))) {
       // Handle Google Place ID
       const cleanId = id.replace('google_', ''); // Remove google_ prefix if present
+      expectedGooglePlaceId = cleanId;
       console.log('Clean Google Place ID:', cleanId);
       rating = await db.select().from(ratings)
         .where(and(
@@ -170,6 +190,7 @@ router.get('/restaurant/:id', async (req, res) => {
     } else if (type === 'database' || (!type && !isNaN(parseInt(id)))) {
       // Handle numeric restaurant ID
       const numericId = parseInt(id);
+      expectedRestaurantId = numericId;
       console.log('Parsing numeric ID:', id, 'Result:', numericId);
       if (isNaN(numericId)) {
         console.error('Invalid restaurant ID format:', id);
@@ -191,7 +212,35 @@ router.get('/restaurant/:id', async (req, res) => {
       return res.status(404).json({ error: 'Rating not found' });
     }
 
-    res.json(rating[0]);
+    const ratingData = rating[0];
+    
+    // CRITICAL FIX: Data integrity validation
+    // Verify rating matches the requested restaurant to prevent data mismatches
+    const isValidMatch = (
+      (expectedRestaurantId && ratingData.restaurantId === expectedRestaurantId) ||
+      (expectedGooglePlaceId && ratingData.googlePlaceId === expectedGooglePlaceId)
+    );
+
+    if (!isValidMatch) {
+      console.error('🚨 DATA INTEGRITY ERROR: Rating mismatch detected', {
+        expectedRestaurantId,
+        expectedGooglePlaceId,
+        actualRestaurantId: ratingData.restaurantId,
+        actualGooglePlaceId: ratingData.googlePlaceId,
+        ratingId: ratingData.id
+      });
+      return res.status(404).json({ 
+        error: 'Rating not found',
+        details: 'Data integrity check failed'
+      });
+    }
+
+    // Return rating with verified IDs for frontend validation
+    res.json({
+      ...ratingData,
+      verifiedRestaurantId: expectedRestaurantId,
+      verifiedGooglePlaceId: expectedGooglePlaceId
+    });
   } catch (error) {
     console.error('Get restaurant rating error:', error);
     res.status(500).json({ error: 'Failed to fetch rating' });
@@ -199,7 +248,7 @@ router.get('/restaurant/:id', async (req, res) => {
 });
 
 // POST /api/ratings - Create or update rating
-router.post('/', async (req, res) => {
+router.post('/', ratingsRateLimit, async (req, res) => {
   if (!req.user?.id) {
     return res.status(401).json({ error: 'Authentication required' });
   }

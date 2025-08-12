@@ -1,46 +1,37 @@
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { Request, Response, NextFunction } from 'express';
 
-import rateLimit from 'express-rate-limit';
-
-// General API rate limiter
-export const generalLimiter = rateLimit({
+// Rate limiter for ratings (max 5 ratings per 15 minutes per user/IP)
+export const ratingsRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: {
-    error: 'Too many requests from this IP, please try again later.',
+  limit: 5, // Max 5 ratings per window (disabled via skip function if needed)
+  keyGenerator: (req: Request) => {
+    // Use user ID if authenticated, otherwise fall back to IP with IPv6 support
+    if (req.user?.id) {
+      return `rating_limit_user_${req.user.id}`;
+    }
+    return `rating_limit_ip_${req.ip || 'unknown'}`;
+  },
+  skip: (req: Request) => {
+    // Feature flag check - skip rate limiting if disabled or during development
+    return process.env.FEATURE_RATING_LIMITS !== 'true' || process.env.NODE_ENV === 'development';
+  },
+  handler: (req: Request, res: Response) => {
+    res.status(429).json({
+      error: "You've reached your rating limit. Please try again later.",
+      type: 'rate_limit',
+      retryAfter: 900 // 15 minutes in seconds
+    });
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Stricter limiter for authentication endpoints
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 auth requests per windowMs
-  message: {
-    error: 'Too many authentication attempts, please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Circle creation limiter (prevent spam)
-export const circleCreationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // Limit each IP to 10 circle creations per hour
-  message: {
-    error: 'Circle creation limit reached, please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Search rate limiter
-export const searchLimiter = rateLimit({
+// Generic request rate limiter for API endpoints
+export const generalRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 50, // Limit each IP to 50 search requests per minute
-  message: {
-    error: 'Search rate limit exceeded, please slow down.',
-  },
+  limit: 100, // Max 100 requests per minute
+  keyGenerator: (req: Request) => req.ip || 'unknown',
   standardHeaders: true,
   legacyHeaders: false,
 });

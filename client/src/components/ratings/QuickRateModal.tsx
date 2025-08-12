@@ -64,6 +64,20 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
     }
   }, [isOpen, existingRating, currentRating]);
 
+  // Check if this is an updateable rating (>24h old)
+  const canUpdateRating = (() => {
+    const source = existingRating || currentRating;
+    if (!source || !source.updatedAt) return false;
+    
+    const lastUpdate = new Date(source.updatedAt);
+    const now = new Date();
+    const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+    
+    return hoursSinceUpdate >= 24;
+  })();
+
+  const isUpdating = !!(existingRating || currentRating);
+
   // Handle rating submission
   const handleSubmit = useCallback(async () => {
     if (rating < 0.1) {
@@ -87,8 +101,13 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
       // Show success animation
       setShowSuccess(true);
 
-      // CRITICAL: Comprehensive cache invalidation for immediate UI updates
+      // ENGAGEMENT ENHANCEMENT: Show Circle Score impact
       const restaurantIdentifier = restaurant.googlePlaceId || restaurant.id;
+      
+      // Get Circle Score before invalidation for impact calculation
+      const oldCircleScore = queryClient.getQueryData(['/api/circle-score', restaurantIdentifier]);
+      
+      // CRITICAL: Comprehensive cache invalidation for immediate UI updates
       await queryClient.invalidateQueries({
         queryKey: ['/api/ratings/restaurant', restaurantIdentifier]
       });
@@ -101,6 +120,22 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
       // Also invalidate general queries
       queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
       queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
+
+      // Show enhanced success feedback with Circle Score impact
+      setTimeout(async () => {
+        const newCircleScore = await queryClient.fetchQuery({
+          queryKey: ['/api/circle-score', restaurantIdentifier],
+          staleTime: 0
+        });
+        
+        if (oldCircleScore && newCircleScore && oldCircleScore !== newCircleScore) {
+          toast({
+            title: "Rating submitted!",
+            description: `Circle Score updated from ${oldCircleScore} to ${newCircleScore}`,
+            duration: 3000
+          });
+        }
+      }, 500);
 
       // Close modal after success animation
       setTimeout(() => {
@@ -154,14 +189,27 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" 
+         role="dialog" 
+         aria-modal="true"
+         aria-labelledby="rating-modal-title"
+         aria-describedby="rating-modal-description">
       <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">
-              {existingRating ? 'Update Rating' : 'Rate Restaurant'}
+            <h2 id="rating-modal-title" className="text-xl font-semibold text-gray-900 mb-1">
+              {isUpdating && canUpdateRating ? 'Update Rating' : 
+               isUpdating ? 'Your Rating' : 'Rate Restaurant'}
             </h2>
+            {isUpdating && !canUpdateRating && (
+              <div className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded mb-2">
+                Rating can be updated tomorrow (24h cooldown)
+              </div>
+            )}
+            <p id="rating-modal-description" className="sr-only">
+              Rate {restaurant.name} on a scale from 0.1 to 10.0. You can also add notes and tags to your rating.
+            </p>
             <div className="flex items-center text-sm text-gray-500">
               <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
               <span className="font-medium truncate">{restaurant.name}</span>
@@ -207,9 +255,12 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
               <Label className="text-base font-medium text-gray-900 block mb-2">
                 Your Rating
               </Label>
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mb-4">
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mb-2">
                 <Star className="h-4 w-4" />
                 <span>0.1 - 10.0 scale</span>
+              </div>
+              <div className="text-xs text-gray-400 text-center mb-4">
+                0.1 = Poor • 3.0 = Fair • 5.0 = Good • 7.0 = Great • 10.0 = Perfect
               </div>
             </div>
             <DecimalRatingSlider
@@ -219,6 +270,12 @@ function QuickRateModal({ isOpen, onClose, restaurant, existingRating }: QuickRa
               hoveredValue={hoveredRating}
               size="lg"
               className="w-full"
+              aria-label="Restaurant rating from 0.1 to 10.0"
+              role="slider"
+              aria-valuemin={0.1}
+              aria-valuemax={10.0}
+              aria-valuenow={rating}
+              aria-valuetext={`${rating.toFixed(1)} out of 10`}
             />
             {rating > 0 && (
               <div className="text-center">

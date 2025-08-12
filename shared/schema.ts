@@ -30,6 +30,8 @@ export const users = pgTable('users', {
   // Profile uniqueness fields
   favoriteFood: text("favorite_food"), // e.g., "Margherita Pizza", "Spicy Ramen"
   favoriteRestaurant: text("favorite_restaurant"), // e.g., "Joe's Pizza", "Momofuku Noodle Bar"
+  // Privacy settings
+  circleScoreOptOut: boolean('circle_score_opt_out').default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

@@ -9,6 +9,11 @@ interface UserRating {
   tags?: string[];
   createdAt?: string;
   updatedAt?: string;
+  restaurantId?: number;
+  googlePlaceId?: string;
+  restaurantName?: string;
+  verifiedRestaurantId?: number;
+  verifiedGooglePlaceId?: string;
 }
 
 interface RatingError {
@@ -89,6 +94,33 @@ export function useRestaurantRatingState(restaurant: any) {
       }
       
       const data = await response.json();
+      
+      // CRITICAL FIX: Data integrity validation on frontend
+      // Cross-check rating data with current restaurant to prevent mismatches
+      const isValidRating = (() => {
+        if (restaurant.id && typeof restaurant.id === 'number') {
+          return data.verifiedRestaurantId === restaurant.id;
+        }
+        if (restaurant.googlePlaceId) {
+          return data.verifiedGooglePlaceId === restaurant.googlePlaceId;
+        }
+        if (typeof restaurant.id === 'string' && restaurant.id.startsWith('ChIJ')) {
+          return data.verifiedGooglePlaceId === restaurant.id;
+        }
+        return false;
+      })();
+
+      if (!isValidRating) {
+        console.warn('🚨 Frontend data integrity check failed - hiding invalid rating', {
+          restaurantName: restaurant.name,
+          ratingRestaurantName: data.restaurantName,
+          expectedId: restaurant.id || restaurant.googlePlaceId,
+          ratingId: data.id
+        });
+        setRating(null); // Hide invalid rating
+        return;
+      }
+
       setRating(data);
       setRetryCount(0); // Reset retry count on success
       

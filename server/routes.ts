@@ -58,6 +58,7 @@ import sharingRouter from './routes/sharing';
 import circleScoreRoutes from './routes/circle-score';
 import healthRoutes from './routes/health';
 import feedCountsRoutes from './routes/feed-counts';
+import userPrivacyRoutes from './routes/user-privacy';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
