@@ -1360,6 +1360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/circle-score', circleScoreRoutes);
   app.use('/api/health', healthRoutes);
   app.use('/api/feed', feedCountsRoutes);
+  app.use('/api/user', userPrivacyRoutes);
 
   // Unified Feed API - Lists and Posts together
   app.get('/api/unified-feed', authenticate, async (req: any, res: any) => {

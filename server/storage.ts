@@ -241,7 +241,21 @@ export class DatabaseStorage implements IStorage {
   // User operations with error handling
   async getUser(id: number): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, id));
+      const [user] = await db.select({
+        id: users.id,
+        username: users.username,
+        password: users.password,
+        name: users.name,
+        bio: users.bio,
+        profilePicture: users.profilePicture,
+        preferredCuisines: users.preferredCuisines,
+        preferredPriceRange: users.preferredPriceRange,
+        preferredLocation: users.preferredLocation,
+        diningInterests: users.diningInterests,
+        favoriteFood: users.favoriteFood,
+        favoriteRestaurant: users.favoriteRestaurant,
+        circleScoreOptOut: users.circleScoreOptOut,
+      }).from(users).where(eq(users.id, id));
       return user;
     } catch (error: any) {
       console.error('Error fetching user:', error);
@@ -255,7 +269,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db.select({
+      id: users.id,
+      username: users.username,
+      password: users.password,
+      name: users.name,
+      bio: users.bio,
+      profilePicture: users.profilePicture,
+      preferredCuisines: users.preferredCuisines,
+      preferredPriceRange: users.preferredPriceRange,
+      preferredLocation: users.preferredLocation,
+      diningInterests: users.diningInterests,
+      favoriteFood: users.favoriteFood,
+      favoriteRestaurant: users.favoriteRestaurant,
+      circleScoreOptOut: users.circleScoreOptOut,
+    }).from(users).where(eq(users.username, username));
     return user;
   }
 
