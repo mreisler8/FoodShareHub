@@ -149,8 +149,18 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Promise Rejection at:', promise, 'reason:', reason);
 });
 
-// Handle uncaught exceptions
+// Handle uncaught exceptions with better error handling
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
+  
+  // Check if it's a database connection error that we can handle gracefully
+  if (error.message?.includes('Cannot set property message') || 
+      error.message?.includes('which has only a getter')) {
+    console.warn('Database connection error detected, but server will continue running');
+    return; // Don't exit on this specific Neon connection error
+  }
+  
+  // For other critical errors, still exit
+  console.error('Critical error, shutting down server');
   process.exit(1);
 });

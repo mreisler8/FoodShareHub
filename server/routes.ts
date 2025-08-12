@@ -42,8 +42,8 @@ import savedListsRouter from './routes/saved-lists';
 import listReactionsRouter from './routes/list-reactions';
 // import restaurantsRouter from './routes/restaurants.js';
 import { eq, desc, and, count, sql, or, like, ilike, asc, inArray } from 'drizzle-orm';
-import { userFollowers, posts, restaurants, users, restaurantLists, ratings, tags, followRequests, listReactions, listItems, savedLists } from "@shared/schema";
-import { getPlaceDetails } from './services/google-places';
+import { userFollowers, posts, restaurants, users, restaurantLists, listReactions, restaurantListItems, savedLists, circleMembers, circleInvites, circles } from "@shared/schema";
+// Removed duplicate import of getPlaceDetails
 import locationRoutes from "./routes/location";
 import restaurantsRouter from "./routes/restaurants";
 import circleInvitesRouter from './routes/circle-invites';
@@ -587,8 +587,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Make sure the posts are safe (no password info)
       const safeFeedPosts = feedPosts.map((post) => {
-        // Clean post author using destructuring
-        const { author, comments = [], ...postData } = post;
+        // Clean post author using destructuring (comments might not exist in this query)
+        const { author, ...postData } = post;
         let cleanAuthor = null;
 
         if (author) {
@@ -596,25 +596,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cleanAuthor = authorWithoutPassword;
         }
 
-        // Process comments if they exist
-        const cleanComments = Array.isArray(comments)
-          ? comments.map((comment) => {
-              if (!comment || !comment.author) return comment;
-              const { password, ...authorData } = comment.author;
-              return { ...comment, author: authorData };
-            })
-          : [];
-
         return {
           ...postData,
           author: cleanAuthor,
-          comments: cleanComments,
         };
       });
 
-      // Get total count from the posts list
-      // In this approach we just count from the first post
-      const total = feedPosts.length > 0 ? feedPosts[0].totalPosts || 0 : 0;
+      // Get total count from the posts list  
+      const total = feedPosts.length;
       const totalPages = Math.ceil(total / limit);
       const hasMore = page < totalPages;
 
@@ -930,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if the authenticated user is the author of the post
-      if (postuserId !== req.user!.id) {
+      if (post.userId !== req.user!.id) {
         return res
           .status(403).json({ error: "Not authorized to delete this post" });
       }

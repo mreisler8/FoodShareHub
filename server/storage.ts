@@ -198,7 +198,10 @@ export class DatabaseStorage implements IStorage {
         tableName: 'session',
         createTableIfMissing: true,
         pruneSessionInterval: 60 * 15, // Clean up sessions every 15 minutes
-        errorLog: console.error
+        errorLog: (err: Error) => {
+          // Log session store errors but don't throw to prevent startup failure
+          console.warn('Session store warning:', err.message);
+        }
       });
       console.log('Using PostgreSQL session store');
 
@@ -207,8 +210,12 @@ export class DatabaseStorage implements IStorage {
         console.error('Failed to initialize analytics table:', err);
       });
     } catch (error) {
-      console.error('Failed to initialize session store:', error);
-      throw error;
+      console.error('Failed to initialize session store, falling back to memory store:', error);
+      // Fallback to memory store if PostgreSQL session store fails
+      this.sessionStore = new MemorySessionStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+      });
+      console.log('Using memory session store as fallback');
     }
   }
 

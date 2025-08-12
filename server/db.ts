@@ -6,7 +6,7 @@ import * as schema from "@shared/schema";
 // Configure WebSocket for Neon with better error handling
 neonConfig.webSocketConstructor = ws;
 neonConfig.useSecureWebSocket = true;
-neonConfig.fetchConnectionCache = true;
+// Note: fetchConnectionCache is now always true and the option is deprecated
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
