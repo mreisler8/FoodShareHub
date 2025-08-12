@@ -101,6 +101,14 @@ export const restaurants = pgTable("restaurants", {
   nameCityIdx: index("restaurants_name_city_idx").on(table.name, table.city),
 }));
 
+// Restaurant Place Map - for canonical identity mapping
+export const restaurantPlaceMap = pgTable("restaurant_place_map", {
+  restaurantId: integer("restaurant_id").notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  googlePlaceId: text("google_place_id").notNull().unique(),
+}, (table) => ({
+  primaryKey: index("restaurant_place_map_pk").on(table.restaurantId, table.googlePlaceId),
+}));
+
 export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
   name: true,
   location: true,

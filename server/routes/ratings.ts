@@ -5,6 +5,8 @@ import { ratings, insertRatingSchema, restaurants, circles, circleMembers } from
 import { eq, and, desc, asc, inArray, sql, gte } from 'drizzle-orm';
 import { onNewRating } from '../lib/circleScoreJobs';
 import { ratingsRateLimit } from '../middleware/rateLimiter';
+import { resolveRestaurantCanonicalId } from '../services/identity.js';
+import { isFeatureEnabled } from '../config/features.js';
 
 const router = Router();
 
@@ -56,7 +58,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT /api/ratings - Create or update rating
+// PUT /api/ratings - Create or update rating (with strict identity binding)
 router.put('/', ratingsRateLimit, async (req, res) => {
   if (!req.user?.id) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -73,6 +75,18 @@ router.put('/', ratingsRateLimit, async (req, res) => {
 
     if (!restaurantId && !googlePlaceId) {
       return res.status(400).json({ error: 'Either restaurant ID or Google Place ID is required' });
+    }
+
+    // PHASE 3: Identity Resolution - get canonical restaurant ID
+    const identity = await resolveRestaurantCanonicalId({
+      restaurantId: restaurantId ? parseInt(restaurantId) : undefined,
+      googlePlaceId,
+    });
+
+    console.log(`RATINGS_WRITE resolved identity: restaurantId=${identity.restaurantId} placeId=${identity.googlePlaceId}`);
+
+    if (!identity.restaurantId) {
+      return res.status(400).json({ error: 'Could not resolve restaurant identity' });
     }
 
     // Check if rating already exists

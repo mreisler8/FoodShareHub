@@ -18,7 +18,8 @@ import {
   postListItems, type PostListItem, type InsertPostListItem,
   searchAnalytics, type SearchAnalytics, type InsertSearchAnalytics,
   userSearchPreferences, type UserSearchPreferences, type InsertUserSearchPreferences,
-  listReactions, type ListReaction, type InsertListReaction
+  listReactions, type ListReaction, type InsertListReaction,
+  restaurantPlaceMap
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, like, desc, gt, or, not, inArray, count, sql } from "drizzle-orm";
