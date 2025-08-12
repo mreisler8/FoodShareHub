@@ -20,6 +20,10 @@ import {
 } from 'lucide-react';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
+import { NotFound } from '@/components/ui/NotFound';
+import { InlineError } from '@/components/ui/InlineError';
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
+import { getErrorMessage, isValidId } from '@/lib/error-utils';
 
 
 import { useCircleScore } from '@/hooks/useCircleScore';
@@ -189,9 +193,18 @@ export default function RestaurantDetailPage() {
   // Add console log for debugging navigation
   console.log('RestaurantDetailPage params:', { id, placeId, googlePlaceId, restaurantId, queryMethod });
 
-  const { data: restaurant, isLoading, error } = useQuery<RestaurantDetails>({
+  const { data: restaurant, isLoading, error, refetch } = useQuery<RestaurantDetails>({
     queryKey: queryMethod === 'googlePlaceId' ? [`/api/restaurants?googlePlaceId=${restaurantId}`] : [`/api/restaurants/${restaurantId}`],
     enabled: !!restaurantId,
+    retry: (failureCount, error: any) => {
+      // Don't retry 404s (restaurant not found)
+      if (error?.response?.status === 404) return false;
+      // Don't retry invalid parameter errors
+      if (error?.message?.includes('Invalid')) return false;
+      // Retry up to 2 times for Google Places API failures
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     queryFn: async () => {
       if (!restaurantId) {
         throw new Error('No restaurant ID provided');
@@ -204,12 +217,31 @@ export default function RestaurantDetailPage() {
         url = `/api/restaurants/${restaurantId}`;
       }
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch restaurant details');
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData.error || `Failed to fetch restaurant details (${response.status})`;
+          
+          // Handle specific error types
+          if (response.status === 404) {
+            throw new Error('Restaurant not found');
+          } else if (response.status >= 500) {
+            throw new Error('Server error - please try again later');
+          } else if (response.status === 400) {
+            throw new Error('Invalid restaurant ID');
+          }
+          
+          throw new Error(errorMessage);
+        }
+        return response.json();
+      } catch (networkError) {
+        // Handle network errors gracefully
+        if (networkError instanceof TypeError && networkError.message === 'Failed to fetch') {
+          throw new Error('Network error - please check your connection and try again');
+        }
+        throw networkError;
       }
-      return response.json();
     },
   });
 
@@ -232,29 +264,19 @@ export default function RestaurantDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="animate-pulse">
-          <div className="h-64 bg-gray-300 w-full"></div>
-          <div className="p-6 space-y-4">
-            <div className="h-8 bg-gray-300 rounded w-3/4"></div>
-            <div className="flex gap-4">
-              <div className="h-20 w-20 bg-gray-300 rounded-full"></div>
-              <div className="h-20 w-20 bg-gray-300 rounded-full"></div>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50 p-4">
+        <LoadingSkeleton />
       </div>
     );
   }
 
   if (error || !restaurant) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Restaurant not found</h2>
-          <p className="text-gray-600 mb-4">The restaurant you're looking for doesn't exist.</p>
-          <Button onClick={() => setLocation('/')}>Return Home</Button>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <InlineError 
+          message={getErrorMessage(error)} 
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }

@@ -56,6 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let hasRetried = false;
+    
     const checkAuth = async () => {
       try {
         setIsLoading(true);
@@ -129,10 +131,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           console.error('Authentication check failed with status:', response.status);
           setUser(null);
+          
+          // Add single retry for transient errors (not 401)
+          if (!hasRetried && response.status !== 401) {
+            console.log('Retrying authentication check...');
+            hasRetried = true;
+            setTimeout(() => {
+              checkAuth();
+            }, 1000);
+            return;
+          }
+          
           setError('Authentication check failed');
         }
       } catch (err: any) {
         console.error('Authentication check error:', err);
+        
+        // Add single retry for network errors
+        if (!hasRetried) {
+          console.log('Retrying authentication check after network error...');
+          hasRetried = true;
+          setTimeout(() => {
+            checkAuth();
+          }, 2000);
+          return;
+        }
+        
         setError('Network error during authentication check');
         setUser(null);
 

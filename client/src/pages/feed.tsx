@@ -84,7 +84,7 @@ function FeedContentWithLayout({ allItems, onListClick }: { allItems: FeedItem[]
 
   return (
     <div className={getFeedLayoutClasses(viewMode)}>
-      {allItems.map((item) => (
+      {Array.isArray(allItems) && allItems.length > 0 ? allItems.map((item) => (
         item.feedType === 'list' ? (
           <ListFeedCard 
             key={`list-${item.id}`} 
@@ -135,7 +135,11 @@ function FeedContentWithLayout({ allItems, onListClick }: { allItems: FeedItem[]
             }}
           />
         )
-      ))}
+      )) : (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No posts available</p>
+        </div>
+      )}
     </div>
   );
 }

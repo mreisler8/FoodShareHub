@@ -532,7 +532,7 @@ export default function ListDetails() {
 
   // Sync server data with local state when it loads
   useEffect(() => {
-    if (list?.items) {
+    if (list?.items && Array.isArray(list.items)) {
       setListItems(list.items.map((item: RestaurantListItemWithDetails) => ({ ...item, isOptimistic: false })));
     }
   }, [list?.items]);

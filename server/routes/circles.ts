@@ -807,26 +807,13 @@ export async function getCircleSharedLists(req: Request, res: Response) {
   }
 }
 
-// Get pending invites for the authenticated user - OPTIMIZED FOR PERFORMANCE
-router.get('/invites/pending', authenticate, circleDataCache, asyncHandler(async (req, res) => {
+// Get pending invites for the authenticated user - PERFORMANCE OPTIMIZED
+router.get('/invites/pending', authenticate, generalRateLimit, asyncHandler(async (req, res) => {
+  const startTime = Date.now();
+  const userId = req.user!.id;
+  
   try {
-    const userId = req.user!.id;
-    console.log(`[ENDPOINT] Fetching pending circle invites for user ${userId}`);
-
-    // Get current user details for matching invites
-    const user = await db.select({ 
-      username: users.username, 
-      email: users.email 
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-    if (!user[0]) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Get pending invites sent to this user's email or username
+    // Single optimized query - avoid multiple DB roundtrips
     const pendingInvites = await db
       .select({
         id: circleInvites.id,
@@ -856,24 +843,22 @@ router.get('/invites/pending', authenticate, circleDataCache, asyncHandler(async
         and(
           eq(circleInvites.status, 'pending'),
           or(
-            eq(circleInvites.emailOrUsername, user[0].email),
-            eq(circleInvites.emailOrUsername, user[0].username)
+            // Use subquery to avoid separate user lookup
+            sql`${circleInvites.emailOrUsername} = (SELECT email FROM ${users} WHERE id = ${userId})`,
+            sql`${circleInvites.emailOrUsername} = (SELECT username FROM ${users} WHERE id = ${userId})`
           )
         )
       )
-      .orderBy(sql`${circleInvites.createdAt} DESC`);
+      .orderBy(desc(circleInvites.createdAt))
+      .limit(20);
 
-    // Add metadata for enterprise features
-    const enrichedInvites = pendingInvites.map(invite => ({
-      ...invite,
-      priority: invite.circle.isPrivate ? 'high' : 'medium',
-      category: 'circle_invitation',
-      actionRequired: true,
-      expiresAt: new Date(new Date(invite.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days from creation
-    }));
+    const duration = Date.now() - startTime;
+    console.log(`[PERF] Pending invites: ${duration}ms, found ${pendingInvites.length} invites`);
 
-    res.json(enrichedInvites);
+    res.json(pendingInvites);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[ERROR] Pending invites failed after ${duration}ms:`, error);
     throw createApiError("Failed to fetch pending circle invites", 500, "INVITES_FETCH_ERROR");
   }
 }));

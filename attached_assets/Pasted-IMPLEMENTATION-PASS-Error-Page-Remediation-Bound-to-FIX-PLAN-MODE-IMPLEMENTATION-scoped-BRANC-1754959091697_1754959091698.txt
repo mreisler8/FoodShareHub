@@ -1,0 +1,285 @@
+IMPLEMENTATION PASS — Error Page Remediation (Bound to FIX_PLAN)
+MODE: IMPLEMENTATION (scoped)
+BRANCH: fix/error-pages-mvp
+SOURCE OF TRUTH: /docs/ERROR_PAGES_FIX_PLAN.md (use it line-by-line)
+ABSOLUTE GUARDRAILS:
+
+Do not change API contracts or response shapes.
+
+Do not redesign UI. No new visual components beyond standardized Loading/InlineError if missing.
+
+Do not change auth logic semantics (401 stays 401).
+
+Touch only the files/lines called out in /docs/ERROR_PAGES_FIX_PLAN.md.
+
+If anything is ambiguous or a file path doesn’t match, add a QUESTIONS section in the PR and stop.
+
+GOAL
+Eliminate the “Something went wrong. Please try refreshing the page.” error boundary for all routes listed in /docs/ERROR_PAGES_AUDIT.md by applying minimal, targeted fixes from /docs/ERROR_PAGES_FIX_PLAN.md, while keeping performance and privacy requirements intact.
+
+Primary success targets
+
+Error boundary triggers reduced by ≥ 80% on audited routes.
+
+No unhandled exceptions in console during route navigation.
+
+P95 ≤ 500ms for restaurant detail, list detail, profile detail, and circles pages (post warm-cache) under 100 users.
+
+Circle Score data respects privacy (no leaks of private circle data).
+
+SCOPE TO IMPLEMENT (map directly to FIX_PLAN)
+Phase 1 — Critical Auth & Data Guards (P0)
+ProtectedRoute Loading & Auth Recovery
+
+File: client/src/lib/protected-route.tsx
+
+Add explicit loading state during session check; do not render children until auth is known.
+
+On unauthenticated: redirect to /auth (do not throw).
+
+Ensure errors in the auth check produce a controlled inline error (not boundary).
+
+use-auth.tsx 401 resilience (session transitions)
+
+File: client/src/hooks/use-auth.tsx
+
+Add a single retry for transient 401 during refresh; if still 401 → treat as logged out.
+
+Normalize error shape (getErrorMessage) so consumers never crash on unexpected responses.
+
+Profile & Circle param/permission guards
+
+Files:
+
+client/src/pages/ProfilePage.tsx
+
+client/src/pages/circle-details.tsx
+
+Validate :id param before queries. If invalid/missing: render <NotFound />.
+
+For 404 from API: show inline 404 card, not boundary.
+
+For permission failures: render a friendly locked/unauthorized view (no data leakage), not boundary.
+
+List & Feed data-safety
+
+Files:
+
+client/src/pages/list-details.tsx
+
+client/src/pages/feed.tsx
+
+Guard array and nested property access:
+
+Before any .map, verify Array.isArray(items) and items.length > 0.
+
+Use optional chaining (?.) and nullish coalescing (??) everywhere we access uncertain data.
+
+Empty states should render gracefully.
+
+MediaCarousel hardening
+
+File: client/src/components/MediaCarousel.tsx
+
+Replace derived arrays with safe guards:
+
+ts
+Copy
+Edit
+const validImages = Array.isArray(images) ? images.filter(Boolean) : [];
+If none, show the existing empty state (no boundary).
+
+Phase 2 — API Failure Recovery & Performance (P1)
+Restaurant detail fallback (Google Places failures)
+
+Files:
+
+client/src/pages/RestaurantDetailPage.tsx (component-level, not global boundary)
+
+server/routes/restaurants.ts
+
+Client: wrap data render with loading / inline error / “Restaurant not available” fallback.
+
+Server: ensure existing timeout + circuit breaker guard always returns fast; on failure, return controlled 4xx/5xx with a safe error body (no throw).
+
+Never let Places failures bubble to the React boundary.
+
+Circles endpoints performance (< 500ms)
+
+File(s): server/routes/circles.ts (pending/invites endpoints)
+
+Optimize queries:
+
+Add missing indexes (migrations or SQL):
+
+sql
+Copy
+Edit
+CREATE INDEX IF NOT EXISTS idx_circle_members_circle ON circle_members(circle_id);
+CREATE INDEX IF NOT EXISTS idx_circle_members_user ON circle_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_circle_invites_user ON circle_invites(user_id, status);
+Select only needed columns; add pagination/limits; avoid N+1.
+
+Add short-TTL caching (e.g., 30–60s) if safe.
+
+Acceptance: observed response time < 500ms.
+
+AbortSignal / timeout compatibility
+
+File: client/src/components/mvp/MVPComprehensiveFixes.tsx
+
+Replace AbortSignal.timeout(...) with a compat wrapper that uses AbortController + setTimeout if needed.
+
+Phase 3 — Component Hardening (P2)
+MobileNavigation auth handling
+
+File: client/src/components/navigation/MobileNavigation.tsx
+
+Introduce a short loading state when auth is indeterminate; do not compute classNames from undefined.
+
+Remove any assume-truthy patterns; prefer explicit booleans derived after auth known.
+
+Route-level soft boundaries for malformed params
+
+File: client/src/components/Router.tsx (or specific dynamic route wrappers)
+
+Validate param shapes; on mismatch → <NotFound /> instead of rendering children that will crash.
+
+Create flows resilient to API errors
+
+Files:
+
+client/src/pages/create-post.tsx
+
+client/src/pages/create-list.tsx
+
+Wrap mutations with try/catch; optimistic update with rollback; disable while pending; user toast on fail.
+
+Phase 4 — Memory & Edge Cases (P3)
+Cleanup listeners/timers
+
+File: client/src/components/mvp/MVPComprehensiveFixes.tsx
+
+Ensure useEffect returns cleanups for all event listeners and timers.
+
+Circle Score retry limits
+
+Same file (or relevant hook): limit to max 3 retries with exponential backoff; stop on 4xx client errors.
+
+Top Picks & Discover input validation
+
+Files:
+
+client/src/pages/home-new.tsx
+
+client/src/pages/DiscoverFeed.tsx
+
+Validate data before render; add location-services graceful fallback (permission denied → informative empty state).
+
+STANDARD PATTERNS TO APPLY
+Detail Page Guard Example
+
+tsx
+Copy
+Edit
+const { id } = useParams<{ id: string }>();
+if (!id || !/^\d+$/.test(id)) return <NotFound />;
+
+const { data, isLoading, isError, error, refetch } = useThingQuery(id);
+if (isLoading) return <LoadingSkeleton />;
+if (isError) return <InlineError message={getErrorMessage(error)} onRetry={refetch} />;
+
+if (!data) return <InlineError message="Not found" />;
+Safe List Rendering
+
+tsx
+Copy
+Edit
+const items = Array.isArray(data?.items) ? data.items : [];
+return items.length ? <List items={items} /> : <EmptyState label="Nothing here yet" />;
+Mutation Hardening
+
+tsx
+Copy
+Edit
+const m = useMutation(doAction, {
+  onMutate: optimisticApply,
+  onError: (err, vars, ctx) => { rollback(ctx); toast.error(getErrorMessage(err)); },
+  onSettled: () => queryClient.invalidateQueries(['thing', id]),
+});
+Error Normalizer (API client)
+
+ts
+Copy
+Edit
+export function getErrorMessage(err: unknown): string {
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object') {
+    const anyErr = err as any;
+    return anyErr?.message || anyErr?.response?.data?.error || 'Something went wrong';
+  }
+  return 'Something went wrong';
+}
+ACCEPTANCE CRITERIA (ALL MUST PASS)
+Routing & Fallbacks
+
+Invalid/missing :id → <NotFound /> (no error boundary)
+
+Unauthenticated → redirect /auth (no boundary)
+
+API failure → <InlineError> with Retry (no boundary)
+
+Loading → <LoadingSkeleton>; empty → <EmptyState> (no boundary)
+
+Components
+
+MediaCarousel, MobileNavigation, MVPComprehensiveFixes have no unsafe property reads.
+
+All new code TypeScript-strict; no any introduced.
+
+Performance
+
+/api/circles/requests/pending and /api/circles/invites/pending < 500ms P95.
+
+Restaurant detail render not blocked by Places failures (fallback shows fast).
+
+No new regressions in P95 across profile/list/restaurant/circles detail pages.
+
+Console
+
+0 unhandled exceptions after following reproduction steps in FIX_PLAN.
+
+DELIVERABLES
+One PR to fix/error-pages-mvp with only the scoped changes above.
+
+/docs/ERROR_PAGES_VALIDATION.md containing:
+
+Route-by-route PASS/FAIL table
+
+Screenshots of loading / empty / inline error / 404 states
+
+Console error count (should be 0)
+
+Before/After timings for circles endpoints and detail pages (P50/P95/P99)
+
+Notes on any routes deferred or questions blocking completion
+
+TESTING (minimum)
+Add/extend tests where feasible (no heavy suite expansion):
+
+Unit: guards (param validation functions), error normalizer.
+
+Integration: protected route loading/redirect behavior, a detail page showing 404 vs error state.
+
+Optional: small supertest for optimized circles endpoints returning fast.
+
+ROLLBACK & SAFETY
+Changes are isolated and reversible.
+
+If a fix causes a regression, revert that file’s diff and note it in /docs/ERROR_PAGES_VALIDATION.md.
+
+Do not change global error boundaries beyond adding a diagnostic code.
+
+IMPORTANT
+If any file path or contract in /docs/ERROR_PAGES_FIX_PLAN.md doesn’t match the repo, stop and add a QUESTIONS section at the top of the PR with proposed alternatives. Do not guess.
+

@@ -39,6 +39,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
+import { NotFound } from "@/components/ui/NotFound";
+import { InlineError } from "@/components/ui/InlineError";
+import { ProfileLoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { getErrorMessage } from "@/lib/error-utils";
 
 
 
@@ -52,6 +56,11 @@ export default function ProfilePage() {
   const [showShareLink, setShowShareLink] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Validate ID parameter if provided
+  if (id && !/^\d+$/.test(id)) {
+    return <NotFound title="Invalid Profile" message="The profile ID is not valid." />;
+  }
 
   // If no id specified, show the current user's profile
   const userId = id ? parseInt(id) : currentUser?.id;

@@ -1,35 +1,33 @@
-import { Button } from './button';
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface InlineErrorProps {
-  error?: Error | string | null;
-  message?: string;
+  message: string;
   onRetry?: () => void;
-  retryLabel?: string;
+  className?: string;
 }
 
-export function InlineError({ 
-  error, 
-  message = "Couldn't load content.", 
-  onRetry, 
-  retryLabel = "Try Again" 
-}: InlineErrorProps) {
-  if (!error) return null;
-
-  const errorMessage = typeof error === 'string' ? error : (error?.message || message);
-
+export function InlineError({ message, onRetry, className = "" }: InlineErrorProps) {
   return (
-    <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-2 rounded mb-4">
-      <p className="text-sm">{errorMessage}</p>
-      {onRetry && (
-        <Button 
-          variant="outline" 
-          onClick={onRetry}
-          className="mt-2 text-red-800 border-red-300 hover:bg-red-50 min-h-[44px]"
-          size="sm"
-        >
-          {retryLabel}
-        </Button>
-      )}
-    </div>
+    <Card className={`border-destructive/20 ${className}`}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm text-foreground">{message}</p>
+        </div>
+        {onRetry && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
