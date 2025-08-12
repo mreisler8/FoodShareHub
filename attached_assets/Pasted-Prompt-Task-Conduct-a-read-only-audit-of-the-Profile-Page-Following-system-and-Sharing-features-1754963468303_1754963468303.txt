@@ -1,0 +1,80 @@
+Prompt:
+
+Task: Conduct a read-only audit of the Profile Page, Following system, and Sharing features across the Circles application.
+Do not write any code. Only return a structured report.
+
+Goal: Identify all gaps, errors, inconsistencies, and missing functionality that prevent these areas from meeting MVP requirements. Include exact reproduction steps for each issue and recommended remediation approaches.
+
+Scope:
+
+Profile Page Core Audit
+
+Data accuracy for: username, profile photo, bio, follower count, following count, lists count, ratings count, circle memberships.
+
+Performance benchmarks: API response time (P50, P95), image load time, overall render time.
+
+Mobile vs desktop layout consistency, responsive behavior.
+
+Accessibility compliance (ARIA labels, semantic headings, keyboard navigation).
+
+Error handling: missing data, private profiles, deleted accounts.
+
+Component reusability & consistency with app-wide design.
+
+Following System Audit
+
+Verify follow/unfollow functionality (including mutual follow detection).
+
+Confirm ranking logic for suggested profiles (mutuals-first).
+
+Detect any performance bottlenecks in follow list loading.
+
+Check for UI feedback during follow/unfollow actions (loading state, confirmation).
+
+Error handling when action fails or network is offline.
+
+Security: Ensure only authenticated users can follow/unfollow, no data leaks in API.
+
+Sharing Features Audit
+
+Audit all profile-related sharing flows:
+
+Share profile link (copy to clipboard, share modal).
+
+Share to Circle.
+
+Send to Friend.
+
+Confirm working across mobile & desktop.
+
+Check performance & error handling when sharing fails.
+
+Verify privacy settings (private profiles should not be shareable publicly).
+
+Accessibility: ARIA roles, keyboard navigation, focus states.
+
+Deliverable:
+Return a structured report with the following sections:
+
+Summary (overall state vs MVP readiness)
+
+Findings grouped by area (Profile Page, Following, Sharing)
+
+For each finding: Severity (Critical / High / Medium / Low), Description, Impact on MVP, Steps to Reproduce, Recommended Remediation Approach.
+
+Performance Benchmark Table (P50/P95 response times & render times per feature).
+
+Accessibility Score & Issues summary.
+
+Go / No-Go Recommendation for MVP readiness.
+
+Rules:
+
+No code changes.
+
+Do not optimize or implement fixes.
+
+Be exhaustive — missing features count as findings.
+
+Assume this audit will directly inform the implementation prompt.
+
