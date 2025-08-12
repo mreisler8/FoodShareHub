@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import uploadsRouter from "./routes/uploads";
 import { performanceMiddleware } from "./middleware/performance.js";
+import { traceMiddleware } from "./middleware/trace.js";
 // geocodeRouter imported and registered in registerRoutes function
 // searchRoutes and searchAnalyticsRoutes imported and registered in registerRoutes function
 
@@ -26,6 +27,9 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '10mb' })); // Increased limit for media uploads
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Add trace middleware for audit (before routes)
+app.use(traceMiddleware);
 
 // Add caching headers for static content
 app.use((req, res, next) => {

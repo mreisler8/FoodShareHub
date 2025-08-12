@@ -41,6 +41,7 @@ import RestaurantActionBar from '@/components/restaurant/RestaurantActionBar';
 import ReservationCard from '@/components/restaurant/ReservationCard';
 import MoreRestaurantActions from '@/components/restaurant/MoreRestaurantActions';
 import OrderOptionsCard from '@/components/restaurant/OrderOptionsCard';
+import { RestaurantDebugPanel } from '@/components/debug/RestaurantDebugPanel';
 
 interface RestaurantDetails {
   id: string;
@@ -353,6 +354,12 @@ export default function RestaurantDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
+      {/* Debug Panel - Only visible with ?debug=true */}
+      <RestaurantDebugPanel 
+        restaurantId={restaurant.id ? parseInt(restaurant.id.toString()) : undefined}
+        googlePlaceId={restaurant.googlePlaceId}
+      />
+      
       {/* Hero Section with enhanced mobile-first design */}
       <div className="relative h-48 md:h-64 w-full overflow-hidden">
         {heroImageData && heroImageData.src ? (

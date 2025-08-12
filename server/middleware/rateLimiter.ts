@@ -10,7 +10,7 @@ export const ratingsRateLimit = rateLimit({
     if (req.user?.id) {
       return `rating_limit_user_${req.user.id}`;
     }
-    return `rating_limit_ip_${req.ip || 'unknown'}`;
+    return ipKeyGenerator(req);
   },
   skip: (req: Request) => {
     // Feature flag check - skip rate limiting if disabled or during development
@@ -31,7 +31,7 @@ export const ratingsRateLimit = rateLimit({
 export const generalRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   limit: 100, // Max 100 requests per minute
-  keyGenerator: (req: Request) => req.ip || 'unknown',
+  keyGenerator: ipKeyGenerator,
   standardHeaders: true,
   legacyHeaders: false,
 });
