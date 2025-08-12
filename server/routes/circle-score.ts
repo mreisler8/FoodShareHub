@@ -1,113 +1,114 @@
 import express from 'express';
-import rateLimit from 'express-rate-limit';
-import { calculateCircleScore } from '../lib/circleScore';
+import { db } from '../db';
+import { ratings, restaurants, circles, circleMembers } from '../../shared/schema';
+import { eq, and, inArray, isNull, or } from 'drizzle-orm';
+import { resolveRestaurantId } from '../services/restaurantIdentity';
+import { getCache, setCache } from '../services/cache';
+import { features } from '../config/features';
 
 const router = express.Router();
 
-// Rate limiting for Circle Score API
-const circleScoreRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: {
-    error: 'Too many Circle Score requests',
-    resetTime: new Date(Date.now() + 15 * 60 * 1000).toISOString()
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
-
-// Apply rate limiting to all Circle Score routes
-router.use(circleScoreRateLimit);
-
-// GET /api/circle-score/:id - Get Circle Score for a restaurant
-router.get('/:id', async (req, res) => {
-  if (!req.user?.id) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
+// GET /api/restaurant/:restaurantId/circle-score
+router.get('/:restaurantId/circle-score', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { type = 'restaurant' } = req.query; // 'restaurant' or 'google_place'
+    const restaurantId = parseInt(req.params.restaurantId);
+    const userId = (req as any).user?.id;
     
-    let restaurantId: number | null = null;
-    let googlePlaceId: string | null = null;
-    
-    // Enhanced ID detection for better compatibility
-    if (type === 'google_place' || id.startsWith('ChIJ') || id.length > 20) {
-      googlePlaceId = id.replace('google_', '');
-      console.log('🏢 Circle Score for Google Place ID:', googlePlaceId);
-    } else if (!isNaN(parseInt(id))) {
-      restaurantId = parseInt(id);
-      console.log('🏢 Circle Score for Database Restaurant ID:', restaurantId);
-    } else {
-      console.error('❌ Invalid restaurant ID format:', id);
-      return res.status(400).json({ 
-        error: 'Invalid restaurant ID format',
-        received: id,
-        expected: 'Numeric ID or Google Place ID starting with ChIJ'
-      });
+    if (!restaurantId || isNaN(restaurantId)) {
+      return res.status(400).json({ error: 'Valid restaurant ID required' });
     }
-    
-    // Calculate Circle Score with built-in caching
-    const circleScore = await calculateCircleScore(restaurantId, googlePlaceId, req.user.id);
-    
-    if (!circleScore) {
-      return res.status(404).json({ 
-        error: 'No Circle Score available',
-        message: 'No data from your trusted network for this restaurant'
-      });
-    }
-    
-    res.json(circleScore);
-  } catch (error) {
-    console.error('Circle score API error:', error);
-    res.status(500).json({ error: 'Failed to calculate Circle Score' });
-  }
-});
 
-// GET /api/circle-score/batch - Get Circle Scores for multiple restaurants
-router.post('/batch', async (req, res) => {
-  if (!req.user?.id) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-  try {
-    const { restaurants } = req.body;
+    // Validate restaurant exists via identity resolver
+    const resolvedRestaurantId = await resolveRestaurantId({ restaurantId });
     
-    if (!Array.isArray(restaurants) || restaurants.length === 0) {
-      return res.status(400).json({ error: 'Invalid restaurants array' });
+    // Check cache first
+    const cacheKey = `circleScore:${resolvedRestaurantId}`;
+    const cached = await getCache(cacheKey);
+    
+    if (cached) {
+      console.log('CIRCLE_SCORE: Cache hit', { restaurantId: resolvedRestaurantId, userId });
+      return res.json(cached);
     }
+
+    console.log('CIRCLE_SCORE: Computing score', { restaurantId: resolvedRestaurantId, userId });
+
+    // Get user's circles (they are a member of)
+    const userCircles = await db.query.circleMembers.findMany({
+      where: eq(circleMembers.userId, userId),
+      columns: { circleId: true }
+    });
     
-    if (restaurants.length > 20) {
-      return res.status(400).json({ error: 'Too many restaurants requested (max 20)' });
+    const circleIds = userCircles.map((cm: any) => cm.circleId);
+    
+    // Get user's followers (simplified - in production this would be from follows table)
+    // For now, include all circle members as potential "network"
+    let networkUserIds: number[] = [userId]; // Include self
+    
+    if (circleIds.length > 0) {
+      const networkMembers = await db.query.circleMembers.findMany({
+        where: inArray(circleMembers.circleId, circleIds),
+        columns: { userId: true }
+      });
+      
+      const additionalUserIds = networkMembers.map((cm: any) => cm.userId);
+      networkUserIds = Array.from(new Set([...networkUserIds, ...additionalUserIds]));
     }
-    
-    const results: { [key: string]: any } = {};
-    
-    // Process each restaurant
-    for (const restaurant of restaurants) {
-      const { id, type = 'restaurant' } = restaurant;
-      
-      let restaurantId: number | null = null;
-      let googlePlaceId: string | null = null;
-      
-      if (type === 'google_place') {
-        googlePlaceId = id;
-      } else {
-        restaurantId = parseInt(id);
-        if (isNaN(restaurantId)) continue;
+
+    // Query ratings for this restaurant from the user's network
+    // CRITICAL: Filter out test data
+    const networkRatings = await db.query.ratings.findMany({
+      where: and(
+        eq(ratings.restaurantId, resolvedRestaurantId),
+        inArray(ratings.userId, networkUserIds)
+        // TODO: Add test data filtering once is_test field is confirmed in schema
+        // or(isNull(ratings.isTest), eq(ratings.isTest, false))
+      ),
+      columns: {
+        id: true,
+        rating: true,
+        userId: true,
+        createdAt: true
       }
-      
-      const circleScore = await calculateCircleScore(restaurantId, googlePlaceId, req.user.id);
-      
-      const key = type === 'google_place' ? `google_${id}` : id.toString();
-      results[key] = circleScore;
-    }
+    });
+
+    console.log('CIRCLE_SCORE: Found ratings', { 
+      restaurantId: resolvedRestaurantId, 
+      ratingsCount: networkRatings.length,
+      networkSize: networkUserIds.length 
+    });
+
+    // Compute Circle Score
+    let score = 0;
+    const ratingsCount = networkRatings.length;
     
-    res.json(results);
+    if (ratingsCount > 0) {
+      const totalRating = networkRatings.reduce((sum: number, r: any) => sum + parseFloat(r.ratingValue || r.rating || 0), 0);
+      score = Math.round((totalRating / ratingsCount) * 10) / 10; // Round to 1 decimal
+    }
+
+    const result = {
+      score,
+      ratingsCount,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Cache the result
+    await setCache(cacheKey, result, 180); // 3 minute TTL
+    
+    console.log('CIRCLE_SCORE: Computed and cached', { 
+      restaurantId: resolvedRestaurantId, 
+      score, 
+      ratingsCount 
+    });
+
+    res.json(result);
   } catch (error) {
-    console.error('Batch circle score API error:', error);
-    res.status(500).json({ error: 'Failed to calculate Circle Scores' });
+    console.error('Circle Score error:', error);
+    res.status(500).json({ error: 'Failed to compute circle score' });
   }
 });
 

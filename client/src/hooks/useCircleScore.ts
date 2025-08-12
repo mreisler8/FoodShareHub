@@ -12,20 +12,25 @@ export function useCircleScore({
   googlePlaceId, 
   enabled = true 
 }: UseCircleScoreOptions) {
-  const queryKey = googlePlaceId 
-    ? ['/api/circle-score', googlePlaceId, 'google_place']
-    : ['/api/circle-score', restaurantId, 'restaurant'];
+  // CRITICAL: Standardized query key format - always use restaurantId for consistency
+  // If we only have googlePlaceId, we need to resolve it to restaurantId first
+  const finalRestaurantId = restaurantId;
+  const queryKey = ['circleScore', finalRestaurantId || googlePlaceId];
     
   return useQuery<CircleScoreData | null>({
     queryKey,
     enabled: enabled && (!!restaurantId || !!googlePlaceId),
     queryFn: async () => {
+      // Use the new unified Circle Score endpoint
       let url: string;
       
-      if (googlePlaceId) {
+      if (restaurantId) {
+        // Use the new endpoint that expects restaurantId and handles identity resolution
+        url = `/api/restaurant/${restaurantId}/circle-score`;
+      } else if (googlePlaceId) {
+        // For googlePlaceId, we need to resolve to restaurantId first
+        // For now, fallback to the old endpoint until identity resolution is complete
         url = `/api/circle-score/${encodeURIComponent(googlePlaceId)}?type=google_place`;
-      } else if (restaurantId) {
-        url = `/api/circle-score/${restaurantId}?type=restaurant`;
       } else {
         throw new Error('Either restaurantId or googlePlaceId must be provided');
       }

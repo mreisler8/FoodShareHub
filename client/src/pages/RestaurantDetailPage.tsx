@@ -26,8 +26,7 @@ import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { getErrorMessage, isValidId } from '@/lib/error-utils';
 
 
-import { useCircleScore } from '@/hooks/useCircleScore';
-import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
+import { useStandardizedRestaurantQueries } from '@/hooks/useStandardizedRestaurantQueries';
 
 // New modular components for the redesign
 import { HeaderCard } from '@/components/restaurant/HeaderCard';
@@ -246,20 +245,20 @@ export default function RestaurantDetailPage() {
     },
   });
 
-  // Fetch Circle Score for this restaurant
-  const { data: circleScore, isLoading: isCircleScoreLoading } = useCircleScore({ 
-    restaurantId: queryMethod === 'id' ? parseInt(restaurantId!) : undefined,
-    googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : undefined,
-    enabled: !!restaurantId
-  });
-
-  // CRITICAL: Fetch user's rating for this restaurant using rating state hook
+  // CRITICAL: Use standardized queries for consistent cache keys and data integrity
   const { 
-    rating: userRating, 
+    userRating, 
+    circleScore, 
     isLoading: isRatingLoading,
-    submitRating
-  } = useRestaurantRatingState(restaurant || { 
-    googlePlaceId: restaurantId,
+    submitRating,
+    data: { userRating: userRatingData, circleScore: circleScoreData }
+  } = useStandardizedRestaurantQueries(restaurant ? {
+    id: typeof restaurant.id === 'string' ? parseInt(restaurant.id) : restaurant.id,
+    googlePlaceId: restaurant.googlePlaceId,
+    name: restaurant.name
+  } : { 
+    id: queryMethod === 'id' ? parseInt(restaurantId!) : undefined,
+    googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : undefined,
     name: 'Loading...'
   });
 
@@ -518,12 +517,12 @@ export default function RestaurantDetailPage() {
                 style={{ height: `${circlesScore}%` }}
               />
               <div className="relative z-10 bg-white rounded-full w-16 h-16 flex items-center justify-center shadow-sm">
-                <span className="text-xl font-bold text-orange-600">{circlesScore !== null ? circlesScore : '—'}</span>
+                <span className="text-xl font-bold text-orange-600">{circleScoreData?.score || '—'}</span>
               </div>
             </div>
             <div className="text-sm font-bold text-gray-800">Circle Score</div>
             <div className="text-xs text-gray-500 mt-1">
-              {circleScore?.totalContributors || 0} in your network
+              {circleScoreData?.ratingsCount || 0} in your network
             </div>
           </div>
         </div>
@@ -599,14 +598,19 @@ export default function RestaurantDetailPage() {
 
         {/* Your Activity Section */}
         <YourRatingCard 
-          userRating={userRating ? {
-            rating: parseFloat(userRating.ratingValue.toString()) || 0,
-            note: userRating.note,
-            tags: userRating.tags
+          userRating={userRatingData ? {
+            rating: parseFloat(userRatingData.ratingValue.toString()) || 0,
+            note: userRatingData.note,
+            tags: userRatingData.tags
           } : undefined}
           onRate={(rating, note, tags) => {
             console.log('Rating updated:', { rating, note, tags });
-            // TODO: Implement rating save
+            submitRating.mutate({
+              ratingValue: rating,
+              note,
+              tags,
+              isPrivate: false
+            });
           }}
         />
 

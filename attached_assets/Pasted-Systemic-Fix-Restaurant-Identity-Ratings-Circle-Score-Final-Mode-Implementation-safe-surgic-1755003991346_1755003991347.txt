@@ -1,0 +1,286 @@
+Systemic Fix — Restaurant Identity, Ratings, Circle Score (Final)
+Mode: Implementation (safe, surgical).
+Non-Goals: No visual facelift. No net-new features beyond what’s required to fix integrity, consistency, and performance.
+Guardrails: TypeScript strict, do not alter auth, do not change global layout/header, do not change unrelated features.
+
+Objectives
+Eliminate cross-restaurant rating contamination (e.g., Badiali vs Villa di Roma).
+
+Provide a canonical restaurant identity path: all reads/writes use restaurantId (not raw placeId) after one-time resolution.
+
+Implement the missing Circle Score endpoint and make both widgets consume the same data/key.
+
+Filter test data (e.g., is_test = TRUE) out of all production reads.
+
+Unify fetches (one hook) + remove duplicate rating renders to cut calls and stop race conditions.
+
+Wire cache/invalidation so rating writes refresh Circle Score consistently.
+
+Produce validation docs proving the above across multiple restaurants (incl. Badiali).
+
+0) Feature Flags (central)
+File: server/config/features.ts (create if missing)
+
+Add:
+
+ts
+Copy
+Edit
+export const features = {
+  STRICT_IDENTITY: true,
+  FILTER_TEST_DATA: true,
+  UNIFIED_CIRCLE_SCORE: true,
+  STRICT_CACHE_KEYS: true,
+  RATING_FALLBACK_DISABLED: true, // disable showing ratings fetched by placeId directly
+  REDIS_ENABLED: process.env.REDIS_URL ? true : false,
+} as const;
+1) Canonical Identity Resolver (server)
+Files:
+
+server/services/restaurantIdentity.ts (new)
+
+server/routes/restaurants.ts (wire in)
+
+Implement:
+
+resolveRestaurantId(input: { restaurantId?: number; placeId?: string }):
+
+If restaurantId given → validate exists, return it.
+
+Else if placeId given → lookup in restaurants.google_place_id.
+
+If not found, upsert a restaurant row with that placeId + basic fields (name optional until Places hydrate).
+
+Return the newly created/located restaurantId.
+
+Log IDENTITY_RESOLVE with { restaurantId, placeId }.
+
+All rating/circle score endpoints must call this first and then operate strictly by restaurantId.
+
+2) Circle Score Endpoint (server) — missing
+File: server/routes/circle-score.ts (new) and register in server/index.ts
+
+Route: GET /api/restaurant/:restaurantId/circle-score
+
+Behavior:
+
+Resolve/validate restaurantId.
+
+Query ratings table with test data filtered (see §3).
+
+Compute score per existing logic/privacy (don’t expose member identities).
+
+Return: { score: number, ratingsCount: number, updatedAt?: string }
+
+Caching:
+
+key = circleScore:{restaurantId}.
+
+If REDIS_ENABLED, use Redis with 60–300s TTL. Else in-memory Map with TTL.
+
+Invalidate cache on any rating write for that restaurantId (see §5).
+
+3) Production Test Data Filtering (server)
+Scope: All read queries that return ratings or aggregate ratings (including Circle Score, “your rating”, and list views).
+Change: Add predicate:
+
+sql
+Copy
+Edit
+WHERE (is_test IS NULL OR is_test = FALSE)
+Files to update (examples; audit listed them):
+
+server/routes/ratings.ts (GET user/restaurant ratings)
+
+server/routes/circle-score.ts (new)
+
+Any other rating aggregation endpoint used on restaurant pages
+
+Do NOT mutate DB now. Just filter test data out of responses.
+
+4) Ratings API — identity & fallback hardening (server)
+File: server/routes/ratings.ts
+
+On reads and writes:
+
+Call resolveRestaurantId({ restaurantId: req.params.id, placeId: req.query.placeId }).
+
+Always query by the resolved restaurantId.
+
+If features.RATING_FALLBACK_DISABLED === true, never fetch/show ratings by placeId directly once an restaurantId is known.
+
+On writes:
+
+Normalize payload to persist restaurant_id and never persist ratings that only have placeId.
+
+If you encounter rows missing restaurant_id, ignore them in reads, and add a one-time log line RATINGS_ROW_QUARANTINED.
+
+5) Cache & Invalidation (server)
+Files:
+
+server/services/cache.ts (new, simple wrapper for Redis or Map)
+
+server/routes/ratings.ts (POST/PUT)
+
+server/routes/circle-score.ts (GET)
+
+Implement:
+
+getCache, setCache, delCache with TTL support and Redis fallback.
+
+On any rating create/update/delete:
+
+delCache(circleScore:{restaurantId})
+
+Log CIRCLE_SCORE_INVALIDATED.
+
+6) Unified Frontend Hook (client)
+File: client/src/hooks/useRestaurantRatings.ts (new)
+
+API:
+
+ts
+Copy
+Edit
+export function useRestaurantRatings(restaurantId: number) {
+  const userRating = useQuery(['userRating', restaurantId], ...);
+  const circleScore = useQuery(['circleScore', restaurantId], ...); // NOTE: standard key
+  const allRatings = useQuery(['ratings', restaurantId], ...); // if needed
+  return { userRating, circleScore, allRatings };
+}
+Both queries call the new/normalized endpoints:
+
+User rating: GET /api/ratings/restaurant/:restaurantId (server conforms to §4)
+
+Circle score: GET /api/restaurant/:restaurantId/circle-score
+
+7) Standardize Query Keys (client)
+Change everywhere (grep project):
+
+Replace any variants like ['restaurant', id, 'score'] with exactly:
+
+['circleScore', restaurantId]
+
+Replace custom rating fetch keys with:
+
+['userRating', restaurantId]
+
+Files likely:
+
+client/src/components/restaurant/*
+
+client/src/pages/RestaurantDetailPage.tsx
+
+client/src/components/ratings/*
+
+Any other circle score consumer the audit listed
+
+8) Remove Duplicate Rating Renders (client)
+Goal: Only one “your rating” block on the page, fed by the unified hook.
+
+Steps:
+
+Inventory from audit named: YourRatingCard, CircleScoreDisplay, RestaurantRatings.
+
+Keep one primary “Your Rating” component in the Action Bar or primary detail column (choose current most stable).
+
+Refactor remaining components to consume data from the unified hook but not render duplicated UI.
+
+If another area wants to reference your rating, it should display a small chip/line using the same userRating.data, not refetch.
+
+Acceptance:
+
+Opening a restaurant page triggers ≤ 2 rating-related queries (userRating + circleScore).
+
+No duplicate rating blocks visible.
+
+9) Restaurant Detail Page wiring (client)
+File: client/src/pages/RestaurantDetailPage.tsx
+
+Ensure we derive a single restaurantId (via existing route param or identity resolver result) and pass it to useRestaurantRatings(restaurantId).
+
+Both Circle Score widgets must consume circleScore from that hook (no bespoke fetch), ensuring the two numbers match.
+
+Keep the debug panel (?debug=true) if already present; otherwise do not add new UI.
+
+10) Tracing & Logs (server)
+Keep the audit middleware (do not remove yet):
+
+Log one JSON per request touching restaurants/ratings/circle-score:
+
+{ t:'trace', op:'ratings.read|write|circleScore.read', path, rid, placeId, userId, cacheHit, ms, note }
+
+This lets us validate fixes quickly, then we can turn it down later.
+
+11) Validation (automated + manual) — required
+Scripts (update or add):
+
+scripts/audit/probe-badiali.ts
+
+Navigate (search → detail) to Badiali by placeId and by restaurantId (if available).
+
+Assert:
+
+rating payload restaurantId matches page restaurantId
+
+No “Villa di Roma” strings anywhere
+
+Both circle score widgets match and are > -1
+
+scripts/audit/restaurants-sampler.ts
+
+Sample 25 restaurants like before.
+
+Collect:
+
+IDENTITY_RESOLVE logs
+
+Whether any RATINGS_MISMATCH or CIRCLE_SCORE_WIDGET_DIVERGENCE
+
+Call counts per page (should be ≤ 2)
+
+Output:
+
+/docs/RESTAURANT_FIX_VALIDATION.md (summary + tables)
+
+/docs/RESTAURANT_FIX_SAMPLE.csv
+
+Manual checks (document in the MD):
+
+Badiali page: shows correct restaurant name in your rating; no Villa di Roma anywhere.
+
+Both circle score spots show the same number.
+
+Rating update invalidates circle score cache (log shows CIRCLE_SCORE_INVALIDATED).
+
+12) Acceptance Criteria (must pass)
+✅ Circle Score endpoint: 200 OK for real restaurants, no 404s.
+
+✅ Test data (is_test = TRUE) is never surfaced on any production page.
+
+✅ Circle score widgets display identical values (same hook & key).
+
+✅ No ratings are fetched/shown by raw placeId after identity resolution.
+
+✅ ≤ 2 rating-related queries on page load; no duplicate “my rating” blocks.
+
+✅ Probe + sampler reports show 0 RATINGS_MISMATCH and 0 CIRCLE_SCORE_WIDGET_DIVERGENCE.
+
+✅ Badiali probe passes (no contamination).
+
+13) Rollback Plan
+Endpoint is additive (/api/restaurant/:restaurantId/circle-score). If issues, revert client to hide the small widget and keep only one, using the endpoint that works.
+
+Feature flags allow quick re-enable of temporary fallbacks:
+
+RATING_FALLBACK_DISABLED = false if we must temporarily allow placeId read (not recommended).
+
+Caching layer gracefully degrades to in-memory if Redis absent.
+
+14) Don’t Do
+No changes to global headers, back buttons, navigation, or design tokens.
+
+No schema-altering migrations beyond upserting missing restaurants during identity resolution.
+
+No new UI surfaces beyond consolidating duplicate rating blocks.
+

@@ -5,8 +5,8 @@ import { ratings, insertRatingSchema, restaurants, circles, circleMembers } from
 import { eq, and, desc, asc, inArray, sql, gte } from 'drizzle-orm';
 import { onNewRating } from '../lib/circleScoreJobs';
 import { ratingsRateLimit } from '../middleware/rateLimiter';
-import { resolveRestaurantCanonicalId } from '../services/identity.js';
-import { isFeatureEnabled } from '../config/features.js';
+import { resolveRestaurantId } from '../services/restaurantIdentity';
+import { features } from '../config/features';
 
 const router = Router();
 
@@ -78,38 +78,26 @@ router.put('/', ratingsRateLimit, async (req, res) => {
     }
 
     // PHASE 3: Identity Resolution - get canonical restaurant ID
-    const identity = await resolveRestaurantCanonicalId({
+    const resolvedRestaurantId = await resolveRestaurantId({
       restaurantId: restaurantId ? parseInt(restaurantId) : undefined,
-      googlePlaceId,
+      placeId: googlePlaceId,
     });
 
-    console.log(`RATINGS_WRITE resolved identity: restaurantId=${identity.restaurantId} placeId=${identity.googlePlaceId}`);
+    console.log(`RATINGS_WRITE resolved identity: restaurantId=${resolvedRestaurantId} placeId=${googlePlaceId}`);
 
-    if (!identity.restaurantId) {
+    if (!resolvedRestaurantId) {
       return res.status(400).json({ error: 'Could not resolve restaurant identity' });
     }
 
-    // Check if rating already exists
-    let existingRating;
-    if (restaurantId) {
-      [existingRating] = await db
-        .select()
-        .from(ratings)
-        .where(and(
-          eq(ratings.userId, userId),
-          eq(ratings.restaurantId, restaurantId)
-        ))
-        .limit(1);
-    } else {
-      [existingRating] = await db
-        .select()
-        .from(ratings)
-        .where(and(
-          eq(ratings.userId, userId),
-          eq(ratings.googlePlaceId, googlePlaceId)
-        ))
-        .limit(1);
-    }
+    // Check if rating already exists for the resolved restaurant
+    const [existingRating] = await db
+      .select()
+      .from(ratings)
+      .where(and(
+        eq(ratings.userId, userId),
+        eq(ratings.restaurantId, resolvedRestaurantId)
+      ))
+      .limit(1);
 
     // ABUSE PREVENTION: Duplicate rating check (24-hour cooldown for new ratings)
     const rateLimitEnabled = process.env.FEATURE_RATING_LIMITS === 'true';
@@ -148,7 +136,7 @@ router.put('/', ratingsRateLimit, async (req, res) => {
         .insert(ratings)
         .values({
           userId,
-          restaurantId: restaurantId || null,
+          restaurantId: resolvedRestaurantId,
           googlePlaceId: googlePlaceId || null,
           restaurantName: restaurantName || null,
           ratingValue: ratingValue.toString(),
@@ -161,12 +149,11 @@ router.put('/', ratingsRateLimit, async (req, res) => {
     }
 
     // CRITICAL FIX: Invalidate Circle Score cache immediately after rating update
-    console.log('🔄 Rating updated - invalidating Circle Score cache for user:', userId);
+    console.log('CIRCLE_SCORE_INVALIDATED:', { restaurantId: resolvedRestaurantId, userId });
     
-    // Clear cache for this specific restaurant/user combination
-    const { circleScorePreCalculator } = await import('../lib/circleScoreCache');
-    console.log('🗑️ Invalidating cache for:', { restaurantId, googlePlaceId, userId });
-    circleScorePreCalculator.invalidateRestaurantCache(restaurantId, googlePlaceId);
+    // Clear cache for this specific restaurant
+    const { delCache } = await import('../services/cache');
+    await delCache(`circleScore:${resolvedRestaurantId}`);
     
     res.json(result);
   } catch (error) {
