@@ -7,7 +7,12 @@ interface IdentityInput {
   placeId?: string;
 }
 
-export async function resolveRestaurantId(input: IdentityInput): Promise<number> {
+interface IdentityResolution {
+  restaurantId: number;
+  placeId?: string;
+}
+
+export async function resolveRestaurantId(input: IdentityInput): Promise<IdentityResolution> {
   console.log('IDENTITY_RESOLVE:', { input });
 
   // If restaurantId is provided, validate it exists and return it
@@ -21,7 +26,10 @@ export async function resolveRestaurantId(input: IdentityInput): Promise<number>
         restaurantId: input.restaurantId, 
         placeId: existing.googlePlaceId 
       });
-      return input.restaurantId;
+      return {
+        restaurantId: input.restaurantId,
+        placeId: existing.googlePlaceId || undefined
+      };
     } else {
       throw new Error(`Restaurant ID ${input.restaurantId} not found`);
     }
@@ -38,7 +46,10 @@ export async function resolveRestaurantId(input: IdentityInput): Promise<number>
         restaurantId: existing.id, 
         placeId: input.placeId 
       });
-      return existing.id;
+      return {
+        restaurantId: existing.id,
+        placeId: input.placeId
+      };
     }
 
     // If not found, create a new restaurant record
@@ -47,8 +58,8 @@ export async function resolveRestaurantId(input: IdentityInput): Promise<number>
     const [newRestaurant] = await db.insert(restaurants).values({
       googlePlaceId: input.placeId,
       name: `Restaurant ${input.placeId.slice(-8)}`, // Temporary name until Places API hydrates
-      cuisine: 'Unknown',
       location: 'Unknown',
+      category: 'Restaurant', // Required field
       priceRange: '$$',
       rating: 0,
       reviewCount: 0,
@@ -61,7 +72,10 @@ export async function resolveRestaurantId(input: IdentityInput): Promise<number>
       placeId: input.placeId 
     });
     
-    return newRestaurant.id;
+    return {
+      restaurantId: newRestaurant.id,
+      placeId: input.placeId
+    };
   }
 
   throw new Error('Either restaurantId or placeId must be provided');

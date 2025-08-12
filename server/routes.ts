@@ -1363,6 +1363,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/tags", tagsRouter);
   app.use("/api/moments", momentsRouter);
   app.use('/api/circle-score', circleScoreRoutes);
+  // Register unified circle score endpoint  
+  const circleScoreUnified = await import('./routes/circle-score-unified');
+  app.use('/api/restaurant', circleScoreUnified.default);
   app.use('/api/health', healthRoutes);
   app.use('/api/feed', feedCountsRoutes);
   app.use('/api/user', userPrivacyRoutes);

@@ -1,0 +1,255 @@
+Prompt — Restaurant Page Systemic Fix (Implementation + Validation)
+Context
+
+Stack: React (TS, Vite, Tailwind, shadcn/ui), Node/Express (TS), Postgres (Drizzle), Redis (optional), Google Places.
+
+Goals: Fix data contamination, unify Circle Score, de-dupe rating UI, remove mock data from prod, correct lists/similar sections, and lock in standardized query keys/caching.
+
+Do code, but follow the guardrails below.
+
+Non-negotiable guardrails
+
+Do not change architecture or feature scope beyond what’s listed here.
+
+Keep search flows intact.
+
+Touch only restaurant page slices and shared types/hooks this prompt references.
+
+If a contract is unclear, emit a short “Assumptions” note at the top of the PR and proceed conservatively.
+
+Phase 0 — Read-only verification before any code
+Run forensics tools to snapshot current truth:
+
+GET /api/_debug/restaurant-snapshot?restaurantId=<badialiId>&placeId=<badialiPlaceId> (authenticated)
+
+Tail logs/restaurant-forensics.jsonl while loading the Badiali page with ?debug=1.
+
+Capture pre-fix screenshots of:
+
+Circle Score (both placements)
+
+Your Rating card (shows wrong restaurant name)
+
+Lists and Similar sections.
+
+Save all evidence to /docs/restaurant_fixes/PRE_FIX_EVIDENCE.md.
+
+Phase 1 — Backend: identity, contamination, and Circle Score
+1. Identity Resolution (single source of truth)
+File: server/services/restaurantIdentity.ts
+
+Ensure resolveRestaurantId({ restaurantId?, placeId? }):
+
+Returns a canonical internal restaurantId.
+
+Creates a new row only if placeId unknown; always sets google_place_id on that row.
+
+Rejects “dual binds” (e.g., mismatched name/ID pairs) with a structured 400.
+
+Add unique constraint if missing:
+
+sql
+Copy
+Edit
+-- migrations/2025xxxx_identity.sql
+ALTER TABLE restaurants ADD CONSTRAINT uq_restaurants_google_place_id UNIQUE (google_place_id);
+Add read helper: getRestaurantIdentitySnapshot(restaurantId) returning {id, googlePlaceId, name}.
+
+2. Test-data quarantine (global)
+In all ratings queries (read and write), enforce:
+
+sql
+Copy
+Edit
+WHERE (is_test IS NOT TRUE)
+In write path, reject payloads that try to set is_test = TRUE unless process.env.ALLOW_TEST_DATA === 'true' in non-prod.
+
+3. Ratings read/write must bind correctly
+Endpoint: GET /api/ratings/restaurant/:restaurantId
+
+Resolve canonical id; never fall back to another restaurant via placeId.
+
+Return 404 if no rating; do not return ratings from any other restaurant.
+
+Endpoint: PUT /api/ratings
+
+Accept either { restaurantId } or { googlePlaceId }.
+
+Normalize to canonical restaurantId before insert/update.
+
+Duplicate/cooldown rules remain (once per 24h).
+
+On success: invalidate Redis keys userRating:* and circleScore:* for that restaurantId.
+
+4. Circle Score unified endpoint (fix the 89 vs 0)
+Create/confirm: GET /api/restaurant/:restaurantId/circle-score
+
+Resolve canonical restaurantId.
+
+Filter ratings to user’s network only (as you already do) and exclude test data.
+
+Response:
+
+json
+Copy
+Edit
+{ "score": 8.9, "ratingsCount": 12, "updatedAt": "ISO", "confidence": "high" }
+Cache (Redis) with key= circleScore:<restaurantId> TTL=180s.
+
+No alternate or legacy endpoints are used anywhere.
+
+5. Lists & Similar correctness
+Lists: ensure endpoint behind “Lists with this restaurant” only returns real lists containing that canonical restaurantId. No mocks.
+
+Similar:
+
+Implement simple, deterministic similarity (cuisine + city + radius OR tag overlap). Return empty array if none. Never inject mock/placeholder lists.
+
+Phase 2 — Frontend: unify data access and UI
+1. Standardized query hook (single import point)
+New/updated hook: client/src/hooks/useStandardizedRestaurantQueries.ts
+
+Input: { restaurantId?: number, googlePlaceId?: string }
+
+Internally resolve canonical id via /api/_debug/restaurant-snapshot (or dedicated identity endpoint if you prefer).
+
+Expose:
+
+ts
+Copy
+Edit
+{
+  restaurantId: number;          // canonical
+  placeId?: string;
+  userRating: UseQueryResult<RatingData | null>;
+  circleScore: UseQueryResult<CircleScoreData>;
+  lists: UseQueryResult<ListData[]>;
+  similar: UseQueryResult<RestaurantSummary[]>;
+  invalidateAll(): void;
+  submitRating: UseMutationResult<...>; // invalidates userRating + circleScore
+}
+Query keys (only these):
+
+['userRating', restaurantId]
+
+['circleScore', restaurantId]
+
+['listsWithRestaurant', restaurantId]
+
+['similarRestaurants', restaurantId]
+
+2. Remove duplicate rating fetches and displays
+Components:
+
+YourRatingCard.tsx → the only place that fetches/receives the user’s rating (via the hook).
+
+Delete/disable any secondary “Your Rating” badges/cards.
+
+Ensure rating card displays this restaurant’s name from identity snapshot (not a cached stale name).
+
+3. Circle Score: one source, consistent UI
+Both “Circles Take” and the small badge must use ['circleScore', restaurantId].
+
+If confidence/ratingsCount are low, display a “low data” state (don’t show 0 vs 89 mismatch).
+
+4. Lists & Similar sections
+Replace any mock data with hook data.
+
+If no data, show empty states (not placeholders).
+
+5. Accessibility & polish (quick wins only)
+Ensure DialogTitle + DialogDescription present in QuickRateModal.
+
+Add ARIA labels on action buttons (rate, save, add to list).
+
+Keyboard steps for rating slider (←/→ = ±0.1) with role="slider" + proper aria values.
+
+Phase 3 — Caching & invalidation (frontend + backend)
+Frontend React Query:
+
+userRating staleTime 30s; circleScore staleTime 180s.
+
+submitRating.onSuccess → invalidate both ['userRating', restaurantId] and ['circleScore', restaurantId].
+
+Backend Redis:
+
+circleScore:<restaurantId> TTL 180s.
+
+On rating write: delete circleScore:<restaurantId>.
+
+Phase 4 — Delete/disable mocks in prod
+Remove/guard any mock lists, sample images, or placeholder “Villa di Roma” test strings.
+
+If you must keep mocks for dev, gate with if (process.env.NODE_ENV !== 'production').
+
+Phase 5 — Tests & validation
+1. Automated tests (minimal but meaningful)
+API (supertest):
+
+Identity: Badiali returns canonical id; Villa di Roma not returned for Badiali placeId.
+
+Ratings read/write: cannot leak cross-restaurant data even when placeId overlaps in test records.
+
+Circle Score: returns same value across both UI placements; respects TTL; excludes test data.
+
+Frontend (RTL):
+
+RestaurantDetailPage renders one rating UI.
+
+Both Circle Score widgets show the same number.
+
+Lists/Similar show real data or correct empty states.
+
+2. Manual acceptance (use your tools)
+Load Badiali with ?debug=1. Confirm:
+
+Identity panel shows one canonical restaurantId and the correct placeId.
+
+“Your Rating” references that id; no Villa di Roma anywhere.
+
+Circle Score shows the same number in both placements.
+
+Lists & Similar show only real data (or empty).
+
+Save screenshots and traces to /docs/restaurant_fixes/POST_FIX_VALIDATION.md.
+
+Deliverables
+Code changes per phases above.
+
+Migrations: unique constraint for google_place_id (if missing).
+
+New/updated hook: useStandardizedRestaurantQueries.ts.
+
+Removed/guarded mocks for prod.
+
+Tests:
+
+/api supertest suite for identity/ratings/circle score.
+
+RTL tests for restaurant page.
+
+Docs:
+
+/docs/restaurant_fixes/PRE_FIX_EVIDENCE.md
+
+/docs/restaurant_fixes/POST_FIX_VALIDATION.md
+
+A short PR note: Assumptions & Decisions (2–5 bullets).
+
+Definition of Done (blockers)
+No Villa di Roma (or any other) contamination visible on any restaurant page.
+
+Both Circle Score widgets render the same value (and confidence state).
+
+Only one “Your Rating” UI rendered; rating creates/updates this restaurant only.
+
+Lists/Similar show real data or empty states—no placeholders.
+
+All new tests pass; existing tests unaffected.
+
+?debug=1 panel shows green for identity, ratings, circle score, and lists.
+
+No pages crash; no regressions to search or auth.
+
+If any ambiguity arises, default to correctness and safety (empty state over fake/misleading content; consistent single source over duplicated calls). Then note assumption in the PR header.
+

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
 import { ratings, insertRatingSchema, restaurants, circles, circleMembers } from '../../shared/schema';
-import { eq, and, desc, asc, inArray, sql, gte } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, sql, gte, or } from 'drizzle-orm';
 import { onNewRating } from '../lib/circleScoreJobs';
 import { ratingsRateLimit } from '../middleware/rateLimiter';
 import { resolveRestaurantId } from '../services/restaurantIdentity';
@@ -77,27 +77,41 @@ router.put('/', ratingsRateLimit, async (req, res) => {
       return res.status(400).json({ error: 'Either restaurant ID or Google Place ID is required' });
     }
 
-    // PHASE 3: Identity Resolution - get canonical restaurant ID
-    const resolvedRestaurantId = await resolveRestaurantId({
+    // PHASE 1: Identity Resolution - get canonical restaurant ID and place ID
+    const resolved = await resolveRestaurantId({
       restaurantId: restaurantId ? parseInt(restaurantId) : undefined,
       placeId: googlePlaceId,
     });
 
-    console.log(`RATINGS_WRITE resolved identity: restaurantId=${resolvedRestaurantId} placeId=${googlePlaceId}`);
+    console.log(`RATINGS_WRITE resolved identity:`, resolved);
 
-    if (!resolvedRestaurantId) {
+    if (!resolved || !resolved.restaurantId) {
       return res.status(400).json({ error: 'Could not resolve restaurant identity' });
     }
 
-    // Check if rating already exists for the resolved restaurant
-    const [existingRating] = await db
+    const canonicalRestaurantId = resolved.restaurantId;
+    const canonicalPlaceId = resolved.placeId;
+
+    // PHASE 1 FIX: Check for existing ratings by BOTH restaurant ID AND place ID to prevent duplicates
+    const existingRatings = await db
       .select()
       .from(ratings)
       .where(and(
         eq(ratings.userId, userId),
-        eq(ratings.restaurantId, resolvedRestaurantId)
-      ))
-      .limit(1);
+        or(
+          eq(ratings.restaurantId, canonicalRestaurantId),
+          eq(ratings.googlePlaceId, canonicalPlaceId || '')
+        )
+      ));
+
+    const existingRating = existingRatings[0] || null;
+    
+    console.log('DUPLICATE_CHECK:', { 
+      canonicalRestaurantId, 
+      canonicalPlaceId, 
+      existingRatings: existingRatings.length,
+      existing: existingRating?.id || 'none'
+    });
 
     // ABUSE PREVENTION: Duplicate rating check (24-hour cooldown for new ratings)
     const rateLimitEnabled = process.env.FEATURE_RATING_LIMITS === 'true';
@@ -117,10 +131,26 @@ router.put('/', ratingsRateLimit, async (req, res) => {
 
     let result;
     if (existingRating) {
-      // Update existing rating
+      // PHASE 1 FIX: Update existing rating AND fix contaminated restaurant name
+      // Get the correct restaurant name from our database (fixes contamination)
+      const dbRestaurant = await db.select({ name: restaurants.name })
+        .from(restaurants)
+        .where(eq(restaurants.id, canonicalRestaurantId))
+        .limit(1);
+
+      const correctRestaurantName = dbRestaurant[0]?.name || restaurantName;
+
+      console.log('CONTAMINATION_FIX:', { 
+        ratingId: existingRating.id, 
+        oldName: existingRating.restaurantName,
+        newName: correctRestaurantName
+      });
+
       [result] = await db
         .update(ratings)
         .set({
+          restaurantId: canonicalRestaurantId, // Ensure canonical restaurant ID
+          restaurantName: correctRestaurantName, // FIX CONTAMINATION HERE
           ratingValue: ratingValue.toString(),
           note: note || null,
           tags: tags || [],
@@ -131,14 +161,22 @@ router.put('/', ratingsRateLimit, async (req, res) => {
         .where(eq(ratings.id, existingRating.id))
         .returning();
     } else {
-      // Create new rating
+      // PHASE 1 FIX: Create new rating with canonical identity binding  
+      // Get the correct restaurant name from our database (prevents contamination)
+      const dbRestaurant = await db.select({ name: restaurants.name })
+        .from(restaurants)
+        .where(eq(restaurants.id, canonicalRestaurantId))
+        .limit(1);
+
+      const correctRestaurantName = dbRestaurant[0]?.name || restaurantName;
+      
       [result] = await db
         .insert(ratings)
         .values({
           userId,
-          restaurantId: resolvedRestaurantId,
-          googlePlaceId: googlePlaceId || null,
-          restaurantName: restaurantName || null,
+          restaurantId: canonicalRestaurantId,
+          googlePlaceId: canonicalPlaceId || null,
+          restaurantName: correctRestaurantName, // Use canonical name to prevent contamination
           ratingValue: ratingValue.toString(),
           note: note || null,
           tags: tags || [],
@@ -149,11 +187,11 @@ router.put('/', ratingsRateLimit, async (req, res) => {
     }
 
     // CRITICAL FIX: Invalidate Circle Score cache immediately after rating update
-    console.log('CIRCLE_SCORE_INVALIDATED:', { restaurantId: resolvedRestaurantId, userId });
+    console.log('CIRCLE_SCORE_INVALIDATED:', { restaurantId: canonicalRestaurantId, userId });
     
     // Clear cache for this specific restaurant
     const { delCache } = await import('../services/cache');
-    await delCache(`circleScore:${resolvedRestaurantId}`);
+    await delCache(`circleScore:${canonicalRestaurantId}`);
     
     res.json(result);
   } catch (error) {
