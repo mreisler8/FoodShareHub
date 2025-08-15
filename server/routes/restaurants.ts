@@ -448,8 +448,8 @@ router.get("/:id/posts", authenticate, async (req, res) => {
           name: users.name,
           username: users.username
         },
-        likeCount: sql<number>`COUNT(${likes.id})`.as('likeCount'),
-        commentCount: sql<number>`COUNT(${comments.id})`.as('commentCount')
+        likeCount: sql<number>`COUNT(DISTINCT ${likes.id})`.as('likeCount'),
+        commentCount: sql<number>`COUNT(DISTINCT ${comments.id})`.as('commentCount')
       })
       .from(posts)
       .innerJoin(users, eq(posts.userId, users.id))

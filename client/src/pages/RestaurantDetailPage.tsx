@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,7 @@ import { MobileResponsiveLayout } from '@/components/mvp/MobileResponsiveLayout'
 import { YourRatingCard } from '@/components/restaurant/YourRatingCard';
 import { ListMentionsCard } from '@/components/restaurant/ListMentionsCard';
 import { PostMentionsCard } from '@/components/restaurant/PostMentionsCard';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import RestaurantActionBar from '@/components/restaurant/RestaurantActionBar';
 import ReservationCard from '@/components/restaurant/ReservationCard';
 import MoreRestaurantActions from '@/components/restaurant/MoreRestaurantActions';
@@ -168,6 +169,7 @@ const CircularProgress = ({
 export default function RestaurantDetailPage() {
   const { id, placeId } = useParams();
   const [location, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
   // Handle both path parameters and query parameters
   const urlParams = new URLSearchParams(window.location.search);
@@ -325,25 +327,56 @@ export default function RestaurantDetailPage() {
   const heroImageData = getHeroImageData();
 
   // Real API data for lists and posts
-  const { data: restaurantLists } = useQuery({
+  const { data: restaurantLists, isLoading: isListsLoading } = useQuery({
     queryKey: ['restaurantLists', restaurantId],
     queryFn: async () => {
       if (!restaurantId) return [];
       const response = await fetch(`/api/restaurants/${restaurantId}/lists`);
       if (!response.ok) return [];
-      return response.json();
+      const data = await response.json();
+      
+      // Transform API response to match ListMentionsCard interface  
+      return data.map((list: any) => ({
+        id: list.id,
+        name: list.name,
+        description: list.description,
+        owner: list.owner,
+        itemCount: list.itemCount || 0,
+        isPublic: list.isPublic || false,
+        ranking: list.ranking,
+        tags: list.tags || [],
+        createdAt: list.createdAt
+      }));
     },
     enabled: !!restaurantId,
     staleTime: 60000, // 1 minute
   });
 
-  const { data: restaurantPosts } = useQuery({
+  const { data: restaurantPosts, isLoading: isPostsLoading } = useQuery({
     queryKey: ['restaurantPosts', restaurantId],
     queryFn: async () => {
       if (!restaurantId) return [];
       const response = await fetch(`/api/restaurants/${restaurantId}/posts`);
       if (!response.ok) return [];
-      return response.json();
+      const data = await response.json();
+      
+      // Transform API response to match PostMentionsCard interface
+      return data.map((post: any) => ({
+        id: post.id,
+        content: post.content,
+        rating: post.rating,
+        images: post.images || [],
+        author: {
+          id: post.author.id,
+          name: post.author.name,
+          username: post.author.username,
+          profileImage: undefined // Will be fetched separately if needed
+        },
+        createdAt: post.createdAt,
+        likes: post.likeCount || 0,
+        comments: post.commentCount || 0,
+        dishName: post.dishesTried?.[0] // Use first dish as primary dish
+      }));
     },
     enabled: !!restaurantId,
     staleTime: 60000, // 1 minute
@@ -602,53 +635,104 @@ export default function RestaurantDetailPage() {
           />
         </div>
 
-        {/* Your Activity Section */}
-        <DebugOrigin
-          label="Your Rating Block"
-          endpoint="/api/ratings/restaurant/:id"
-          queryKey={['userRating', restaurant?.id]}
-          restaurantId={typeof restaurant?.id === 'string' ? parseInt(restaurant.id) : restaurant?.id}
-          placeId={restaurant?.googlePlaceId}
-        >
-          <YourRatingCard 
-            userRating={userRatingData ? {
-              rating: parseFloat(userRatingData.ratingValue.toString()) || 0,
-              note: userRatingData.note,
-              tags: userRatingData.tags
-            } : undefined}
-            onRate={(rating, note, tags) => {
-              console.log('Rating updated:', { rating, note, tags });
-              submitRating.mutate({
-                ratingValue: rating,
-                note,
-                tags,
-                isPrivate: false
-              });
-            }}
-          />
-        </DebugOrigin>
+        {/* Your Activity Section with Error Boundary */}
+        <ErrorBoundary fallback={
+          <div className="rounded-xl shadow-sm bg-white p-4">
+            <div className="text-center py-6">
+              <p className="text-sm text-muted-foreground">Unable to load your rating</p>
+            </div>
+          </div>
+        }>
+          <DebugOrigin
+            label="Your Rating Block"
+            endpoint="/api/ratings/restaurant/:id"
+            queryKey={['userRating', restaurant?.id]}
+            restaurantId={typeof restaurant?.id === 'string' ? parseInt(restaurant.id) : restaurant?.id}
+            placeId={restaurant?.googlePlaceId}
+          >
+            <YourRatingCard 
+              userRating={userRatingData ? {
+                rating: parseFloat(userRatingData.ratingValue.toString()) || 0,
+                note: userRatingData.note,
+                tags: userRatingData.tags
+              } : undefined}
+              onRate={(rating, note, tags) => {
+                console.log('Rating updated:', { rating, note, tags });
+                submitRating.mutate({
+                  ratingValue: rating,
+                  note,
+                  tags,
+                  isPrivate: false
+                }, {
+                  onSuccess: () => {
+                    console.log('Rating submitted successfully, invalidating related caches');
+                    // Additional cache invalidation for any restaurant-related data
+                    queryClient.invalidateQueries({ queryKey: ['restaurantPosts', restaurantId] });
+                    queryClient.invalidateQueries({ queryKey: ['restaurantLists', restaurantId] });
+                  }
+                });
+              }}
+            />
+          </DebugOrigin>
+        </ErrorBoundary>
 
-        {/* Lists Mentioned In Section - Real API Data */}
-        <ListMentionsCard 
-          lists={restaurantLists || []}
-          onViewList={(listId) => {
-            console.log('View list:', listId);
-            // TODO: Navigate to list detail
-          }}
-        />
+        {/* Lists Mentioned In Section - Real API Data with Error Boundary */}
+        <ErrorBoundary fallback={
+          <div className="rounded-xl shadow-sm bg-white p-4">
+            <div className="text-center py-6">
+              <p className="text-sm text-muted-foreground">Unable to load list mentions</p>
+            </div>
+          </div>
+        }>
+          {isListsLoading ? (
+            <div className="rounded-xl shadow-sm bg-white p-4">
+              <div className="animate-pulse space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                <div className="h-20 bg-gray-200 rounded"></div>
+                <div className="h-20 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          ) : (
+            <ListMentionsCard 
+              lists={restaurantLists || []}
+              onViewList={(listId) => {
+                console.log('View list:', listId);
+                // TODO: Navigate to list detail
+              }}
+            />
+          )}
+        </ErrorBoundary>
 
-        {/* Post Mentions Section - Real API Data */}
-        <PostMentionsCard 
-          posts={restaurantPosts || []}
-          onViewPost={(postId) => {
-            console.log('View post:', postId);
-            // TODO: Navigate to post detail
-          }}
-          onViewProfile={(userId) => {
-            console.log('View profile:', userId);
-            // TODO: Navigate to user profile
-          }}
-        />
+        {/* Post Mentions Section - Real API Data with Error Boundary */}
+        <ErrorBoundary fallback={
+          <div className="rounded-xl shadow-sm bg-white p-4">
+            <div className="text-center py-6">
+              <p className="text-sm text-muted-foreground">Unable to load recent posts</p>
+            </div>
+          </div>
+        }>
+          {isPostsLoading ? (
+            <div className="rounded-xl shadow-sm bg-white p-4">
+              <div className="animate-pulse space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                <div className="h-16 bg-gray-200 rounded"></div>
+                <div className="h-16 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          ) : (
+            <PostMentionsCard 
+              posts={restaurantPosts || []}
+              onViewPost={(postId) => {
+                console.log('View post:', postId);
+                // TODO: Navigate to post detail
+              }}
+              onViewProfile={(userId) => {
+                console.log('View profile:', userId);
+                // TODO: Navigate to user profile
+              }}
+            />
+          )}
+        </ErrorBoundary>
 
         
       </div>
