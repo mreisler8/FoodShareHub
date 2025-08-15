@@ -26,15 +26,18 @@ interface ListMentionsCardProps {
 export function ListMentionsCard({ lists, onViewList }: ListMentionsCardProps) {
   if (!lists || lists.length === 0) {
     return (
-      <div className="rounded-xl shadow-sm bg-white p-4 space-y-4">
-        <div className="text-center py-6">
-          <ListChecks className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Not Listed Yet</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            No one in your Circle has added this restaurant to a list
+      <div className="rounded-xl shadow-sm bg-white border p-6" role="region" aria-label="List mentions">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+            <ListChecks className="h-8 w-8 text-gray-400" aria-hidden="true" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Not Listed Yet</h3>
+          <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
+            No one in your Circle has added this restaurant to a list yet. Be the first to curate!
           </p>
-          <Button size="sm" variant="outline">
-            ➕ Add to List
+          <Button size="sm" variant="outline" className="gap-2">
+            <ListChecks className="h-4 w-4" />
+            Add to List
           </Button>
         </div>
       </div>

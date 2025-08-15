@@ -33,15 +33,17 @@ export function PostMentionsCard({ posts, onViewPost, onViewProfile }: PostMenti
 
   if (!posts || posts.length === 0) {
     return (
-      <div className="rounded-xl shadow-sm bg-white p-4 space-y-4">
-        <div className="text-center py-6">
-          <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Posts Yet</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            No posts yet from your Circles — be the first!
+      <div className="rounded-xl shadow-sm bg-white border p-6" role="region" aria-label="Recent posts">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+            <MessageCircle className="h-8 w-8 text-blue-500" aria-hidden="true" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Posts Yet</h3>
+          <p className="text-sm text-gray-600 mb-2 max-w-sm mx-auto">
+            No posts yet from your Circles — be the first to share your experience!
           </p>
-          <p className="text-xs text-gray-500 mt-2">
-            Use the "Quick Rate" button below to share your experience
+          <p className="text-xs text-gray-500">
+            Use the "Quick Rate" button to get started
           </p>
         </div>
       </div>

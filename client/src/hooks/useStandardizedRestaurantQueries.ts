@@ -42,7 +42,11 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
   const userRating = useQuery<RatingData | null>({
     queryKey: ['userRating', restaurantId],
     queryFn: async () => {
-      if (!restaurantId) return null;
+      // Edge case: Handle missing restaurantId gracefully
+      if (!restaurantId) {
+        console.warn('USER_RATING_QUERY: No restaurantId provided', { restaurant });
+        return null;
+      }
       
       const response = await fetch(`/api/ratings/restaurant/${restaurantId}`);
       if (!response.ok) {
@@ -59,8 +63,19 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
   const circleScore = useQuery<CircleScoreData>({
     queryKey: ['circleScore', restaurantId],
     queryFn: async () => {
+      // Edge case: Handle missing restaurantId gracefully
       if (!restaurantId) {
-        return { score: 0, ratingsCount: 0, error: 'No restaurant ID' };
+        console.warn('CIRCLE_SCORE_QUERY: No restaurantId provided', { 
+          restaurant, 
+          hasPlaceId: !!googlePlaceId,
+          hasName: !!restaurant?.name 
+        });
+        return { 
+          score: 0, 
+          ratingsCount: 0, 
+          error: 'No restaurant ID available',
+          confidence: 'low' as const
+        };
       }
       
       console.log('CIRCLE_SCORE_QUERY: Fetching for restaurant', restaurantId);
@@ -69,13 +84,18 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
       const response = await fetch(`/api/restaurant/${restaurantId}/circle-score`);
       if (!response.ok) {
         console.warn(`Circle Score endpoint returned ${response.status} for restaurant ${restaurantId}`);
-        return { score: 0, ratingsCount: 0, error: `HTTP ${response.status}` };
+        return { 
+          score: 0, 
+          ratingsCount: 0, 
+          error: `HTTP ${response.status}`,
+          confidence: 'low' as const
+        };
       }
       
       const data = await response.json();
       console.log('CIRCLE_SCORE_RESPONSE:', data);
       
-      return data || { score: 0, ratingsCount: 0 };
+      return data || { score: 0, ratingsCount: 0, confidence: 'low' as const };
     },
     enabled: !!restaurantId,
     staleTime: 180000, // 3 minutes
@@ -113,13 +133,22 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
     onSuccess: () => {
       console.log('CACHE_INVALIDATION: Rating submitted, invalidating caches');
       
-      // CRITICAL: Invalidate both standardized caches immediately
-      queryClient.invalidateQueries({ queryKey: ['userRating', restaurantId] });
-      queryClient.invalidateQueries({ queryKey: ['circleScore', restaurantId] });
-      
-      // Also invalidate any legacy cache keys that might still exist
-      queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] });
-      queryClient.invalidateQueries({ queryKey: ['restaurant-ratings'] });
+      // Use Promise.all to handle race conditions in cache invalidation
+      Promise.all([
+        // CRITICAL: Invalidate both standardized caches immediately
+        queryClient.invalidateQueries({ queryKey: ['userRating', restaurantId] }),
+        queryClient.invalidateQueries({ queryKey: ['circleScore', restaurantId] }),
+        
+        // Invalidate related restaurant data that depends on ratings
+        queryClient.invalidateQueries({ queryKey: ['restaurantPosts', restaurantId] }),
+        queryClient.invalidateQueries({ queryKey: ['restaurantLists', restaurantId] }),
+        
+        // Also invalidate any legacy cache keys that might still exist
+        queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] }),
+        queryClient.invalidateQueries({ queryKey: ['restaurant-ratings'] })
+      ]).catch((error) => {
+        console.error('CACHE_INVALIDATION: Some cache invalidations failed', error);
+      });
     },
   });
 
