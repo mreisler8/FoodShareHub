@@ -1,366 +1,313 @@
 /**
- * Dev Test Personas Seed Script
+ * Development Persona Seed Script
  * 
- * Creates test users and data for validating Lists MVP functionality:
- * - User A (owner/creator) 
- * - User B (follower of A, member of Circle C1)
- * - Circle C1 (A + B members)
- * - Circle C2 (A only)
- * - Sample lists with different visibility settings
- * 
- * Run with: tsx scripts/seed-dev-personas.ts
+ * Creates test users and data for E2E validation of Lists MVP
+ * Run with: npm run db:seed:personas
  */
 
-import { db } from '../server/db';
-import { users, circles, circleMembers, userFollowers, restaurantLists, restaurants, restaurantListItems, savedLists } from '../shared/schema';
-import { eq } from 'drizzle-orm';
-import { isFeatureEnabled } from '../server/feature-flags';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import bcrypt from 'bcrypt';
+import { users, circles, lists, follows, circleMembers } from '../shared/schema';
+import { migrationHelpers } from '../shared/schema-v2';
 
-interface TestUser {
-  id: number;
-  username: string;
-  name: string;
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL environment variable is required');
+  process.exit(1);
 }
 
-interface TestCircle {
-  id: number;
-  name: string;
-}
+const sql = postgres(DATABASE_URL);
+const db = drizzle(sql);
 
-async function createDevPersonas() {
-  if (!isFeatureEnabled('DEV_TEST_PERSONAS')) {
-    console.log('❌ DEV_TEST_PERSONAS feature flag is disabled');
-    console.log('💡 Enable with: export DEV_TEST_PERSONAS=true');
-    return;
+// Test persona data
+const TEST_PERSONAS = {
+  userA: {
+    username: 'user-a',
+    email: 'usera@test.com',
+    name: 'Alice Owner',
+    password: 'password123',
+    role: 'Owner - creates lists, tests ownership permissions'
+  },
+  userB: {
+    username: 'user-b', 
+    email: 'userb@test.com',
+    name: 'Bob Follower',
+    password: 'password123',
+    role: 'Follower - follows User A, tests follower access'
+  },
+  userC: {
+    username: 'user-c',
+    email: 'userc@test.com', 
+    name: 'Carol Circle',
+    password: 'password123',
+    role: 'Circle Member - member of test circle, tests circle access'
+  },
+  userD: {
+    username: 'user-d',
+    email: 'userd@test.com',
+    name: 'Dave Anonymous', 
+    password: 'password123',
+    role: 'No Relation - tests public-only access'
   }
+} as const;
 
-  console.log('🎭 Creating dev test personas for Lists MVP...');
+const TEST_CIRCLES = [
+  {
+    name: 'Food Lovers NYC',
+    description: 'Best spots in New York City',
+    slug: 'food-lovers-nyc'
+  },
+  {
+    name: 'Coffee Aficionados',
+    description: 'Third-wave coffee shops',
+    slug: 'coffee-aficionados'  
+  }
+] as const;
 
-  try {
-    // Create test users
-    console.log('👥 Creating test users...');
+const TEST_LISTS = [
+  {
+    name: 'Best Pizza in Brooklyn',
+    description: 'My top pizza spots after living here 5 years',
+    visibility: 'public',
+    tags: ['pizza', 'brooklyn', 'italian']
+  },
+  {
+    name: 'Private Date Night Spots',
+    description: 'Secret romantic restaurants',
+    visibility: 'private', 
+    tags: ['date-night', 'romantic', 'upscale']
+  },
+  {
+    name: 'Followers Only Brunch',
+    description: 'Weekend brunch recommendations',
+    visibility: 'followers',
+    tags: ['brunch', 'weekend', 'eggs']
+  },
+  {
+    name: 'Food Lovers Circle Recs',
+    description: 'Shared with my food circle',
+    visibility: 'circle',
+    tags: ['circle-exclusive', 'hidden-gems']
+  }
+] as const;
+
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+async function clearExistingData() {
+  console.log('🧹 Cleaning existing test data...');
+  
+  // Delete in dependency order
+  await db.delete(circleMembers).where(sql`username LIKE 'user-%'`);
+  await db.delete(follows).where(sql`follower_id IN (SELECT id FROM users WHERE username LIKE 'user-%')`);
+  await db.delete(lists).where(sql`created_by_id IN (SELECT id FROM users WHERE username LIKE 'user-%')`);
+  await db.delete(circles).where(sql`slug LIKE '%-test' OR slug IN ('food-lovers-nyc', 'coffee-aficionados')`);
+  await db.delete(users).where(sql`username LIKE 'user-%'`);
+  
+  console.log('✅ Existing test data cleared');
+}
+
+async function createTestUsers() {
+  console.log('👥 Creating test personas...');
+  
+  const createdUsers: Record<string, any> = {};
+  
+  for (const [key, persona] of Object.entries(TEST_PERSONAS)) {
+    const hashedPassword = await hashPassword(persona.password);
     
-    const testUsers: TestUser[] = [];
+    const [user] = await db.insert(users).values({
+      username: persona.username,
+      email: persona.email,
+      name: persona.name,
+      passwordHash: hashedPassword,
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
     
-    // User A (Owner/Creator)
-    const [userA] = await db.insert(users).values({
-      username: 'userA_creator',
-      password: 'test123', // In real implementation, this would be hashed
-      name: 'Alice Creator',
-      bio: 'Food enthusiast and list creator',
-      preferredCuisines: ['Italian', 'Japanese'],
-      preferredPriceRange: '$$',
-      favoriteFood: 'Margherita Pizza',
-      favoriteRestaurant: 'Joe\'s Pizza',
-    }).returning().onConflictDoNothing();
+    createdUsers[key] = user;
+    console.log(`✅ Created ${persona.name} (${persona.username})`);
+  }
+  
+  return createdUsers;
+}
 
-    if (userA) testUsers.push(userA);
-
-    // User B (Follower)
-    const [userB] = await db.insert(users).values({
-      username: 'userB_follower',
-      password: 'test123',
-      name: 'Bob Follower',
-      bio: 'Loves discovering new restaurants',
-      preferredCuisines: ['Mexican', 'Italian'],
-      preferredPriceRange: '$',
-      favoriteFood: 'Tacos',
-      favoriteRestaurant: 'Taco Bell',
-    }).returning().onConflictDoNothing();
-
-    if (userB) testUsers.push(userB);
-
-    console.log(`✅ Created ${testUsers.length} test users`);
-
-    if (testUsers.length < 2) {
-      console.log('⚠️  Some users may already exist, continuing with existing users...');
-      
-      // Fetch existing users
-      const existingUsers = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, 'userA_creator'))
-        .limit(1);
-      
-      if (existingUsers.length > 0) {
-        const existingUserB = await db
-          .select()
-          .from(users)
-          .where(eq(users.username, 'userB_follower'))
-          .limit(1);
-        
-        testUsers.push(existingUsers[0]);
-        if (existingUserB.length > 0) {
-          testUsers.push(existingUserB[0]);
-        }
-      }
-    }
-
-    const [userA_final, userB_final] = testUsers;
-
-    // Create test circles
-    console.log('⭕ Creating test circles...');
-    
-    const [circleC1] = await db.insert(circles).values({
-      name: 'NYC Food Lovers',
-      description: 'The best spots in New York City',
-      creatorId: userA_final.id,
-      isPrivate: false,
-      primaryCuisine: 'Italian',
-      priceRange: '$$',
-      location: 'New York',
-    }).returning().onConflictDoNothing();
-
-    const [circleC2] = await db.insert(circles).values({
-      name: 'Alice\'s Private Circle',
-      description: 'Alice\'s personal food discoveries',
-      creatorId: userA_final.id,
-      isPrivate: true,
-      primaryCuisine: 'Japanese',
-      priceRange: '$$$',
-      location: 'New York',
-    }).returning().onConflictDoNothing();
-
-    console.log('✅ Created test circles');
-
-    // Create circle memberships
-    console.log('👫 Setting up circle memberships...');
-    
-    if (circleC1) {
-      // Both users in C1
-      await db.insert(circleMembers).values([
-        {
-          circleId: circleC1.id,
-          userId: userA_final.id,
-          role: 'owner',
-          status: 'active',
-        },
-        {
-          circleId: circleC1.id,
-          userId: userB_final.id,
-          role: 'member',
-          status: 'active',
-        }
-      ]).onConflictDoNothing();
-    }
-
-    if (circleC2) {
-      // Only User A in C2
-      await db.insert(circleMembers).values({
-        circleId: circleC2.id,
-        userId: userA_final.id,
-        role: 'owner',
-        status: 'active',
-      }).onConflictDoNothing();
-    }
-
-    // Create follow relationship (B follows A)
-    await db.insert(userFollowers).values({
-      followerId: userB_final.id,
-      followingId: userA_final.id,
-      status: 'following',
-    }).onConflictDoNothing();
-
-    console.log('✅ Set up relationships');
-
-    // Create sample restaurants
-    console.log('🍕 Creating sample restaurants...');
-    
-    const sampleRestaurants = await db.insert(restaurants).values([
-      {
-        name: 'Joe\'s Pizza',
-        location: 'New York',
-        category: 'Pizza',
-        priceRange: '$',
-        cuisine: 'Italian',
-        city: 'New York',
-        address: '123 Broadway, New York, NY',
-      },
-      {
-        name: 'Momofuku Noodle Bar',
-        location: 'New York',
-        category: 'Ramen',
-        priceRange: '$$',
-        cuisine: 'Japanese',
-        city: 'New York',
-        address: '456 E Village, New York, NY',
-      },
-      {
-        name: 'The French Laundry',
-        location: 'Napa Valley',
-        category: 'Fine Dining',
-        priceRange: '$$$$',
-        cuisine: 'French',
-        city: 'Yountville',
-        address: '6640 Washington St, Yountville, CA',
-      },
-    ]).returning().onConflictDoNothing();
-
-    console.log(`✅ Created ${sampleRestaurants.length} sample restaurants`);
-
-    // Create test lists with different visibility settings
-    console.log('📝 Creating test lists...');
-    
-    const testLists: any[] = [];
-
-    // List 1: Public
-    const [publicList] = await db.insert(restaurantLists).values({
-      name: 'Best Pizza in NYC',
-      description: 'My favorite pizza spots around the city',
-      createdById: userA_final.id,
-      visibilityV2: 'public',
-      visibilityCircleIds: null,
-      tags: ['pizza', 'nyc', 'casual'],
-      type: 'restaurant',
-      // Legacy fields for compatibility
+async function createTestCircles(users: Record<string, any>) {
+  console.log('⭕ Creating test circles...');
+  
+  const createdCircles: any[] = [];
+  
+  for (const circleData of TEST_CIRCLES) {
+    const [circle] = await db.insert(circles).values({
+      name: circleData.name,
+      description: circleData.description,
+      slug: circleData.slug,
+      createdById: users.userA.id, // Alice creates all circles
       isPublic: true,
-      makePublic: true,
-      shareWithCircle: false,
-      visibility: 'public',
-    }).returning().onConflictDoNothing();
-
-    if (publicList) testLists.push(publicList);
-
-    // List 2: Circle only (C1)
-    const [circleList] = await db.insert(restaurantLists).values({
-      name: 'NYC Group Favorites',
-      description: 'Places our food group loves',
-      createdById: userA_final.id,
-      visibilityV2: 'circle',
-      visibilityCircleIds: circleC1 ? [circleC1.id] : null,
-      tags: ['group', 'favorites'],
-      type: 'restaurant',
-      // Legacy fields
-      isPublic: false,
-      makePublic: false,
-      shareWithCircle: true,
-      circleId: circleC1?.id,
-      visibility: 'circle',
-    }).returning().onConflictDoNothing();
-
-    if (circleList) testLists.push(circleList);
-
-    // List 3: Followers only
-    const [followersOnlyList] = await db.insert(restaurantLists).values({
-      name: 'Hidden Gems',
-      description: 'Special places only for my followers',
-      createdById: userA_final.id,
-      visibilityV2: 'followers',
-      visibilityCircleIds: null,
-      tags: ['hidden', 'gems'],
-      type: 'restaurant',
-      // Legacy fields
-      isPublic: false,
-      makePublic: false,
-      shareWithCircle: false,
-      visibility: 'followers',
-    }).returning().onConflictDoNothing();
-
-    if (followersOnlyList) testLists.push(followersOnlyList);
-
-    // List 4: Private
-    const [privateList] = await db.insert(restaurantLists).values({
-      name: 'My Personal Bucket List',
-      description: 'Places I want to try someday',
-      createdById: userA_final.id,
-      visibilityV2: 'private',
-      visibilityCircleIds: null,
-      tags: ['bucket-list', 'personal'],
-      type: 'restaurant',
-      // Legacy fields
-      isPublic: false,
-      makePublic: false,
-      shareWithCircle: false,
-      visibility: 'private',
-    }).returning().onConflictDoNothing();
-
-    if (privateList) testLists.push(privateList);
-
-    console.log(`✅ Created ${testLists.length} test lists`);
-
-    // Add restaurants to lists
-    console.log('🔗 Adding restaurants to lists...');
+      memberCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
     
-    if (testLists.length > 0 && sampleRestaurants.length > 0) {
-      const listItems: any[] = [];
+    createdCircles.push(circle);
+    console.log(`✅ Created circle: ${circle.name}`);
+  }
+  
+  return createdCircles;
+}
+
+async function createRelationships(users: Record<string, any>, circles: any[]) {
+  console.log('🔗 Creating relationships...');
+  
+  // User B follows User A
+  await db.insert(follows).values({
+    followerId: users.userB.id,
+    followingId: users.userA.id,
+    createdAt: new Date()
+  });
+  console.log('✅ User B now follows User A');
+  
+  // User C joins Food Lovers NYC circle
+  const foodCircle = circles.find(c => c.slug === 'food-lovers-nyc');
+  if (foodCircle) {
+    await db.insert(circleMembers).values({
+      circleId: foodCircle.id,
+      userId: users.userC.id,
+      role: 'member',
+      joinedAt: new Date()
+    });
+    console.log('✅ User C joined Food Lovers NYC circle');
+  }
+  
+  // User A is creator/admin of both circles
+  for (const circle of circles) {
+    await db.insert(circleMembers).values({
+      circleId: circle.id,
+      userId: users.userA.id,
+      role: 'admin',
+      joinedAt: new Date()
+    });
+  }
+  console.log('✅ User A is admin of all circles');
+}
+
+async function createTestLists(users: Record<string, any>, circles: any[]) {
+  console.log('📋 Creating test lists...');
+  
+  const foodCircle = circles.find(c => c.slug === 'food-lovers-nyc');
+  
+  for (const listData of TEST_LISTS) {
+    const { visibility, visibilityCircleIds } = migrationHelpers.legacyToV2Visibility({
+      visibility: listData.visibility,
+      circleId: listData.visibility === 'circle' ? foodCircle?.id : undefined
+    });
+    
+    const [list] = await db.insert(lists).values({
+      name: listData.name,
+      description: listData.description,
+      createdById: users.userA.id, // Alice creates all lists
       
-      for (let i = 0; i < testLists.length; i++) {
-        const list = testLists[i];
-        const restaurant = sampleRestaurants[i % sampleRestaurants.length];
-        
-        if (list?.id && restaurant?.id) {
-          listItems.push({
-            listId: list.id,
-            restaurantId: restaurant.id,
-            addedById: userA_final.id,
-            position: 1,
-            rating: 4 + (i % 2), // 4 or 5 stars
-            notes: `Great ${restaurant.cuisine} spot!`,
-            mustTryDishes: [`${restaurant.cuisine} specialty`],
-          });
-        }
-      }
-
-      if (listItems.length > 0) {
-        await db.insert(restaurantListItems).values(listItems).onConflictDoNothing();
-      }
-    }
-
-    // Create some saved lists for User B
-    console.log('💾 Creating saved lists...');
+      // V2 visibility system
+      visibilityV2: visibility,
+      visibilityCircleIds: visibilityCircleIds,
+      migratedToV2: true,
+      migrationTimestamp: new Date(),
+      
+      // Legacy fields for backward compatibility
+      makePublic: visibility === 'public',
+      shareWithCircle: visibility === 'circle',
+      isPublic: visibility === 'public',
+      
+      tags: listData.tags,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
     
-    if (testLists.length > 0) {
-      // User B saves the public list and circle list (if they have access)
-      const listsToSave = testLists.filter((list: any) => 
-        list?.visibilityV2 === 'public' || 
-        (list?.visibilityV2 === 'circle' && circleC1) ||
-        list?.visibilityV2 === 'followers'
-      );
+    console.log(`✅ Created list: ${list.name} (${visibility})`);
+  }
+}
 
-      if (listsToSave.length > 0) {
-        const savedListsData = listsToSave.map((list: any) => ({
-          listId: list.id,
-          userId: userB_final.id,
-        }));
+async function validateSetup(users: Record<string, any>) {
+  console.log('🔍 Validating setup...');
+  
+  // Check users exist
+  const userCount = await db.select().from(users).where(sql`username LIKE 'user-%'`);
+  console.log(`✅ Created ${userCount.length} test users`);
+  
+  // Check relationships
+  const followCount = await db.select().from(follows).where(sql`follower_id = ${users.userB.id}`);
+  console.log(`✅ User B follows ${followCount.length} user(s)`);
+  
+  // Check lists with V2 visibility
+  const listsWithV2 = await db.select().from(lists).where(sql`migrated_to_v2 = true`);
+  console.log(`✅ Created ${listsWithV2.length} lists with V2 visibility`);
+  
+  // Check circles
+  const circleCount = await db.select().from(circles).where(sql`slug LIKE '%test' OR slug IN ('food-lovers-nyc', 'coffee-aficionados')`);
+  console.log(`✅ Created ${circleCount.length} test circles`);
+}
 
-        await db.insert(savedLists).values(savedListsData).onConflictDoNothing();
-      }
-    }
+async function printCredentials() {
+  console.log('\n🔑 Test Credentials for E2E Validation:');
+  console.log('=====================================');
+  
+  for (const [key, persona] of Object.entries(TEST_PERSONAS)) {
+    console.log(`\n${persona.name} (${key.toUpperCase()}):`);
+    console.log(`  Username: ${persona.username}`);
+    console.log(`  Email: ${persona.email}`);
+    console.log(`  Password: ${persona.password}`);
+    console.log(`  Role: ${persona.role}`);
+  }
+  
+  console.log('\n📋 Test Data Created:');
+  console.log('====================');
+  console.log('• 4 test lists with different visibility levels');
+  console.log('• 2 test circles with memberships');
+  console.log('• Follow relationship: User B → User A');
+  console.log('• Circle membership: User C → Food Lovers NYC');
+  console.log('• All lists use V2 visibility system');
+  
+  console.log('\n🧪 E2E Testing Flow:');
+  console.log('====================');
+  console.log('1. Login as User A → Create/edit lists, test ownership');
+  console.log('2. Login as User B → See public + followers lists, test save/unsave');
+  console.log('3. Login as User C → See public + circle lists, test circle access');
+  console.log('4. Login as User D → See public lists only, test access restrictions');
+  console.log('5. Test persistence: refresh pages, verify state consistency');
+}
 
-    // Summary
-    console.log('\n🎉 Dev personas created successfully!');
-    console.log('\n📊 Summary:');
-    console.log(`👤 User A (Creator): ${userA_final.username} (ID: ${userA_final.id})`);
-    console.log(`👤 User B (Follower): ${userB_final.username} (ID: ${userB_final.id})`);
-    console.log(`⭕ Circle C1: ${circleC1?.name} (ID: ${circleC1?.id}) - Both users`);
-    console.log(`⭕ Circle C2: ${circleC2?.name} (ID: ${circleC2?.id}) - User A only`);
-    console.log(`📝 Created ${testLists.length} lists with different visibility levels`);
-    console.log(`🍕 Created ${sampleRestaurants.length} sample restaurants`);
+export async function seedDevPersonas() {
+  try {
+    console.log('🚀 Starting development persona seed...');
     
-    console.log('\n🧪 Test scenarios you can now validate:');
-    console.log('1. User A can see all their lists');
-    console.log('2. User B can see public lists and circle lists (if member)');
-    console.log('3. User B cannot see private lists or lists in circles they\'re not in');
-    console.log('4. Save/unsave functionality works correctly');
-    console.log('5. Different visibility settings work as expected');
+    if (!process.env.DEV_TEST_PERSONAS) {
+      console.log('⚠️  DEV_TEST_PERSONAS flag not set, skipping seed');
+      return;
+    }
+    
+    await clearExistingData();
+    const users = await createTestUsers();
+    const circles = await createTestCircles(users);
+    await createRelationships(users, circles);
+    await createTestLists(users, circles);
+    await validateSetup(users);
+    await printCredentials();
+    
+    console.log('\n✅ Development persona seed completed successfully!');
+    console.log('🔗 Ready for E2E testing at: http://localhost:5000');
     
   } catch (error) {
-    console.error('💥 Error creating dev personas:', error);
-    process.exit(1);
+    console.error('❌ Seed failed:', error);
+    throw error;
+  } finally {
+    await sql.end();
   }
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  createDevPersonas()
-    .then(() => {
-      console.log('\n✅ Dev personas setup complete!');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('Failed to create dev personas:', error);
-      process.exit(1);
-    });
+if (require.main === module) {
+  seedDevPersonas().catch(console.error);
 }
-
-export { createDevPersonas };

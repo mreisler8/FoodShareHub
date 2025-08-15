@@ -17,14 +17,15 @@ import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
 import { useLocation } from "wouter";
 import { AlertTriangle, Eye, Utensils, X, Plus, Tag, Check } from "lucide-react";
+import { queryKeys, useListCacheHelpers } from "@/lib/queryKeys";
+// Note: PrivacySelector will be implemented in next phase
 
-// Enhanced form schema with custom tag support
+// V2 form schema with visibility system
 const formSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Name is required").max(100, "Name too long"),
   description: z.string().optional(),
-  shareWithCircle: z.boolean().default(false),
-  makePublic: z.boolean().default(false),
-  circleId: z.string().optional(),
+  visibility: z.enum(['private', 'public', 'followers', 'circle']).default('private'),
+  visibilityCircleIds: z.array(z.number()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -46,14 +47,10 @@ const PREDEFINED_TAGS = [
 export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListModalProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { invalidateAfterCreate } = useListCacheHelpers();
   const [duplicateInfo, setDuplicateInfo] = useState<{id: number, name: string} | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [continueAnyway, setContinueAnyway] = useState(false);
-  
-  // Custom tag management
-  const [customTags, setCustomTags] = useState<string[]>([]);
-  const [newTagInput, setNewTagInput] = useState("");
-  const [showTagInput, setShowTagInput] = useState(false);
 
   // Fetch circles for the sharing dropdown
   const { data: circles } = useQuery<CircleWithStats[]>({
@@ -66,15 +63,13 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
     defaultValues: {
       name: "",
       description: "",
-      tags: "",
-      shareWithCircle: false,
-      makePublic: false,
-      circleId: undefined,
+      visibility: 'private',
+      visibilityCircleIds: [],
     },
   });
 
-  // Watch the sharing fields to show/hide circle selection
-  const shareWithCircle = form.watch("shareWithCircle");
+  // Watch the visibility field to show/hide circle selection
+  const visibility = form.watch("visibility");
   const currentName = form.watch("name");
 
   // Debounced duplicate checking function
@@ -124,57 +119,47 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
     }
   }, [open]);
 
-  // Create list mutation
+  // Create list mutation with V2 visibility system
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Apply default sharing rules if neither option is selected
-      let shareWithCircle = values.shareWithCircle;
-      let makePublic = values.makePublic;
-      
-      if (!shareWithCircle && !makePublic) {
-        shareWithCircle = true; // Default to circle sharing
+      // Validate circle selection for circle visibility
+      if (values.visibility === 'circle' && (!values.visibilityCircleIds || values.visibilityCircleIds.length === 0)) {
+        throw new Error("Please select at least one circle to share with");
       }
 
-      // Convert circleId to number if provided
-      const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
-
-      // Parse tags into array
-      const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
-
       const payload = {
-        name: values.name,
-        description: values.description || null,
-        tags: tags,
-        circleId: circleId,
-        isPublic: makePublic,
-        visibility: makePublic ? "public" : "circle",
-        shareWithCircle: shareWithCircle,
-        makePublic: makePublic,
+        name: values.name.trim(),
+        description: values.description?.trim() || null,
+        visibility: values.visibility,
+        visibilityCircleIds: values.visibility === 'circle' ? values.visibilityCircleIds : null,
       };
 
-      return await apiRequest("/api/lists", "POST", payload);
+      const response = await apiRequest("/api/lists", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      
+      return await response.json();
     },
     onSuccess: (data) => {
-      // Invalidate relevant caches
-      queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      // Use centralized cache invalidation
+      invalidateAfterCreate();
 
       toast({
-        title: "Success!",
-        description: "Your restaurant list has been created.",
+        title: "List created successfully!",
+        description: "Your new list is ready for you to add restaurants.",
       });
 
       // Reset form and close modal
       form.reset();
       onOpenChange(false);
 
-      // Navigate directly to the list - handle different response structures
-      const listId = data?.id || (data as any)?.id;
-      if (listId) {
+      // Navigate to the new list
+      if (data?.id) {
         try {
-          navigate(`/lists/${listId}`);
+          navigate(`/lists/${data.id}`);
           if (onSuccess) {
-            onSuccess(Number(listId));
+            onSuccess(Number(data.id));
           }
         } catch (error) {
           console.error("Navigation failed:", error);
@@ -220,10 +205,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="sm:max-w-[500px]"
-        showCloseButton={true}
-      >
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader className="text-center pb-6">
           <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
             <Utensils className="h-6 w-6 text-white" />

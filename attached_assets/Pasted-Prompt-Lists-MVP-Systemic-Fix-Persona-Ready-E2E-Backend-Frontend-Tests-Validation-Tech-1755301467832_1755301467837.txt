@@ -1,0 +1,325 @@
+Prompt: Lists MVP — Systemic Fix + Persona-Ready E2E (Backend + Frontend + Tests + Validation)
+
+Tech Stack
+Frontend: React (TypeScript, Vite, Tailwind, React Query)
+Backend: Node/Express, PostgreSQL (Drizzle)
+Testing: Vitest/RTL (web), supertest (api)
+Flags: LISTS_VISIBILITY_V2, LISTS_SAVE_STATUS_V1, DEV_TEST_PERSONAS
+
+Goal
+Make “Create → Add Items → Set visibility/share → Save/Unsave → Persist → View across personas” bulletproof.
+Fix all reported inconsistencies (visibility conflicts, save-status coherence, query key fragmentation).
+Prove success with authenticated, persona-based E2E validation, regression tests, and a staged rollout simulation.
+
+Mode
+Implement + Validate. Surgical, reversible changes. Preserve existing contracts unless updated below. Where legacy exists, stop writing to legacy but keep reading (behind flags).
+
+0) Guardrails (must follow)
+
+TypeScript strict; no any in new/modified code.
+
+Do not touch unrelated features or architecture.
+
+Additive DB migrations only; no destructive changes.
+
+New/changed endpoints: Zod I/O validation + supertest coverage.
+
+Use feature flags to control rollout: LISTS_VISIBILITY_V2, LISTS_SAVE_STATUS_V1, DEV_TEST_PERSONAS.
+
+React Query keys: hierarchical arrays only (see §4).
+
+Update docs for anything you touch. Provide file diffs + manual test steps.
+
+1) Authentication Restoration & Test Personas (UNBLOCK VALIDATION)
+
+Why: Previous validation couldn’t exercise UI flows due to 401s.
+
+Actions
+
+Restore auth flow for local/dev. Provide dev credentials in /docs/DEV_AUTH.md (e.g., email/password) or cookie instructions.
+
+Behind DEV_TEST_PERSONAS=true, add a seed that creates:
+
+User A (Owner) – creates lists.
+
+User B (Follower of A) – can view public/followers lists.
+
+User C (Circle member of C1) – can view circle lists for C1.
+
+User D (No relation) – blocked from private/circle lists.
+Include 1–2 existing lists with varied visibility for cross-checks.
+
+Script: pnpm db:seed:personas to (re)seed in dev.
+
+Acceptance
+
+Can log in as A/B/C/D locally and hit protected list routes.
+
+/api/me returns 200 for logged-in sessions.
+
+2) Visibility — Single Source of Truth (Resolve Conflicts)
+
+Problem (from audits): isPublic, makePublic, shareWithCircle, and visibility (json/string) disagree. Access checks read different fields.
+
+Solution
+
+Migration (additive):
+
+visibility_v2 enum: 'private' | 'public' | 'followers' | 'circle'
+
+visibility_circle_ids int[] (nullable)
+
+Backfill script (idempotent):
+
+If makePublic=true OR isPublic=true → visibility_v2='public'.
+
+Else if shareWithCircle=true AND circleId IS NOT NULL → visibility_v2='circle', visibility_circle_ids=[circleId].
+
+Else if legacy JSON indicates followers → visibility_v2='followers'.
+
+Else → 'private'.
+
+Writes (create/update) when LISTS_VISIBILITY_V2=true:
+
+Accept only { visibility: 'private'|'public'|'followers'|'circle', visibilityCircleIds?: number[] }.
+
+Normalize: if visibility!=='circle' then visibilityCircleIds=null.
+
+Reads (access control) everywhere use only visibility_v2 (+ circle membership checks when 'circle'). Keep reading legacy for backward compatibility if flag is off.
+
+Acceptance
+
+Creating lists in each mode yields correct access control for A/B/C/D.
+
+Private lists invisible to non-owners; circle lists visible only to members of listed circles.
+
+Legacy fields remain readable; writes use visibility_v2 only when flag on.
+
+3) Save/Unsave — Status Endpoint + Reconciliation
+
+Problem: UI checks /api/saved-lists (full collection) → inefficient & racy; mixed endpoints across components.
+
+Solution
+
+Endpoints (auth required; idempotent):
+
+GET /api/lists/:id/save-status → { saved: boolean }
+
+POST /api/lists/:id/save
+
+DELETE /api/lists/:id/save
+
+Frontend:
+
+SaveListButton uses only ['saved-lists', listId] and calls the status endpoint.
+
+Mutations are optimistic; on settle, invalidate ['saved-lists', listId] and ['lists', listId].
+
+Tests
+
+supertest: POST twice returns 200; status flips correctly. DELETE idem.
+
+RTL: icon/state persists after refresh & route change.
+
+Acceptance
+
+Save state consistent across all surfaces (cards, details, feeds) after refresh/navigation.
+
+4) React Query Key Standardization (Stop Fragmentation)
+
+Replace all string keys with hierarchical arrays:
+
+Collections:
+
+['lists']
+
+['lists', 'user', userId]
+
+['saved-lists']
+
+Single list & items:
+
+['lists', listId]
+
+['lists', listId, 'items']
+
+Save status:
+
+['saved-lists', listId]
+
+Provide a central helper in web/src/lib/queryKeys.ts and use everywhere.
+
+Acceptance
+
+Single source of cache truth; invalidations actually update all consumers.
+
+5) Add Items & Reorder — Confirm Endpoint + Wire UI
+
+Problem: Modal exists; POST path not validated end-to-end.
+
+Backend
+
+POST /api/lists/:id/items body:
+
+{ restaurantId: number; position?: number | null; notes?: string | null; mustTryDishes?: string[] | null }
+
+
+Auth required; owner/editor only.
+
+Idempotent: if restaurantId already in list → 200 with existing row (no dup).
+
+Positioning: null=append; else insert and shift.
+
+PUT /api/lists/:id/items/reorder:
+
+{ itemIds: number[] } // final order; transactional
+
+
+Frontend
+
+AddListItemModal → POST; invalidate ['lists', listId, 'items'].
+
+DraggableRestaurantList → optimistic reorder with rollback on error.
+
+Tests
+
+supertest: add same restaurant twice → no duplicates.
+
+RTL: keyboard & mouse reorder; persists after refresh.
+
+6) Create Flow UX (No Big Redesign, Just Solid UX)
+
+Create List Page:
+
+Submit disabled until name.trim().length>0; enforce max 100 chars (client + server).
+
+If visibility==='circle', require at least one visibilityCircleIds.
+
+After create → route to /lists/:id with toast “List created — add places to get started.”
+
+List Details:
+
+Empty state CTA when no items: “No places yet — Add your first.”
+
+Save button state uses status endpoint (persists after refresh).
+
+Header/back: use Global AppHeader; no page-local ad-hoc headers.
+
+A11y
+
+Save button: aria-pressed, aria-label (“Save list” / “Remove from saved”).
+
+Reorder list: keyboard support (arrows + space/enter), focus ring, and an SR live region announcing “Moved X to position Y”.
+
+7) Pagination (MVP-scale, optional but recommended)
+
+Add ?limit=&cursor= to:
+
+GET /api/lists
+
+GET /api/saved-lists
+
+GET /api/lists/:id/items
+
+Default limit=20. Return { results, nextCursor }.
+Frontend: Infinite query; works fine for small sets too.
+
+8) Regression + Persona E2E Validation (DO THIS AFTER FIXES)
+
+Personas (A/B/C/D from §1):
+
+Owner (A)
+
+Create list (each visibility).
+
+Add items; reorder.
+
+Save/unsave own list; refresh & revisit — state persists.
+
+Follower (B, follows A)
+
+See A’s public & followers lists (if implemented), not private/circle.
+
+Save/unsave; see consistent state on: list card, list details, and profile tab.
+
+Circle Member (C, member of C1)
+
+See A’s circle (C1) lists; no access to other circles.
+
+Save/unsave; verify persistence and cross-surface coherence.
+
+No Relation (D)
+
+Only public lists visible. No access otherwise.
+
+Record evidence (console/network/cURL) and put in /docs/lists-validation/Persona_E2E.md.
+
+Automated Tests
+
+supertest suite for new/changed endpoints (including auth checks & access control).
+
+RTL for Create → Details → Save/Unsave → Refresh; Add Items and Reorder.
+
+Accessibility check (axe) on List Details page; fix high-impact violations.
+
+9) Staged Rollout Simulation (Feature Flags)
+
+Enable LISTS_VISIBILITY_V2 and LISTS_SAVE_STATUS_V1 in dev.
+
+Toggle off/on to confirm backward compatibility (reads legacy, writes v2).
+
+High-frequency interaction test (save/unsave spam + page switches):
+
+Confirm no stale states under rapid actions.
+
+Log improvements & cache invalidations in console with simple perf markers.
+
+Deliver report: /docs/lists-validation/Rollout_Simulation.md.
+
+10) Documentation & Deliverables
+
+Technical:
+
+/docs/lists-implementation-report.md — what changed, why, file diffs.
+
+/docs/DEV_AUTH.md — how to log in locally.
+
+/docs/lists-validation/Persona_E2E.md — evidence & screenshots.
+
+/docs/lists-validation/Rollout_Simulation.md — flag behavior & coherence.
+
+Code:
+
+Migrations + seed script for personas.
+
+New endpoint handlers + Zod schemas + tests.
+
+web/src/lib/queryKeys.ts central helper.
+
+Updated SaveListButton, Create List form, List Details, Add Item modal, Reorder list.
+
+11) Success Criteria (Go/No-Go)
+
+✅ Auth restored; test personas usable.
+
+✅ All list visibility enforced via visibility_v2 (legacy readable; no new writes).
+
+✅ Save state consistent across all pages, persists after refresh & nav.
+
+✅ Query keys standardized; invalidation updates all consumers.
+
+✅ Add items idempotent; reorder persists; keyboard accessible.
+
+✅ Persona E2E matrix passes for A/B/C/D.
+
+✅ Tests added (supertest + RTL) and passing.
+
+✅ Docs complete; feature flags verified.
+
+Notes & Constraints
+
+Keep changes focused on Lists MVP.
+
+If you discover a contract mismatch, document and propose minimal change in the PR body before modifying shared contracts.
+
+Avoid UI redesign; stick to functional polish for MVP.

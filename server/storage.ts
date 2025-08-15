@@ -177,6 +177,16 @@ export interface IStorage {
   getPersonalizedCircleSuggestions(userId: number): Promise<Circle[]>;
   joinCircleByInviteCode(inviteCode: string, userId: number): Promise<{ success: boolean; circle?: Circle; error?: string }>;
 
+  // V2 List operations with enhanced visibility system
+  createListV2(list: any): Promise<RestaurantList>;
+  updateListV2(id: number, updates: any): Promise<RestaurantList>;
+  getListWithV2Visibility(listId: number, userId: number): Promise<RestaurantList | null>;
+  checkListAccess(listId: number, userId: number): Promise<boolean>;
+  migrateListToV2(listId: number): Promise<RestaurantList>;
+  getListById(id: number): Promise<RestaurantList | undefined>;
+  saveList(listId: number, userId: number): Promise<SavedList>;
+  unsaveList(listId: number, userId: number): Promise<void>;
+
   // Search Analytics operations
   trackSearchAnalytics(data: InsertSearchAnalytics & { timestamp: Date }): Promise<SearchAnalytics>;
   getTrendingSearches(limit: number, timeframe: string): Promise<any[]>;
@@ -1503,6 +1513,160 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserRecentSearches(userId: number, query: string): Promise<void> {
     // This is handled automatically by trackSearchAnalytics
+  }
+
+  // ============================================================================
+  // V2 LIST OPERATIONS IMPLEMENTATION
+  // ============================================================================
+
+  async createListV2(list: any): Promise<RestaurantList> {
+    const now = new Date();
+    const [newList] = await db.insert(restaurantLists).values({
+      name: list.name,
+      description: list.description,
+      createdById: list.createdById,
+      visibility: list.visibility,
+      visibilityV2: list.visibility,
+      visibilityCircleIds: list.visibilityCircleIds,
+      migratedToV2: list.migratedToV2 || true,
+      migrationTimestamp: list.migrationTimestamp || now,
+      // Legacy fields for backward compatibility
+      makePublic: list.visibility === 'public',
+      shareWithCircle: list.visibility === 'circle',
+      isPublic: list.visibility === 'public',
+      createdAt: now,
+      updatedAt: now
+    }).returning();
+    return newList;
+  }
+
+  async updateListV2(id: number, updates: any): Promise<RestaurantList> {
+    const updateData: any = {
+      ...updates,
+      updatedAt: new Date(),
+      migratedToV2: true,
+      migrationTimestamp: new Date()
+    };
+
+    // Update legacy fields for backward compatibility
+    if (updates.visibility) {
+      updateData.makePublic = updates.visibility === 'public';
+      updateData.shareWithCircle = updates.visibility === 'circle';
+      updateData.isPublic = updates.visibility === 'public';
+      updateData.visibilityV2 = updates.visibility;
+    }
+
+    const [updatedList] = await db.update(restaurantLists)
+      .set(updateData)
+      .where(eq(restaurantLists.id, id))
+      .returning();
+    
+    return updatedList;
+  }
+
+  async getListWithV2Visibility(listId: number, userId: number): Promise<RestaurantList | null> {
+    const [list] = await db.select().from(restaurantLists).where(eq(restaurantLists.id, listId));
+    
+    if (!list) return null;
+
+    // Check access based on V2 visibility system
+    const hasAccess = await this.checkListAccess(listId, userId);
+    return hasAccess ? list : null;
+  }
+
+  async checkListAccess(listId: number, userId: number): Promise<boolean> {
+    const [list] = await db.select().from(restaurantLists).where(eq(restaurantLists.id, listId));
+    
+    if (!list) return false;
+
+    // Owner always has access
+    if (list.createdById === userId) return true;
+
+    // Check V2 visibility
+    const visibility = list.visibilityV2 || list.visibility;
+    
+    switch (visibility) {
+      case 'public':
+        return true;
+      
+      case 'private':
+        return false;
+      
+      case 'followers':
+        return await this.isUserFollowing(userId, list.createdById);
+      
+      case 'circle':
+        if (list.visibilityCircleIds?.length) {
+          // Check if user is member of any specified circles
+          for (const circleId of list.visibilityCircleIds) {
+            const isMember = await this.isUserMemberOfCircle(userId, circleId);
+            if (isMember) return true;
+          }
+        }
+        return false;
+      
+      default:
+        // Fallback to legacy logic
+        if (list.isPublic || list.makePublic) return true;
+        if (list.shareWithCircle && list.circleId) {
+          return await this.isUserMemberOfCircle(userId, list.circleId);
+        }
+        return false;
+    }
+  }
+
+  async migrateListToV2(listId: number): Promise<RestaurantList> {
+    const [list] = await db.select().from(restaurantLists).where(eq(restaurantLists.id, listId));
+    
+    if (!list) throw new Error('List not found');
+
+    // Determine V2 visibility from legacy fields
+    let visibility: 'private' | 'public' | 'followers' | 'circle' = 'private';
+    let visibilityCircleIds: number[] | null = null;
+
+    if (list.makePublic || list.isPublic) {
+      visibility = 'public';
+    } else if (list.shareWithCircle && list.circleId) {
+      visibility = 'circle';
+      visibilityCircleIds = [list.circleId];
+    }
+
+    return await this.updateListV2(listId, {
+      visibility,
+      visibilityCircleIds,
+      migratedToV2: true,
+      migrationTimestamp: new Date()
+    });
+  }
+
+  async getListById(id: number): Promise<RestaurantList | undefined> {
+    const [list] = await db.select().from(restaurantLists).where(eq(restaurantLists.id, id));
+    return list;
+  }
+
+  async saveList(listId: number, userId: number): Promise<SavedList> {
+    // Check if already saved
+    const existing = await this.isListSavedByUser(listId, userId);
+    if (existing) {
+      throw new Error('List already saved by user');
+    }
+
+    const [savedList] = await db.insert(savedLists).values({
+      listId,
+      userId,
+      savedAt: new Date()
+    }).returning();
+    
+    return savedList;
+  }
+
+  async unsaveList(listId: number, userId: number): Promise<void> {
+    await db.delete(savedLists).where(
+      and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      )
+    );
   }
 }
 

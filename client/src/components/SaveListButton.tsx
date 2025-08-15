@@ -4,6 +4,7 @@ import { BookmarkPlus, BookmarkCheck, Loader2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { queryKeys, useListCacheHelpers } from "@/lib/queryKeys";
 
 interface SaveListButtonProps {
   listId: string;
@@ -13,11 +14,12 @@ interface SaveListButtonProps {
 export function SaveListButton({ listId, userId }: SaveListButtonProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateSaveStatus, invalidateList } = useListCacheHelpers();
   const listIdNum = parseInt(listId);
 
-  // Use new save-status endpoint for efficiency (V2 implementation)
+  // Use V2 query key and save-status endpoint
   const { data: saveStatus } = useQuery({
-    queryKey: ['saved-lists', listIdNum],
+    queryKey: queryKeys.saveStatus(listIdNum),
     queryFn: async () => {
       const response = await fetch(`/api/lists/${listId}/save-status`, {
         credentials: 'include',
@@ -40,22 +42,21 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
       });
     },
     onMutate: async (action) => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['saved-lists', listIdNum] });
+      // Optimistic update using V2 query key
+      await queryClient.cancelQueries({ queryKey: queryKeys.saveStatus(listIdNum) });
       
-      const previousSaveStatus = queryClient.getQueryData(['saved-lists', listIdNum]);
+      const previousSaveStatus = queryClient.getQueryData(queryKeys.saveStatus(listIdNum));
       
-      queryClient.setQueryData(['saved-lists', listIdNum], { 
+      queryClient.setQueryData(queryKeys.saveStatus(listIdNum), { 
         saved: action === 'save' 
       });
 
       return { previousSaveStatus };
     },
     onSuccess: (_, action) => {
-      // Invalidate both specific list save status and general lists data
-      queryClient.invalidateQueries({ queryKey: ['saved-lists', listIdNum] });
-      queryClient.invalidateQueries({ queryKey: ['lists', listIdNum] });
-      queryClient.invalidateQueries({ queryKey: ['saved-lists'] }); // Legacy compatibility
+      // Use centralized invalidation helpers
+      invalidateSaveStatus(listIdNum, parseInt(userId));
+      invalidateList(listIdNum);
       
       toast({
         title: action === 'save' ? "List saved!" : "List removed",
@@ -67,7 +68,7 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
     onError: (error: any, action, context) => {
       // Rollback optimistic update
       if (context?.previousSaveStatus) {
-        queryClient.setQueryData(['saved-lists', listIdNum], context.previousSaveStatus);
+        queryClient.setQueryData(queryKeys.saveStatus(listIdNum), context.previousSaveStatus);
       }
       
       toast({
@@ -91,7 +92,8 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
       size="sm"
       onClick={handleSaveClick}
       disabled={saveListMutation.isPending}
-      aria-label={isListSaved ? "Remove from saved lists" : "Save list"}
+      aria-pressed={isListSaved}
+      aria-label={`${isListSaved ? 'Remove' : 'Save'} list ${isListSaved ? 'from' : 'to'} your collection`}
       className="flex items-center gap-2"
     >
       {saveListMutation.isPending ? (

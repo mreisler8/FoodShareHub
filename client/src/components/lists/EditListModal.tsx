@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { queryKeys, useListCacheHelpers } from "@/lib/queryKeys";
+import { PrivacySelector } from "@/components/privacy/PrivacySelector";
 import {
   Dialog,
   DialogContent,
@@ -27,27 +29,31 @@ interface EditListModalProps {
 export function EditListModal({ open, onOpenChange, list }: EditListModalProps) {
   const [name, setName] = useState(list.name);
   const [description, setDescription] = useState(list.description || "");
-  const [shareWithCircle, setShareWithCircle] = useState(list.shareWithCircle || false);
-  const [makePublic, setMakePublic] = useState(list.makePublic || false);
+  const [visibility, setVisibility] = useState<'public' | 'private' | 'followers' | 'circle'>(
+    list.visibility || (list.makePublic ? 'public' : 'private')
+  );
+  const [visibilityCircleIds, setVisibilityCircleIds] = useState<number[]>(
+    list.visibilityCircleIds || []
+  );
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateList, invalidateCollections } = useListCacheHelpers();
 
   // Reset form when list changes
   useEffect(() => {
     setName(list.name);
     setDescription(list.description || "");
-    setShareWithCircle(list.shareWithCircle || false);
-    setMakePublic(list.makePublic || false);
+    setVisibility(list.visibility || (list.makePublic ? 'public' : 'private'));
+    setVisibilityCircleIds(list.visibilityCircleIds || []);
   }, [list]);
 
   const updateListMutation = useMutation({
     mutationFn: async () => {
       const data = {
-        name,
-        description: description || null,
-        shareWithCircle,
-        makePublic,
-        visibility: makePublic ? 'public' : (shareWithCircle ? 'circle' : 'private')
+        name: name.trim(),
+        description: description?.trim() || null,
+        visibility,
+        visibilityCircleIds: visibility === 'circle' ? visibilityCircleIds : null
       };
       
       return await apiRequest(`/api/lists/${list.id}`, {
@@ -60,8 +66,8 @@ export function EditListModal({ open, onOpenChange, list }: EditListModalProps) 
         title: "List updated",
         description: "Your list has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/lists/${list.id}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      invalidateList(list.id);
+      invalidateCollections();
       onOpenChange(false);
     },
     onError: (error: Error) => {

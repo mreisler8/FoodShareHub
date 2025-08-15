@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { queryKeys, useListCacheHelpers } from "@/lib/queryKeys";
 
 interface ListFeedCardProps {
   list: {
@@ -54,33 +55,38 @@ interface ListFeedCardProps {
 export function ListFeedCard({ list, showActions = true, onListClick }: ListFeedCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateSaveStatus, invalidateList } = useListCacheHelpers();
   const [isAnimating, setIsAnimating] = useState({ save: false, react: false });
 
-  // Check if current user has saved/reacted to this list
-  const { data: saveStatus } = useQuery<{isSaved: boolean}>({
-    queryKey: ['/api/saved-lists', list.id, 'status'],
-    queryFn: () => apiRequest(`/api/saved-lists/${list.id}/status`),
+  // Use V2 query key and save-status endpoint
+  const { data: saveStatus } = useQuery<{saved: boolean}>({
+    queryKey: queryKeys.saveStatus(list.id),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/lists/${list.id}/save-status`);
+      return response.json();
+    },
     enabled: showActions && !!list.id
   });
 
   const { data: reactionStatus } = useQuery<{hasReacted: boolean, userReaction: any}>({
     queryKey: ['/api/list-reactions', list.id],
-    queryFn: () => apiRequest(`/api/list-reactions/${list.id}`),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/list-reactions/${list.id}`);
+      return response.json();
+    },
     enabled: showActions && !!list.id
   });
 
-  // Save/unsave list mutation
+  // Save/unsave list mutation using V2 endpoints
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (saveStatus?.isSaved) {
-        return apiRequest(`/api/saved-lists/${list.id}`, {
+      if (saveStatus?.saved) {
+        return apiRequest(`/api/lists/${list.id}/save`, {
           method: 'DELETE'
         });
       } else {
-        return apiRequest('/api/saved-lists', {
-          method: 'POST',
-          body: JSON.stringify({ listId: list.id }),
-          headers: { 'Content-Type': 'application/json' }
+        return apiRequest(`/api/lists/${list.id}/save`, {
+          method: 'POST'
         });
       }
     },
@@ -89,13 +95,13 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
       setTimeout(() => setIsAnimating(prev => ({ ...prev, save: false })), 200);
     },
     onSuccess: () => {
-      // Invalidate queries to refresh status
-      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists', list.id] });
-      queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
+      // Use centralized invalidation helpers
+      invalidateSaveStatus(list.id);
+      invalidateList(list.id);
       
       toast({
-        title: saveStatus?.isSaved ? "List removed from saved" : "List saved!",
-        description: saveStatus?.isSaved ? "List removed from your saved lists" : "List saved to your profile",
+        title: saveStatus?.saved ? "List removed from saved" : "List saved!",
+        description: saveStatus?.saved ? "List removed from your saved lists" : "List saved to your profile",
       });
     },
     onError: (error) => {
@@ -313,7 +319,7 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
                 className={cn(
                   "h-8 px-2 transition-all duration-200",
                   isAnimating.save && "scale-110",
-                  saveStatus?.isSaved 
+                  saveStatus?.saved 
                     ? "text-blue-600 hover:text-blue-700" 
                     : "text-slate-500 hover:text-blue-600"
                 )}
@@ -321,7 +327,7 @@ export function ListFeedCard({ list, showActions = true, onListClick }: ListFeed
                 <Bookmark 
                   className={cn(
                     "h-4 w-4", 
-                    saveStatus?.isSaved && "fill-current"
+                    saveStatus?.saved && "fill-current"
                   )} 
                 />
               </Button>
