@@ -567,11 +567,16 @@ export default function RestaurantDetailPage() {
         </DebugOrigin>
 
         {/* Circle Score Section - MVP Enhanced with Consistent Display */}
-        <CircleScoreEnhancement
-          restaurantId={queryMethod === 'id' ? Number(restaurantId) : undefined}
-          googlePlaceId={queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId}
-          variant="detailed"
-        />
+        <SectionBoundary 
+          title="Circle Score"
+          fallback={<SkeletonCard lines={2} showHeader={true} />}
+        >
+          <CircleScoreEnhancement
+            restaurantId={queryMethod === 'id' ? Number(restaurantId) : undefined}
+            googlePlaceId={queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId}
+            variant="detailed"
+          />
+        </SectionBoundary>
 
         {/* Top Mentions - Enhanced with better mobile display */}
         {restaurant.communityInsights?.topDishes && restaurant.communityInsights.topDishes.length > 0 && (
@@ -608,31 +613,46 @@ export default function RestaurantDetailPage() {
         {/* Sidebar Cards Section - 3 Column Grid as per Development Brief */}
         <div className="grid md:grid-cols-3 gap-6">
           {/* Make a Reservation */}
-          <ReservationCard 
-            restaurant={{
-              name: restaurant.name,
-              location: restaurant.location
-            }}
-          />
+          <SectionBoundary 
+            title="Reservation"
+            fallback={<SkeletonCard lines={1} showActions={true} />}
+          >
+            <ReservationCard 
+              restaurant={{
+                name: restaurant.name,
+                location: restaurant.location
+              }}
+            />
+          </SectionBoundary>
 
           {/* View Menu & Order */}
-          <OrderOptionsCard 
-            restaurant={{
-              name: restaurant.name,
-              location: restaurant.location,
-              website: restaurant.website
-            }}
-            menuUrl={restaurant.website}
-            orderUrl={undefined}
-          />
+          <SectionBoundary 
+            title="Menu & Order"
+            fallback={<SkeletonCard lines={1} showActions={true} />}
+          >
+            <OrderOptionsCard 
+              restaurant={{
+                name: restaurant.name,
+                location: restaurant.location,
+                website: restaurant.website
+              }}
+              menuUrl={restaurant.website}
+              orderUrl={undefined}
+            />
+          </SectionBoundary>
 
           {/* More Restaurant Actions */}
-          <MoreRestaurantActions 
-            restaurant={{
-              name: restaurant.name,
-              location: restaurant.location
-            }}
-          />
+          <SectionBoundary 
+            title="More Actions"
+            fallback={<SkeletonCard lines={1} showActions={true} />}
+          >
+            <MoreRestaurantActions 
+              restaurant={{
+                name: restaurant.name,
+                location: restaurant.location
+              }}
+            />
+          </SectionBoundary>
         </div>
 
         {/* Your Activity Section with Error Boundary */}

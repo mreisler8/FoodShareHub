@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { SectionBoundary } from '@/components/common/SectionBoundary';
+import { useRestaurantCache } from '@/features/restaurant/cache/restaurantCache';
+import { RestaurantEventHelpers } from '@/lib/events';
 
 interface AddToListModalProps {
   isOpen: boolean;
@@ -30,10 +33,11 @@ interface RestaurantList {
   isOwner: boolean;
 }
 
-export default function AddToListModal({ isOpen, onClose, restaurant }: AddToListModalProps) {
+function AddToListModalInner({ isOpen, onClose, restaurant }: AddToListModalProps) {
   const [selectedLists, setSelectedLists] = useState<number[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const restaurantCache = useRestaurantCache(queryClient);
 
   // Get user's lists
   const { data: lists = [], isLoading } = useQuery<RestaurantList[]>({
@@ -63,7 +67,22 @@ export default function AddToListModal({ isOpen, onClose, restaurant }: AddToLis
       return Promise.all(promises);
     },
     onSuccess: () => {
+      // Use coordinated cache invalidation
+      const restaurantId = restaurant.id || restaurant.googlePlaceId;
+      if (restaurantId) {
+        restaurantCache.invalidateAll(restaurantId);
+        
+        // Emit event for widget coordination
+        RestaurantEventHelpers.notifyListChange(
+          restaurantId, 
+          selectedLists[0], // Use first list ID as representative
+          'added'
+        );
+      }
+      
+      // Also invalidate user's lists
       queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
+      
       toast({
         title: "Added to lists",
         description: `${restaurant.name} added to ${selectedLists.length} list${selectedLists.length > 1 ? 's' : ''}`
@@ -207,5 +226,30 @@ export default function AddToListModal({ isOpen, onClose, restaurant }: AddToLis
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Export wrapped with SectionBoundary for error isolation
+export default function AddToListModal(props: AddToListModalProps) {
+  return (
+    <SectionBoundary
+      title="Add to List"
+      fallback={
+        <Dialog open={props.isOpen} onOpenChange={props.onClose}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add to List</DialogTitle>
+            </DialogHeader>
+            <div className="p-4 text-center">
+              <p className="text-sm text-gray-600">
+                List feature temporarily unavailable
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      }
+    >
+      <AddToListModalInner {...props} />
+    </SectionBoundary>
   );
 }

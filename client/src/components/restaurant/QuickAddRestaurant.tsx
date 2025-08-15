@@ -4,6 +4,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Restaurant } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { SectionBoundary } from "@/components/common/SectionBoundary";
+import { useRestaurantCache } from "@/features/restaurant/cache/restaurantCache";
 
 import {
   Dialog,
@@ -22,7 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PlusCircle, Search, MapPin, Utensils, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export function QuickAddRestaurant() {
+function QuickAddRestaurantInner() {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<"search" | "add-restaurant" | "add-dishes">("search");
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,14 +39,15 @@ export function QuickAddRestaurant() {
     "Sushi places"
   ]);
   
+  const { toast } = useToast();
+  const { user } = useCurrentUser();
+  const restaurantCache = useRestaurantCache(queryClient);
+
   // New restaurant form
   const [newRestaurantName, setNewRestaurantName] = useState("");
   const [newRestaurantLocation, setNewRestaurantLocation] = useState("");
   const [newRestaurantCategory, setNewRestaurantCategory] = useState("");
   const [newRestaurantPriceRange, setNewRestaurantPriceRange] = useState("$$");
-  
-  const { toast } = useToast();
-  const currentUser = useCurrentUser();
   
   // Get user's location when the component mounts
   useEffect(() => {
@@ -586,5 +589,23 @@ export function QuickAddRestaurant() {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Export wrapped with SectionBoundary for error isolation
+export function QuickAddRestaurant() {
+  return (
+    <SectionBoundary
+      title="Quick Add Restaurant"
+      fallback={
+        <div className="p-4 border rounded-lg bg-gray-50">
+          <p className="text-sm text-gray-600 text-center">
+            Restaurant add feature temporarily unavailable
+          </p>
+        </div>
+      }
+    >
+      <QuickAddRestaurantInner />
+    </SectionBoundary>
   );
 }

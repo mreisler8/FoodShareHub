@@ -35,8 +35,10 @@ interface CircleScoreData {
  */
 export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
   const queryClient = useQueryClient();
+  const restaurantCache = useRestaurantCache(queryClient);
   const restaurantId = restaurant?.id;
   const googlePlaceId = restaurant?.googlePlaceId;
+  const { trackSuccess, trackError } = useQueryTelemetry('restaurant-queries', restaurantId);
 
   // Standardized user rating query - CRITICAL: Always use ['userRating', restaurantId] 
   const userRating = useQuery<RatingData | null>({
@@ -130,25 +132,23 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
 
       return response.json();
     },
-    onSuccess: () => {
-      console.log('CACHE_INVALIDATION: Rating submitted, invalidating caches');
+    onSuccess: (data) => {
+      console.log('RATING_SUBMISSION: Success, coordinating updates');
       
-      // Use Promise.all to handle race conditions in cache invalidation
-      Promise.all([
-        // CRITICAL: Invalidate both standardized caches immediately
-        queryClient.invalidateQueries({ queryKey: ['userRating', restaurantId] }),
-        queryClient.invalidateQueries({ queryKey: ['circleScore', restaurantId] }),
+      // Use centralized cache invalidation
+      if (restaurantId) {
+        restaurantCache.invalidateAll(restaurantId);
         
-        // Invalidate related restaurant data that depends on ratings
-        queryClient.invalidateQueries({ queryKey: ['restaurantPosts', restaurantId] }),
-        queryClient.invalidateQueries({ queryKey: ['restaurantLists', restaurantId] }),
-        
-        // Also invalidate any legacy cache keys that might still exist
-        queryClient.invalidateQueries({ queryKey: ['/api/circle-score'] }),
-        queryClient.invalidateQueries({ queryKey: ['restaurant-ratings'] })
-      ]).catch((error) => {
-        console.error('CACHE_INVALIDATION: Some cache invalidations failed', error);
-      });
+        // Emit event for widget coordination  
+        RestaurantEventHelpers.notifyRatingUpdate(
+          restaurantId,
+          data.ratingValue,
+          data.userId
+        );
+      }
+      
+      // Track telemetry
+      trackSuccess({ action: 'rating_submit', rating: data.ratingValue });
     },
   });
 
