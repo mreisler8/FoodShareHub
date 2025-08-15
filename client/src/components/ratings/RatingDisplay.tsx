@@ -43,14 +43,12 @@ export default function RatingDisplay({
   };
 
   const getRatingLabel = (value: number) => {
-    switch (value) {
-      case 1: return "Poor";
-      case 2: return "Fair";
-      case 3: return "Good";
-      case 4: return "Great";
-      case 5: return "Excellent";
-      default: return "";
-    }
+    if (value <= 2) return "Poor";
+    if (value <= 4) return "Fair";
+    if (value <= 6) return "Good";
+    if (value <= 8) return "Great";
+    if (value <= 10) return "Excellent";
+    return "";
   };
 
   const formatDate = (dateString: string) => {
@@ -76,7 +74,7 @@ export default function RatingDisplay({
           {renderStars(rating.ratingValue)}
         </div>
         <span className="text-sm font-medium">
-          {rating.ratingValue}/5
+          {rating.ratingValue}/10
         </span>
         {rating.tags.length > 0 && (
           <Badge variant="secondary" className="text-xs">
@@ -108,7 +106,7 @@ export default function RatingDisplay({
             </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-lg">
-                {rating.ratingValue}/5
+                {rating.ratingValue}/10
               </span>
               <span className="text-sm text-muted-foreground">
                 {getRatingLabel(rating.ratingValue)}

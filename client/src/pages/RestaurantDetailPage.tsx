@@ -324,40 +324,37 @@ export default function RestaurantDetailPage() {
 
   const heroImageData = getHeroImageData();
 
-  // Mock data for lists and posts - in production, fetch from API
-  const mockLists = [
-    {
-      id: 1,
-      name: "Best Brunch in Toronto",
-      description: "Weekend brunch spots that never disappoint",
-      owner: { id: 2, name: "Riley Chen", username: "rileyeats" },
-      itemCount: 12,
-      isPublic: true,
-      ranking: 2,
-      tags: ["brunch", "toronto", "weekend"],
-      createdAt: "2025-01-15T10:00:00Z"
+  // Real API data for lists and posts
+  const { data: restaurantLists } = useQuery({
+    queryKey: ['restaurantLists', restaurantId],
+    queryFn: async () => {
+      if (!restaurantId) return [];
+      const response = await fetch(`/api/restaurants/${restaurantId}/lists`);
+      if (!response.ok) return [];
+      return response.json();
     },
-    {
-      id: 2,
-      name: "Hidden Gems",
-      description: "Underrated spots worth visiting",
-      owner: { id: 3, name: "Jason Bloom", username: "jasonbloom" },
-      itemCount: 8,
-      isPublic: false,
-      ranking: 1,
-      tags: ["hidden", "local"],
-      createdAt: "2025-01-10T15:30:00Z"
-    }
-  ];
+    enabled: !!restaurantId,
+    staleTime: 60000, // 1 minute
+  });
 
-  const mockPosts = restaurant.communityInsights?.recentPosts || [];
+  const { data: restaurantPosts } = useQuery({
+    queryKey: ['restaurantPosts', restaurantId],
+    queryFn: async () => {
+      if (!restaurantId) return [];
+      const response = await fetch(`/api/restaurants/${restaurantId}/posts`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!restaurantId,
+    staleTime: 60000, // 1 minute
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
       {/* Debug Panel - Only visible with ?debug=true */}
       <RestaurantDebugPanel 
         restaurantId={restaurant.id ? parseInt(restaurant.id.toString()) : undefined}
-        googlePlaceId={restaurant.googlePlaceId}
+        placeId={restaurant.googlePlaceId}
       />
       
       {/* Hero Section with enhanced mobile-first design */}
@@ -631,18 +628,18 @@ export default function RestaurantDetailPage() {
           />
         </DebugOrigin>
 
-        {/* Lists Mentioned In Section */}
+        {/* Lists Mentioned In Section - Real API Data */}
         <ListMentionsCard 
-          lists={mockLists}
+          lists={restaurantLists || []}
           onViewList={(listId) => {
             console.log('View list:', listId);
             // TODO: Navigate to list detail
           }}
         />
 
-        {/* Post Mentions Section */}
+        {/* Post Mentions Section - Real API Data */}
         <PostMentionsCard 
-          posts={mockPosts}
+          posts={restaurantPosts || []}
           onViewPost={(postId) => {
             console.log('View post:', postId);
             // TODO: Navigate to post detail

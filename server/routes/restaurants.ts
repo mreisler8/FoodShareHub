@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../auth";
 import { db } from "../db";
-import { restaurants, posts, users, userFollowers, likes, comments } from "../../shared/schema";
+import { restaurants, posts, users, userFollowers, likes, comments, restaurantLists, restaurantListItems } from "../../shared/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { getPlaceDetails } from "../services/google-places";
 
@@ -372,6 +372,102 @@ router.get("/:id", authenticate, async (req, res) => {
       error: "Failed to fetch restaurant details",
       code: "INTERNAL_ERROR"
     });
+  }
+});
+
+// Get lists that mention a specific restaurant
+router.get("/:id/lists", authenticate, async (req, res) => {
+  try {
+    const restaurantId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    if (isNaN(restaurantId)) {
+      return res.status(400).json({ error: "Invalid restaurant ID" });
+    }
+
+    // Get lists that contain this restaurant
+    const lists = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        itemCount: sql<number>`COUNT(${restaurantListItems.id})`.as('itemCount'),
+        isPublic: restaurantLists.makePublic,
+        ranking: restaurantListItems.position,
+        tags: restaurantLists.tags,
+        createdAt: restaurantLists.createdAt,
+        owner: {
+          id: users.id,
+          name: users.name,
+          username: users.username
+        }
+      })
+      .from(restaurantListItems)
+      .innerJoin(restaurantLists, eq(restaurantListItems.listId, restaurantLists.id))
+      .innerJoin(users, eq(restaurantLists.createdById, users.id))
+      .where(eq(restaurantListItems.restaurantId, restaurantId))
+      .groupBy(
+        restaurantLists.id, restaurantLists.name, restaurantLists.description,
+        restaurantLists.makePublic, restaurantListItems.position, restaurantLists.tags,
+        restaurantLists.createdAt, users.id, users.name, users.username
+      )
+      .limit(10);
+
+    res.json(lists);
+  } catch (error) {
+    console.error('Error fetching restaurant lists:', error);
+    res.status(500).json({ error: 'Failed to fetch restaurant lists' });
+  }
+});
+
+// Get posts that mention a specific restaurant
+router.get("/:id/posts", authenticate, async (req, res) => {
+  try {
+    const restaurantId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    if (isNaN(restaurantId)) {
+      return res.status(400).json({ error: "Invalid restaurant ID" });
+    }
+
+    // Get recent posts for this restaurant
+    const restaurantPosts = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        rating: posts.rating,
+        dishesTried: posts.dishesTried,
+        images: posts.images,
+        createdAt: posts.createdAt,
+        priceAssessment: posts.priceAssessment,
+        atmosphere: posts.atmosphere,
+        serviceRating: posts.serviceRating,
+        dietaryOptions: posts.dietaryOptions,
+        author: {
+          id: users.id,
+          name: users.name,
+          username: users.username
+        },
+        likeCount: sql<number>`COUNT(${likes.id})`.as('likeCount'),
+        commentCount: sql<number>`COUNT(${comments.id})`.as('commentCount')
+      })
+      .from(posts)
+      .innerJoin(users, eq(posts.userId, users.id))
+      .leftJoin(likes, eq(posts.id, likes.postId))
+      .leftJoin(comments, eq(posts.id, comments.postId))
+      .where(eq(posts.restaurantId, restaurantId))
+      .groupBy(
+        posts.id, posts.content, posts.rating, posts.dishesTried, posts.images,
+        posts.createdAt, posts.priceAssessment, posts.atmosphere, posts.serviceRating,
+        posts.dietaryOptions, users.id, users.name, users.username
+      )
+      .orderBy(desc(posts.createdAt))
+      .limit(10);
+
+    res.json(restaurantPosts);
+  } catch (error) {
+    console.error('Error fetching restaurant posts:', error);
+    res.status(500).json({ error: 'Failed to fetch restaurant posts' });
   }
 });
 
