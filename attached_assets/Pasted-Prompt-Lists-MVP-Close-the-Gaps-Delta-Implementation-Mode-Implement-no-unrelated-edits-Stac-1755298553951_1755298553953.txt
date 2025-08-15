@@ -1,0 +1,195 @@
+Prompt: Lists MVP — Close the Gaps (Delta Implementation)
+
+Mode: Implement (no unrelated edits)
+Stack: React (TS, Vite, Tailwind, React Query) · Node/Express · Postgres (Drizzle)
+Goal: Make “Create → Add Items → Set visibility/share → Save/Unsave → Persist → View across personas” bulletproof system-wide, fixing what our last pass missed.
+
+0) Guardrails (must follow)
+
+TypeScript strict; no any in changed code.
+
+Additive DB migrations only; do not delete legacy columns.
+
+Use Zod for all new/changed API I/O.
+
+Feature flags used where noted.
+
+Update/extend existing tests; add new ones where specified.
+
+Flags:
+LISTS_VISIBILITY_V2, LISTS_SAVE_STATUS_V1, DEV_TEST_PERSONAS.
+
+1) Visibility — Read-path compatibility + migration safety (MISSED)
+
+Problem: We write visibility_v2 but didn’t make reads backward-compatible or provide a dry-run report/rollback.
+
+Do:
+
+In all list read endpoints (details, collections, profile, discover, public share):
+
+If visibility_v2 is not null, use it.
+
+Else derive from legacy: makePublic, isPublic, shareWithCircle, legacy visibility JSON.
+
+Return a single visibility field in responses ('public' | 'private' | 'followers' | 'circle') + visibilityCircleIds?: number[].
+
+Add script scripts/migrations/report_visibility_backfill.ts (read-only):
+
+Counts by final mapped state, lists unmapped rows, prints sample diffs.
+
+Migration comment: clear rollback note (how to re-enable legacy writes if flag off).
+
+Ensure access control reads only the normalized visibility from step 1.
+
+Tests: supertest for reads when visibility_v2 null vs set (all four visibilities).
+
+2) Authorization Matrix — Owner/Follower/Circle/Anon (MISSED)
+
+Problem: No persona-level auth tests across endpoints.
+
+Do: Create api/lists.authz.spec.ts covering:
+
+Personas: UserA(owner), UserB(follower of A), UserC(non-follower), UserD(member of circle C1), Anon.
+
+Endpoints:
+GET /api/lists/:id, GET /api/lists/:id/items,
+GET /api/lists/:id/save-status,
+POST/DELETE /api/lists/:id/save,
+POST /api/lists/:id/items, PUT /api/lists/:id/items/reorder.
+
+Assertions per visibility: public (all see), private (owner only), followers (followers see), circle (members of listed circleIds see).
+
+3) Share Links — Slug + public resolver (MISSED)
+
+Problem: No stable share URLs or public access contract.
+
+Do:
+
+Migration: add restaurantLists.slug (unique) and ensure creator handle exists (or global slug).
+
+On create, generate slug (collision-safe).
+
+Add GET /u/:handle/l/:slug → serve list details/items without auth only if visibility==='public'; otherwise 404.
+
+Update share UI to copy slug URL.
+
+Tests: supertest for slug route (public success, others 404).
+
+4) Save/Unsave — Status endpoint + saveCount reconciliation (PARTIALLY MISSED)
+
+Problem: We added status usage but not the reconciler; saveCount can drift.
+
+Do:
+
+Ensure endpoint exists: GET /api/lists/:id/save-status → { saved: boolean }.
+
+Mutations POST/DELETE /api/lists/:id/save idempotent.
+
+Reconciler job scripts/maintenance/reconcile_save_counts.ts: recompute saveCount from savedLists (dev/admin safe).
+
+Call reconciler in CI/dev (optional npm script) and document.
+
+Tests: supertest idempotency; unit test reconciler on fixtures.
+
+5) Cache Keys & Invalidation — Centralize (MISSED COORDINATION)
+
+Problem: Mixed query keys & scattered invalidation.
+
+Do:
+
+Standard keys:
+
+Collections: ['lists'], ['lists','user',userId], ['saved-lists']
+
+Single: ['lists', listId], ['lists', listId, 'items']
+
+Save status: ['saved-lists', listId]
+
+Helper in web: invalidateList(listId), invalidateCollections(userId) used after create/update/add-item/reorder/save/unsave.
+
+6) Pagination — Apply to all consumers (PARTIALLY MISSED)
+
+Problem: Pagination not added to profile/discover/public lists.
+
+Do: Add ?limit=&cursor= to:
+
+GET /api/lists/user/:userId
+
+Public/discover lists endpoint(s) (confirm route and apply)
+
+(Already added) GET /api/lists, GET /api/lists/:id/items
+Return { results, nextCursor }. Update frontend to use infinite queries.
+
+Tests: supertest for cursor advancement and final page.
+
+7) Add Items & Reorder — Idempotency + UX (PARTIALLY MISSED)
+
+Do:
+
+POST /api/lists/:id/items: if restaurantId exists on that list, return 200 with existing row (no dup).
+
+PUT /api/lists/:id/items/reorder: transactional, optimistic UI + rollback on error.
+
+In UI, empty state CTA when 0 items; show toast on first add.
+
+Tests: supertest duplicated add; UI test ensures order persists after refresh.
+
+8) A11y polish — Save & Reorder (MISSED)
+
+Do:
+
+SaveListButton: aria-pressed + context aria-label (“Save list” / “Remove from saved”).
+
+Reorder list: add polite live region announcing “Moved {title} to position {n}” + keyboard help on focus.
+
+Tests: axe/RTL a11y check on List Details.
+
+9) Fixtures & Seed — Persona coverage (PARTIALLY MISSED)
+
+Do: Add pnpm seed:dev to create:
+
+UserA: lists for all visibilities (public/private/followers/circle(C1)) with 2–3 items.
+
+Relations: UserB follows A; UserD is member of circle C1; UserC none.
+
+Saves: UserB saved two of A’s public/followers lists.
+
+README: manual path for QA (A creates → B views/saves → D views circle → C blocked).
+
+10) Observability & E2E sanity (MISSED)
+
+Do:
+
+Dev-only mutation logger: log timings & results for create/update/add-item/reorder/save/unsave.
+
+Playwright test: Create → Add item → Save → Refresh → Verify saved persists; repeat for Public & Circle (with a circle member persona).
+
+Deliverables
+
+Migrations (visibility read-path safe, slug) + scripts (report_visibility_backfill.ts, reconcile_save_counts.ts, seed:dev).
+
+API changes (slug resolver, pagination, status endpoint confirmed).
+
+Web updates (central invalidation helpers, key standardization, a11y tweaks).
+
+Tests: supertest authz matrix + idempotency + pagination; RTL/axe; Playwright E2E.
+
+README updates: seed usage, manual QA steps.
+
+Success Criteria (must meet)
+
+Reads prefer visibility_v2, fallback to legacy; all access checks use normalized visibility.
+
+Authz tests pass for Owner/Follower/Non-Follower/Circle/Anon on all endpoints.
+
+Public slug URLs work (no auth); private/circle/followers protected.
+
+Save status correct after refresh; saveCount reconciler passes.
+
+Pagination works on profile/discover/public endpoints.
+
+A11y checks pass; live region announcements present.
+
+Playwright “happy path” passes.
+
+Important: Keep changes surgical and reversible. Do not rename or move files outside scope. If any ambiguity arises, write assumptions at the top of your PR description before coding.

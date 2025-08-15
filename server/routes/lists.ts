@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { eq, and, desc, asc, sql, inArray, ne } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists, sharedLists, postListItems, insertRestaurantListSchemaV2, insertRestaurantListSchema } from '../../shared/schema';
+import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists, sharedLists, postListItems, insertRestaurantListSchemaV2, insertRestaurantListSchema, userFollowers } from '../../shared/schema';
 import { tempSavedListStorage } from '../temp-storage';
 import { isFeatureEnabled } from '../feature-flags';
+import { transformListResponse, checkListAccess } from '../utils/visibility-normalizer';
 
 const router = Router();
 
@@ -1193,7 +1194,7 @@ router.post('/:id/save', authenticate, async (req, res) => {
     }
 
     // Check if list exists and user has access to it
-    const listExists = await checkListAccess(listId, userId);
+    const listExists = await checkListAccessById(listId, userId);
     if (!listExists) {
       return res.status(404).json({ error: 'List not found or access denied' });
     }
@@ -1411,8 +1412,8 @@ router.put('/:id/items/reorder', authenticate, async (req, res) => {
   }
 });
 
-// Helper function to check list access based on visibility
-async function checkListAccess(listId: number, userId: number): Promise<boolean> {
+// Helper function to check list access based on normalized visibility
+async function checkListAccessById(listId: number, userId: number | null): Promise<boolean> {
   const list = await db
     .select()
     .from(restaurantLists)
@@ -1421,18 +1422,34 @@ async function checkListAccess(listId: number, userId: number): Promise<boolean>
 
   if (list.length === 0) return false;
 
-  const listData = list[0];
-
-  // Owner always has access
-  if (listData.createdById === userId) return true;
-
-  // Use V2 visibility logic if feature flag is enabled
-  if (isFeatureEnabled('LISTS_VISIBILITY_V2') && listData.visibilityV2) {
-    return await checkVisibilityV2Access(listData, userId);
-  }
-
-  // Legacy visibility logic
-  return await checkLegacyVisibilityAccess(listData, userId);
+  return await checkListAccess(
+    list[0], 
+    userId,
+    async (circleIds: number[], userId: number) => {
+      const access = await db
+        .select()
+        .from(circleMembers)
+        .where(and(
+          inArray(circleMembers.circleId, circleIds),
+          eq(circleMembers.userId, userId),
+          eq(circleMembers.status, 'active')
+        ))
+        .limit(1);
+      return access.length > 0;
+    },
+    async (ownerId: number, userId: number) => {
+      const follows = await db
+        .select()
+        .from(userFollowers)
+        .where(and(
+          eq(userFollowers.followerId, userId),
+          eq(userFollowers.followingId, ownerId),
+          eq(userFollowers.status, 'following')
+        ))
+        .limit(1);
+      return follows.length > 0;
+    }
+  );
 }
 
 async function checkVisibilityV2Access(listData: any, userId: number): Promise<boolean> {

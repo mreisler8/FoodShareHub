@@ -1,0 +1,203 @@
+Prompt: Lists MVP — Read-Only Critical Validation & Sign-Off
+
+Mode: READ-ONLY. Do not change code.
+Scope: Lists feature from creation → add items → visibility/share → save/unsave → persistence → cross-persona access.
+Stack context: React (TS, Vite, React Query), Node/Express, Postgres (Drizzle).
+
+0) Ground Rules
+
+No code edits. No DB migrations, seeds, or config changes.
+
+If authentication is required, use existing test accounts only (UserA/Owner, UserB/Follower, UserC/Non-follower, UserD/CircleMember).
+
+If accounts don’t exist or you cannot log in, stop and deliver a BLOCKER report (see Deliverables).
+
+1) Personas & Visibilities Matrix (Read-Only)
+
+Validate access for a single list in each visibility:
+
+public, private, followers, circle (with at least one circle id).
+
+For each visibility, verify read access to:
+
+Owner (UserA), Follower (UserB), Non-Follower (UserC), Circle Member (UserD), Anon (not logged in).
+
+Record for each persona x visibility:
+
+HTTP status (list details + items)
+
+Whether UI renders list correctly (screenshots)
+
+Whether Save control is visible & functional (only when allowed)
+
+Any error/empty states shown
+
+Output: a 5×4 access matrix with PASS/FAIL and evidence.
+
+2) API Contract & AuthZ (Read-Only)
+
+For one list per visibility, call these endpoints (read-only GET where possible) using existing sessions:
+
+GET /api/lists/:id
+
+GET /api/lists/:id/items
+
+GET /api/lists/:id/save-status
+
+GET /api/lists/user/:userId?limit=&cursor= (if applicable)
+
+Public slug (if implemented): GET /u/:handle/l/:slug
+
+For each call record:
+
+Request (path, persona) and response status
+
+Response shape (keys only; no PII)
+
+Visibility field returned (single normalized value vs legacy)
+
+Pagination fields { results, nextCursor } where applicable
+
+Flag inconsistencies (e.g., legacy fields used, missing save-status, missing pagination).
+
+3) UI/UX Flows (Read-Only walkthroughs)
+
+Using only existing data (no creation), verify:
+
+List Details page
+
+Items render in stable order; drag/reorder control present but do not use (read-only)
+
+Empty-state copy when items.length === 0 (if you can find such a list)
+
+Back button uses global header; no duplicate headers
+
+Save button label matches state (“Save” vs “Saved”) on reload (see Cache)
+
+My Lists / Profile Lists
+
+Pagination/infinite scroll UI appears for >20 lists (if available)
+
+Visibilities labeled correctly (badges/chips)
+
+Discovery / Public
+
+Public list tiles use slug URLs (if present)
+
+Non-public lists do not appear in public feeds/cards
+
+Provide screenshots for each page class.
+
+4) Save/Unsave Integrity (Read-Only probing)
+
+Without changing state:
+
+Check current saved state with GET /api/lists/:id/save-status for Owner/Follower/Non-Follower.
+
+Compare against UI icon state on first load and post-refresh.
+
+Confirm no UI desync (e.g., icon says “Saved” while status=false).
+
+If state appears wrong, collect:
+
+Current URL & persona
+
+save-status response
+
+Screenshot of icon state
+
+5) React Query Keys & Cache Coherence (Inspection)
+
+From network panel & React Query Devtools (if available):
+
+Confirm keys are hierarchical arrays (e.g., ['lists', id], ['lists', id, 'items'], ['saved-lists', id]).
+
+After a hard refresh, confirm saved state is fetched via list-specific status (not the entire /api/saved-lists collection).
+
+Note any endpoints still using collection fetch for single-list state.
+
+Deliver a short Cache Coherence Note with examples.
+
+6) Performance Snapshot (MVP scale, read-only)
+
+For /api/lists/:id, /api/lists/:id/items, /api/lists/:id/save-status:
+
+Capture P50/P95 latencies from browser DevTools (10 requests each; throttle to “Fast 3G” once).
+
+Note any request > 500ms and page paint jank.
+
+Report a tiny Perf Table per endpoint.
+
+7) Accessibility & Mobile Smoke (Read-Only)
+
+On List Details:
+
+Save button has aria-pressed reflect state; label is descriptive
+
+Keyboard focus outline visible on interactive elements
+
+On mobile viewport (≤ 390px wide):
+
+Header/back button tappable; list cards readable; no clipped CTAs
+
+Attach 2–3 screenshots and a bullet list of a11y finds.
+
+8) Data Integrity Checks (Read-Only)
+
+Verify every response returns one normalized visibility field (e.g., visibility: 'public' | 'private' | 'followers' | 'circle'), and no conflicting legacy booleans are relied on by UI.
+
+If both exist in payload, note which the UI actually uses (observable by behavior).
+
+Confirm saveCount on tiles roughly matches reality (count does not need to be exact; flag obvious drifts).
+
+9) Regression Hotspots (Read-Only)
+
+Specifically check past pain points:
+
+Header duplication or missing global header on list pages
+
+Back button returns to correct origin (feed/profile/discover) without full reload
+
+List Details does not 404 when :id is invalid → shows friendly Not Found
+
+10) Deliverables (Required Artifacts)
+
+Place everything in /docs/lists-validation/:
+
+ACCESS_MATRIX.md – Persona × Visibility table with PASS/FAIL & links to evidence
+
+API_CONTRACT_CHECK.md – Endpoint table (status, shape notes, visibility field, pagination presence)
+
+UI_EVIDENCE/ – Screenshots: List Details, My Lists/Profile, Discovery/Public, Mobile view
+
+CACHE_COHERENCE.md – Observations on query keys & status fetch strategy
+
+PERF_SNAPSHOT.md – P50/P95 table (+ any waterfall notes)
+
+A11Y_MOBILE_NOTES.md – 10 bullets max + screenshots
+
+DATA_INTEGRITY.md – Visibility field normalization notes; saveCount drift sightings
+
+REGRESSION_CHECKLIST.md – Header/back button/404 handling results
+
+GO-NO_GO.md – Final decision with rationale (see Success Criteria)
+
+If blocked (auth, missing data, etc.), produce BLOCKER.md detailing exactly what prevented validation and what is needed to proceed.
+
+Success Criteria (Sign-off Gates)
+
+✅ Persona × Visibility access matches spec; no leaks (public reachable by anon; private owner-only; followers & circle correct).
+
+✅ API contract uses single normalized visibility in responses; no reliance on conflicting legacy flags.
+
+✅ Save state consistent across initial load and refresh; status fetched per-list, not via full collection.
+
+✅ Performance: P95 ≤ 300–400ms for the three list endpoints in dev/staging; no egregious UI jank on load.
+
+✅ A11y & mobile: Save button semantics correct; header/back dependable; mobile layout intact.
+
+✅ No header duplication, no broken back navigation, friendly 404 for bad IDs.
+
+If any gate fails, mark NO-GO with precise failures and remediation suggestions.
+
+Remember: This is a read-only validation. Do not modify code or data. Output must be actionable, concise, and backed by evidence.
