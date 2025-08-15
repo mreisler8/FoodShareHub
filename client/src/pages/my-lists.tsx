@@ -57,9 +57,9 @@ export default function MyLists() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Fetch user's lists
+  // Fetch user's lists with standardized query key
   const { data: lists = [], isLoading } = useQuery<List[]>({
-    queryKey: ['/api/lists/user'],
+    queryKey: ['lists', 'user', user?.id],
     enabled: !!user?.id,
   });
 
@@ -67,7 +67,8 @@ export default function MyLists() {
   const deleteMutation = useMutation({
     mutationFn: (listId: number) => apiRequest(`/api/lists/${listId}`, { method: 'DELETE' }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/lists/user'] });
+      queryClient.invalidateQueries({ queryKey: ['lists', 'user', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['lists'] });
       toast({ title: "List deleted successfully" });
     },
     onError: () => {
@@ -79,7 +80,8 @@ export default function MyLists() {
   const duplicateMutation = useMutation({
     mutationFn: (listId: number) => apiRequest(`/api/lists/${listId}/duplicate`, { method: 'POST' }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/lists/user'] });
+      queryClient.invalidateQueries({ queryKey: ['lists', 'user', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['lists'] });
       toast({ title: "List duplicated successfully" });
     },
     onError: () => {

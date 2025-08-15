@@ -7,6 +7,7 @@ import {
   timestamp,
   json,
   index,
+  uniqueIndex,
   varchar,
   unique,
   decimal,
@@ -390,7 +391,10 @@ export const savedLists = pgTable("saved_lists", {
     .references(() => users.id)
     .notNull(),
   savedAt: timestamp("saved_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Unique constraint and performance index
+  userListUniqueIdx: uniqueIndex("saved_lists_user_list_unique").on(table.userId, table.listId),
+}));
 
 export const insertSavedListSchema = createInsertSchema(savedLists).pick({
   listId: true,
@@ -442,7 +446,17 @@ export const restaurantLists = pgTable("restaurant_lists", {
     .references(() => users.id)
     .notNull(),
   circleId: integer("circle_id").references(() => circles.id), // Optional: if associated with a circle
+  
+  // NEW: Canonical visibility fields (V2)
+  visibilityV2: text("visibility_v2", { enum: ['private', 'public', 'followers', 'circle'] }).default('private'),
+  visibilityCircleIds: integer("visibility_circle_ids").array(),
+  
+  // LEGACY: Keep for backward compatibility (read-only when LISTS_VISIBILITY_V2=true)
   isPublic: boolean("is_public").default(true),
+  shareWithCircle: boolean("share_with_circle").default(false),
+  makePublic: boolean("make_public").default(false),
+  visibility: json("visibility").notNull(), // { public: bool, followers: bool, circleIds: number[] }
+  
   tags: text("tags").array(),
   // Enhanced Create & Rank Lists fields
   type: text("type").notNull().default("restaurant"), // "restaurant" | "dish"
@@ -453,21 +467,57 @@ export const restaurantLists = pgTable("restaurant_lists", {
   locationLat: text("location_lat"), // For geographic search
   locationLng: text("location_lng"), // For geographic search
   // Enhanced sharing
-  visibility: json("visibility").notNull(), // { public: bool, followers: bool, circleIds: number[] }
   allowSharing: boolean("allow_sharing").default(true), // Whether the list can be shared by others
   shareableCircles: integer("shareable_circles").array(), // IDs of circles this list can be shared with
   isFeatured: boolean("is_featured").default(false), // For curated lists
-  // User Story 5: List Visibility & Sharing Controls
-  shareWithCircle: boolean("share_with_circle").default(false),
-  makePublic: boolean("make_public").default(false),
   // Tracking fields
   viewCount: integer("view_count").default(0),
   saveCount: integer("save_count").default(0),
   reactionCount: integer("reaction_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  // Database indexes for performance
+  createdByIdIdx: index("restaurant_lists_created_by_id_idx").on(table.createdById),
+  visibilityV2Idx: index("restaurant_lists_visibility_v2_idx").on(table.visibilityV2),
+  tagsIdx: index("restaurant_lists_tags_gin_idx").using('gin', table.tags),
+}));
+
+// V2 Schema for new visibility system
+export const insertRestaurantListSchemaV2 = createInsertSchema(
+  restaurantLists,
+).pick({
+  name: true,
+  description: true,
+  createdById: true,
+  circleId: true,
+  visibilityV2: true,
+  visibilityCircleIds: true,
+  tags: true,
+  type: true,
+  audience: true,
+  coverImage: true,
+  primaryLocation: true,
+  locationLat: true,
+  locationLng: true,
+  allowSharing: true,
+  shareableCircles: true,
+}).refine((data) => {
+  // Validation: if visibility is 'circle', require at least one circle ID
+  if (data.visibilityV2 === 'circle' && (!data.visibilityCircleIds || data.visibilityCircleIds.length === 0)) {
+    return false;
+  }
+  // Normalize: if visibility is not 'circle', clear circle IDs
+  if (data.visibilityV2 !== 'circle') {
+    data.visibilityCircleIds = null;
+  }
+  return true;
+}, {
+  message: "Circle visibility requires at least one circle ID",
+  path: ["visibilityCircleIds"],
 });
 
+// Legacy schema for backward compatibility
 export const insertRestaurantListSchema = createInsertSchema(
   restaurantLists,
 ).pick({
@@ -504,7 +554,12 @@ export const restaurantListItems = pgTable("restaurant_list_items", {
   addedById: integer("added_by_id").notNull(),
   position: integer("position").default(0),
   addedAt: timestamp("added_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Performance indexes
+  listIdIdx: index("restaurant_list_items_list_id_idx").on(table.listId),
+  listPositionIdx: index("restaurant_list_items_list_position_idx").on(table.listId, table.position),
+  listRestaurantUniqueIdx: uniqueIndex("restaurant_list_items_list_restaurant_unique").on(table.listId, table.restaurantId),
+}));
 
 export const insertRestaurantListItemSchema = createInsertSchema(
   restaurantListItems,

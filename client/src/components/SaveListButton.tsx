@@ -11,39 +11,52 @@ interface SaveListButtonProps {
 }
 
 export function SaveListButton({ listId, userId }: SaveListButtonProps) {
-  const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const listIdNum = parseInt(listId);
 
-  // Check if list is already saved
-  const { data: savedLists } = useQuery({
-    queryKey: ['/api/saved-lists'],
-    enabled: !!userId,
+  // Use new save-status endpoint for efficiency (V2 implementation)
+  const { data: saveStatus } = useQuery({
+    queryKey: ['saved-lists', listIdNum],
+    queryFn: async () => {
+      const response = await fetch(`/api/lists/${listId}/save-status`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to check save status');
+      }
+      return response.json();
+    },
+    enabled: !!userId && !isNaN(listIdNum),
   });
 
-  // Check if current list is in saved lists
-  const isListSaved = Array.isArray(savedLists) && savedLists.some((saved: any) => saved.listId === parseInt(listId));
+  const isListSaved = saveStatus?.saved || false;
 
-  // Save/unsave mutation
+  // Save/unsave mutation with optimistic updates
   const saveListMutation = useMutation({
     mutationFn: async (action: 'save' | 'unsave') => {
-      if (action === 'save') {
-        return await apiRequest('/api/saved-lists', {
-          method: 'POST',
-          body: JSON.stringify({ listId: parseInt(listId) }),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-      } else {
-        return await apiRequest(`/api/saved-lists/${listId}`, {
-          method: 'DELETE'
-        });
-      }
+      return await apiRequest(`/api/lists/${listId}/save`, {
+        method: action === 'save' ? 'POST' : 'DELETE',
+      });
+    },
+    onMutate: async (action) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['saved-lists', listIdNum] });
+      
+      const previousSaveStatus = queryClient.getQueryData(['saved-lists', listIdNum]);
+      
+      queryClient.setQueryData(['saved-lists', listIdNum], { 
+        saved: action === 'save' 
+      });
+
+      return { previousSaveStatus };
     },
     onSuccess: (_, action) => {
-      setIsSaved(action === 'save');
-      queryClient.invalidateQueries({ queryKey: ['/api/saved-lists'] });
+      // Invalidate both specific list save status and general lists data
+      queryClient.invalidateQueries({ queryKey: ['saved-lists', listIdNum] });
+      queryClient.invalidateQueries({ queryKey: ['lists', listIdNum] });
+      queryClient.invalidateQueries({ queryKey: ['saved-lists'] }); // Legacy compatibility
+      
       toast({
         title: action === 'save' ? "List saved!" : "List removed",
         description: action === 'save' 
@@ -51,7 +64,12 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
           : "This list has been removed from your saved collection",
       });
     },
-    onError: (error: any) => {
+    onError: (error: any, action, context) => {
+      // Rollback optimistic update
+      if (context?.previousSaveStatus) {
+        queryClient.setQueryData(['saved-lists', listIdNum], context.previousSaveStatus);
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to update saved list",
@@ -73,6 +91,7 @@ export function SaveListButton({ listId, userId }: SaveListButtonProps) {
       size="sm"
       onClick={handleSaveClick}
       disabled={saveListMutation.isPending}
+      aria-label={isListSaved ? "Remove from saved lists" : "Save list"}
       className="flex items-center gap-2"
     >
       {saveListMutation.isPending ? (

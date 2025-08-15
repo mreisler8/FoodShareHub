@@ -3,12 +3,35 @@ import { z } from 'zod';
 import { eq, and, desc, asc, sql, inArray, ne } from 'drizzle-orm';
 import { db } from '../db';
 import { authenticate } from '../auth';
-import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists, sharedLists, postListItems } from '../../shared/schema';
+import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists, sharedLists, postListItems, insertRestaurantListSchemaV2, insertRestaurantListSchema } from '../../shared/schema';
 import { tempSavedListStorage } from '../temp-storage';
+import { isFeatureEnabled } from '../feature-flags';
 
 const router = Router();
 
-// Simplified schema that matches frontend payload
+// V2 Schema (new visibility system)
+const createListSchemaV2 = z.object({
+  name: z.string().min(1, 'List name is required').max(100, 'List name must be 100 characters or less'),
+  description: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional().default([]),
+  circleId: z.number().nullable().optional(),
+  visibilityV2: z.enum(['private', 'public', 'followers', 'circle']).default('private'),
+  visibilityCircleIds: z.array(z.number()).nullable().optional(),
+  type: z.enum(['restaurant', 'dish']).optional().default('restaurant'),
+  coverImage: z.string().nullable().optional(),
+  primaryLocation: z.string().nullable().optional(),
+}).refine((data) => {
+  // If visibility is 'circle', require at least one circle ID
+  if (data.visibilityV2 === 'circle' && (!data.visibilityCircleIds || data.visibilityCircleIds.length === 0)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Circle visibility requires at least one circle ID",
+  path: ["visibilityCircleIds"],
+});
+
+// Legacy schema for backward compatibility
 const createListSchema = z.object({
   name: z.string().min(1, 'List name is required'),
   description: z.string().nullable().optional(),
@@ -31,12 +54,17 @@ const updateListSchema = z.object({
 
 const addItemSchema = z.object({
   restaurantId: z.number(),
+  position: z.number().nullable().optional(),
   rating: z.number().min(1).max(5).optional(),
   priceAssessment: z.enum(['Great value', 'Fair', 'Overpriced']).optional(),
   liked: z.string().optional(),
   disliked: z.string().optional(),
   notes: z.string().optional(),
   mustTryDishes: z.array(z.string()).optional(),
+});
+
+const reorderItemsSchema = z.object({
+  itemIds: z.array(z.number()).min(1, 'At least one item ID is required'),
 });
 
 const updateItemSchema = z.object({
@@ -1117,5 +1145,369 @@ router.get('/user', authenticate, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch user lists" });
   }
 });
+
+// GET /api/lists/:id/save-status - Check if a specific list is saved by current user
+router.get('/:id/save-status', authenticate, async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    if (isNaN(listId)) {
+      return res.status(400).json({ error: 'Invalid list ID' });
+    }
+
+    const savedList = await db
+      .select()
+      .from(savedLists)
+      .where(and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      ))
+      .limit(1);
+
+    const saved = savedList.length > 0;
+    
+    const duration = Date.now() - startTime;
+    console.log(`[LISTS] GET /api/lists/${listId}/save-status - ${duration}ms - Status: 200 - UserId: ${userId} - Saved: ${saved}`);
+    
+    res.json({ saved });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[LISTS] GET /api/lists/${req.params.id}/save-status - ${duration}ms - Status: 500 - Error:`, error);
+    res.status(500).json({ error: 'Failed to check save status' });
+  }
+});
+
+// POST /api/lists/:id/save - Save a list (idempotent)
+router.post('/:id/save', authenticate, async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    if (isNaN(listId)) {
+      return res.status(400).json({ error: 'Invalid list ID' });
+    }
+
+    // Check if list exists and user has access to it
+    const listExists = await checkListAccess(listId, userId);
+    if (!listExists) {
+      return res.status(404).json({ error: 'List not found or access denied' });
+    }
+
+    // Idempotent: check if already saved
+    const existingSave = await db
+      .select()
+      .from(savedLists)
+      .where(and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      ))
+      .limit(1);
+
+    if (existingSave.length === 0) {
+      // Insert new save
+      await db.insert(savedLists).values({
+        listId,
+        userId,
+      });
+
+      // Increment save count
+      await db
+        .update(restaurantLists)
+        .set({
+          saveCount: sql`${restaurantLists.saveCount} + 1`,
+        })
+        .where(eq(restaurantLists.id, listId));
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`[LISTS] POST /api/lists/${listId}/save - ${duration}ms - Status: 200 - UserId: ${userId}`);
+    
+    res.json({ success: true, saved: true });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[LISTS] POST /api/lists/${req.params.id}/save - ${duration}ms - Status: 500 - Error:`, error);
+    res.status(500).json({ error: 'Failed to save list' });
+  }
+});
+
+// DELETE /api/lists/:id/save - Unsave a list (idempotent)
+router.delete('/:id/save', authenticate, async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    if (isNaN(listId)) {
+      return res.status(400).json({ error: 'Invalid list ID' });
+    }
+
+    // Idempotent: delete if exists
+    const deletedRows = await db
+      .delete(savedLists)
+      .where(and(
+        eq(savedLists.listId, listId),
+        eq(savedLists.userId, userId)
+      ))
+      .returning();
+
+    if (deletedRows.length > 0) {
+      // Decrement save count
+      await db
+        .update(restaurantLists)
+        .set({
+          saveCount: sql`GREATEST(${restaurantLists.saveCount} - 1, 0)`,
+        })
+        .where(eq(restaurantLists.id, listId));
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`[LISTS] DELETE /api/lists/${listId}/save - ${duration}ms - Status: 200 - UserId: ${userId}`);
+    
+    res.json({ success: true, saved: false });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[LISTS] DELETE /api/lists/${req.params.id}/save - ${duration}ms - Status: 500 - Error:`, error);
+    res.status(500).json({ error: 'Failed to unsave list' });
+  }
+});
+
+// POST /api/lists/:id/items - Add item to list with idempotency
+router.post('/:id/items', authenticate, async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+    const data = addItemSchema.parse(req.body);
+
+    if (isNaN(listId)) {
+      return res.status(400).json({ error: 'Invalid list ID' });
+    }
+
+    // Check if user owns or has edit access to the list
+    const listAccess = await checkListEditAccess(listId, userId);
+    if (!listAccess) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    // Idempotency: check if restaurant already exists in list
+    const existingItem = await db
+      .select()
+      .from(restaurantListItems)
+      .where(and(
+        eq(restaurantListItems.listId, listId),
+        eq(restaurantListItems.restaurantId, data.restaurantId)
+      ))
+      .limit(1);
+
+    if (existingItem.length > 0) {
+      // Return existing item (idempotent)
+      const duration = Date.now() - startTime;
+      console.log(`[LISTS] POST /api/lists/${listId}/items - ${duration}ms - Status: 200 - UserId: ${userId} - Existing item`);
+      return res.json(existingItem[0]);
+    }
+
+    // Determine position
+    let position = data.position;
+    if (position === null || position === undefined) {
+      // Append to end
+      const maxPosition = await db
+        .select({ maxPos: sql<number>`COALESCE(MAX(${restaurantListItems.position}), 0)` })
+        .from(restaurantListItems)
+        .where(eq(restaurantListItems.listId, listId));
+      
+      position = (maxPosition[0]?.maxPos || 0) + 1;
+    } else {
+      // Shift existing items to make room
+      await db
+        .update(restaurantListItems)
+        .set({
+          position: sql`${restaurantListItems.position} + 1`,
+        })
+        .where(and(
+          eq(restaurantListItems.listId, listId),
+          sql`${restaurantListItems.position} >= ${position}`
+        ));
+    }
+
+    const [newItem] = await db.insert(restaurantListItems).values({
+      listId,
+      restaurantId: data.restaurantId,
+      addedById: userId,
+      position,
+      rating: data.rating,
+      priceAssessment: data.priceAssessment,
+      liked: data.liked,
+      disliked: data.disliked,
+      notes: data.notes,
+      mustTryDishes: data.mustTryDishes,
+    }).returning();
+
+    const duration = Date.now() - startTime;
+    console.log(`[LISTS] POST /api/lists/${listId}/items - ${duration}ms - Status: 201 - UserId: ${userId} - RestaurantId: ${data.restaurantId}`);
+    
+    res.status(201).json(newItem);
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[LISTS] POST /api/lists/${req.params.id}/items - ${duration}ms - Status: 400/500 - Error:`, error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    res.status(500).json({ error: 'Failed to add item to list' });
+  }
+});
+
+// PUT /api/lists/:id/items/reorder - Reorder list items
+router.put('/:id/items/reorder', authenticate, async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    const listId = parseInt(req.params.id);
+    const userId = req.user!.id;
+    const data = reorderItemsSchema.parse(req.body);
+
+    if (isNaN(listId)) {
+      return res.status(400).json({ error: 'Invalid list ID' });
+    }
+
+    // Check if user owns or has edit access to the list
+    const listAccess = await checkListEditAccess(listId, userId);
+    if (!listAccess) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    // Transactional reorder
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < data.itemIds.length; i++) {
+        await tx
+          .update(restaurantListItems)
+          .set({ position: i + 1 })
+          .where(and(
+            eq(restaurantListItems.id, data.itemIds[i]),
+            eq(restaurantListItems.listId, listId)
+          ));
+      }
+    });
+
+    const duration = Date.now() - startTime;
+    console.log(`[LISTS] PUT /api/lists/${listId}/items/reorder - ${duration}ms - Status: 200 - UserId: ${userId} - Items: ${data.itemIds.length}`);
+    
+    res.json({ success: true });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[LISTS] PUT /api/lists/${req.params.id}/items/reorder - ${duration}ms - Status: 400/500 - Error:`, error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    res.status(500).json({ error: 'Failed to reorder items' });
+  }
+});
+
+// Helper function to check list access based on visibility
+async function checkListAccess(listId: number, userId: number): Promise<boolean> {
+  const list = await db
+    .select()
+    .from(restaurantLists)
+    .where(eq(restaurantLists.id, listId))
+    .limit(1);
+
+  if (list.length === 0) return false;
+
+  const listData = list[0];
+
+  // Owner always has access
+  if (listData.createdById === userId) return true;
+
+  // Use V2 visibility logic if feature flag is enabled
+  if (isFeatureEnabled('LISTS_VISIBILITY_V2') && listData.visibilityV2) {
+    return await checkVisibilityV2Access(listData, userId);
+  }
+
+  // Legacy visibility logic
+  return await checkLegacyVisibilityAccess(listData, userId);
+}
+
+async function checkVisibilityV2Access(listData: any, userId: number): Promise<boolean> {
+  switch (listData.visibilityV2) {
+    case 'public':
+      return true;
+    
+    case 'followers':
+      // Check if user follows the list creator
+      const followExists = await db
+        .select()
+        .from(require('../../shared/schema').userFollowers)
+        .where(and(
+          eq(require('../../shared/schema').userFollowers.followerId, userId),
+          eq(require('../../shared/schema').userFollowers.followingId, listData.createdById),
+          eq(require('../../shared/schema').userFollowers.status, 'following')
+        ))
+        .limit(1);
+      return followExists.length > 0;
+    
+    case 'circle':
+      if (!listData.visibilityCircleIds || listData.visibilityCircleIds.length === 0) {
+        return false;
+      }
+      // Check if user is member of any of the specified circles
+      const circleAccess = await db
+        .select()
+        .from(circleMembers)
+        .where(and(
+          inArray(circleMembers.circleId, listData.visibilityCircleIds),
+          eq(circleMembers.userId, userId),
+          eq(circleMembers.status, 'active')
+        ))
+        .limit(1);
+      return circleAccess.length > 0;
+    
+    case 'private':
+    default:
+      return false;
+  }
+}
+
+async function checkLegacyVisibilityAccess(listData: any, userId: number): Promise<boolean> {
+  // Legacy logic: check makePublic, isPublic, shareWithCircle
+  if (listData.makePublic || listData.isPublic) {
+    return true;
+  }
+
+  if (listData.shareWithCircle && listData.circleId) {
+    const circleAccess = await db
+      .select()
+      .from(circleMembers)
+      .where(and(
+        eq(circleMembers.circleId, listData.circleId),
+        eq(circleMembers.userId, userId),
+        eq(circleMembers.status, 'active')
+      ))
+      .limit(1);
+    return circleAccess.length > 0;
+  }
+
+  return false;
+}
+
+async function checkListEditAccess(listId: number, userId: number): Promise<boolean> {
+  const list = await db
+    .select()
+    .from(restaurantLists)
+    .where(eq(restaurantLists.id, listId))
+    .limit(1);
+
+  if (list.length === 0) return false;
+
+  // Only owner can edit for MVP (could be extended for collaborative editing)
+  return list[0].createdById === userId;
+}
 
 export default router;
