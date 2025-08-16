@@ -3,13 +3,14 @@ import { db } from '../db';
 import { restaurants, restaurantLists, posts, users } from '../../shared/schema';
 import { ilike, or, and, eq, desc } from 'drizzle-orm';
 import { authenticate } from '../auth';
+import { searchGooglePlaces } from '../services/google-places';
 
 const router = Router();
 
-// Unified search endpoint for restaurants, lists, posts, and users
+// Unified search endpoint for restaurants, lists, posts, and users with Google Places integration
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { q, type, limit = 20, offset = 0 } = req.query;
+    const { q, type, limit = 20, offset = 0, lat, lng, radius } = req.query;
     const query = q as string;
     const searchType = type as string;
     const limitNum = parseInt(limit as string) || 20;
@@ -22,9 +23,17 @@ router.get('/', authenticate, async (req, res) => {
     const searchTerm = `%${query.trim()}%`;
     const results: any = {};
 
+    // Parse location parameters
+    const location = lat && lng ? {
+      lat: parseFloat(lat as string),
+      lng: parseFloat(lng as string),
+      radius: radius ? parseInt(radius as string) : 10000 // Default 10km radius
+    } : undefined;
+
     // Search restaurants if no type specified or type is 'restaurants'
     if (!searchType || searchType === 'restaurants') {
-      const restaurantResults = await db
+      // First, search local database
+      const localRestaurants = await db
         .select({
           id: restaurants.id,
           name: restaurants.name,
@@ -46,10 +55,44 @@ router.get('/', authenticate, async (req, res) => {
           )
         )
         .orderBy(desc(restaurants.verified), restaurants.name)
-        .limit(limitNum)
-        .offset(offsetNum);
+        .limit(Math.min(limitNum, 10)); // Limit local results to make room for Google Places
 
-      results.restaurants = restaurantResults;
+      // Then, search Google Places with location
+      let googlePlacesResults: any[] = [];
+      try {
+        console.log(`🔍 GOOGLE PLACES SEARCH START: "${query}" ${location ? `at ${location.lat},${location.lng}` : 'globally'}`);
+        console.log(`🔧 API Key available: ${!!process.env.GOOGLE_MAPS_API_KEY}`);
+        
+        googlePlacesResults = await searchGooglePlaces(query, location) || [];
+        
+        console.log(`📍 GOOGLE PLACES RESULTS: ${googlePlacesResults.length} restaurants found`);
+        if (googlePlacesResults.length > 0) {
+          console.log(`🏪 First result: ${googlePlacesResults[0]?.name} - ${googlePlacesResults[0]?.address}`);
+        }
+      } catch (error) {
+        console.error('❌ GOOGLE PLACES ERROR:', error);
+      }
+
+      // Transform Google Places results to match our restaurant format
+      const transformedGoogleResults = googlePlacesResults.slice(0, limitNum - localRestaurants.length).map((place: any) => ({
+        id: `google_${place.googlePlaceId}`,
+        name: place.name,
+        address: place.address,
+        city: place.city || 'Unknown',
+        cuisine: place.cuisine || place.category,
+        priceRange: place.priceRange,
+        imageUrl: place.imageUrl,
+        googlePlaceId: place.googlePlaceId,
+        verified: true, // Google Places are considered verified
+        source: 'google_places',
+        rating: place.rating,
+        distance: place.distance
+      }));
+
+      // Combine and sort results (local first, then Google Places)
+      results.restaurants = [...localRestaurants, ...transformedGoogleResults];
+      
+      console.log(`📊 Restaurant search results: ${localRestaurants.length} local + ${transformedGoogleResults.length} Google Places = ${results.restaurants.length} total`);
     }
 
     // Search lists if no type specified or type is 'lists'

@@ -250,9 +250,9 @@ function performSemanticSearch(query: string): string {
   };
 
   // Only enhance if query matches generic terms exactly
-  if (genericTerms[lowerQuery]) {
-    console.log(`Generic cuisine match: ${lowerQuery} -> ${genericTerms[lowerQuery]}`);
-    return genericTerms[lowerQuery];
+  if ((genericTerms as {[key: string]: string})[lowerQuery]) {
+    console.log(`Generic cuisine match: ${lowerQuery} -> ${(genericTerms as {[key: string]: string})[lowerQuery]}`);
+    return (genericTerms as {[key: string]: string})[lowerQuery];
   }
 
   // Layer 2: Handle common typos only
@@ -265,9 +265,9 @@ function performSemanticSearch(query: string): string {
     'borger': 'burger',
   };
 
-  if (typoCorrections[lowerQuery]) {
-    console.log(`Typo correction: ${lowerQuery} -> ${typoCorrections[lowerQuery]}`);
-    return typoCorrections[lowerQuery];
+  if ((typoCorrections as {[key: string]: string})[lowerQuery]) {
+    console.log(`Typo correction: ${lowerQuery} -> ${(typoCorrections as {[key: string]: string})[lowerQuery]}`);
+    return (typoCorrections as {[key: string]: string})[lowerQuery];
   }
 
   // Layer 3: For restaurant names, return as-is to preserve exact matching
@@ -529,7 +529,9 @@ function setCachedResults(cacheKey: string, data: Restaurant[], location?: strin
   // Clean up old cache entries (keep last 100)
   if (searchCache.size > 100) {
     const oldestKey = searchCache.keys().next().value;
-    searchCache.delete(oldestKey);
+    if (oldestKey) {
+      searchCache.delete(oldestKey);
+    }
   }
 }
 
