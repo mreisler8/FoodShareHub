@@ -1522,12 +1522,15 @@ export class DatabaseStorage implements IStorage {
   async createListV2(list: any): Promise<RestaurantList> {
     const now = new Date();
     const [newList] = await db.insert(restaurantLists).values({
-      // Use existing schema fields only
       name: list.name,
       description: list.description,
       createdById: list.createdById,
-      visibility: JSON.stringify({ level: list.visibility, circleIds: list.visibilityCircleIds }),
-      // Legacy fields for backward compatibility
+      // Store V2 visibility data in existing 'visibility' text field as JSON
+      visibility: JSON.stringify({ 
+        level: list.visibility || 'private', 
+        circleIds: list.visibilityCircleIds || [] 
+      }),
+      // Legacy compatibility - map V2 to legacy boolean fields
       makePublic: list.visibility === 'public',
       shareWithCircle: list.visibility === 'circle',
       isPublic: list.visibility === 'public',
