@@ -82,3 +82,6 @@
 {"t":"trace","op":"ratings.read","path":"/restaurant/881884025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.698Z"}
 {"t":"trace","op":"circleScore.read","path":"/881884025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":65,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:07.765Z"}
 {"t":"trace","op":"ratings.read","path":"/restaurant/881884025","userId":7,"cacheHit":false,"status":404,"ms":67,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.829Z"}
+{"t":"trace","op":"circleScore.read","path":"/88022054/circle-score","userId":7,"cacheHit":false,"status":500,"ms":71,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:45:22.460Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88022054","userId":7,"cacheHit":false,"status":404,"ms":77,"note":"Rating not found","timestamp":"2025-08-16T13:45:22.463Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88022054","userId":7,"cacheHit":false,"status":404,"ms":77,"note":"Rating not found","timestamp":"2025-08-16T13:45:22.464Z"}

@@ -308,7 +308,7 @@ router.post("/", authenticate, async (req, res) => {
       description = v2Data.description;
       tags = v2Data.tags || [];
       visibilityV2 = v2Data.visibilityV2;
-      visibilityCircleIds = v2Data.visibilityCircleIds;
+      visibilityCircleIds = v2Data.visibilityCircleIds || null;
       
       // Convert V2 to legacy format for compatibility
       switch (v2Data.visibilityV2) {
@@ -320,7 +320,7 @@ router.post("/", authenticate, async (req, res) => {
         case 'circle':
           shareWithCircle = true;
           visibility = 'circle';
-          circleId = v2Data.visibilityCircleIds?.[0] || null;
+          circleId = (v2Data.visibilityCircleIds && v2Data.visibilityCircleIds[0]) || null;
           break;
         case 'followers':
           visibility = 'followers';
@@ -411,7 +411,7 @@ router.post("/", authenticate, async (req, res) => {
         type: "restaurant" as const,
         audience: "profile" as const,
         // Legacy fields (always populated for backward compatibility)
-        visibility: derivedVisibility.type || 'private',
+        visibility: (derivedVisibility.type as string) || 'private',
         circleId: derivedVisibility.type === 'circle' ? (derivedVisibility.circleIds?.[0] || null) : null,
         shareWithCircle: derivedVisibility.type === 'circle',
         makePublic: derivedVisibility.type === 'public',
@@ -433,20 +433,83 @@ router.post("/", authenticate, async (req, res) => {
         console.log(`Adding ${items.length} items to new list ${newList[0].id}`);
         
         for (const item of items) {
-          if (item.restaurantId) {
+          console.log('Processing item:', JSON.stringify(item, null, 2));
+          
+          let restaurantId = item.restaurantId;
+          
+          // If no restaurantId but we have restaurant data, try to create/find the restaurant first
+          if (!restaurantId && item.restaurant) {
+            console.log('Creating/finding restaurant for item:', item.restaurant);
+            try {
+              // Try to find existing restaurant by name and location
+              const existingRestaurant = await db
+                .select()
+                .from(restaurants)
+                .where(eq(restaurants.name, item.restaurant.name))
+                .limit(1);
+              
+              if (existingRestaurant.length > 0) {
+                restaurantId = existingRestaurant[0].id;
+                console.log(`Found existing restaurant ID: ${restaurantId}`);
+              } else {
+                // Create new restaurant
+                const newRestaurant = await db.insert(restaurants).values({
+                  name: item.restaurant.name,
+                  location: item.restaurant.location || item.restaurant.city || 'Unknown',
+                  category: null,
+                  cuisineType: null,
+                  priceRange: null,
+                  rating: null,
+                  description: null,
+                  imageUrl: null,
+                  websiteUrl: null,
+                  phoneNumber: null,
+                  hours: null,
+                  priceLevel: null,
+                  googlePlaceId: null,
+                  googleRating: null,
+                  googleRatingCount: null,
+                  address: null,
+                  city: item.restaurant.city || null,
+                  state: null,
+                  zipCode: null,
+                  country: null,
+                  latitude: null,
+                  longitude: null,
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                }).returning();
+                
+                restaurantId = newRestaurant[0].id;
+                console.log(`Created new restaurant ID: ${restaurantId}`);
+              }
+            } catch (restaurantError) {
+              console.error('Failed to create/find restaurant:', restaurantError);
+            }
+          }
+          
+          if (restaurantId) {
             try {
               await db.insert(restaurantListItems).values({
                 listId: newList[0].id,
-                restaurantId: item.restaurantId,
+                restaurantId: restaurantId,
                 position: item.position || null,
                 notes: item.notes || null,
-                createdAt: new Date(),
-                updatedAt: new Date()
+                addedById: userId,
+                addedAt: new Date(),
+                rating: null,
+                priceAssessment: null,
+                liked: null,
+                disliked: null,
+                mustTryDishes: null
               });
+              console.log(`Successfully added restaurant ${restaurantId} to list ${newList[0].id}`);
             } catch (itemError) {
-              console.error(`Failed to add item ${item.restaurantId} to list:`, itemError);
+              console.error(`Failed to add item ${restaurantId} to list:`, itemError);
               // Continue with other items instead of failing completely
             }
+          } else {
+            console.warn('Skipping item - no valid restaurant ID found');
           }
         }
       }
@@ -1512,33 +1575,9 @@ async function checkListAccessById(listId: number, userId: number | null): Promi
 
   if (list.length === 0) return false;
 
-  return await checkListAccessById(
+  return await canAccessList(
     list[0], 
-    userId,
-    async (circleIds: number[], userId: number) => {
-      const access = await db
-        .select()
-        .from(circleMembers)
-        .where(and(
-          inArray(circleMembers.circleId, circleIds),
-          eq(circleMembers.userId, userId),
-          eq(circleMembers.status, 'active')
-        ))
-        .limit(1);
-      return access.length > 0;
-    },
-    async (ownerId: number, userId: number) => {
-      const follows = await db
-        .select()
-        .from(userFollowers)
-        .where(and(
-          eq(userFollowers.followerId, userId),
-          eq(userFollowers.followingId, ownerId),
-          eq(userFollowers.status, 'following')
-        ))
-        .limit(1);
-      return follows.length > 0;
-    }
+    userId
   );
 }
 
