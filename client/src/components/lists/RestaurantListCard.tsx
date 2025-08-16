@@ -105,6 +105,10 @@ export function RestaurantListCard({ list }: RestaurantListCardProps) {
 
             <div className="flex items-center space-x-4 text-sm text-neutral-500">
               <div className="flex items-center space-x-1">
+                <Users className="h-4 w-4" />
+                <span>{list.restaurantCount || 0} places</span>
+              </div>
+              <div className="flex items-center space-x-1">
                 <Eye className="h-4 w-4" />
                 <span>{list.viewCount || 0}</span>
               </div>

@@ -409,7 +409,8 @@ export default function ProfilePage() {
       ) : userLists && Array.isArray(userLists) && userLists.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2">
           {userLists.map((list: any) => (
-            <Card key={list.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-100">
+            <Link href={`/lists/${list.id}`} key={list.id}>
+              <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-100">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -421,7 +422,7 @@ export default function ProfilePage() {
                     </p>
                   </div>
                   <Badge variant="secondary" className="ml-3 bg-gray-50 text-gray-700">
-                    {list.itemCount || 0} places
+                    {list.restaurantCount || 0} places
                   </Badge>
                 </div>
 
@@ -460,7 +461,8 @@ export default function ProfilePage() {
                   <span>{new Date(list.createdAt).toLocaleDateString()}</span>
                 </div>
               </CardContent>
-            </Card>
+              </Card>
+            </Link>
           ))}
         </div>
       ) : (

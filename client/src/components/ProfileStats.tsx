@@ -46,7 +46,7 @@ export function ProfileStats({
     },
     {
       label: 'Lists',
-      value: stats.listCount || 0,
+      value: stats.lists || 0,
       icon: Bookmark,
       onClick: undefined,
     },

@@ -1,58 +1,53 @@
 import { Router } from 'express';
 import { requireAuth } from '../auth.js';
 import { db } from '../db.js';
-import { posts, users, circleMembers } from '../../shared/schema.js';
+import { posts, users, circleMembers, userFollowers, restaurantLists } from '../../shared/schema.js';
 import { eq, sql, count } from 'drizzle-orm';
 
 const router = Router();
 
-// Get user statistics for smart recommendations
-router.get('/stats', requireAuth, async (req, res) => {
+// Get user statistics for profile display
+router.get('/:id/stats', requireAuth, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    const userId = parseInt(req.params.id);
 
-    // Get user account age - users table doesn't have created_at, so default to 30 days
-    const accountAgeInDays = 30;
+    // Get followers count
+    const followersResult = await db
+      .select({ count: count() })
+      .from(userFollowers)
+      .where(eq(userFollowers.followingId, userId));
 
-    // Get post statistics with proper type casting
-    const postStats = await db
-      .select({
-        totalPosts: count(),
-        listCount: sql<number>`count(*) filter (where post_type = 'list')`,
-        momentCount: sql<number>`count(*) filter (where post_type = 'moment')`,
-        dishCount: sql<number>`count(*) filter (where post_type = 'dish')`
-      })
+    // Get following count  
+    const followingResult = await db
+      .select({ count: count() })
+      .from(userFollowers)
+      .where(eq(userFollowers.followerId, userId));
+
+    // Get list count from restaurantLists table
+    const listCountResult = await db
+      .select({ count: count() })
+      .from(restaurantLists)
+      .where(eq(restaurantLists.createdById, userId));
+
+    // Get post/review count
+    const reviewCountResult = await db
+      .select({ count: count() })
       .from(posts)
       .where(eq(posts.userId, userId));
 
-    // Get last post type
-    const lastPost = await db
-      .select({
-        postType: posts.postType
-      })
-      .from(posts)
-      .where(eq(posts.userId, userId))
-      .orderBy(sql`created_at desc`)
-      .limit(1);
-
-    // Get circle count
+    // Get circle count (as member)
     const circleCountResult = await db
-      .select({
-        count: count()
-      })
+      .select({ count: count() })
       .from(circleMembers)
       .where(eq(circleMembers.userId, userId));
 
     const stats = {
-      totalPosts: Number(postStats[0]?.totalPosts || 0),
-      postTypeBreakdown: {
-        list: Number(postStats[0]?.listCount || 0),
-        moment: Number(postStats[0]?.momentCount || 0),
-        dish: Number(postStats[0]?.dishCount || 0)
-      },
-      lastPostType: lastPost[0]?.postType || null,
-      accountAgeInDays,
-      circleCount: Number(circleCountResult[0]?.count || 0)
+      followers: followersResult[0]?.count || 0,
+      following: followingResult[0]?.count || 0,
+      lists: listCountResult[0]?.count || 0,
+      reviewCount: reviewCountResult[0]?.count || 0,
+      circleCount: circleCountResult[0]?.count || 0,
+      isFollowing: false // This should be determined by checking if current user follows the profile user
     };
 
     res.json(stats);
