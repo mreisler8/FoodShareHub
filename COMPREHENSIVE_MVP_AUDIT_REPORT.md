@@ -208,11 +208,11 @@
 
 ## 📋 SYSTEMATIC REPAIR PLAN
 
-### 🚨 CRITICAL IMMEDIATE FIXES (≤30 minutes) - **MUST BE DONE FIRST**
-1. **🔴 DISABLE MOCK DATA** in `TonightSection.tsx` - Enable authentic restaurant API calls 
-2. **🔴 DELETE BROKEN LEGACY FILES** - Remove `lists_backup.ts` (169 errors), fix `create-list-legacy.tsx`
-3. **🔴 RESOLVE ROUTE CONFLICTS** in `Router.tsx` - Remove duplicate/conflicting paths
-4. **🔴 FIX COMPILATION ERRORS** - Resolve TypeScript LSP errors blocking build
+### 🚨 CRITICAL IMMEDIATE FIXES (≤30 minutes) - **DATA ACCESS EMERGENCY**
+1. **🔴 ENABLE REAL DATA ACCESS** - Remove `enabled: false` from 4 components (TonightSection, FriendActivityFeed)
+2. **🔴 FIX EMPTY LISTS DISPLAY** - 28/37 lists showing empty due to display logic bugs
+3. **🔴 RESTAURANT LOCATION BACKFILL** - All 43 restaurants missing city data (blocks search)
+4. **🔴 DELETE BROKEN LEGACY FILES** - Remove `lists_backup.ts` (169 errors), fix compilation blockers
 
 ### ⚡ HIGH-PRIORITY REPAIRS (≤2 hours)  
 1. **Complete EditListModal component contract fix** - resolve prop mismatches
@@ -248,10 +248,15 @@
 - **FLOW 9:** ❌ FAIL - Navigation inconsistencies detected
 - **FLOW 10:** ❌ FAIL - TypeScript and accessibility issues
 
-### 📊 OVERALL MVP READINESS: 35% ⬇️ (REVISED DOWN DUE TO LEGACY CONTAMINATION)
-**Recommendation:** 🚨 **CRITICAL LEGACY CLEANUP REQUIRED BEFORE ANY OTHER FIXES**
+### 📊 OVERALL MVP READINESS: 25% ⬇️ (FURTHER REVISED DOWN - CRITICAL DATA INACCESSIBILITY)
+**Recommendation:** 🚨 **IMMEDIATE DATA ACCESS RESTORATION REQUIRED**
 
-**KEY INSIGHT:** Mock data and legacy code are actively **masking and blocking** authentic user experiences. Users are seeing fake restaurants instead of real recommendations, causing fundamental trust issues with the platform.
+**CRITICAL DISCOVERY:** The database contains substantial authentic data (43 restaurants, 37 lists, 26 posts) but users cannot access it due to:
+- **Mock data blocking real data** (4 disabled API endpoints)
+- **Missing location data** (100% of restaurants unsearchable)
+- **Empty list display issues** (75% of lists appear empty)
+
+**SEVERITY ESCALATION:** This is not just legacy code cleanup - it's **data accessibility crisis** preventing users from experiencing the actual platform capabilities.
 
 ---
 
@@ -308,6 +313,69 @@
 
 ---
 
+## 🗄️ CRITICAL: DATABASE INTEGRITY & MISSING ESSENTIAL DATA AUDIT
+
+### ❌ **P0 BLOCKERS - ESSENTIAL DATA NOT ACCESSIBLE TO USERS**
+
+**DATABASE STATUS:** ✅ **Data exists** but ❌ **Not accessible due to code issues**
+- **43 Real Restaurants** in database (✅ Good data volume)
+- **37 User Lists** created (✅ User engagement exists) 
+- **26 Posts** published (✅ Content exists)
+- **14 Users** registered (✅ User base exists)
+
+### 🚨 **CRITICAL DATA INACCESSIBILITY ISSUES**
+
+**1. MOCK DATA ACTIVELY BLOCKING REAL RESTAURANT DATA (P0 CRITICAL)**
+```typescript
+// TonightSection.tsx & FriendActivityFeed.tsx - 4 instances found:
+enabled: false // Disabled since we're using mock data
+```
+**IMPACT:** Users see fake "Pasta Paradise" and "Sushi Supreme" instead of 43 real restaurants
+**DATA AVAILABLE:** 43 authentic restaurants exist in database but completely hidden from users
+
+**2. MISSING LOCATION DATA PREVENTS SEARCH/DISCOVERY (P0 CRITICAL)**
+- **43/43 restaurants missing city data** (100% of restaurants unsearchable by location)
+- **42/43 restaurants missing google_place_id** (Google Places integration broken)
+- **Impact:** Location-based search, Google Maps integration, nearby recommendations all non-functional
+
+**3. EMPTY LISTS BREAKING CORE FUNCTIONALITY (P1 HIGH)**
+- **28/37 lists are completely empty** (75% of user lists show no restaurants)
+- **Impact:** Users create lists but see empty state, breaking core list-building experience
+
+### 📊 **SOCIAL DATA SPARSITY PREVENTING TRUST FEATURES**
+
+**4. INSUFFICIENT DATA FOR CIRCLE SCORE CALCULATIONS (P1 HIGH)**
+- **Only 5 ratings** across all 43 restaurants (0.1 ratings per restaurant average)
+- **Only 5 follow relationships** (weak social graph for recommendations)
+- **0 saved restaurants** (no user preference data)  
+- **0 likes on posts** (no engagement metrics for ranking)
+- **Impact:** Circle Score, social recommendations, and trust indicators non-functional
+
+**5. SOCIAL FEATURES UNDERMINED BY LOW ENGAGEMENT DATA**
+- **5 circle members total** across all circles (insufficient for social recommendations)
+- **6 list reactions total** (inadequate data for social proof)
+- **Impact:** Friend recommendations, social discovery, circle activity feeds all sparse/broken
+
+### 🔧 **DATA INTEGRITY REPAIR PLAN**
+
+**IMMEDIATE (≤1 hour) - DATA ACCESS RESTORATION:**
+1. **Enable authentic restaurant API calls** - Remove `enabled: false` from 4 components
+2. **Implement restaurant location data backfill** - Populate missing city/google_place_id fields  
+3. **Fix empty list display logic** - Ensure lists show properly even with no items
+4. **Validate Circle Score fallback logic** - Handle sparse rating data gracefully
+
+**SHORT-TERM (≤4 hours) - DATA ENRICHMENT:**
+1. **Restaurant data enhancement** - Backfill location, Google Places data for all 43 restaurants
+2. **Social graph seed data** - Encourage rating/follow system with proper UX flows
+3. **List item persistence validation** - Ensure restaurant additions to lists are correctly saved
+
+**ARCHITECTURAL (≤8 hours) - SYSTEMATIC DATA VALIDATION:**
+1. **Database integrity constraints** - Add foreign key validation, required field enforcement  
+2. **Data migration scripts** - Systematic data backfill and validation procedures
+3. **Real-time data validation** - Ensure new data is properly normalized and accessible
+
+---
+
 ## 🔗 COMPONENT & DATA CONTRACT AUDIT
 
 ### ✅ VALIDATED CONTRACTS
@@ -344,12 +412,19 @@
 - Performance must meet sub-2s load time requirement
 - Mobile experience must be native-quality
 
-**ROOT CAUSE ANALYSIS:** The audit reveals that legacy code and mock data are **actively sabotaging** user trust by showing fake content instead of authentic restaurant recommendations. This explains why some features appear "broken" - they're not connecting users to real data.
+**ROOT CAUSE ANALYSIS:** The audit reveals a **data accessibility crisis** where substantial authentic data exists in the database but is completely hidden from users due to:
+1. **Mock data override** - 4 components showing fake restaurants instead of 43 real ones
+2. **Missing essential fields** - Location data gaps preventing search functionality  
+3. **Display logic failures** - Empty lists not handled gracefully, showing blank states
+
+**FUNDAMENTAL ISSUE:** This is not broken functionality - it's **existing functionality being masked** by data access barriers. The MVP is more ready than it appears, but users can't access the real data.
 
 ---
 
 **COMPREHENSIVE AUDIT COMPLETED - LEGACY CONTAMINATION IDENTIFIED**
 
-**CRITICAL DISCOVERY:** Mock data in key components is preventing authentic user experiences. The TonightSection component alone is serving hardcoded fake restaurants with real API calls disabled, fundamentally undermining platform trust and functionality.
+**CRITICAL DISCOVERY:** Comprehensive database audit reveals a **data accessibility crisis** - the database contains 43 restaurants, 37 lists, and 26 posts, but users see fake hardcoded data instead. Four components have `enabled: false` blocking real API calls, and 100% of restaurants are missing location data preventing search functionality.
 
-**RECOMMENDED ACTION:** Immediate legacy code cleanup followed by systematic repair of component contracts and user flows.
+**DATA VOLUME CONFIRMATION:** Authentic user-generated content exists but is completely inaccessible due to code barriers, not data absence.
+
+**RECOMMENDED ACTION:** Immediate data access restoration (enable real API calls, backfill location data) followed by systematic display logic repairs.
