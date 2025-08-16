@@ -30,9 +30,10 @@ interface ModernListCardProps {
       name: string;
     }>;
   };
+  onClick?: () => void;
 }
 
-export function ModernListCard({ list }: ModernListCardProps) {
+export function ModernListCard({ list, onClick }: ModernListCardProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const { toast } = useToast();
@@ -42,9 +43,9 @@ export function ModernListCard({ list }: ModernListCardProps) {
   const saveListMutation = useMutation({
     mutationFn: async () => {
       if (isSaved) {
-        return await apiRequest("DELETE", `/api/lists/${list.id}/save`);
+        return await apiRequest(`/api/lists/${list.id}/save`, { method: "DELETE" });
       } else {
-        return await apiRequest("POST", `/api/lists/${list.id}/save`);
+        return await apiRequest(`/api/lists/${list.id}/save`, { method: "POST" });
       }
     },
     onSuccess: () => {
@@ -67,9 +68,9 @@ export function ModernListCard({ list }: ModernListCardProps) {
   const followMutation = useMutation({
     mutationFn: async () => {
       if (isFollowing) {
-        return await apiRequest("DELETE", `/api/users/${list.createdById}/follow`);
+        return await apiRequest(`/api/users/${list.createdById}/follow`, { method: "DELETE" });
       } else {
-        return await apiRequest("POST", `/api/users/${list.createdById}/follow`);
+        return await apiRequest(`/api/users/${list.createdById}/follow`, { method: "POST" });
       }
     },
     onSuccess: () => {

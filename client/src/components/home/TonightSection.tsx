@@ -117,10 +117,25 @@ const mockFriendRecommendedRestaurants: PopularRestaurant[] = [
 ];
 
 export function TonightSection() {
-  // In a real implementation, these would fetch from the API
+  // Fetch real restaurants from API
   const { data: tonightRestaurants, isLoading: isLoadingTonight } = useQuery({
     queryKey: ['/api/restaurants/tonight'],
-    enabled: false // Disabled since we're using mock data
+    queryFn: async () => {
+      console.log('🚀 TONIGHT: Fetching restaurants from API...');
+      try {
+        const response = await fetch('/api/restaurants');
+        if (!response.ok) {
+          throw new Error('Failed to fetch restaurants');
+        }
+        const data = await response.json();
+        console.log('🚀 TONIGHT: Loaded', data.length, 'restaurants');
+        return data.slice(0, 6); // Limit to 6 for tonight section
+      } catch (error) {
+        console.warn('🚀 TONIGHT: API unavailable, using fallback');
+        return mockTonightRestaurants; // Graceful fallback
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: trendingRestaurants, isLoading: isLoadingTrending } = useQuery({

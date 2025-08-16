@@ -60,6 +60,16 @@ export default function MyLists() {
   // Fetch user's lists with standardized query key
   const { data: lists = [], isLoading } = useQuery<List[]>({
     queryKey: ['lists', 'user', user?.id],
+    queryFn: async () => {
+      console.log('🚀 MY-LISTS: Fetching user lists from API...');
+      const response = await fetch('/api/lists');
+      if (!response.ok) {
+        throw new Error('Failed to fetch lists');
+      }
+      const data = await response.json();
+      console.log('🚀 MY-LISTS: Loaded', data.length, 'lists for user');
+      return data;
+    },
     enabled: !!user?.id,
   });
 
