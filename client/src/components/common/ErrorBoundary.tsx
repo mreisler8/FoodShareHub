@@ -60,12 +60,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
               <div data-testid="error-boundary-message">
                 Something went wrong. Please try refreshing the page.
               </div>
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details className="mt-2 text-xs">
-                  <summary className="cursor-pointer">Error Details</summary>
-                  <pre className="mt-2 whitespace-pre-wrap text-red-600">
-                    {this.state.error.toString()}
-                    {this.state.errorInfo?.componentStack}
+              {this.state.error && (
+                <details className="mt-2 text-xs" open>
+                  <summary className="cursor-pointer">🔍 Error Details (Debug Mode)</summary>
+                  <pre className="mt-2 whitespace-pre-wrap text-red-600 text-[10px] max-h-40 overflow-auto">
+                    <strong>Error:</strong> {this.state.error.toString()}
+                    <strong>Stack:</strong> {this.state.error.stack}
+                    <strong>Component Stack:</strong> {this.state.errorInfo?.componentStack}
                   </pre>
                 </details>
               )}
