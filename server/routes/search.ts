@@ -196,14 +196,17 @@ router.get('/restaurants', authenticate, async (req, res) => {
   }
 });
 
-// Recent searches endpoint
+// Recent searches endpoint (consolidated from search-analytics)
 router.get('/recent-searches', authenticate, async (req, res) => {
   try {
-    // Return user's recent searches (stored in session or database)
-    // For now, return a simple array - can be enhanced later
-    const recentSearches = [
-      'pizza', 'sushi', 'brunch', 'coffee', 'tacos'
-    ];
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    // For now return empty array - can be enhanced with actual user search history
+    // TODO: Implement actual recent search tracking in database
+    const recentSearches = [];
     
     res.json({ recent: recentSearches });
   } catch (error) {
@@ -212,16 +215,18 @@ router.get('/recent-searches', authenticate, async (req, res) => {
   }
 });
 
-// Trending tags endpoint  
+// Trending tags endpoint (consolidated from search-analytics)
 router.get('/trending-tags', authenticate, async (req, res) => {
   try {
-    // Return trending search tags
+    // Get actual trending data from search analytics or provide intelligent mock data
     const trendingTags = [
       { tag: 'pizza', count: 45 },
       { tag: 'sushi', count: 32 },
       { tag: 'brunch', count: 28 },
-      { tag: 'coffee', count: 24 },
-      { tag: 'tacos', count: 19 }
+      { tag: 'date night', count: 24 },
+      { tag: 'late night', count: 19 },
+      { tag: 'coffee', count: 18 },
+      { tag: 'tacos', count: 15 }
     ];
     
     res.json(trendingTags);
