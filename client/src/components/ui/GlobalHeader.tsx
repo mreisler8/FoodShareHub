@@ -1,77 +1,52 @@
-
 import React from 'react';
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useLocation } from 'wouter';
 
-interface GlobalHeaderProps {
+export interface GlobalHeaderProps {
   title?: string;
-  showBackButton?: boolean;
+  backButton?: boolean;
+  rightSlot?: React.ReactNode;
 }
 
-export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
-  title,
-  showBackButton = false
-}) => {
-  const [location, navigate] = useLocation();
+export function GlobalHeader({ title, backButton, rightSlot }: GlobalHeaderProps) {
+  const [, navigate] = useLocation();
 
-  const handleLogoClick = () => {
-    navigate('/feed');
+  const handleBack = () => {
+    // Try to go back in history, fallback to home if no history
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate('/');
+    }
   };
-
-  const handleBackClick = () => {
-    window.history.back();
-  };
-
-  // Determine if we should show logo or back button based on current page
-  const isMainPage = ['/feed', '/discover', '/circles', '/profile'].includes(location);
-  const shouldShowLogo = isMainPage && !showBackButton;
-  const shouldShowBackButton = !isMainPage || showBackButton;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="flex items-center justify-between px-4 py-3 max-w-screen-xl mx-auto">
-        {/* Left section - Logo or Back Button */}
-        <div className="flex items-center">
-          {shouldShowLogo ? (
-            <button
-              onClick={handleLogoClick}
-              className="flex items-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg p-1"
-              aria-label="Go to feed"
-            >
-              <img 
-                src="/logo-circles.png" 
-                alt="Circles" 
-                className="h-8 w-8 object-contain"
-              />
-            </button>
-          ) : shouldShowBackButton ? (
+    <header role="banner" className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          {backButton && (
             <Button
+              type="button"
               variant="ghost"
               size="sm"
-              onClick={handleBackClick}
-              className="mr-2 min-h-[44px] min-w-[44px] p-2"
+              onClick={handleBack}
               aria-label="Go back"
+              className="h-8 w-8 p-0"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-          ) : null}
-          
-          {/* Page Title */}
+          )}
           {title && (
-            <h1 className="text-lg font-semibold text-gray-900 ml-2">
-              {title}
-            </h1>
+            <h1 className="font-semibold text-foreground truncate">{title}</h1>
           )}
         </div>
-
-        {/* Right section - Can be extended for additional actions */}
-        <div className="flex items-center space-x-2">
-          {/* Reserved for future actions like notifications, search, etc. */}
-        </div>
+        {rightSlot && (
+          <div className="flex items-center gap-2">
+            {rightSlot}
+          </div>
+        )}
       </div>
     </header>
   );
-};
-
-export default GlobalHeader;
+}

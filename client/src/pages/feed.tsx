@@ -11,7 +11,7 @@ import { FeedViewControls } from '@/components/feed/FeedViewControls';
 import { StoriesSection } from '@/components/feed/StoriesSection';
 import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernShimmerLoader';
 import { SkeletonFeedCard, SkeletonListCard } from '@/components/ui/SkeletonFeedCard';
-import { InlineError } from '@/components/ui/InlineError';
+import { InlineError } from '@/components/common/InlineError';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 
 import { ListFeedCard } from '@/components/lists/ListFeedCard';
@@ -409,9 +409,10 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                     </div>
                   ) : error ? (
                     <InlineError 
-                      error={error} 
-                      message="Couldn't load content."
+                      title="Couldn't load content"
+                      message="Please check your connection and try again."
                       onRetry={() => window.location.reload()}
+                      data-testid="feed-inline-error"
                     />
                   ) : allItems.length > 0 ? (
                     <InfiniteScroll
@@ -489,9 +490,10 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
                       </div>
                     ) : error ? (
                       <InlineError 
-                        error={error} 
-                        message="Couldn't load circle posts."
+                        title="Couldn't load circle posts"
+                        message="Please check your connection and try again."
                         onRetry={() => window.location.reload()}
+                        data-testid="feed-inline-error"
                       />
                     ) : allItems.length > 0 ? (
                       <InfiniteScroll

@@ -21,7 +21,7 @@ import {
 import QuickRateButton from '@/components/ratings/QuickRateButton';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
 import { NotFound } from '@/components/ui/NotFound';
-import { InlineError } from '@/components/ui/InlineError';
+import { InlineError } from '@/components/common/InlineError';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { getErrorMessage, isValidId } from '@/lib/error-utils';
 

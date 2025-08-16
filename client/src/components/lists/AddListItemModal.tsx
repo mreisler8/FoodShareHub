@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, X, Plus, Check, AlertCircle } from "lucide-react";
+import { MapPin, X, Plus, Check, AlertCircle, Search } from "lucide-react";
 import { OptimizedSearchModal } from '../search/OptimizedSearchModal';
 import { LocationService, type LocationData } from '@/services/locationService';
 import { SmartTagInput } from "./SmartTagInput";

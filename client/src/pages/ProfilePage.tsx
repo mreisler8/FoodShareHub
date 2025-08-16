@@ -40,7 +40,8 @@ import { SendToFriendModal } from "@/components/sharing/SendToFriendModal";
 import { ShareLinkModal } from "@/components/sharing/ShareLinkModal";
 import EmptyState from "@/components/ui/EmptyState";
 import { NotFound } from "@/components/ui/NotFound";
-import { InlineError } from "@/components/ui/InlineError";
+import { InlineError } from "@/components/common/InlineError";
+import { GlobalHeader } from "@/components/ui/GlobalHeader";
 import { ProfileLoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { getErrorMessage } from "@/lib/error-utils";
 
@@ -683,11 +684,11 @@ export default function ProfilePage() {
             <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               Followers
-              {followers && Array.isArray(followers) && (
+              {followers && Array.isArray(followers) && followers.length > 0 ? (
                 <Badge variant="secondary" className="ml-2">
-                  {followers.length.toString()}
+                  {followers.length}
                 </Badge>
-              )}
+              ) : null}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -748,11 +749,11 @@ export default function ProfilePage() {
             <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-primary" />
               Following
-              {following && Array.isArray(following) && (
+              {following && Array.isArray(following) && following.length > 0 ? (
                 <Badge variant="secondary" className="ml-2">
-                  {following.length.toString()}
+                  {following.length}
                 </Badge>
-              )}
+              ) : null}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -851,9 +852,9 @@ export default function ProfilePage() {
 
       {/* Main Content Area */}
       <div className="flex-1 max-w-4xl mx-auto">
-        <AppHeader 
+        <GlobalHeader 
           title={profileUser?.name || profileUser?.username || "Profile"} 
-          showBackButton={true}
+          backButton={true}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full pt-14">

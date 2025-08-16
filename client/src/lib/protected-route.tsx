@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route, RouteProps } from "wouter";
-import { InlineError } from "@/components/ui/InlineError";
+import { InlineError } from "@/components/common/InlineError";
 import { getErrorMessage } from "@/lib/error-utils";
 
 interface ProtectedRouteProps extends Omit<RouteProps, 'component'> {

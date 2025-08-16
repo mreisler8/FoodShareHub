@@ -51,6 +51,22 @@ function App() {
   // Setup global error handling on app initialization
   useEffect(() => {
     setupGlobalErrorHandling();
+    
+    // Add unhandled rejection logging (dev-only; no noisy prod logs)
+    if (import.meta.env.DEV) {
+      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+        console.warn('[unhandledrejection]', event.reason);
+        // Don't prevent default - let other handlers run
+      };
+      
+      window.addEventListener('unhandledrejection', handleUnhandledRejection);
+      
+      // Cleanup function
+      return () => {
+        window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      };
+    }
+    
     // Debug viewport in development
     if (import.meta.env.DEV) {
       logViewportInfo();
