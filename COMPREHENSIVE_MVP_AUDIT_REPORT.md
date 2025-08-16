@@ -208,10 +208,11 @@
 
 ## 📋 SYSTEMATIC REPAIR PLAN
 
-### 🚨 IMMEDIATE FIXES (≤30 minutes)
-1. **Resolve TypeScript LSP errors** in `server/routes/lists.ts` and `client/src/hooks/use-auth.tsx`
-2. **Fix duplicate routes** in `Router.tsx` - remove conflicting paths
-3. **Fix ShareListModal API errors** causing list details page blocks
+### 🚨 CRITICAL IMMEDIATE FIXES (≤30 minutes) - **MUST BE DONE FIRST**
+1. **🔴 DISABLE MOCK DATA** in `TonightSection.tsx` - Enable authentic restaurant API calls 
+2. **🔴 DELETE BROKEN LEGACY FILES** - Remove `lists_backup.ts` (169 errors), fix `create-list-legacy.tsx`
+3. **🔴 RESOLVE ROUTE CONFLICTS** in `Router.tsx` - Remove duplicate/conflicting paths
+4. **🔴 FIX COMPILATION ERRORS** - Resolve TypeScript LSP errors blocking build
 
 ### ⚡ HIGH-PRIORITY REPAIRS (≤2 hours)  
 1. **Complete EditListModal component contract fix** - resolve prop mismatches
@@ -247,8 +248,63 @@
 - **FLOW 9:** ❌ FAIL - Navigation inconsistencies detected
 - **FLOW 10:** ❌ FAIL - TypeScript and accessibility issues
 
-### 📊 OVERALL MVP READINESS: 50% 
-**Recommendation:** PROCEED WITH SYSTEMATIC REPAIRS before launch
+### 📊 OVERALL MVP READINESS: 35% ⬇️ (REVISED DOWN DUE TO LEGACY CONTAMINATION)
+**Recommendation:** 🚨 **CRITICAL LEGACY CLEANUP REQUIRED BEFORE ANY OTHER FIXES**
+
+**KEY INSIGHT:** Mock data and legacy code are actively **masking and blocking** authentic user experiences. Users are seeing fake restaurants instead of real recommendations, causing fundamental trust issues with the platform.
+
+---
+
+## 🚨 CRITICAL: LEGACY CODE & MOCK DATA CONTAMINATION AUDIT
+
+### ❌ **P0 BLOCKERS - MOCK DATA OVERRIDING AUTHENTIC FUNCTIONALITY**
+
+**DISCOVERED:** Active mock data preventing real API calls from displaying:
+
+1. **`client/src/components/home/TonightSection.tsx` - CRITICAL CONTAMINATION**
+   ```typescript
+   const mockTonightRestaurants: PopularRestaurant[] = [...] 
+   const mockTrendingRestaurants: PopularRestaurant[] = [...]
+   const mockFriendRecommendedRestaurants: PopularRestaurant[] = [...]
+   
+   // API QUERIES DISABLED:
+   enabled: false // Disabled since we're using mock data
+   ```
+   **IMPACT:** Users seeing hardcoded fake restaurants instead of real recommendations
+   **STATUS:** 🔴 **BLOCKING AUTHENTIC USER EXPERIENCE**
+
+### ❌ **BROKEN LEGACY FILES CAUSING SYSTEM INSTABILITY**
+
+2. **Active Legacy Files with TypeScript Errors:**
+   - `client/src/pages/create-list-legacy.tsx` - **6 LSP errors** (broken compilation)
+   - `server/routes/lists_backup.ts` - **169 LSP errors** (should be deleted)  
+   - `client/src/pages/home-old.tsx` - **2 LSP errors** (interface mismatches)
+
+3. **Conflicting Route Definitions in `Router.tsx`:**
+   ```typescript
+   <ProtectedRoute path="/profile/:id?" component={ProfilePage} />
+   <ProtectedRoute path="/profile-old/:id?" component={Profile} />  // CONFLICT
+   
+   <ProtectedRoute path="/discover" component={DiscoverFeed} />
+   <ProtectedRoute path="/discover-old" component={Discover} />     // CONFLICT
+   
+   <ProtectedRoute path="/lists/create" component={CreateList} />
+   <ProtectedRoute path="/create-list" component={CreateListMinimal} /> // REDUNDANT
+   
+   <Route path="/discover-by-location" component={DiscoverByLocation} />
+   <Route path="/discover-by-location" component={DiscoverByLocation} /> // DUPLICATE
+   ```
+   **IMPACT:** Route conflicts causing navigation unpredictability
+
+### 🔧 **IMMEDIATE REMEDIATION REQUIRED**
+
+**BEFORE ANY OTHER FIXES:**
+1. **Disable mock data in TonightSection** - Enable real API calls
+2. **Delete broken legacy files** - Remove compilation blockers  
+3. **Resolve route conflicts** - Remove duplicate/conflicting paths
+4. **Fix remaining TypeScript errors** - Ensure clean compilation
+
+**ESTIMATED IMPACT:** These legacy issues are masking ~30% of authentic functionality
 
 ---
 
@@ -281,11 +337,19 @@
 4. **LONG-TERM:** Performance benchmarking and accessibility compliance
 
 **CRITICAL SUCCESS FACTORS:**
-- All 10 user flows must achieve PASS status
+- 🚨 **FIRST:** Eliminate all mock data and legacy code contamination
+- All 10 user flows must achieve PASS status  
 - TypeScript errors must be resolved to 0
+- Authentic data must be displayed in ALL user-facing components
 - Performance must meet sub-2s load time requirement
 - Mobile experience must be native-quality
 
+**ROOT CAUSE ANALYSIS:** The audit reveals that legacy code and mock data are **actively sabotaging** user trust by showing fake content instead of authentic restaurant recommendations. This explains why some features appear "broken" - they're not connecting users to real data.
+
 ---
 
-**AUDIT COMPLETED - READY FOR SYSTEMATIC REPAIR PHASE**
+**COMPREHENSIVE AUDIT COMPLETED - LEGACY CONTAMINATION IDENTIFIED**
+
+**CRITICAL DISCOVERY:** Mock data in key components is preventing authentic user experiences. The TonightSection component alone is serving hardcoded fake restaurants with real API calls disabled, fundamentally undermining platform trust and functionality.
+
+**RECOMMENDED ACTION:** Immediate legacy code cleanup followed by systematic repair of component contracts and user flows.
