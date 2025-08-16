@@ -408,7 +408,9 @@ export default function ProfilePage() {
         </div>
       ) : userLists && Array.isArray(userLists) && userLists.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2">
-          {userLists.map((list: any) => (
+          {userLists.map((list: any) => {
+            console.log('ProfilePage list data:', list.name, 'restaurantCount:', list.restaurantCount);
+            return (
             <Link href={`/lists/${list.id}`} key={list.id}>
               <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-100">
               <CardContent className="p-6">
@@ -463,7 +465,8 @@ export default function ProfilePage() {
               </CardContent>
               </Card>
             </Link>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-16">
