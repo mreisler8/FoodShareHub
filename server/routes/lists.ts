@@ -6,7 +6,7 @@ import { authenticate } from '../auth';
 import { restaurantLists, restaurantListItems, restaurants, circleMembers, circleSharedLists, savedLists, sharedLists, postListItems, insertRestaurantListSchemaV2, insertRestaurantListSchema, userFollowers } from '../../shared/schema';
 import { tempSavedListStorage } from '../temp-storage';
 import { isFeatureEnabled } from '../feature-flags';
-import { transformListResponse, checkListAccess } from '../utils/visibility-normalizer';
+import { deriveVisibility, normalizeVisibilityInput, shouldUseV2Writes, canAccessList, type DerivedVisibility } from '../lib/visibility-shim';
 
 const router = Router();
 
@@ -115,7 +115,7 @@ router.get('/', authenticate, async (req, res) => {
             return res.status(401).json({ error: 'Invalid user authentication' });
           }
 
-          // Use proper ORM queries instead of raw SQL
+          // Use proper ORM queries with both legacy and V2 fields
           const ownLists = await db
             .select({
               id: restaurantLists.id,
@@ -127,6 +127,8 @@ router.get('/', authenticate, async (req, res) => {
               visibility: restaurantLists.visibility,
               shareWithCircle: restaurantLists.shareWithCircle,
               makePublic: restaurantLists.makePublic,
+              visibility_v2: restaurantLists.visibilityV2,
+              visibility_circle_ids: restaurantLists.visibilityCircleIds,
               createdAt: restaurantLists.createdAt,
               updatedAt: restaurantLists.updatedAt,
               tags: restaurantLists.tags,
@@ -147,6 +149,8 @@ router.get('/', authenticate, async (req, res) => {
               visibility: restaurantLists.visibility,
               shareWithCircle: restaurantLists.shareWithCircle,
               makePublic: restaurantLists.makePublic,
+              visibility_v2: restaurantLists.visibilityV2,
+              visibility_circle_ids: restaurantLists.visibilityCircleIds,
               createdAt: restaurantLists.createdAt,
               updatedAt: restaurantLists.updatedAt,
               tags: restaurantLists.tags,
@@ -172,6 +176,8 @@ router.get('/', authenticate, async (req, res) => {
               visibility: restaurantLists.visibility,
               shareWithCircle: restaurantLists.shareWithCircle,
               makePublic: restaurantLists.makePublic,
+              visibility_v2: restaurantLists.visibilityV2,
+              visibility_circle_ids: restaurantLists.visibilityCircleIds,
               createdAt: restaurantLists.createdAt,
               updatedAt: restaurantLists.updatedAt,
               tags: restaurantLists.tags,
@@ -189,8 +195,11 @@ router.get('/', authenticate, async (req, res) => {
             )
             .orderBy(restaurantLists.createdAt);
 
-          // Combine results
-          const allLists = [...ownLists, ...publicLists, ...circleSharedLists];
+          // Combine results and normalize visibility
+          const allLists = [...ownLists, ...publicLists, ...circleSharedLists].map(list => ({
+            ...list,
+            derivedVisibility: deriveVisibility(list)
+          }));
 
           res.json(allLists);
         } catch (dbError) {
@@ -343,23 +352,37 @@ router.post("/", authenticate, async (req, res) => {
         });
       }
 
-      // Determine final visibility
-      const finalVisibility = makePublic ? 'public' : (shareWithCircle ? 'circle' : 'private');
+      // Normalize visibility input using the shim
+      const derivedVisibility = normalizeVisibilityInput({
+        makePublic,
+        shareWithCircle,
+        circleId,
+        visibility
+      });
 
-      const newList = await db.insert(restaurantLists).values({
+      // Prepare data for both legacy and V2 fields
+      const listData = {
         name: name.trim(),
         description: description?.trim() || null,
         createdById: userId,
-        type: "restaurant",
-        audience: "profile", 
-        visibility: finalVisibility,
-        circleId: circleId || null,
-        shareWithCircle: shareWithCircle || false,
-        makePublic: makePublic || false,
+        type: "restaurant" as const,
+        audience: "profile" as const,
+        // Legacy fields (always populated for backward compatibility)
+        visibility: derivedVisibility.type,
+        circleId: derivedVisibility.type === 'circle' ? (derivedVisibility.circleIds?.[0] || null) : null,
+        shareWithCircle: derivedVisibility.type === 'circle',
+        makePublic: derivedVisibility.type === 'public',
+        isPublic: derivedVisibility.type === 'public',
         allowSharing: true,
-        isPublic: makePublic || false,
         tags: tags || [],
-      }).returning();
+        // V2 fields (when feature enabled)
+        ...(shouldUseV2Writes() && {
+          visibilityV2: derivedVisibility.type,
+          visibilityCircleIds: derivedVisibility.circleIds
+        })
+      };
+
+      const newList = await db.insert(restaurantLists).values(listData).returning();
 
       // If sharing to circle, create shared list relationship
       if (circleId && shareWithCircle && newList[0]) {

@@ -1,0 +1,87 @@
+What’s blocking
+
+Your frontend and API now assume visibility_v2 exists, but the database doesn’t have that column yet. That mismatch blocks list creation/retrieval and causes cache/state to look “right” while persistence fails.
+
+What to do next (safest/fastest path)
+
+Do a surgical DB + code shim so production is unblocked immediately and future reads/writes use one canonical field.
+
+Step 1 — DB migration (+ backfill)
+
+Create an additive, zero-downtime migration:
+
+-- 1) enum (or use TEXT with a CHECK if you don't want an enum yet)
+DO $$ BEGIN
+  CREATE TYPE visibility_v2_enum AS ENUM ('private','public','followers','circle');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- 2) new columns
+ALTER TABLE restaurant_lists
+  ADD COLUMN IF NOT EXISTS visibility_v2 visibility_v2_enum,
+  ADD COLUMN IF NOT EXISTS visibility_circle_ids INTEGER[] NULL;
+
+-- 3) backfill from legacy fields
+UPDATE restaurant_lists
+SET visibility_v2 =
+  CASE
+    WHEN make_public = TRUE OR is_public = TRUE THEN 'public'::visibility_v2_enum
+    WHEN share_with_circle = TRUE AND circle_id IS NOT NULL THEN 'circle'::visibility_v2_enum
+    WHEN (visibility::jsonb ->> 'audience') = 'followers' THEN 'followers'::visibility_v2_enum
+    ELSE 'private'::visibility_v2_enum
+  END,
+  visibility_circle_ids = CASE
+    WHEN share_with_circle = TRUE AND circle_id IS NOT NULL
+      THEN ARRAY[circle_id]::INTEGER[]
+    ELSE NULL
+  END
+WHERE visibility_v2 IS NULL;
+
+-- 4) default (optional, avoids nulls for new rows even if app flag is off)
+ALTER TABLE restaurant_lists
+  ALTER COLUMN visibility_v2 SET DEFAULT 'private';
+
+-- 5) helpful indexes (safe, optional now)
+CREATE INDEX IF NOT EXISTS idx_lists_visibility_v2 ON restaurant_lists(visibility_v2);
+CREATE INDEX IF NOT EXISTS idx_lists_visibility_circle_ids ON restaurant_lists USING GIN (visibility_circle_ids);
+
+
+If you’re using Drizzle: generate a migration that mirrors the above and keep legacy columns unchanged (read-only).
+
+Step 2 — Runtime shim (prevents blocking if column ever absent)
+
+In your list service, derive an effective visibility that prefers visibility_v2, else falls back to legacy:
+
+export function deriveVisibility(list: ListRow) {
+  if (list.visibility_v2) return { type: list.visibility_v2, circleIds: list.visibility_circle_ids ?? null };
+
+  // legacy fallback (read-only)
+  if (list.make_public || list.is_public) return { type: 'public', circleIds: null };
+  if (list.share_with_circle && list.circle_id) return { type: 'circle', circleIds: [list.circle_id] };
+  const v = safeParseLegacyVisibilityJSON(list.visibility);
+  if (v?.audience === 'followers') return { type: 'followers', circleIds: null };
+  return { type: 'private', circleIds: null };
+}
+
+
+Reads: always call deriveVisibility() and enforce access from that.
+
+Writes: when the feature flag LISTS_VISIBILITY_V2=true, write only to visibility_v2 / visibility_circle_ids. Leave legacy fields untouched. If the flag is off, continue legacy writes (but still compute access from the shim to avoid split-brain).
+
+Step 3 — API contract tolerance (no surprises)
+
+Create/Update List: accept both the new fields (visibility_v2, visibility_circle_ids) and legacy booleans, but normalize to visibility_v2 internally when the flag is on.
+
+Get List / Collections: expose a single visibility object in responses, derived from deriveVisibility() so the UI never has to guess.
+
+Step 4 — Quick tests (prove it’s fixed)
+
+Unit: backfill mapping table → 10–12 cases (public/private/followers/circle, null legacy).
+
+Supertest:
+
+POST /api/lists with each visibility → GET /api/lists/:id returns expected derived visibility.
+
+Access matrix for A/B/C/D personas (private/public/followers/circle).
+
+One migration test: create legacy-only row → ensure read derives correctly.
