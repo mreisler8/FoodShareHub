@@ -19,3 +19,66 @@
 {"t":"trace","op":"ratings.write","path":"/","placeId":"ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":280,"note":"Rating save attempt","timestamp":"2025-08-12T14:25:37.954Z"}
 {"t":"trace","op":"restaurant.read","path":"/1/lists","cacheHit":false,"status":401,"ms":3,"note":"Not authenticated","timestamp":"2025-08-15T13:28:47.914Z"}
 {"t":"trace","op":"restaurant.read","path":"/1/posts","cacheHit":false,"status":401,"ms":1,"note":"Not authenticated","timestamp":"2025-08-15T13:28:48.321Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/26","userId":7,"cacheHit":false,"status":200,"ms":78,"note":"User rating fetch","timestamp":"2025-08-16T13:27:45.209Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/26","userId":7,"cacheHit":false,"status":200,"ms":78,"note":"User rating fetch","timestamp":"2025-08-16T13:27:45.210Z"}
+{"t":"trace","op":"circleScore.read","path":"/26/circle-score","userId":7,"cacheHit":false,"status":200,"ms":220,"note":"Circle Score fetch","timestamp":"2025-08-16T13:27:45.342Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88084025","userId":7,"cacheHit":false,"status":404,"ms":72,"note":"Rating not found","timestamp":"2025-08-16T13:28:04.421Z"}
+{"t":"trace","op":"circleScore.read","path":"/88084025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":74,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:04.429Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88084025","userId":7,"cacheHit":false,"status":404,"ms":110,"note":"Rating not found","timestamp":"2025-08-16T13:28:04.473Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88484025","userId":7,"cacheHit":false,"status":404,"ms":74,"note":"Rating not found","timestamp":"2025-08-16T13:28:04.480Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88484025","userId":7,"cacheHit":false,"status":404,"ms":71,"note":"Rating not found","timestamp":"2025-08-16T13:28:04.485Z"}
+{"t":"trace","op":"circleScore.read","path":"/88484025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":67,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:04.638Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881384025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:04.772Z"}
+{"t":"trace","op":"circleScore.read","path":"/881384025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":68,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:04.822Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881384025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:04.833Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881584025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:04.837Z"}
+{"t":"trace","op":"circleScore.read","path":"/881584025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":83,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:04.887Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881584025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.000Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881984025","userId":7,"cacheHit":false,"status":404,"ms":71,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.119Z"}
+{"t":"trace","op":"circleScore.read","path":"/881984025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":66,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:05.179Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88184025","userId":7,"cacheHit":false,"status":404,"ms":67,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.188Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881984025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.196Z"}
+{"t":"trace","op":"circleScore.read","path":"/88184025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":70,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:05.243Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88184025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.373Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88284025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.457Z"}
+{"t":"trace","op":"circleScore.read","path":"/88284025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":67,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:05.534Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88284025","userId":7,"cacheHit":false,"status":404,"ms":67,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.589Z"}
+{"t":"trace","op":"circleScore.read","path":"/88384025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":67,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:05.590Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88384025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.601Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88384025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.740Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88584025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.805Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88584025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.930Z"}
+{"t":"trace","op":"circleScore.read","path":"/88584025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":68,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:05.931Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88684025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:05.934Z"}
+{"t":"trace","op":"circleScore.read","path":"/88684025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":66,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:05.939Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88684025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.079Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88784025","userId":7,"cacheHit":false,"status":404,"ms":75,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.201Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88884025","userId":7,"cacheHit":false,"status":404,"ms":67,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.269Z"}
+{"t":"trace","op":"circleScore.read","path":"/88784025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":67,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:06.270Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88784025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.275Z"}
+{"t":"trace","op":"circleScore.read","path":"/88884025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":66,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:06.322Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88884025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.463Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88984025","userId":7,"cacheHit":false,"status":404,"ms":69,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.544Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/88984025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.612Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881084025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.614Z"}
+{"t":"trace","op":"circleScore.read","path":"/88984025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":66,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:06.657Z"}
+{"t":"trace","op":"circleScore.read","path":"/881084025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":66,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:06.671Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881084025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.811Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881184025","userId":7,"cacheHit":false,"status":404,"ms":68,"note":"Rating not found","timestamp":"2025-08-16T13:28:06.887Z"}
+{"t":"trace","op":"circleScore.read","path":"/881184025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":66,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:06.954Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881184025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.000Z"}
+{"t":"trace","op":"circleScore.read","path":"/881284025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":67,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:07.018Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881284025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.087Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881284025","userId":7,"cacheHit":false,"status":404,"ms":68,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.153Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881484025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.221Z"}
+{"t":"trace","op":"circleScore.read","path":"/881484025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":67,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:07.290Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881484025","userId":7,"cacheHit":false,"status":404,"ms":67,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.338Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881684025","userId":7,"cacheHit":false,"status":404,"ms":67,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.360Z"}
+{"t":"trace","op":"circleScore.read","path":"/881684025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":68,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:07.424Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881684025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.486Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881784025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.559Z"}
+{"t":"trace","op":"circleScore.read","path":"/881784025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":66,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:07.628Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881784025","userId":7,"cacheHit":false,"status":404,"ms":66,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.681Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881884025","userId":7,"cacheHit":false,"status":404,"ms":65,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.698Z"}
+{"t":"trace","op":"circleScore.read","path":"/881884025/circle-score","userId":7,"cacheHit":false,"status":500,"ms":65,"note":"Failed to calculate circle score","timestamp":"2025-08-16T13:28:07.765Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/881884025","userId":7,"cacheHit":false,"status":404,"ms":67,"note":"Rating not found","timestamp":"2025-08-16T13:28:07.829Z"}
