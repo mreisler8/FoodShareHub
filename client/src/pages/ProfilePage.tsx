@@ -81,11 +81,12 @@ export default function ProfilePage() {
     staleTime: 2 * 60 * 1000, // 2 minutes cache
   });
 
-  // Fetch user's lists with lazy loading
+  // Fetch user's lists with lazy loading - CACHE INVALIDATED FOR DEBUGGING
   const { data: userLists, isLoading: isListsLoading } = useQuery({
     queryKey: [`/api/users/${userId}/lists`],
     enabled: !!userId && activeTab === "lists",
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
+    staleTime: 0, // No cache for debugging
+    refetchOnWindowFocus: true,
   });
 
   // Fetch user's ratings with lazy loading
@@ -386,7 +387,16 @@ export default function ProfilePage() {
     </div>
   );
 
-  const ListsTab = () => (
+  const ListsTab = () => {
+    console.log('ListsTab rendering, userLists:', userLists, 'isLoading:', isListsLoading);
+    // Alert for immediate visibility in UI
+    if (userLists && userLists.length > 0) {
+      const firstListWithCount = userLists.find(l => l.restaurantCount > 0);
+      if (firstListWithCount) {
+        console.log('FOUND LIST WITH RESTAURANTS:', firstListWithCount.name, 'count:', firstListWithCount.restaurantCount);
+      }
+    }
+    return (
     <div className="px-4 md:px-6 py-6">
       {isListsLoading ? (
         <div className="grid gap-6 sm:grid-cols-2">
@@ -410,6 +420,7 @@ export default function ProfilePage() {
         <div className="grid gap-6 sm:grid-cols-2">
           {userLists.map((list: any) => {
             console.log('ProfilePage list data:', list.name, 'restaurantCount:', list.restaurantCount);
+            console.log('Full list object:', list);
             return (
             <Link href={`/lists/${list.id}`} key={list.id}>
               <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-100">
@@ -494,7 +505,8 @@ export default function ProfilePage() {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   const RatingsTab = () => (
     <div className="px-4 md:px-6 py-6">
