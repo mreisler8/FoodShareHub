@@ -375,7 +375,7 @@ export default function ListDetails() {
       const response = await apiRequest(`/api/lists/${listId}/items`, {
         method: "POST",
         body: JSON.stringify({
-          restaurantId: restaurantId,
+          restaurantId: Number(restaurantId), // Ensure it's a number
           rating: 5, // Default rating
           liked: null,
           disliked: null,
@@ -524,7 +524,7 @@ export default function ListDetails() {
   const listStats = useMemo(() => {
     const totalItems = listItems.length;
     const avgRating = listItems.reduce((sum, item) => sum + (item.rating || 0), 0) / totalItems;
-    const cuisines = Array.from(new Set(listItems.map(item => item.restaurant?.category).filter(Boolean)));
+    const cuisines = Array.from(new Set(listItems.map(item => item.restaurant?.category).filter(Boolean) as string[]));
     const cities = Array.from(new Set(listItems.map(item => {
       // Extract city from location string
       const location = item.restaurant?.location || '';

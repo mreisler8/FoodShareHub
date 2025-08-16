@@ -20,6 +20,7 @@ import { FollowButton } from '@/components/FollowButton';
 import { SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
 import QuickRateButton from '@/components/ratings/QuickRateButton';
+import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
 import CircleScoreCard from '@/components/circle-score/CircleScoreCard';
 import { CircleScoreEnhancement } from '@/components/mvp/CircleScoreEnhancement';
 import { useCircleScore } from '@/hooks/useCircleScore';
@@ -60,6 +61,21 @@ function CircleScoreDisplay({ restaurantId, googlePlaceId }: {
       variant="compact"
       className="text-xs"
     />
+  );
+}
+
+// Component to handle personal rating state for each restaurant
+function RestaurantQuickRateButton({ restaurant }: { restaurant: any }) {
+  const { rating: existingRating } = useRestaurantRatingState(restaurant);
+  
+  return (
+    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
+      <QuickRateButton
+        restaurant={restaurant}
+        existingRating={existingRating}
+        variant="compact"
+      />
+    </div>
   );
 }
 
@@ -281,29 +297,29 @@ export function SearchResultsList({
 
                     {/* Quick Rate Button for restaurants */}
                     {result.type === 'restaurant' && (
-                      <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-                        <QuickRateButton
-                          restaurant={{
-                            id: typeof result.id === 'string' && result.id.startsWith('google_') ? undefined : Number(result.id),
-                            googlePlaceId: typeof result.id === 'string' && result.id.startsWith('google_') ? result.id.replace('google_', '') : result.metadata?.googlePlaceId,
-                            name: result.name,
-                            location: result.location || result.subtitle || '',
-                            address: result.metadata?.address || result.subtitle || ''
-                          }}
-                          variant="compact"
+                      <RestaurantQuickRateButton
+                        restaurant={{
+                          id: typeof result.id === 'string' && result.id.startsWith('google_') ? undefined : Number(result.id),
+                          googlePlaceId: typeof result.id === 'string' && result.id.startsWith('google_') ? result.id.replace('google_', '') : result.metadata?.googlePlaceId,
+                          name: result.name,
+                          location: result.location || result.subtitle || '',
+                          address: result.metadata?.address || result.subtitle || ''
+                        }}
+                      />
+                    )}
+
+                    {/* TriedItButton appears when restaurant is from a recommendation */}
+                    {result.type === 'restaurant' && result.metadata?.isRecommendation && result.metadata?.recommenderUserId && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <TriedItButton
+                          entityType={result.metadata.recommendationEntityType || 'rating'}
+                          entityId={result.metadata.recommendationEntityId || 0}
+                          restaurantId={typeof result.id === 'string' && result.id.startsWith('google_') ? 0 : Number(result.id)}
+                          recommenderUserId={result.metadata.recommenderUserId}
+                          sourceContext="search_results"
+                          size="sm"
+                          variant="ghost"
                         />
-                        {/* TriedItButton appears when restaurant is from a recommendation */}
-                        {result.metadata?.isRecommendation && result.metadata?.recommenderUserId && (
-                          <TriedItButton
-                            entityType={result.metadata.recommendationEntityType || 'rating'}
-                            entityId={result.metadata.recommendationEntityId || 0}
-                            restaurantId={typeof result.id === 'string' && result.id.startsWith('google_') ? 0 : Number(result.id)}
-                            recommenderUserId={result.metadata.recommenderUserId}
-                            sourceContext="search_results"
-                            size="sm"
-                            variant="ghost"
-                          />
-                        )}
                       </div>
                     )}
 
