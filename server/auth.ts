@@ -340,8 +340,8 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
 
   // Store user agent for logging purposes but don't enforce for API routes
   const userAgent = req.headers['user-agent'];
-  if (!req.session.userAgent) {
-    req.session.userAgent = userAgent;
+  if (userAgent && !(req.session as any).userAgent) {
+    (req.session as any).userAgent = userAgent;
   }
 
   next();
