@@ -11,6 +11,20 @@ import { deriveVisibility, normalizeVisibilityInput, shouldUseV2Writes, canAcces
 const router = Router();
 
 // V2 Schema (new visibility system)
+// Schema for restaurant list items in V2
+const restaurantListItemSchemaV2 = z.object({
+  restaurantId: z.number().nullable().optional(),
+  position: z.number().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  restaurant: z.object({
+    id: z.number().optional(),
+    name: z.string(),
+    location: z.string().optional(),
+    city: z.string().optional(),
+    // Add other restaurant fields as needed
+  }).optional(),
+});
+
 const createListSchemaV2 = z.object({
   name: z.string().min(1, 'List name is required').max(100, 'List name must be 100 characters or less'),
   description: z.string().nullable().optional(),
@@ -21,6 +35,8 @@ const createListSchemaV2 = z.object({
   type: z.enum(['restaurant', 'dish']).optional().default('restaurant'),
   coverImage: z.string().nullable().optional(),
   primaryLocation: z.string().nullable().optional(),
+  // CRITICAL: Add items field to preserve restaurant data through validation
+  items: z.array(restaurantListItemSchemaV2).optional().default([]),
 }).refine((data) => {
   // If visibility is 'circle', require at least one circle ID
   if (data.visibilityV2 === 'circle' && (!data.visibilityCircleIds || data.visibilityCircleIds.length === 0)) {
@@ -287,8 +303,10 @@ router.post("/", authenticate, async (req, res) => {
     const schema = useV2Schema ? createListSchemaV2 : createListSchema;
     
     console.log('Using schema:', useV2Schema ? 'V2' : 'Legacy');
+    console.log('Has items in request body:', !!(req.body.items && Array.isArray(req.body.items) && req.body.items.length > 0));
     const validatedData = schema.parse(req.body);
-    console.log('Validated data:', JSON.stringify(validatedData, null, 2));
+    console.log('Validated data keys:', Object.keys(validatedData));
+    console.log('Items in validated data:', (validatedData as any).items?.length || 0);
 
     // Extract fields based on schema version
     let name: string;
@@ -320,7 +338,7 @@ router.post("/", authenticate, async (req, res) => {
         case 'circle':
           shareWithCircle = true;
           visibility = 'circle';
-          circleId = (v2Data.visibilityCircleIds && v2Data.visibilityCircleIds[0]) || null;
+          circleId = (v2Data.visibilityCircleIds && v2Data.visibilityCircleIds.length > 0) ? v2Data.visibilityCircleIds[0] : null;
           break;
         case 'followers':
           visibility = 'followers';
@@ -411,7 +429,7 @@ router.post("/", authenticate, async (req, res) => {
         type: "restaurant" as const,
         audience: "profile" as const,
         // Legacy fields (always populated for backward compatibility)
-        visibility: (derivedVisibility.type as string) || 'private',
+        visibility: String(derivedVisibility.type) || 'private',
         circleId: derivedVisibility.type === 'circle' ? (derivedVisibility.circleIds?.[0] || null) : null,
         shareWithCircle: derivedVisibility.type === 'circle',
         makePublic: derivedVisibility.type === 'public',
@@ -456,9 +474,9 @@ router.post("/", authenticate, async (req, res) => {
                 const newRestaurant = await db.insert(restaurants).values({
                   name: item.restaurant.name,
                   location: item.restaurant.location || item.restaurant.city || 'Unknown',
-                  category: null,
+                  category: 'Restaurant', // Required field
+                  priceRange: '$', // Default value
                   cuisineType: null,
-                  priceRange: null,
                   rating: null,
                   description: null,
                   imageUrl: null,
@@ -1575,10 +1593,7 @@ async function checkListAccessById(listId: number, userId: number | null): Promi
 
   if (list.length === 0) return false;
 
-  return await canAccessList(
-    list[0], 
-    userId
-  );
+  return canAccessList(list[0], userId);
 }
 
 async function checkVisibilityV2Access(listData: any, userId: number): Promise<boolean> {
