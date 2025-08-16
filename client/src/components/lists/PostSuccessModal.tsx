@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Eye, Plus, Home, Share2 } from "lucide-react";
-import { ShareDestination } from "./ShareListDestinationPicker";
+import { ShareDestination } from "./ShareDestinationCards";
 
 interface PostSuccessModalProps {
   open: boolean;

@@ -18,6 +18,7 @@ import DiscoverFeed from "../pages/DiscoverFeed";
 import DiscoverByLocation from "../pages/discover-by-location";
 import ListDetails from "../pages/list-details";
 import CreateList from "../pages/create-list";
+import CreateListSimple from "../pages/create-list-simple";
 import { CreateMomentPage } from "../pages/create-moment";
 import CreateCircle from "../pages/create-circle";
 import CreateCircleAdvanced from "../pages/create-circle-advanced";
@@ -57,7 +58,7 @@ function Router() {
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/lists" component={MyLists} />
       <ProtectedRoute path="/lists/create" component={CreateList} />
-      <ProtectedRoute path="/create-list" component={CreateList} />
+      <ProtectedRoute path="/create-list" component={CreateListSimple} />
       <ProtectedRoute path="/lists/:id" component={ListDetails} />
       <ProtectedRoute path="/my-lists" component={MyLists} />
       <ProtectedRoute path="/posts/:id" component={PostDetails} />
