@@ -2,7 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { Request, Response, NextFunction } from "express";
@@ -14,16 +14,39 @@ declare global {
   }
 }
 
-// Hash password with bcrypt for secure storage
+// Hash password with scrypt for secure storage
 async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 12;
-  return await bcrypt.hash(password, saltRounds);
+  return new Promise((resolve, reject) => {
+    // Generate a random salt
+    const salt = crypto.randomBytes(16).toString('hex');
+    
+    // Hash the password using scrypt
+    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(`${derivedKey.toString('hex')}.${salt}`);
+    });
+  });
 }
 
-// Compare a supplied password with a stored hashed password
+// Compare a supplied password with a stored scrypt-hashed password
 async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
   try {
-    return await bcrypt.compare(supplied, stored);
+    return new Promise((resolve, reject) => {
+      const [hash, salt] = stored.split('.');
+      if (!hash || !salt) {
+        resolve(false);
+        return;
+      }
+      
+      crypto.scrypt(supplied, salt, 64, (err, derivedKey) => {
+        if (err) {
+          console.error("Password comparison error:", err);
+          resolve(false);
+        } else {
+          resolve(hash === derivedKey.toString('hex'));
+        }
+      });
+    });
   } catch (error) {
     console.error("Password comparison error:", error);
     return false;
@@ -79,7 +102,10 @@ export function setupAuth(app: Express) {
         }
 
         console.log("User found, verifying password");
+        console.log("Stored password hash:", user.password);
+        console.log("Supplied password:", password);
         const isValidPassword = await comparePasswords(password, user.password);
+        console.log("Password validation result:", isValidPassword);
         if (!isValidPassword) {
           console.log("Invalid password");
           return done(null, false, { message: "Incorrect password. Please try again" });
