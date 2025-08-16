@@ -252,7 +252,8 @@ router.get('/', authenticate, async (req, res) => {
             sharedCirclesByList[share.listId].push(share.circleId);
           });
 
-          // Get restaurant counts for all lists
+          // Get restaurant counts for all lists - FIXED
+          console.log('Fetching restaurant counts for list IDs:', listIds);
           const restaurantCounts = await db
             .select({
               listId: restaurantListItems.listId,
@@ -262,9 +263,12 @@ router.get('/', authenticate, async (req, res) => {
             .where(inArray(restaurantListItems.listId, listIds))
             .groupBy(restaurantListItems.listId);
 
+          console.log('Restaurant counts query result:', restaurantCounts);
+
           const countByList: Record<number, number> = {};
           restaurantCounts.forEach(({ listId, count }) => {
             countByList[listId] = count;
+            console.log(`List ${listId} has ${count} restaurants`);
           });
 
           // Add shared circles and restaurant count to each list
@@ -475,7 +479,7 @@ router.post("/", authenticate, async (req, res) => {
                   name: item.restaurant.name,
                   location: item.restaurant.location || item.restaurant.city || 'Unknown',
                   category: 'Restaurant', // Required field
-                  priceRange: '$', // Default value
+                  priceRange: '$', // Required field - default value
                   cuisineType: null,
                   rating: null,
                   description: null,

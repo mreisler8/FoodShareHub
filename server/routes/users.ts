@@ -452,12 +452,14 @@ router.get("/:id/posts", authenticate, validateUserId, validateTargetUserId, asy
   }
 });
 
-// User lists endpoint with enhanced data
+// User lists endpoint with enhanced data - FIXED restaurant count calculation
 router.get("/:id/lists", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
       const userId = parseInt(req.params.id);
 
-      // Simple lists query without complex subqueries
+      console.log(`Fetching lists for user ${userId}`);
+
+      // Get user lists
       const userLists = await db
         .select()
         .from(restaurantLists)
@@ -465,7 +467,40 @@ router.get("/:id/lists", authenticate, validateUserId, validateTargetUserId, asy
         .orderBy(desc(restaurantLists.createdAt))
         .limit(20);
 
-      res.json(userLists);
+      console.log(`Found ${userLists.length} lists for user ${userId}`);
+
+      // Get restaurant counts for each list - CRITICAL FIX
+      const listIds = userLists.map(list => list.id);
+      let listsWithCounts = userLists;
+
+      if (listIds.length > 0) {
+        console.log(`Calculating restaurant counts for list IDs: ${listIds.join(', ')}`);
+
+        const restaurantCounts = await db
+          .select({
+            listId: restaurantListItems.listId,
+            count: sql<number>`count(*)::int`
+          })
+          .from(restaurantListItems)
+          .where(inArray(restaurantListItems.listId, listIds))
+          .groupBy(restaurantListItems.listId);
+
+        console.log('Restaurant count results:', restaurantCounts);
+
+        const countByList: Record<number, number> = {};
+        restaurantCounts.forEach(({ listId, count }) => {
+          countByList[listId] = count;
+          console.log(`List ${listId} has ${count} restaurants`);
+        });
+
+        listsWithCounts = userLists.map(list => ({
+          ...list,
+          restaurantCount: countByList[list.id] || 0
+        }));
+      }
+
+      console.log(`Returning ${listsWithCounts.length} lists with restaurant counts`);
+      res.json(listsWithCounts);
   } catch (error) {
       console.error("Error fetching user lists:", error);
       res.status(500).json({ error: "Failed to fetch user lists" });
