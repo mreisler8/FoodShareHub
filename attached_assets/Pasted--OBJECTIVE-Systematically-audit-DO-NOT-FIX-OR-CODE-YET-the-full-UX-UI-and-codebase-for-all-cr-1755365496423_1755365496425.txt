@@ -1,0 +1,339 @@
+🎯 OBJECTIVE: Systematically audit (DO NOT FIX OR CODE YET) the full UX, UI, and codebase for all critical MVP user flows. Identify every architectural, integration, and UX breakdown preventing successful real-world usage. Ensure end-to-end success from user intent → backend logic → visual UI → interaction reliability → data integrity.
+
+🧩 SCOPE:
+This is a comprehensive end-to-end audit across:
+
+Authentication & Onboarding
+
+Restaurant Search + Social Layer
+
+List Creation + Sharing
+
+List Editing + Updating
+
+Food Moments + Photo Sharing
+
+Discovery Feed & Friend Activity
+
+Search & Restaurant Interaction Flows
+
+Feed Composition & Content Ranking
+
+Navigation, Routing & Mobile Behavior
+
+Visual Design, Accessibility & Performance
+
+🔍 FLOW 1: AUTHENTICATION & SOCIAL ONBOARDING
+
+New user creates login, confirms email (if applicable), and logs in
+
+User updates profile (image, name, bio)
+
+User finds and follows friends (search or suggestion)
+
+Profile page updates in real time with follow status
+
+✅ Required:
+
+Secure auth (bcrypt/session or equivalent)
+
+Profile image upload UI + backend storage
+
+Friend search by name + follow/unfollow UX
+
+All UI state reactive on Profile + Feed pages
+
+State should persist across login sessions
+
+🔍 FLOW 2: RESTAURANT SEARCH & RATING WITH SOCIAL CONTEXT
+
+User logs in → searches for a restaurant
+
+Views restaurant detail page
+
+Sees friends’ ratings and Circle Score
+
+Leaves their own review and rating
+
+Sees recent photo moments shared from the location
+
+✅ Required:
+
+Search returns accurate results across typo and variant cases
+
+Restaurant detail page shows:
+
+Circle Score (with accurate aggregation logic)
+
+Friend reviews + timestamps
+
+Rating interface with auth + validation
+
+Moment thumbnails with option to expand
+
+Rating submission updates DB and UI live
+
+🔍 FLOW 3: LIST CREATION + SHARING
+
+User creates a Ranked List (e.g., “Best Pizza”)
+
+Adds multiple restaurants via search
+
+Ranks them using drag-and-drop
+
+Adds tags and description
+
+Chooses visibility: private, public, or to specific Circles
+
+Publishes list and confirms success
+
+Friends/Circle receive it and can open + comment/interact
+
+✅ Required:
+
+DnD (via @dnd-kit or equivalent) fully functional
+
+Tags input + backend support
+
+Visibility toggle must trigger scoped sharing logic
+
+Create List button must POST successfully with success feedback
+
+New list appears in Feed/Profile/Circle view based on visibility
+
+Shared recipients can view & interact with list
+
+Auth and visibility layers respected across all list views
+
+🔍 FLOW 4: LIST MAINTENANCE & EDITING
+
+User visits their Profile → selects existing list
+
+Adds or removes items (e.g., new restaurant)
+
+Changes ranking or tags
+
+Saves changes and confirms persistence
+
+✅ Required:
+
+List detail page functional
+
+Edit mode supports all initial creation features
+
+API PATCH or PUT call persists changes
+
+UI reflects updates in all relevant views
+
+Inline editing must not break UX
+
+🔍 FLOW 5: PHOTO/MOMENT SHARING
+
+User visits a restaurant, takes photo
+
+Posts a Food Moment with image, caption, tags, and optional location
+
+Shares with their followers or Circles
+
+Post appears in Feed and Profile
+
+✅ Required:
+
+Photo upload UI (with compression if needed)
+
+Post submission form with validation
+
+API endpoint stores and links moment to place + user
+
+Feed renders moment (photo, caption, location, date, etc.)
+
+Commenting and liking available
+
+🔍 FLOW 6: DISCOVERY & FRIEND ACTIVITY
+
+User logs in just to browse
+
+Lands on Feed
+
+Sees friends' latest ratings, lists, and moments
+
+Taps on any item and is routed to full page
+
+Interacts with content (like, save, comment, share)
+
+✅ Required:
+
+Feed aggregation logic correctly queries all content types
+
+Feed ordering by timestamp and/or popularity
+
+All cards (List, Moment, Review) clickable
+
+Navigation and back behavior work across devices
+
+Profile pages link to Feed activity and vice versa
+
+🔍 FLOW 7: RESTAURANT INTERACTION
+
+User taps a restaurant from Feed or Search
+
+Views full profile: address, images, tags, Circle Score, reviews
+
+Can save to list, rate, or post a moment directly from detail view
+
+✅ Required:
+
+Contextual actions all available from restaurant page
+
+Data integrity between review, rating, list state
+
+Share and copy link options function properly
+
+🔍 FLOW 8: FEED COMPOSITION & CONTENT RANKING
+
+Feed shows mixture of:
+
+Recent Ratings
+
+Shared Lists
+
+Food Moments
+
+Rank logic based on recency, relevance, social graph
+
+✅ Required:
+
+Query optimization
+
+No duplicates or placeholders
+
+Posts render properly and quickly
+
+Infinite scroll or pagination functional
+
+🔍 FLOW 9: NAVIGATION & MOBILE
+
+User navigates across app via bottom bar, cards, back buttons
+
+Mobile gestures and back behavior feel native
+
+No broken links, missing headers, or flickering transitions
+
+✅ Required:
+
+Fully responsive mobile layout
+
+All core routes functional with URL memory
+
+Transition states smooth
+
+🔍 FLOW 10: VISUAL, ACCESSIBILITY, AND PERFORMANCE
+
+UI spacing, colors, icons consistent
+
+All image and alt text attributes present
+
+Pages load under 2s with compressed assets
+
+Drag/drop, save, and load states behave consistently
+
+✅ Required:
+
+Accessibility checks (keyboard, contrast, labels)
+
+Clear feedback for all user actions (loading, success, error)
+
+Fonts and buttons consistent across flows
+
+📊 REQUIRED AUDITS & VALIDATION
+
+1. Component & Data Contract Audit
+
+Trace all components that consume list, moment, and review data
+
+Validate contract compatibility across API → component
+
+Ensure no props missing or misused (TypeScript warnings addressed)
+
+Ensure components fail gracefully if data is missing
+
+2. UX & Journey Validation
+
+Run end-to-end tests simulating real user flows (as above)
+
+Confirm visual accuracy, clickability, success feedback
+
+Validate all buttons, modals, rankings, and scroll behavior
+
+Run tests on mobile and desktop
+
+3. Root Cause Analysis
+For each failure/blocker:
+
+Trace the exact failing point (data layer? component mismatch? auth issue?)
+
+Provide logs or code references if available
+
+Document precise breakdowns and error types
+
+Link issues to corresponding flow requirement
+
+4. Systematic Repair Plan
+
+Immediate fixes (≤30 mins)
+
+High-priority repairs (≤2 hrs)
+
+Reusable UX component improvements
+
+Any migrations required (e.g., schema updates, auth changes)
+
+Dependencies that must be upgraded or removed
+
+5. Final Success Metrics
+
+✅ Documented report of findings
+
+✅ Recommended plan of action to ensure, systemically and concretely:
+
+Every content type renders and routes properly
+
+No placeholder values or broken states
+
+Auth, error handling, and visibility all robust
+
+UX validated on both desktop and mobile
+
+User journeys complete from login to interaction
+
+🧠 CONTEXTUAL NOTES:
+
+List creation backend confirmed functional
+
+UI binding, Feed crashes, Profile rendering require architectural cleanup
+
+Accessibility, drag UX, and loading states must be validated
+
+Reuse components wherever possible across List, Moment, Review
+
+🚀 DELIVERABLE:
+Final Systematic Audit Report covering:
+
+Root causes for each broken flow (by number)
+
+Code & architecture issues identified
+
+Remaining issues or risks
+
+Confirmation each user goal can be completed end-to-end
+
+Screenshots/logs/output traces
+
+Priority map of all bugs/failures with time-to-fix estimates
+
+Clear pass/fail per flow
+
+✅ Use language any engineer, PM, or stakeholder can understand.
+✅ This is the foundation of our MVP QA and go-to-market readiness.
+✅ No fixes should proceed until this audit is complete.
+
