@@ -1,0 +1,165 @@
+Here is a comprehensive, production-grade Dev Agent prompt designed to systematically fix the entire Create List flow, including all blockers surfaced in your audits and UX validation reports. This assumes the agent is operating inside Replit with full access to the codebase and dev tools.
+
+🧠 Dev Agent Prompt: Systematic Fix for Create List MVP – Final Validation Pass
+
+You are acting as a senior full-stack engineer completing a systematic final implementation and validation of the “Create a List” MVP feature for a food recommendation social app. Our objective is to deliver a fully functional, production-grade Create List flow that satisfies core user expectations and MVP readiness criteria.
+
+🔍 Your Mission (Do NOT skip any steps)
+
+You must:
+
+Fix all critical functionality gaps found during audit and user testing.
+
+Integrate missing components (ranking, custom tags, validation).
+
+Stabilize UX interactions and eliminate jank or scroll issues.
+
+Surface and handle all errors comprehensively in the frontend.
+
+Ensure end-to-end list creation works from UI to DB.
+
+Do not assume anything works unless it is validated.
+
+✅ Section 1: Critical Functional Fixes
+🧩 1. Fix Final Submit Error (Production Blocker)
+
+Review the POST /api/lists call on submit.
+
+Confirm visibility_v2, title, and all required fields are included in the payload.
+
+If a 400 or 500 error is returned:
+
+Log error to console
+
+Surface error message via InlineError or toast
+
+Add loading spinner and success state.
+
+Expected Result:
+List creation succeeds (201), DB fields are populated, user sees feedback toast or redirect.
+
+🧠 2. Add Ranked List Functionality (Feature Blocker)
+
+Implement drag-and-drop with @dnd-kit inside AddListItemModal.
+
+Enable reordering of list items with visual indicators (numbers or drag handles).
+
+Persist item order in the list creation payload (position or order field).
+
+Expected Result:
+Users can reorder list items before submission, and the order is retained in the backend.
+
+🏷️ 3. Add Custom Tags to Create List Form (Missing Input)
+
+Reuse SmartTagInput component used on restaurant page.
+
+Insert under title or restaurant search in the list creation form.
+
+Sync with backend tags field on submit.
+
+Expected Result:
+Users can enter new tags or choose existing ones. Tags are persisted with the list.
+
+🧪 Section 2: UX & State Stability Fixes
+🔄 4. Fix UI Scroll Jumping on Visibility Toggle
+
+Prevent scroll-to-bottom when visibility changes (likely due to form rerender).
+
+Use scroll preservation or sticky header to maintain context.
+
+Add visual feedback (toast or inline note: “Sharing with profile”).
+
+Expected Result:
+Page does not scroll erratically; user remains oriented in the form.
+
+🔐 5. Validate Authentication and Permission Handling
+
+Confirm that only logged-in users can access /create-list.
+
+Ensure all API calls are protected and session-aware.
+
+Fix password hashing or token issues that might prevent login.
+
+Expected Result:
+No unauthenticated access; create list only works for verified users.
+
+🧰 Section 3: Code and Contract Resilience
+📦 6. Validate Component Interfaces & Error Contracts
+
+Audit InlineError, SmartTagInput, AddListItemModal for prop consistency.
+
+Fix any mismatches between declared props and usage.
+
+Add fallback UI for undefined/null props and unknown types.
+
+Expected Result:
+All components render correctly without TS or runtime errors.
+
+🛡️ 7. Add Client-Side Form Validation
+
+Ensure title, restaurant items, visibility, and at least one restaurant are required.
+
+Validate tags do not exceed limit or use restricted words (if applicable).
+
+Show inline error messages on invalid form state.
+
+Expected Result:
+Form does not submit with missing required fields, and users see helpful feedback.
+
+🧪 Section 4: Test Coverage & Validation
+✅ 8. Final Validation Tests
+
+Run the following validation script:
+
+Login as a real user
+
+Go to /create-list
+
+Add 3 restaurants
+
+Reorder them using drag-and-drop
+
+Add 2 custom tags
+
+Set visibility to “My Profile”
+
+Submit list
+
+Expected Behavior:
+
+No scroll jump
+
+Clear loading and success state
+
+List appears in profile and database with correct data
+
+Tags and order are preserved
+
+📊 Section 5: Report Output (MANDATORY)
+
+Once complete, generate a report in the following format:
+
+🎯 Create List Final Validation Report
+
+✅ List Submission Works – ID {XX}
+✅ Ranked List Enabled – Drag handles functional
+✅ Tags Persisted – Tags [{...}] present in DB
+✅ Authentication Validated – User session active
+✅ Scroll Behavior Fixed – No jump on visibility toggle
+✅ UX Feedback Added – Toasts and inline errors show
+✅ All API Payloads Valid – POST and GET consistent
+
+🧪 End-to-end test passed for: [username]
+📦 All component props validated, type-safe
+
+⚠️ No known errors remaining in Create List flow.
+
+❗ Rules of Engagement
+
+Do not assume anything works unless validated via logs or DB output.
+
+Do not leave any TODOs or console errors unresolved.
+
+Do not suppress errors silently—fail loudly and inform the user.
+
+All fixes must be modular, typed, and meet MVP stability standards.

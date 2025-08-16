@@ -1,0 +1,137 @@
+🛠️ Phase 1: Stabilize Critical Path
+1. Fix Create List Submission Flow (P0)
+
+Root Cause: Likely missing visibility_v2, invalid form state, or unhandled backend constraint error.
+
+Tasks:
+
+ Add full form validation before submission (required fields, tag/rank consistency).
+
+ Include visibility_v2 in the final payload from the form.
+
+ Log and display backend error messages in InlineError (instead of silent fail).
+
+ Use a try/catch and send a toast or banner on error with context.
+
+ Add loading spinner and List created! toast on 201 success.
+
+Validation:
+
+Try creating a list with different visibility settings.
+
+Check DB logs for visibility_v2 and tag fields.
+
+Ensure API doesn’t return 400/500 on valid input.
+
+🎯 Phase 2: Restore Missing MVP Features
+2. Add Ranked List Drag-and-Drop (P1)
+
+Component: AddListItemModal
+Issue: No ability to reorder list items.
+
+Tasks:
+
+ Install and configure @dnd-kit for draggable items.
+
+ Wrap list items in a sortable <ul> container.
+
+ Assign visual numbers or drag handles for UX clarity.
+
+ Add ordering logic to the items[] payload.
+
+Validation:
+
+User can drag/reorder before saving.
+
+Order is preserved in POST payload (items: [{ position: 1, id: ... }]).
+
+3. Add Custom Tags to List Form (P1)
+
+Component: CreateListForm or CreateListPage
+
+Tasks:
+
+ Reuse existing SmartTagInput used on restaurant pages.
+
+ Insert under title field with optional label="Add tags" UI.
+
+ On submit, transform tags into the format expected by backend ({ name: string }[]).
+
+Validation:
+
+Tag input allows custom entries.
+
+Tags appear in DB and are visible on GET /api/lists.
+
+🧭 Phase 3: UX & Interaction Fixes
+4. Fix Scroll Jumping on Visibility Toggle (P2)
+
+Cause: React DOM re-renders lose scroll position.
+
+Tasks:
+
+ Wrap form in ScrollRestorationWrapper (custom or third-party).
+
+ Add smooth scrolling and focus to changed element on toggle.
+
+ Toast feedback: “Sharing with your profile”
+
+Validation:
+
+Scroll position preserved on toggle.
+
+User remains oriented; can continue flow without confusion.
+
+🧪 Phase 4: Testing and Validation
+5. Integration Tests
+
+ CreateListFlow.spec.tsx:
+
+Create a ranked list with custom tags
+
+Test scroll stability
+
+Simulate backend error and validate UX fallback
+
+6. Unit Tests
+
+DragItemRow: Tests drag logic and visual indicator
+
+SmartTagInput: Tests custom tag entry and keyboard UX
+
+CreateListForm: Validate required fields + POST payload structure
+
+7. Manual Validation Script
+
+Go to /create-list
+
+Add 3 restaurants, drag to reorder, enter 2 custom tags, toggle visibility
+
+Click "Create List"
+
+Expect:
+
+Spinner while saving
+
+Toast on success
+
+New list shows items in ranked order with tags visible
+
+🧱 Phase 5: Architecture Resilience
+8. Prevent Recurrence of Failures
+
+ Add form-level Zod schema or typed validation logic
+
+ Add dev-only warning if visibility_v2 is not defined in form state
+
+ Create ListCreationTestScenario.tsx for regression coverage
+
+✅ Success Criteria: Definition of Done
+Requirement	Status
+Users can rank list items	🔲 (To build)
+Users can add custom tags	🔲 (To build)
+Form doesn't scroll erratically	🔲 (To fix)
+Users can submit list	🔲 (To fix)
+All errors are surfaced cleanly	🔲 (To fix)
+Integration tests pass	🔲 (To write)
+No 500/400 errors on valid input	

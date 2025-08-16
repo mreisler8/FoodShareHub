@@ -282,20 +282,63 @@ router.post("/", authenticate, async (req, res) => {
     console.log('Creating list for user:', userId);
     console.log('Request body:', JSON.stringify(req.body, null, 2));
 
-    // Validate request body using schema
-    const validatedData = createListSchema.parse(req.body);
+    // Use V2 schema if visibilityV2 is present, otherwise legacy
+    const useV2Schema = req.body.visibilityV2 !== undefined;
+    const schema = useV2Schema ? createListSchemaV2 : createListSchema;
+    
+    console.log('Using schema:', useV2Schema ? 'V2' : 'Legacy');
+    const validatedData = schema.parse(req.body);
     console.log('Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const { 
-      name, 
-      description, 
-      tags,
-      circleId, 
-      visibility,
-      isPublic,
-      shareWithCircle, 
-      makePublic 
-    } = validatedData;
+    // Extract fields based on schema version
+    let name: string;
+    let description: string | null | undefined;
+    let tags: string[] = [];
+    let circleId: number | null = null;
+    let visibility: string | undefined;
+    let isPublic: boolean | undefined;
+    let shareWithCircle: boolean | undefined;
+    let makePublic: boolean | undefined;
+    let visibilityV2: string | undefined;
+    let visibilityCircleIds: number[] | null = null;
+
+    if (useV2Schema) {
+      const v2Data = validatedData as z.infer<typeof createListSchemaV2>;
+      name = v2Data.name;
+      description = v2Data.description;
+      tags = v2Data.tags || [];
+      visibilityV2 = v2Data.visibilityV2;
+      visibilityCircleIds = v2Data.visibilityCircleIds;
+      
+      // Convert V2 to legacy format for compatibility
+      switch (v2Data.visibilityV2) {
+        case 'public':
+          makePublic = true;
+          isPublic = true;
+          visibility = 'public';
+          break;
+        case 'circle':
+          shareWithCircle = true;
+          visibility = 'circle';
+          circleId = v2Data.visibilityCircleIds?.[0] || null;
+          break;
+        case 'followers':
+          visibility = 'followers';
+          break;
+        default:
+          visibility = 'private';
+      }
+    } else {
+      const legacyData = validatedData as z.infer<typeof createListSchema>;
+      name = legacyData.name;
+      description = legacyData.description;
+      tags = legacyData.tags || [];
+      circleId = legacyData.circleId;
+      visibility = legacyData.visibility;
+      isPublic = legacyData.isPublic;
+      shareWithCircle = legacyData.shareWithCircle;
+      makePublic = legacyData.makePublic;
+    }
 
     // Enterprise validation
     if (!name || name.trim().length === 0) {
@@ -354,10 +397,10 @@ router.post("/", authenticate, async (req, res) => {
 
       // Normalize visibility input using the shim
       const derivedVisibility = normalizeVisibilityInput({
-        makePublic,
-        shareWithCircle,
-        circleId,
-        visibility
+        makePublic: makePublic || false,
+        shareWithCircle: shareWithCircle || false,
+        circleId: circleId || undefined,
+        visibility: visibility || 'private'
       });
 
       // Prepare data for both legacy and V2 fields
@@ -368,7 +411,7 @@ router.post("/", authenticate, async (req, res) => {
         type: "restaurant" as const,
         audience: "profile" as const,
         // Legacy fields (always populated for backward compatibility)
-        visibility: derivedVisibility.type,
+        visibility: derivedVisibility.type || 'private',
         circleId: derivedVisibility.type === 'circle' ? (derivedVisibility.circleIds?.[0] || null) : null,
         shareWithCircle: derivedVisibility.type === 'circle',
         makePublic: derivedVisibility.type === 'public',
@@ -383,6 +426,30 @@ router.post("/", authenticate, async (req, res) => {
       };
 
       const newList = await db.insert(restaurantLists).values(listData).returning();
+
+      // Handle list items if provided
+      if (useV2Schema && (validatedData as any).items && Array.isArray((validatedData as any).items)) {
+        const items = (validatedData as any).items;
+        console.log(`Adding ${items.length} items to new list ${newList[0].id}`);
+        
+        for (const item of items) {
+          if (item.restaurantId) {
+            try {
+              await db.insert(restaurantListItems).values({
+                listId: newList[0].id,
+                restaurantId: item.restaurantId,
+                position: item.position || null,
+                notes: item.notes || null,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+            } catch (itemError) {
+              console.error(`Failed to add item ${item.restaurantId} to list:`, itemError);
+              // Continue with other items instead of failing completely
+            }
+          }
+        }
+      }
 
       // If sharing to circle, create shared list relationship
       if (circleId && shareWithCircle && newList[0]) {
@@ -1445,7 +1512,7 @@ async function checkListAccessById(listId: number, userId: number | null): Promi
 
   if (list.length === 0) return false;
 
-  return await checkListAccess(
+  return await checkListAccessById(
     list[0], 
     userId,
     async (circleIds: number[], userId: number) => {

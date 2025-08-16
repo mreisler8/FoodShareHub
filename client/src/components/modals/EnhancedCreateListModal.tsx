@@ -105,23 +105,35 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
 
   const createListMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('API Request payload:', data);
       return await apiRequest("/api/lists", {
         method: "POST",
         body: JSON.stringify(data),
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('List creation successful:', result);
       localStorage.removeItem('list-creation-draft');
       toast({
-        title: "Success! 🎉",
+        title: "Success!",
         description: "Your list has been created successfully.",
       });
       handleClose();
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('List creation error:', error);
+      
+      // Extract specific error message if available
+      let errorMessage = "Failed to create list. Please try again.";
+      if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create list. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -185,12 +197,45 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
       return;
     }
 
+    // Transform shareDestination to visibilityV2 format expected by backend
+    let visibilityV2: 'private' | 'public' | 'followers' | 'circle' = 'private';
+    let visibilityCircleIds: number[] | null = null;
+
+    switch (shareDestination.type) {
+      case 'profile':
+        visibilityV2 = 'followers';
+        break;
+      case 'public':
+        visibilityV2 = 'public';
+        break;
+      case 'circle':
+        visibilityV2 = 'circle';
+        visibilityCircleIds = shareDestination.circleId ? [shareDestination.circleId] : null;
+        break;
+      default:
+        visibilityV2 = 'private';
+    }
+
+    // Transform data to match backend schema
     const submissionData = {
-      ...listData,
-      items: listItems,
-      shareDestination
+      name: listData.title,  // Backend expects 'name' not 'title'
+      description: listData.description || null,
+      tags: listData.tags || [],
+      visibilityV2,
+      visibilityCircleIds,
+      type: 'restaurant' as const,
+      coverImage: listData.coverImage || null,
+      // Include list items for processing
+      items: listItems.map((item, index) => ({
+        restaurantId: item.restaurant?.id || null,
+        position: listData.isRanked ? index + 1 : null,
+        notes: item.notes || null,
+        // Transform item data structure
+        restaurant: item.restaurant
+      }))
     };
 
+    console.log('Submitting list data:', submissionData);
     createListMutation.mutate(submissionData);
   };
 
