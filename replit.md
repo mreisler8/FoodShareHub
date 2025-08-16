@@ -6,7 +6,7 @@ Circles is a full-stack social platform designed for sharing restaurant recommen
 
 ## User Preferences
 
-**Communication Style:** Simple, everyday language.
+**Communication Style:** Technical, architect-level detail with specific implementation guidance.
 
 **Problem-Solving Approach:** Academic audit methodology with systematic, comprehensive fixes. **User requires:**
 1. **End-to-End Flow Analysis**: Trace complete data paths from database → API → frontend before any fixes
