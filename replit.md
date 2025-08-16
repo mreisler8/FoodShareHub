@@ -14,8 +14,10 @@ Circles is a full-stack social platform for sharing restaurant recommendations a
 3. **Comprehensive Validation**: Test all related API endpoints, verify frontend components use data correctly, test edge cases
 4. **Impact Analysis**: Analyze what other features might be affected by changes and test them
 5. **Multiple API Endpoint Awareness**: Always search for all API endpoints that might handle the same data type
+6. **CRITICAL - User Experience Validation**: Always include visual/UI validation in audits after missing restaurant data display issue (Aug 16, 2025)
+7. **Data Structure Integration Testing**: Verify API response format matches frontend component expectations, not just data existence
 
-**Anti-Patterns to Avoid:** Band-aid solutions, incomplete systematic analysis, fixing single endpoints without checking for others.
+**Anti-Patterns to Avoid:** Band-aid solutions, incomplete systematic analysis, fixing single endpoints without checking for others, layer-by-layer auditing without integration testing.
 
 ## Recent Progress Update (August 16, 2025)
 
