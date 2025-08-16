@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRestaurantCache } from '@/features/restaurant/cache/restaurantCache';
+import { useQueryTelemetry } from './useQueryTelemetry';
 
 interface Restaurant {
   id?: number;

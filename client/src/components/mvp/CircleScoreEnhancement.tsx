@@ -42,12 +42,24 @@ export function CircleScoreEnhancement({
   
   const error = hasError;
 
-  // Handle error state gracefully
+  // Handle error state gracefully with N/A indicator per user preferences
   if (error) {
     console.error('Circle Score error:', error);
     return (
       <CircleScoreCard 
-        data={null}
+        data={{
+          score: 0,
+          confidence: 'low' as const,
+          contributors: [],
+          totalContributors: 0,
+          breakdown: {
+            quickRatings: 0,
+            listPlacements: 0,
+            reactions: 0,
+            saves: 0
+          },
+          error: 'N/A - Service unavailable'
+        }}
         variant={variant}
         className={className}
         isLoading={false}

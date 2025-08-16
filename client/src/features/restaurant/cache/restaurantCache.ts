@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { useCallback, useRef } from 'react';
 
 /**
  * Restaurant Cache Management
@@ -13,6 +14,68 @@ export interface RestaurantCacheHelpers {
   invalidateScores: (restaurantId: number | string) => Promise<void>;
   invalidateMentions: (restaurantId: number | string) => Promise<void>;
   invalidateAll: (restaurantId: number | string) => Promise<void>;
+}
+
+/**
+ * React Hook for Restaurant Cache Management
+ * 
+ * Provides cache invalidation helpers with error boundaries and N/A fallbacks.
+ * Implements the user's preference for robust error handling with graceful degradation.
+ */
+export function useRestaurantCache(queryClient: QueryClient): RestaurantCacheHelpers {
+  const errorCountRef = useRef(0);
+  const maxErrors = 3; // Circuit breaker threshold
+
+  const withErrorBoundary = useCallback(
+    async <T>(operation: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        const result = await operation();
+        errorCountRef.current = 0; // Reset on success
+        return result;
+      } catch (error) {
+        errorCountRef.current += 1;
+        console.warn(`Restaurant cache operation failed (${errorCountRef.current}/${maxErrors}):`, error);
+        
+        if (errorCountRef.current >= maxErrors) {
+          console.warn('Restaurant cache circuit breaker activated - showing N/A data');
+        }
+        
+        return fallback;
+      }
+    },
+    []
+  );
+
+  const invalidateRestaurant = useCallback(async (restaurantId: number | string) => {
+    return withErrorBoundary(async () => {
+      await createRestaurantCacheHelpers(queryClient).invalidateRestaurant(restaurantId);
+    }, undefined);
+  }, [queryClient, withErrorBoundary]);
+
+  const invalidateScores = useCallback(async (restaurantId: number | string) => {
+    return withErrorBoundary(async () => {
+      await createRestaurantCacheHelpers(queryClient).invalidateScores(restaurantId);
+    }, undefined);
+  }, [queryClient, withErrorBoundary]);
+
+  const invalidateMentions = useCallback(async (restaurantId: number | string) => {
+    return withErrorBoundary(async () => {
+      await createRestaurantCacheHelpers(queryClient).invalidateMentions(restaurantId);
+    }, undefined);
+  }, [queryClient, withErrorBoundary]);
+
+  const invalidateAll = useCallback(async (restaurantId: number | string) => {
+    return withErrorBoundary(async () => {
+      await createRestaurantCacheHelpers(queryClient).invalidateAll(restaurantId);
+    }, undefined);
+  }, [queryClient, withErrorBoundary]);
+
+  return {
+    invalidateRestaurant,
+    invalidateScores,
+    invalidateMentions,
+    invalidateAll
+  };
 }
 
 export function createRestaurantCacheHelpers(queryClient: QueryClient): RestaurantCacheHelpers {
@@ -112,11 +175,4 @@ export function createRestaurantCacheHelpers(queryClient: QueryClient): Restaura
     invalidateMentions,
     invalidateAll
   };
-}
-
-/**
- * Hook for components to access restaurant cache helpers
- */
-export function useRestaurantCache(queryClient: QueryClient) {
-  return createRestaurantCacheHelpers(queryClient);
 }
