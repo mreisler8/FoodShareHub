@@ -38,23 +38,24 @@ export default function HomePage() {
     }
   }, [user, isLoading, navigate]);
 
-  // Query for lists based on active tab
+  // Query for lists based on active tab - FIXED: Clear cache and use real data
   const { data: lists, isLoading: listsLoading } = useQuery({
     queryKey: queryKeys.lists(),
     queryFn: async () => {
-      // Transform data based on active tab
-      const response = await fetch('/api/lists');
+      console.log('🚀 HOME PAGE: Fetching lists from API...');
+      const response = await fetch('/api/lists?_t=' + Date.now()); // Cache buster
       const data = await response.json();
+      console.log('🚀 HOME PAGE: API Response sample:', data.slice(0, 2).map((l: any) => ({ name: l.name, restaurantCount: l.restaurantCount })));
       
-      // Return real data from API - FIXED: no more mock data override
+      // Return authentic API data with restaurant counts
       return data.map((list: any) => ({
         ...list,
         createdBy: { name: 'User', username: 'username' }, // Mock user data (non-critical)
-        // restaurantCount: Use real data from API ✅ 
-        // saveCount: Use real data from API ✅
-        // viewCount: Use real data from API ✅
+        // Keep all authentic data including restaurantCount, saveCount, viewCount
       }));
     },
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache
   });
 
   const hasContent = lists && lists.length > 0;
