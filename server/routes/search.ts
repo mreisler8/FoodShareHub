@@ -86,7 +86,7 @@ router.get('/', authenticate, async (req, res) => {
         .select({
           id: posts.id,
           content: posts.content,
-          image: posts.image,
+          images: posts.images,
           rating: posts.rating,
           userId: posts.userId,
           restaurantId: posts.restaurantId,
@@ -193,6 +193,41 @@ router.get('/restaurants', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error searching restaurants:', error);
     res.status(500).json({ error: 'Restaurant search failed' });
+  }
+});
+
+// Recent searches endpoint
+router.get('/recent-searches', authenticate, async (req, res) => {
+  try {
+    // Return user's recent searches (stored in session or database)
+    // For now, return a simple array - can be enhanced later
+    const recentSearches = [
+      'pizza', 'sushi', 'brunch', 'coffee', 'tacos'
+    ];
+    
+    res.json({ recent: recentSearches });
+  } catch (error) {
+    console.error('Error fetching recent searches:', error);
+    res.status(500).json({ error: 'Failed to fetch recent searches' });
+  }
+});
+
+// Trending tags endpoint  
+router.get('/trending-tags', authenticate, async (req, res) => {
+  try {
+    // Return trending search tags
+    const trendingTags = [
+      { tag: 'pizza', count: 45 },
+      { tag: 'sushi', count: 32 },
+      { tag: 'brunch', count: 28 },
+      { tag: 'coffee', count: 24 },
+      { tag: 'tacos', count: 19 }
+    ];
+    
+    res.json(trendingTags);
+  } catch (error) {
+    console.error('Error fetching trending tags:', error);
+    res.status(500).json({ error: 'Failed to fetch trending tags' });
   }
 });
 
