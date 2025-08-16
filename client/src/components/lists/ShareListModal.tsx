@@ -44,18 +44,25 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
     },
   });
 
-  // Fetch circles the list is already shared with
+  // Fetch circles the list is already shared with (optional - fail silently)
   const {
-    data: sharedWith,
+    data: sharedWith = [],
     isLoading: sharedWithLoading,
     refetch: refetchSharedWith,
   } = useQuery({
     queryKey: ["/api/restaurant-lists", listId, "shared-with"],
     queryFn: async () => {
-      const res = await apiRequest(`/api/restaurant-lists/${listId}/shared-with`);
-      return res.json();
+      try {
+        const res = await apiRequest(`/api/restaurant-lists/${listId}/shared-with`);
+        return res.json();
+      } catch (error) {
+        console.warn("Failed to fetch shared circles:", error);
+        return [];
+      }
     },
     enabled: !!listId,
+    retry: false,
+    staleTime: Infinity,
   });
 
   // Mutation to share list with a circle
