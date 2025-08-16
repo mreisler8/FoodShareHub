@@ -6,8 +6,16 @@ Circles is a full-stack social platform designed for sharing restaurant recommen
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
-Academic audit approach: Document critical gaps with clear root cause analysis and systematic remediation plans.
+**Communication Style:** Simple, everyday language.
+
+**Problem-Solving Approach:** Academic audit methodology with systematic, comprehensive fixes. **User requires:**
+1. **End-to-End Flow Analysis**: Trace complete data paths from database → API → frontend before any fixes
+2. **Root Cause Analysis**: Audit ALL possible causes (database queries, API endpoints, frontend components, caching) and document findings 
+3. **Comprehensive Validation**: Test all related API endpoints, verify frontend components use data correctly, test edge cases
+4. **Impact Analysis**: Analyze what other features might be affected by changes and test them
+5. **Multiple API Endpoint Awareness**: Always search for all API endpoints that might handle the same data type
+
+**Anti-Patterns to Avoid:** Band-aid solutions, incomplete systematic analysis, fixing single endpoints without checking for others.
 
 ## System Architecture
 

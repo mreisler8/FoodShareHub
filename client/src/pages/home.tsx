@@ -46,13 +46,13 @@ export default function HomePage() {
       const response = await fetch('/api/lists');
       const data = await response.json();
       
-      // For now, return all lists - in production this would be filtered by tab
+      // Return real data from API - FIXED: no more mock data override
       return data.map((list: any) => ({
         ...list,
-        createdBy: { name: 'User', username: 'username' }, // Mock user data
-        restaurantCount: Math.floor(Math.random() * 20) + 1,
-        saveCount: Math.floor(Math.random() * 100),
-        viewCount: Math.floor(Math.random() * 500)
+        createdBy: { name: 'User', username: 'username' }, // Mock user data (non-critical)
+        // restaurantCount: Use real data from API ✅ 
+        // saveCount: Use real data from API ✅
+        // viewCount: Use real data from API ✅
       }));
     },
   });

@@ -217,7 +217,37 @@ router.get('/', authenticate, async (req, res) => {
             derivedVisibility: deriveVisibility(list)
           }));
 
-          res.json(allLists);
+          console.log('[MINE FILTER API] Found lists for restaurant count calc:', allLists.map(l => l.id));
+
+          // Get restaurant counts for each list - CRITICAL FIX (was missing!)
+          const listIds = allLists.map(list => list.id);
+          let listsWithCounts = allLists;
+
+          if (listIds.length > 0) {
+            const restaurantCounts = await db
+              .select({
+                listId: restaurantListItems.listId,
+                count: sql<number>`count(*)::int`
+              })
+              .from(restaurantListItems)
+              .where(inArray(restaurantListItems.listId, listIds))
+              .groupBy(restaurantListItems.listId);
+
+            console.log('[MINE FILTER API] Restaurant counts result:', restaurantCounts);
+
+            const countByList: Record<number, number> = {};
+            restaurantCounts.forEach(({ listId, count }) => {
+              countByList[listId] = count;
+              console.log(`[MINE FILTER API] List ${listId} has ${count} restaurants`);
+            });
+
+            listsWithCounts = allLists.map(list => ({
+              ...list,
+              restaurantCount: countByList[list.id] || 0
+            }));
+          }
+
+          res.json(listsWithCounts);
         } catch (dbError) {
           console.error('Database error fetching accessible lists, using temp storage:', dbError);
           // Fallback to temp storage
@@ -252,8 +282,8 @@ router.get('/', authenticate, async (req, res) => {
             sharedCirclesByList[share.listId].push(share.circleId);
           });
 
-          // Get restaurant counts for all lists - FIXED
-          console.log('Fetching restaurant counts for list IDs:', listIds);
+          // Get restaurant counts for all lists - FIXED (Main Lists API)
+          console.log('[MAIN LISTS API] Fetching restaurant counts for list IDs:', listIds);
           const restaurantCounts = await db
             .select({
               listId: restaurantListItems.listId,
@@ -263,20 +293,22 @@ router.get('/', authenticate, async (req, res) => {
             .where(inArray(restaurantListItems.listId, listIds))
             .groupBy(restaurantListItems.listId);
 
-          console.log('Restaurant counts query result:', restaurantCounts);
+          console.log('[MAIN LISTS API] Restaurant counts query result:', restaurantCounts);
 
           const countByList: Record<number, number> = {};
           restaurantCounts.forEach(({ listId, count }) => {
             countByList[listId] = count;
-            console.log(`List ${listId} has ${count} restaurants`);
+            console.log(`[MAIN LISTS API] List ${listId} has ${count} restaurants`);
           });
 
-          // Add shared circles and restaurant count to each list
+          // Add shared circles and restaurant count to each list - FIXED
           const listsWithSharing = lists.map(list => ({
             ...list,
             sharedWithCircles: sharedCirclesByList[list.id] || [],
             restaurantCount: countByList[list.id] || 0
           }));
+
+          console.log('[DEFAULT LISTS API] Final response with counts:', listsWithSharing.map(l => `${l.id}:${l.restaurantCount}`));
 
           res.json(listsWithSharing);
         } else {
