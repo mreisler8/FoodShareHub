@@ -11,6 +11,8 @@ import { FeedViewControls } from '@/components/feed/FeedViewControls';
 import { StoriesSection } from '@/components/feed/StoriesSection';
 import { ModernShimmerLoader, FeedLoadingState } from '@/components/feed/ModernShimmerLoader';
 import { SkeletonFeedCard, SkeletonListCard } from '@/components/ui/SkeletonFeedCard';
+import { FeedSkeleton } from '@/components/ui/enhanced-skeleton';
+import { PerformanceMetrics } from '@/components/analytics/PerformanceMetrics';
 import { InlineError } from '@/components/common/InlineError';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 
@@ -277,6 +279,8 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Main Content */}
             <div className="lg:col-span-3">
+              {/* Development Performance Monitor */}
+              {process.env.NODE_ENV === 'development' && <PerformanceMetrics />}
 
             {/* Secondary Header with Search and Profile */}
             <div className="flex justify-between items-center mb-6">

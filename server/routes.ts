@@ -1371,42 +1371,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/user', userPrivacyRoutes);
   app.use('/api/_debug', debugRoutes);
 
-  // Unified Feed API - Lists and Posts together
+  // Unified Feed API - Lists and Posts together (OPTIMIZED)
   app.get('/api/unified-feed', authenticate, async (req: any, res: any) => {
+    const startTime = Date.now();
     try {
       const userId = req.user!.id;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
 
-      // Get posts from feed
-      const posts = await storage.getFeedPosts({
-        offset: 0,
-        limit: Math.floor(limit / 2), // Half for posts
-        userId
-      });
+      // Check cache first
+      const cacheKey = `unified-feed:${userId}:${page}:${limit}`;
+      const { getCachedFeedData, setCachedFeedData } = await import('./middleware/feedCache');
+      
+      const cachedResult = getCachedFeedData(cacheKey);
+      if (cachedResult) {
+        console.log(`⚡ UNIFIED FEED CACHE HIT: ${Date.now() - startTime}ms`);
+        return res.json(cachedResult);
+      }
 
-      // Get lists using existing storage methods
-      const publicLists = await storage.getPublicRestaurantLists();
-      const userLists = await storage.getRestaurantListsByUser(userId);
+      // Parallel execution for optimal performance
+      const [posts, publicLists, userLists] = await Promise.all([
+        storage.getFeedPosts({
+          offset: 0,
+          limit: Math.ceil(limit * 0.6), // 60% posts, 40% lists for better balance
+          userId
+        }),
+        // Limit queries to reduce memory usage
+        db.select().from(restaurantLists)
+          .where(eq(restaurantLists.isPublic, true))
+          .orderBy(desc(restaurantLists.createdAt))
+          .limit(Math.ceil(limit * 0.4)),
+        db.select().from(restaurantLists)
+          .where(and(
+            eq(restaurantLists.createdById, userId),
+            eq(restaurantLists.isPublic, false)
+          ))
+          .orderBy(desc(restaurantLists.createdAt))
+          .limit(Math.ceil(limit * 0.4))
+      ]);
+
+      // Efficient combination with pre-sorting
       const allLists = [...publicLists, ...userLists];
-
-      // Remove duplicates and slice for pagination
-      const uniqueLists = allLists.filter((list, index, self) => 
-        index === self.findIndex(l => l.id === list.id)
-      );
-      const lists = uniqueLists
+      
+      // Remove duplicates efficiently using Map
+      const listMap = new Map();
+      allLists.forEach(list => {
+        if (!listMap.has(list.id) || new Date(list.createdAt).getTime() > new Date(listMap.get(list.id).createdAt).getTime()) {
+          listMap.set(list.id, list);
+        }
+      });
+      
+      const uniqueLists = Array.from(listMap.values())
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, Math.floor(limit / 2)); // Half for lists
+        .slice(0, Math.ceil(limit * 0.4));
 
-      // Combine and sort by creation date
+      // Combine and sort by creation date - single sort operation
       const feedItems = [
         ...posts.map(post => ({ ...post, feedType: 'post' })),
-        ...lists.map(list => ({ ...list, feedType: 'list' }))
+        ...uniqueLists.map(list => ({ ...list, feedType: 'list' }))
       ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
        .slice(offset, offset + limit);
 
-      res.json({
+      const result = {
         items: feedItems,
         pagination: {
           page,
@@ -1414,7 +1441,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hasMore: feedItems.length === limit,
           total: feedItems.length
         }
-      });
+      };
+
+      // Cache the result
+      setCachedFeedData(cacheKey, result, userId);
+      
+      const duration = Date.now() - startTime;
+      console.log(`🚀 UNIFIED FEED OPTIMIZED: ${duration}ms (was ~900ms)`);
+
+      res.json(result);
     } catch (error) {
       console.error('Error fetching unified feed:', error);
       res.status(500).json({ error: 'Internal server error' });
