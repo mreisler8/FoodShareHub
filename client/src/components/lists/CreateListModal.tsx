@@ -359,7 +359,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                   />
                 </div>
 
-            {shareWithCircle && (
+            {form.watch("visibility") === "circle" && (
               <FormField
                 control={form.control}
                 name="circleId"

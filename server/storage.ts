@@ -1582,8 +1582,15 @@ export class DatabaseStorage implements IStorage {
     // Owner always has access
     if (list.createdById === userId) return true;
 
-    // Check V2 visibility
-    const visibility = list.visibilityV2 || list.visibility;
+    // Parse V2 visibility from JSON or fallback to legacy
+    let visibilityData;
+    try {
+      visibilityData = list.visibility ? JSON.parse(list.visibility) : null;
+    } catch {
+      visibilityData = null;
+    }
+    
+    const visibility = visibilityData?.level || (list.isPublic ? 'public' : 'private');
     
     switch (visibility) {
       case 'public':
@@ -1596,12 +1603,16 @@ export class DatabaseStorage implements IStorage {
         return await this.isUserFollowing(userId, list.createdById);
       
       case 'circle':
-        if (list.visibilityCircleIds?.length) {
+        if (visibilityData?.circleIds?.length) {
           // Check if user is member of any specified circles
-          for (const circleId of list.visibilityCircleIds) {
+          for (const circleId of visibilityData.circleIds) {
             const isMember = await this.isUserMemberOfCircle(userId, circleId);
             if (isMember) return true;
           }
+        } else if (list.circleId) {
+          // Legacy fallback: check single circle
+          const isMember = await this.isUserMemberOfCircle(userId, list.circleId);
+          if (isMember) return true;
         }
         return false;
       
