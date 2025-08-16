@@ -70,9 +70,9 @@ const updateListSchema = z.object({
 });
 
 const addItemSchema = z.object({
-  restaurantId: z.number(),
-  position: z.number().nullable().optional(),
-  rating: z.number().min(1).max(10).nullable().optional(),
+  restaurantId: z.coerce.number(), // Handle string-to-number conversion
+  position: z.coerce.number().nullable().optional(),
+  rating: z.coerce.number().min(1).max(10).nullable().optional(),
   priceAssessment: z.enum(['Great value', 'Fair', 'Overpriced']).nullable().optional(),
   liked: z.union([z.string(), z.null()]).optional(),
   disliked: z.union([z.string(), z.null()]).optional(),
@@ -82,11 +82,11 @@ const addItemSchema = z.object({
 });
 
 const reorderItemsSchema = z.object({
-  itemIds: z.array(z.number()).min(1, 'At least one item ID is required'),
+  itemIds: z.array(z.coerce.number()).min(1, 'At least one item ID is required'),
 });
 
 const updateItemSchema = z.object({
-  rating: z.number().min(1).max(5).optional(),
+  rating: z.coerce.number().min(1).max(5).optional(),
   priceAssessment: z.enum(['Great value', 'Fair', 'Overpriced']).optional(),
   liked: z.string().optional(),
   disliked: z.string().optional(),
