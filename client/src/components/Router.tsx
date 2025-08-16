@@ -10,10 +10,8 @@ import TopPicksPage from "../pages/top-picks";
 import CircleDetails from "../pages/circle-details";
 import Circles from "../pages/circles";
 import CircleMembers from "../pages/circle-members";
-import Profile from "../pages/profile";
 import ProfilePage from "../pages/ProfilePage";
 import Settings from "../pages/settings";
-import Discover from "../pages/discover";
 import DiscoverFeed from "../pages/DiscoverFeed";
 import DiscoverByLocation from "../pages/discover-by-location";
 import ListDetails from "../pages/list-details";
@@ -54,9 +52,7 @@ function Router() {
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />
       <ProtectedRoute path="/circles/:id/members" component={CircleMembers} />
       <ProtectedRoute path="/profile/:id?" component={ProfilePage} />
-      <ProtectedRoute path="/profile-old/:id?" component={Profile} />
       <ProtectedRoute path="/discover" component={DiscoverFeed} />
-      <ProtectedRoute path="/discover-old" component={Discover} />
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/lists" component={MyLists} />
       <ProtectedRoute path="/lists/create" component={CreateList} />
@@ -73,7 +69,6 @@ function Router() {
       <ProtectedRoute path="/social-dashboard" component={SocialDashboardPage} />
       <ProtectedRoute path="/quick-ratings" component={QuickRatingsPage} />
 
-      <Route path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/settings" component={Settings} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
