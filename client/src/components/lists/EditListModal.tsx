@@ -30,11 +30,13 @@ export function EditListModal({ open, onOpenChange, list }: EditListModalProps) 
   const [name, setName] = useState(list.name);
   const [description, setDescription] = useState(list.description || "");
   const [visibility, setVisibility] = useState<'public' | 'private' | 'followers' | 'circle'>(
-    list.visibility || (list.makePublic ? 'public' : 'private')
+    (list.visibility as 'public' | 'private' | 'followers' | 'circle') || (list.makePublic ? 'public' : 'private')
   );
   const [visibilityCircleIds, setVisibilityCircleIds] = useState<number[]>(
     list.visibilityCircleIds || []
   );
+  const [shareWithCircle, setShareWithCircle] = useState(list.shareWithCircle || false);
+  const [makePublic, setMakePublic] = useState(list.makePublic || false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateList, invalidateCollections } = useListCacheHelpers();
@@ -43,8 +45,10 @@ export function EditListModal({ open, onOpenChange, list }: EditListModalProps) 
   useEffect(() => {
     setName(list.name);
     setDescription(list.description || "");
-    setVisibility(list.visibility || (list.makePublic ? 'public' : 'private'));
+    setVisibility((list.visibility as 'public' | 'private' | 'followers' | 'circle') || (list.makePublic ? 'public' : 'private'));
     setVisibilityCircleIds(list.visibilityCircleIds || []);
+    setShareWithCircle(list.shareWithCircle || false);
+    setMakePublic(list.makePublic || false);
   }, [list]);
 
   const updateListMutation = useMutation({
