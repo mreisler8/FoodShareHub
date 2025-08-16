@@ -81,15 +81,12 @@ export default function ProfilePage() {
     staleTime: 2 * 60 * 1000, // 2 minutes cache
   });
 
-  // Fetch user's lists with complete cache busting
-  const { data: userLists, isLoading: isListsLoading, refetch: refetchLists } = useQuery({
-    queryKey: [`/api/users/${userId}/lists`, `tab-${activeTab}`, Math.random()],
+  // Fetch user's lists with proper cache invalidation
+  const { data: userLists, isLoading: isListsLoading } = useQuery({
+    queryKey: [`/api/users/${userId}/lists`],
     enabled: !!userId && activeTab === "lists",
-    staleTime: 0,
-    cacheTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-    retry: false,
+    staleTime: 0, // Fresh data every time
+    refetchOnMount: true,
   });
 
   // Fetch user's ratings with lazy loading
@@ -391,10 +388,11 @@ export default function ProfilePage() {
   );
 
   const ListsTab = () => {
-    // Clear cache and force refetch on mount
+    // Force fresh data when Lists tab is accessed
     React.useEffect(() => {
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/lists`] });
-      queryClient.removeQueries({ queryKey: [`/api/users/${userId}/lists`] });
+      if (activeTab === "lists" && userId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/lists`] });
+      }
     }, [activeTab, userId, queryClient]);
     return (
     <div className="px-4 md:px-6 py-6">
