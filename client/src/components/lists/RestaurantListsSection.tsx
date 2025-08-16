@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { RestaurantList } from "@shared/schema";
+import { queryKeys } from "@/lib/queryKeys";
 
 export function RestaurantListsSection() {
   const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: lists = [], isLoading } = useQuery<RestaurantList[]>({
-    queryKey: ["/api/lists"],
+    queryKey: queryKeys.lists(),
     enabled: !!user,
   });
 

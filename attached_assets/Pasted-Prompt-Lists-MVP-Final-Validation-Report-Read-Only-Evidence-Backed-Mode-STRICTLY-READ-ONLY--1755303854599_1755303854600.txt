@@ -1,0 +1,109 @@
+Prompt: Lists MVP — Final Validation Report (Read-Only, Evidence-Backed)
+
+Mode: STRICTLY READ-ONLY.
+Do not modify code, schema, or config. Validation only.
+
+Validation Scope
+
+Validate the Lists MVP end-to-end across auth, list creation, visibility, save/unsave, and UI coherence. The goal is to produce a single validation report with evidence of correct or broken behavior.
+
+Checks to Perform
+
+Authentication & Personas
+
+Log in as 4 personas (A = owner, B = follower of A, C = member of Circle C1, D = unrelated).
+
+Capture GET /api/me for each.
+
+Confirm login works end-to-end with hashed passwords (no plaintext in DB).
+
+Create & Save List Flow (MVP Core)
+
+For User A: create a new list with title + at least one item.
+
+Capture requests/responses for:
+
+POST /api/lists (creation)
+
+POST /api/lists/:id/items (adding item)
+
+GET /api/lists/:id + GET /api/lists/:id/items (retrieval).
+
+Confirm:
+
+List persists and refresh is consistent.
+
+Save/unsave button works on both list tile and details views, in sync.
+
+Visibility Matrix (v2 Enforcement)
+For one list of each visibility: public, private, followers, circle →
+
+Confirm A can always access.
+
+Confirm B can access A’s followers list but not private.
+
+Confirm C can access A’s circle list only if in same circle.
+
+Confirm D sees only public.
+
+Document actual response codes and payload snippets for each case.
+
+Query Keys & Cache Coherence
+
+Verify hierarchical query keys (['lists', listId], ['saved-lists', listId], etc.) are consistently used.
+
+Observe a save/unsave cycle: confirm only the relevant keys are invalidated, not the entire cache.
+
+Note any duplicate requests or cache misses.
+
+Reorder & Idempotency
+
+Add the same restaurant twice → confirm no duplicates.
+
+Reorder items in a list → confirm order persists after refresh.
+
+Capture before/after payloads.
+
+Pagination (if implemented)
+
+Check GET /api/lists, /api/saved-lists, /api/lists/:id/items with ?limit=&cursor=.
+
+If not implemented, confirm it is not mistakenly referenced in UI code.
+
+Accessibility & UX
+
+Validate Save button: aria-pressed toggles, aria-label descriptive.
+
+Validate Reorder: focus ring + screen reader message (if gaps exist, note them).
+
+Run axe (or equivalent) → attach violations list.
+
+Performance Snapshots
+
+Capture P95 latency for:
+
+GET /api/lists/:id
+
+GET /api/lists/:id/items
+
+GET /api/lists/:id/save-status
+
+Note duplicate calls on initial render (if any).
+
+Deliverables
+
+Output a single structured report with the following files:
+
+docs/lists-validation/FINAL_VALIDATION_REPORT.md
+
+Summary: ✅ Go, ⚠ Conditional Go, ❌ No-Go
+
+Evidence: request/response snippets, perf logs, screenshots
+
+docs/lists-validation/VISIBILITY_MATRIX.md
+
+docs/lists-validation/QUERY_KEYS_EVIDENCE.md
+
+docs/lists-validation/ACCESSIBILITY_RESULTS.md
+
+Screenshots → docs/lists-validation/screens/

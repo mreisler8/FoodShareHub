@@ -2,8 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { Request, Response, NextFunction } from "express";
@@ -15,21 +14,20 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
-
-// Hash password with salt for secure storage
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+// Hash password with bcrypt for secure storage
+async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
 }
 
 // Compare a supplied password with a stored hashed password
-async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
+  try {
+    return await bcrypt.compare(supplied, stored);
+  } catch (error) {
+    console.error("Password comparison error:", error);
+    return false;
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -118,24 +116,33 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // User registration endpoint
+  // User registration endpoint  
   app.post("/api/register", async (req, res, next) => {
     try {
       const { username, password, name, bio, profilePicture } = req.body;
-
+      
+      // Validate required fields
       if (!username || !password || !name) {
-        return sendError(res, 400, "Missing required fields");
+        return sendError(res, 400, "Username, password, and name are required");
       }
-
-      const existingUser = await storage.getUserByUsername(username);
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(username)) {
+        return sendError(res, 400, "Please enter a valid email address");
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username.toLowerCase());
       if (existingUser) {
-        return sendError(res, 400, "Username already exists");
+        return sendError(res, 409, "An account with this email already exists");
       }
-
+      
+      // Hash password before storing
       const hashedPassword = await hashPassword(password);
-
+      
       const user = await storage.createUser({
-        username,
+        username: username.toLowerCase(),
         password: hashedPassword,
         name,
         bio,

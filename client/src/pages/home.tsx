@@ -19,6 +19,7 @@ import { OptimizedSearchModal } from "@/components/search/OptimizedSearchModal";
 import { FloatingCreateButton } from "@/components/create/FloatingCreateButton";
 import { UnifiedPostModal } from "@/components/post/UnifiedPostModal";
 import { CreateCanvas } from "@/components/create/CreateCanvas";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function HomePage() {
   const { user, isLoading } = useAuth();
@@ -39,7 +40,7 @@ export default function HomePage() {
 
   // Query for lists based on active tab
   const { data: lists, isLoading: listsLoading } = useQuery({
-    queryKey: ['/api/lists', activeTab],
+    queryKey: queryKeys.lists(),
     queryFn: async () => {
       // Transform data based on active tab
       const response = await fetch('/api/lists');
