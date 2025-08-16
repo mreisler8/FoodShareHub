@@ -55,7 +55,7 @@ export function ListStarterForm({ onSuccess, onCancel, privacy }: ListStarterFor
     defaultValues: {
       title: '',
       description: '',
-      privacy: privacy || 'public',
+      privacy: privacy === 'circle' ? 'circles' : privacy || 'public',
       category: '',
     },
   });

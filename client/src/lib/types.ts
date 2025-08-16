@@ -37,7 +37,7 @@ export interface CommentWithAuthor extends Comment {
 export interface CircleWithStats extends Circle {
   memberCount: number;
   postCount?: number;
-  trending?: boolean;
+  trending?: boolean | null;
 }
 
 // Alias for backward compatibility

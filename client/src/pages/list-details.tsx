@@ -17,7 +17,7 @@ import type { RestaurantList, RestaurantListItemWithDetails } from "@/lib/types"
 import { ShareListModal } from "@/components/lists/ShareListModal";
 import { EditListModal } from "@/components/lists/EditListModal";
 import { AddListItemModal } from "@/components/lists/AddListItemModal";
-import RestaurantSearch from "@/components/lists/RestaurantSearch";
+// RestaurantSearch functionality handled by AddListItemModal
 import { ListItemCard } from "@/components/lists/ListItemCard";
 import { ListItemForm } from "@/components/ListItemForm";
 import { FilterSortControls } from "@/components/lists/FilterSortControls";
@@ -34,10 +34,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 
 // Extended interface for optimistic list items
-interface OptimisticListItem extends RestaurantListItemWithDetails {
+interface OptimisticListItem extends Omit<RestaurantListItemWithDetails, 'priceAssessment'> {
   isOptimistic?: boolean;
   tags?: string[];
-  priceAssessment?: string | null;
+  priceAssessment?: string | null | undefined;
 }
 
 // Sortable List Item Component
@@ -285,7 +285,7 @@ export default function ListDetails() {
       // Optimistically remove item
       setListItems(prev => prev.filter(item => item.id !== itemId));
       
-      await apiRequest("DELETE", `/api/lists/items/${itemId}`, {});
+      await apiRequest(`/api/lists/items/${itemId}`, { method: "DELETE" });
       
       queryClient.invalidateQueries({ queryKey: [`/api/lists/${id}`] });
       toast({
@@ -314,7 +314,10 @@ export default function ListDetails() {
           : item
       ));
       
-      const response = await apiRequest("PUT", `/api/lists/items/${itemId}`, {}, data);
+      const response = await apiRequest(`/api/lists/items/${itemId}`, { 
+        method: "PUT",
+        body: JSON.stringify(data)
+      });
       const updatedItem = await response.json();
       
       // Replace optimistic item with real data
@@ -352,27 +355,33 @@ export default function ListDetails() {
         restaurantId = itemData.restaurant.id;
       } else {
         // Create new restaurant
-        const restaurantResponse = await apiRequest("POST", "/api/restaurants", {}, {
-          name: itemData.restaurant?.name || "Unknown Restaurant",
-          location: itemData.restaurant?.location || itemData.restaurant?.city || "",
-          category: "Restaurant",
-          priceRange: "$$",
-          cuisine: "Restaurant",
-          imageUrl: null,
-          googlePlaceId: itemData.restaurant?.googlePlaceId || null,
+        const restaurantResponse = await apiRequest("/api/restaurants", {
+          method: "POST",
+          body: JSON.stringify({
+            name: itemData.restaurant?.name || "Unknown Restaurant",
+            location: itemData.restaurant?.location || itemData.restaurant?.city || "",
+            category: "Restaurant",
+            priceRange: "$$",
+            cuisine: "Restaurant",
+            imageUrl: null,
+            googlePlaceId: itemData.restaurant?.googlePlaceId || null,
+          })
         });
         const newRestaurant = await restaurantResponse.json();
         restaurantId = newRestaurant.id;
       }
 
       // Add item to list
-      const response = await apiRequest("POST", `/api/lists/${listId}/items`, {}, {
-        restaurantId: restaurantId,
-        rating: 5, // Default rating
-        liked: null,
-        disliked: null,
-        notes: itemData.notes || null,
-        tags: itemData.tags || [],
+      const response = await apiRequest(`/api/lists/${listId}/items`, {
+        method: "POST",
+        body: JSON.stringify({
+          restaurantId: restaurantId,
+          rating: 5, // Default rating
+          liked: null,
+          disliked: null,
+          notes: itemData.notes || null,
+          tags: itemData.tags || [],
+        })
       });
       
       const newItem = await response.json();
@@ -417,8 +426,9 @@ export default function ListDetails() {
         try {
           // Update positions on server
           const updatePromises = reorderedItems.map((item, index) => 
-            apiRequest("PUT", `/api/lists/items/${item.id}`, {}, { 
-              position: index + 1 
+            apiRequest(`/api/lists/items/${item.id}`, {
+              method: "PUT",
+              body: JSON.stringify({ position: index + 1 })
             })
           );
           
@@ -447,7 +457,7 @@ export default function ListDetails() {
   // Delete list handler
   const deleteListMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("DELETE", `/api/lists/${listId}`, {});
+      return await apiRequest(`/api/lists/${listId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       toast({
@@ -598,14 +608,17 @@ export default function ListDetails() {
       // Create restaurant if needed (Google Places result)
       let restaurantId: number;
       if (data.restaurantId.startsWith('google_')) {
-        const response = await apiRequest("POST", "/api/restaurants", {}, {
-          name: data.restaurantName,
-          location: "Unknown location",
-          category: "Restaurant",
-          priceRange: "$$",
-          cuisine: "Restaurant",
-          imageUrl: null,
-          googlePlaceId: data.restaurantId.replace('google_', ''),
+        const response = await apiRequest("/api/restaurants", {
+          method: "POST",
+          body: JSON.stringify({
+            name: data.restaurantName,
+            location: "Unknown location",
+            category: "Restaurant",
+            priceRange: "$$",
+            cuisine: "Restaurant",
+            imageUrl: null,
+            googlePlaceId: data.restaurantId.replace('google_', ''),
+          })
         });
         const newRestaurant = await response.json() as { id: number };
         restaurantId = newRestaurant.id;
@@ -614,12 +627,15 @@ export default function ListDetails() {
       }
 
       // Add to list
-      const listResponse = await apiRequest("POST", `/api/lists/${listId}/items`, {}, {
-        restaurantId: restaurantId,
-        rating: data.rating,
-        liked: data.liked || null,
-        disliked: data.disliked || null,
-        notes: data.notes || null,
+      const listResponse = await apiRequest(`/api/lists/${listId}/items`, {
+        method: "POST",
+        body: JSON.stringify({
+          restaurantId: restaurantId,
+          rating: data.rating,
+          liked: data.liked || null,
+          disliked: data.disliked || null,
+          notes: data.notes || null,
+        })
       });
       
       const realItem = await listResponse.json();
@@ -654,7 +670,7 @@ export default function ListDetails() {
   // Delete list item mutation
   const deleteItemMutation = useMutation({
     mutationFn: async (itemId: number) => {
-      return await apiRequest("DELETE", `/api/lists/${listId}/items/${itemId}`);
+      return await apiRequest(`/api/lists/${listId}/items/${itemId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/lists/${listId}`] });
@@ -677,7 +693,7 @@ export default function ListDetails() {
     if (id) {
       const incrementViewCount = async () => {
         try {
-          await apiRequest("POST", `/api/lists/${id}/view`, {});
+          await apiRequest(`/api/lists/${id}/view`, { method: "POST" });
         } catch (error) {
           console.error("Failed to increment view count", error);
         }

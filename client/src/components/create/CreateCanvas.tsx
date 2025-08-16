@@ -59,7 +59,7 @@ export function CreateCanvas({ isOpen, onClose, defaultTab = 'moment' }: CreateC
       <DialogContent 
         className="sm:max-w-2xl w-full max-w-[95vw] h-[90vh] max-h-screen p-0 overflow-hidden" 
         style={{ borderRadius: '4px !important' }}
-        showCloseButton={false}
+
       >
         <div className="flex flex-col h-full">
           {/* Header */}
