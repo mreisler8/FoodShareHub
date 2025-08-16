@@ -72,12 +72,13 @@ const updateListSchema = z.object({
 const addItemSchema = z.object({
   restaurantId: z.number(),
   position: z.number().nullable().optional(),
-  rating: z.number().min(1).max(5).optional(),
-  priceAssessment: z.enum(['Great value', 'Fair', 'Overpriced']).optional(),
-  liked: z.string().optional(),
-  disliked: z.string().optional(),
-  notes: z.string().optional(),
-  mustTryDishes: z.array(z.string()).optional(),
+  rating: z.number().min(1).max(10).nullable().optional(),
+  priceAssessment: z.enum(['Great value', 'Fair', 'Overpriced']).nullable().optional(),
+  liked: z.union([z.string(), z.null()]).optional(),
+  disliked: z.union([z.string(), z.null()]).optional(),
+  notes: z.string().nullable().optional(),
+  mustTryDishes: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).optional().default([]), // Frontend sends this
 });
 
 const reorderItemsSchema = z.object({
@@ -963,48 +964,7 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/lists/:id/items - Add restaurant to list
-router.post('/:id/items', authenticate, async (req, res) => {
-  try {
-    const listId = parseInt(req.params.id);
-    const data = addItemSchema.parse(req.body);
-    const userId = req.user!.id;
-
-    // Check if list exists and user has access
-    const [list] = await db
-      .select()
-      .from(restaurantLists)
-      .where(eq(restaurantLists.id, listId));
-
-    if (!list) {
-      return res.status(404).json({ error: 'List not found' });
-    }
-
-    // For now, allow anyone to add to public lists, only owners for circle lists
-    if (list.visibility === 'circle' && list.createdById !== userId) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    const [item] = await db
-      .insert(restaurantListItems)
-      .values({
-        listId,
-        restaurantId: data.restaurantId,
-        rating: data.rating || null,
-        liked: data.liked || null,
-        disliked: data.disliked || null,
-        notes: data.notes || null,
-        mustTryDishes: data.mustTryDishes || [],
-        addedById: userId,
-      })
-      .returning();
-
-    res.json(item);
-  } catch (error) {
-    console.error('Error adding item to list:', error);
-    res.status(500).json({ error: 'Failed to add item to list' });
-  }
-});
+// Removed duplicate route - using the more complete version below at line 1489
 
 // PUT /api/lists/items/:itemId - Update list item
 router.put('/items/:itemId', authenticate, async (req, res) => {
