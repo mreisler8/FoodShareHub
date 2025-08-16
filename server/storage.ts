@@ -958,7 +958,7 @@ export class DatabaseStorage implements IStorage {
     }).where(eq(restaurantLists.id, listId));
   }
 
-  async getUserListReaction(listId: number, userId: number): Promise<any> {
+  async getUserListReaction(listId: number, userId?: number): Promise<any> {
     const [reaction] = await db.select().from(listReactions).where(
       and(
         eq(listReactions.listId, listId),
@@ -1442,7 +1442,7 @@ export class DatabaseStorage implements IStorage {
         HAVING COUNT(*) >= 2
         ORDER BY COUNT(*) DESC
         LIMIT $1
-      `, [limit]);
+      `, limit);
 
       return trending.rows;
     } catch (error) {
@@ -1464,7 +1464,7 @@ export class DatabaseStorage implements IStorage {
         GROUP BY query
         ORDER BY COUNT(*) DESC
         LIMIT $2
-      `, [category, limit]);
+      `, category, limit);
 
       return popular.rows;
     } catch (error) {
@@ -1484,7 +1484,7 @@ export class DatabaseStorage implements IStorage {
         GROUP BY query
         ORDER BY COUNT(*) DESC
         LIMIT $2
-      `, [`${query}%`, limit]);
+      `, `${query}%`, limit);
 
       return suggestions.rows.map((row: any) => row.query);
     } catch (error) {
@@ -1502,7 +1502,7 @@ export class DatabaseStorage implements IStorage {
         AND LENGTH(query) >= 2
         ORDER BY MAX(timestamp) DESC
         LIMIT $2
-      `, [userId, limit]);
+      `, userId, limit);
 
       return recent.rows.map((row: any) => row.query);
     } catch (error) {
@@ -1522,14 +1522,11 @@ export class DatabaseStorage implements IStorage {
   async createListV2(list: any): Promise<RestaurantList> {
     const now = new Date();
     const [newList] = await db.insert(restaurantLists).values({
+      // Use existing schema fields only
       name: list.name,
       description: list.description,
       createdById: list.createdById,
-      visibility: list.visibility,
-      visibilityV2: list.visibility,
-      visibilityCircleIds: list.visibilityCircleIds,
-      migratedToV2: list.migratedToV2 || true,
-      migrationTimestamp: list.migrationTimestamp || now,
+      visibility: JSON.stringify({ level: list.visibility, circleIds: list.visibilityCircleIds }),
       // Legacy fields for backward compatibility
       makePublic: list.visibility === 'public',
       shareWithCircle: list.visibility === 'circle',
