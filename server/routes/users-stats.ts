@@ -42,12 +42,12 @@ router.get('/:id/stats', requireAuth, async (req, res) => {
       .where(eq(circleMembers.userId, userId));
 
     const stats = {
-      followers: followersResult[0]?.count || 0,
-      following: followingResult[0]?.count || 0,
-      lists: listCountResult[0]?.count || 0,
+      followers: String(followersResult[0]?.count || 0),
+      following: String(followingResult[0]?.count || 0),
+      lists: String(listCountResult[0]?.count || 0),
       reviewCount: reviewCountResult[0]?.count || 0,
       circleCount: circleCountResult[0]?.count || 0,
-      isFollowing: false // This should be determined by checking if current user follows the profile user
+      isFollowing: false
     };
 
     res.json(stats);

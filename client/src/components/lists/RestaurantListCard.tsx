@@ -25,7 +25,7 @@ export function RestaurantListCard({ list }: RestaurantListCardProps) {
           )}
           
           {/* Featured/Trending Badge */}
-          {(list.isFeatured || list.trending) && (
+          {(list.isFeatured || (list as any).trending) && (
             <div className="absolute top-3 left-3">
               <div className="flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-amber-700">
                 {list.isFeatured ? (

@@ -320,14 +320,14 @@ router.get("/:id", authenticate, validateUserId, validateTargetUserId, userDataC
   }
 }));
 
-// Enhanced user stats endpoint
+// Enhanced user stats endpoint with list counts
 router.get("/:id/stats", authenticate, validateUserId, validateTargetUserId, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const currentUserId = req.user!.id;
 
-    // Optimized batch query for all stats
-    const [followerCount, followingCount, isFollowing] = await Promise.all([
+    // Optimized batch query for all stats including list counts
+    const [followerCount, followingCount, isFollowing, listCount, reviewCount, circleCount] = await Promise.all([
       db
         .select({ count: sql<number>`count(*)` })
         .from(userFollowers)
@@ -347,12 +347,30 @@ router.get("/:id/stats", authenticate, validateUserId, validateTargetUserId, asy
             eq(userFollowers.followingId, userId)
           )
         )
-        .limit(1)
+        .limit(1),
+
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(restaurantLists)
+        .where(eq(restaurantLists.createdById, userId)),
+
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(posts)
+        .where(eq(posts.userId, userId)),
+
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(circleMembers)
+        .where(eq(circleMembers.userId, userId))
     ]);
 
     res.json({
-      followers: followerCount[0]?.count || 0,
-      following: followingCount[0]?.count || 0,
+      followers: String(followerCount[0]?.count || 0),
+      following: String(followingCount[0]?.count || 0),
+      lists: String(listCount[0]?.count || 0),
+      reviewCount: reviewCount[0]?.count || 0,
+      circleCount: circleCount[0]?.count || 0,
       isFollowing: isFollowing.length > 0,
     });
   } catch (error) {
