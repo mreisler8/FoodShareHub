@@ -215,7 +215,8 @@ router.get('/', authenticate, async (req, res) => {
           // Combine results and normalize visibility
           const allLists = [...ownLists, ...publicLists, ...circleSharedLists].map(list => ({
             ...list,
-            derivedVisibility: deriveVisibility(list)
+            derivedVisibility: deriveVisibility(list),
+            visibility: list.visibility || 'private' // Ensure visibility is always a string
           }));
 
           console.log('[MINE FILTER API] Found lists for restaurant count calc:', allLists.map(l => l.id));
@@ -388,7 +389,7 @@ router.post("/", authenticate, async (req, res) => {
       name = legacyData.name;
       description = legacyData.description;
       tags = legacyData.tags || [];
-      circleId = legacyData.circleId;
+      circleId = legacyData.circleId || null;
       visibility = legacyData.visibility;
       isPublic = legacyData.isPublic;
       shareWithCircle = legacyData.shareWithCircle;
@@ -513,26 +514,20 @@ router.post("/", authenticate, async (req, res) => {
                   location: item.restaurant.location || item.restaurant.city || 'Unknown',
                   category: 'Restaurant', // Required field
                   priceRange: '$', // Required field - default value
-                  cuisineType: null,
-                  rating: null,
+                  cuisine: null,
                   description: null,
                   imageUrl: null,
-                  websiteUrl: null,
-                  phoneNumber: null,
+                  website: null,
+                  phone: null,
                   hours: null,
-                  priceLevel: null,
                   googlePlaceId: null,
-                  googleRating: null,
-                  googleRatingCount: null,
                   address: null,
                   city: item.restaurant.city || null,
                   state: null,
-                  zipCode: null,
-                  country: null,
+                  country: 'US',
+                  postalCode: null,
                   latitude: null,
                   longitude: null,
-                  createdAt: new Date(),
-                  updatedAt: new Date()
                 }).returning();
                 
                 restaurantId = newRestaurant[0].id;
@@ -845,17 +840,45 @@ router.get('/:id', authenticate, async (req, res) => {
 
     const items = itemsResult.rows || [];
 
+    // Transform flat restaurant data into nested objects that frontend expects
+    const transformedItems = items.map((item: any) => {
+      const restaurant = {
+        id: item['restaurant.id'],
+        name: item['restaurant.name'],
+        // Use address first, then city, then location as fallback
+        location: item['restaurant.address'] || item['restaurant.city'] || item['restaurant.location'] || 'Location not specified',
+        address: item['restaurant.address'],
+        city: item['restaurant.city'],
+        category: item['restaurant.category'],
+        priceRange: item['restaurant.priceRange'],
+        cuisine: item['restaurant.cuisine'],
+        imageUrl: item['restaurant.imageUrl'],
+        phone: item['restaurant.phone']
+      };
+
+      // Remove the flat restaurant keys and add nested restaurant object
+      const transformedItem = { ...item };
+      Object.keys(transformedItem).forEach(key => {
+        if (key.startsWith('restaurant.')) {
+          delete transformedItem[key];
+        }
+      });
+      
+      transformedItem.restaurant = restaurant;
+      return transformedItem;
+    });
+
     // Calculate aggregated stats
     const stats = {
-      totalItems: items.length,
-      avgRating: items.length > 0 ? items.reduce((sum: number, item: any) => sum + (item.rating || 0), 0) / items.filter((item: any) => item.rating).length : 0,
-      cuisines: Array.from(new Set(items.map((item: any) => item['restaurant.cuisine']).filter(Boolean))),
-      cities: Array.from(new Set(items.map((item: any) => item['restaurant.city']).filter(Boolean))),
+      totalItems: transformedItems.length,
+      avgRating: transformedItems.length > 0 ? transformedItems.reduce((sum: number, item: any) => sum + (item.rating || 0), 0) / transformedItems.filter((item: any) => item.rating).length : 0,
+      cuisines: Array.from(new Set(transformedItems.map((item: any) => item.restaurant?.cuisine).filter(Boolean))),
+      cities: Array.from(new Set(transformedItems.map((item: any) => item.restaurant?.city).filter(Boolean))),
     };
 
     res.json({
       ...list,
-      items,
+      items: transformedItems,
       stats
     });
   } catch (error) {
@@ -1589,7 +1612,20 @@ async function checkListAccessById(listId: number, userId: number | null): Promi
 
   if (list.length === 0) return false;
 
-  return canAccessList(list[0], userId);
+  // Use the simpler permissions service
+  const result = await db.execute(sql`
+    SELECT 1 FROM restaurant_lists rl
+    WHERE rl.id = ${listId} AND (
+      rl.created_by_id = ${userId} OR
+      rl.make_public = true OR
+      (rl.share_with_circle = true AND EXISTS (
+        SELECT 1 FROM circle_members cm 
+        WHERE cm.circle_id = rl.circle_id AND cm.user_id = ${userId}
+      ))
+    )
+    LIMIT 1
+  `);
+  return result.rows.length > 0;
 }
 
 async function checkVisibilityV2Access(listData: any, userId: number): Promise<boolean> {
