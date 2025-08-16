@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../auth";
 import { db } from "../db";
 import { restaurants, posts, users, userFollowers, likes, comments, restaurantLists, restaurantListItems } from "../../shared/schema";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, or, ilike } from "drizzle-orm";
 import { getPlaceDetails } from "../services/google-places";
 
 const router = Router();
@@ -32,15 +32,44 @@ router.get("/photo/:photoReference", async (req, res) => {
   }
 });
 
-// Get restaurant details by googlePlaceId parameter
+// Get restaurant details by googlePlaceId parameter or browse all restaurants
 router.get("/", authenticate, async (req, res) => {
   try {
-    const { googlePlaceId } = req.query;
+    const { googlePlaceId, search, limit = 50 } = req.query;
 
-    if (!googlePlaceId || typeof googlePlaceId !== 'string') {
+    // Allow browsing all restaurants if no googlePlaceId provided
+    if (!googlePlaceId) {
+      try {
+        let query = db.select().from(restaurants);
+        
+        // Add search filtering if search term provided
+        if (search && typeof search === 'string') {
+          const searchTerm = `%${search}%`;
+          query = query.where(
+            or(
+              ilike(restaurants.name, searchTerm),
+              ilike(restaurants.address, searchTerm),
+              ilike(restaurants.city, searchTerm),
+              ilike(restaurants.cuisine, searchTerm)
+            )
+          );
+        }
+        
+        const allRestaurants = await query
+          .orderBy(desc(restaurants.verified), restaurants.name)
+          .limit(parseInt(limit as string) || 50);
+        
+        return res.json(allRestaurants);
+      } catch (error) {
+        console.error('Error fetching restaurants:', error);
+        return res.status(500).json({ error: 'Failed to fetch restaurants' });
+      }
+    }
+
+    if (typeof googlePlaceId !== 'string') {
       return res.status(400).json({ 
-        error: "Google Place ID is required",
-        code: "MISSING_GOOGLE_PLACE_ID"
+        error: "Google Place ID must be a string",
+        code: "INVALID_GOOGLE_PLACE_ID"
       });
     }
 

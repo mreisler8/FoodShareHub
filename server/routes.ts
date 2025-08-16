@@ -1363,6 +1363,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/tags", tagsRouter);
   app.use("/api/moments", momentsRouter);
   app.use('/api/circle-score', circleScoreRoutes);
+  
+  // Search functionality - moved to end to avoid circular dependencies
   // Register unified circle score endpoint  
   const circleScoreUnified = await import('./routes/circle-score-unified');
   app.use('/api/restaurant', circleScoreUnified.default);
@@ -1840,5 +1842,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Will be re-enabled after login is working properly
 
   // Return the express app since httpServer is not available in this context
+  // Add search functionality at the end to avoid circular dependencies
+  try {
+    const searchRouter = await import('./routes/search');
+    app.use('/api/search', searchRouter.default);
+  } catch (error) {
+    console.error('Failed to load search router:', error);
+  }
+
   return app;
 }
