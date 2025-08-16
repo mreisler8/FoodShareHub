@@ -279,4 +279,206 @@ router.get('/trending-tags', authenticate, async (req, res) => {
   }
 });
 
+// Add unified endpoint alias for frontend compatibility
+router.get('/unified', authenticate, async (req, res) => {
+  try {
+    const { q, type, limit = 20, offset = 0, lat, lng, radius } = req.query;
+    const query = q as string;
+    const searchType = type as string;
+    const limitNum = parseInt(limit as string) || 20;
+    const offsetNum = parseInt(offset as string) || 0;
+
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+    }
+
+    const searchTerm = `%${query.trim()}%`;
+    const results: any = {};
+
+    // Parse location parameters
+    const location = lat && lng ? {
+      lat: parseFloat(lat as string),
+      lng: parseFloat(lng as string),
+      radius: radius ? parseInt(radius as string) : 10000 // Default 10km radius
+    } : undefined;
+
+    // Search restaurants if no type specified or type is 'restaurants'
+    if (!searchType || searchType === 'restaurants') {
+      // First, search local database
+      const localRestaurants = await db
+        .select({
+          id: restaurants.id,
+          name: restaurants.name,
+          address: restaurants.address,
+          city: restaurants.city,
+          cuisine: restaurants.cuisine,
+          priceRange: restaurants.priceRange,
+          imageUrl: restaurants.imageUrl,
+          googlePlaceId: restaurants.googlePlaceId,
+          verified: restaurants.verified
+        })
+        .from(restaurants)
+        .where(
+          or(
+            ilike(restaurants.name, searchTerm),
+            ilike(restaurants.address, searchTerm),
+            ilike(restaurants.city, searchTerm),
+            ilike(restaurants.cuisine, searchTerm)
+          )
+        )
+        .orderBy(desc(restaurants.verified), restaurants.name)
+        .limit(Math.min(limitNum, 10)); // Limit local results to make room for Google Places
+
+      // Then, search Google Places with location
+      let googlePlacesResults: any[] = [];
+      try {
+        console.log(`🔍 UNIFIED SEARCH - Google Places: "${query}" ${location ? `at ${location.lat},${location.lng}` : 'globally'}`);
+        
+        googlePlacesResults = await searchGooglePlaces(query, location) || [];
+        
+        console.log(`📍 UNIFIED SEARCH - Google Places returned ${googlePlacesResults.length} results`);
+      } catch (error) {
+        console.error('❌ UNIFIED SEARCH - Google Places error:', error);
+      }
+
+      // Transform Google Places results to match our restaurant format
+      const transformedGoogleResults = googlePlacesResults.slice(0, limitNum - localRestaurants.length).map((place: any) => ({
+        id: `google_${place.googlePlaceId}`,
+        name: place.name,
+        address: place.address,
+        city: place.city || 'Unknown',
+        cuisine: place.cuisine || place.category,
+        priceRange: place.priceRange,
+        imageUrl: place.imageUrl,
+        googlePlaceId: place.googlePlaceId,
+        verified: true, // Google Places are considered verified
+        source: 'google_places',
+        rating: place.rating,
+        distance: place.distance
+      }));
+
+      // Combine and sort results (local first, then Google Places)
+      results.restaurants = [...localRestaurants, ...transformedGoogleResults];
+      
+      console.log(`📊 UNIFIED SEARCH - Restaurant results: ${localRestaurants.length} local + ${transformedGoogleResults.length} Google Places = ${results.restaurants.length} total`);
+    }
+
+    // Search lists only if specifically requested to avoid SQL syntax errors
+    if (searchType === 'lists') {
+      try {
+        const listResults = await db
+          .select({
+            id: restaurantLists.id,
+            name: restaurantLists.name,
+            description: restaurantLists.description,
+            createdById: restaurantLists.createdById,
+            visibility: restaurantLists.visibilityV2,
+            tags: restaurantLists.tags,
+            coverImage: restaurantLists.coverImage,
+            createdAt: restaurantLists.createdAt
+          })
+          .from(restaurantLists)
+          .where(
+            and(
+              or(
+                ilike(restaurantLists.name, searchTerm),
+                ilike(restaurantLists.description, searchTerm)
+              ),
+              eq(restaurantLists.visibilityV2, 'public')
+            )
+          )
+          .orderBy(desc(restaurantLists.createdAt))
+          .limit(limitNum)
+          .offset(offsetNum);
+
+        results.lists = listResults;
+      } catch (error) {
+        console.error('Lists search error:', error);
+        results.lists = [];
+      }
+    }
+
+    // Search posts only if specifically requested to avoid SQL syntax errors
+    if (searchType === 'posts') {
+      try {
+        const postResults = await db
+          .select({
+            id: posts.id,
+            content: posts.content,
+            userId: posts.userId,
+            restaurantId: posts.restaurantId,
+            images: posts.images,
+            visibility: posts.visibility,
+            createdAt: posts.createdAt
+          })
+          .from(posts)
+          .where(
+            and(
+              ilike(posts.content, searchTerm),
+              eq(posts.visibility, 'public')
+            )
+          )
+          .orderBy(desc(posts.createdAt))
+          .limit(limitNum)
+          .offset(offsetNum);
+
+        results.posts = postResults;
+      } catch (error) {
+        console.error('Posts search error:', error);
+        results.posts = [];
+      }
+    }
+
+    // Search users only if specifically requested to avoid SQL syntax errors
+    if (searchType === 'users' || searchType === 'people') {
+      try {
+        const userResults = await db
+          .select({
+            id: users.id,
+            username: users.username,
+            name: users.name,
+            bio: users.bio
+          })
+          .from(users)
+          .where(
+            or(
+              ilike(users.username, searchTerm),
+              ilike(users.name, searchTerm)
+            )
+          )
+          .orderBy(users.username)
+          .limit(limitNum)
+          .offset(offsetNum);
+
+        results.users = userResults;
+      } catch (error) {
+        console.error('Users search error:', error);
+        results.users = [];
+      }
+    }
+
+    const totalCounts = {
+      restaurants: results.restaurants?.length || 0,
+      lists: results.lists?.length || 0,
+      posts: results.posts?.length || 0,
+      users: results.users?.length || 0
+    };
+
+    res.json({
+      results,
+      pagination: {
+        query,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: Object.values(totalCounts).some(count => count === limitNum),
+        totalCounts
+      }
+    });
+
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: 'Failed to perform search' });
+  }
+});
+
 export default router;
