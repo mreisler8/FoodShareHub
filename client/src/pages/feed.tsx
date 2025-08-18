@@ -732,13 +732,14 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           </div>
         )}
 
-        {/* Unified Search Modal */}
+        {/* Universal Search Modal - Feed with Priority Location */}
         <OptimizedSearchModal
           open={isSearchOpen}
           onOpenChange={setIsSearchOpen}
           searchType="unified"
           showLocationServices={true}
-          placeholder="Search restaurants, lists, posts, people…"
+          placeholder="Search restaurants near you, lists, posts, people…"
+          title="Search with Location"
         />
 
 

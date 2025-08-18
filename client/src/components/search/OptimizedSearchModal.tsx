@@ -98,12 +98,21 @@ export function OptimizedSearchModal({
     }
   }, [open]);
 
-  // Request location on modal open if enabled
+  // Request location IMMEDIATELY on modal open for feed search
   useEffect(() => {
-    if (open && showLocationServices && locationPermission === null) {
+    if (open && showLocationServices) {
+      if (locationPermission === null || locationPermission === 'prompt') {
+        requestLocation();
+      }
+    }
+  }, [open, showLocationServices]);
+
+  // Auto-request location for unified search
+  useEffect(() => {
+    if (open && searchType === 'unified' && !userLocation && locationPermission !== 'denied') {
       requestLocation();
     }
-  }, [open, showLocationServices, locationPermission]);
+  }, [open, searchType, userLocation, locationPermission]);
 
   const requestLocation = async () => {
     if (!showLocationServices) return;

@@ -119,38 +119,41 @@ router.get('/unified', authenticate, async (req, res) => {
         }));
       }
 
-      // Always search Google Places API for additional results
-      try {
-        console.log(`🌍 Searching Google Places API for: "${query}"`);
-        const location = searchOptions.location ? {
-          lat: searchOptions.location.lat,
-          lng: searchOptions.location.lng,
-          radius: searchOptions.radius
-        } : undefined;
+      // PRIORITY 1: Search Google Places API first with location-based ranking
+    try {
+      console.log(`🌍 PRIORITY SEARCH: Google Places API for: "${query}"`);
+      const location = searchOptions.location ? {
+        lat: searchOptions.location.lat,
+        lng: searchOptions.location.lng,
+        radius: searchOptions.radius
+      } : undefined;
 
-        googleResults = await searchGooglePlaces(query, location);
+      // Force Google Places search for all restaurant queries
+      googleResults = await searchGooglePlaces(query, location);
 
-        // Transform Google Places results
-        googleResults = googleResults.map(result => ({
-          id: `google_${result.googlePlaceId}`,
-          name: result.name,
-          address: result.address,
-          city: result.location,
-          cuisine: result.cuisine,
-          priceRange: result.priceRange,
-          imageUrl: result.imageUrl,
-          googlePlaceId: result.googlePlaceId,
-          verified: true,
-          source: 'google_places',
-          rating: result.rating,
-          distance: result.distance,
-          relevanceScore: result.relevanceScore || 75
-        }));
+      // Transform Google Places results with PRIORITY SCORING
+      googleResults = googleResults.map(result => ({
+        id: `google_${result.googlePlaceId}`,
+        name: result.name,
+        address: result.address,
+        city: result.location,
+        cuisine: result.cuisine,
+        priceRange: result.priceRange,
+        imageUrl: result.imageUrl,
+        googlePlaceId: result.googlePlaceId,
+        verified: true,
+        source: 'google_places',
+        rating: result.rating,
+        distance: result.distance,
+        // BOOST Google Places results with location
+        relevanceScore: location ? (result.relevanceScore || 85) + 10 : (result.relevanceScore || 80)
+      }));
 
-        console.log(`🌍 Google Places results: ${googleResults.length} restaurants`);
-      } catch (error) {
-        console.error('❌ Google Places API error:', error);
-      }
+      console.log(`🌍 Google Places PRIORITY results: ${googleResults.length} restaurants`);
+    } catch (error) {
+      console.error('❌ Google Places API error:', error);
+      googleResults = [];
+    }
 
       // Combine and deduplicate results
       const allResults = [...databaseResults, ...googleResults];
