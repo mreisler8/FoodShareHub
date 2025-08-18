@@ -26,6 +26,7 @@ router.get('/unified', authenticate, async (req, res) => {
 
     // Advanced search with person name detection and semantic expansion
     const searchOptions = {
+      query: query,
       location: lat && lng ? {
         lat: parseFloat(lat as string),
         lng: parseFloat(lng as string)
@@ -37,6 +38,8 @@ router.get('/unified', authenticate, async (req, res) => {
       userId: req.user?.id
     };
 
+    console.log(`🔍 Search route processing query: "${query}" with options:`, searchOptions);
+
     const results: any = {};
 
     // Search restaurants using advanced SearchEngineService
@@ -44,7 +47,7 @@ router.get('/unified', authenticate, async (req, res) => {
       console.log(`🔍 ADVANCED SEARCH START: "${query}" with person name detection`);
       
       try {
-        const restaurantResults = await searchEngine.search(query, searchOptions);
+        const restaurantResults = await searchEngine.search(searchOptions);
         
         // Transform advanced search results to match API contract
         results.restaurants = restaurantResults.map((result: any) => ({
@@ -155,7 +158,7 @@ router.get('/unified', authenticate, async (req, res) => {
     // Search users using advanced SearchEngineService
     if (!searchType || searchType === 'users') {
       try {
-        const userResults = await searchEngine.search(query, { ...searchOptions, contentTypes: ['user'] });
+        const userResults = await searchEngine.search({ ...searchOptions, contentTypes: ['user'] });
         
         // Transform advanced search results to match API contract
         results.users = userResults.map((result: any) => ({
@@ -243,7 +246,7 @@ router.get('/restaurants', authenticate, async (req, res) => {
     };
 
     try {
-      const advancedResults = await searchEngine.search(query, { ...searchOptions, contentTypes: ['restaurant'] });
+      const advancedResults = await searchEngine.search({ ...searchOptions, contentTypes: ['restaurant'] });
       
       // Transform to match autocomplete API contract
       const transformedResults = advancedResults.map((result: any) => ({
@@ -308,7 +311,7 @@ router.get('/users', authenticate, async (req, res) => {
     };
 
     try {
-      const advancedResults = await searchEngine.search(query, { ...searchOptions, contentTypes: ['user'] });
+      const advancedResults = await searchEngine.search({ ...searchOptions, contentTypes: ['user'] });
       
       // Transform to match user search API contract
       const transformedResults = advancedResults.map((result: any) => ({

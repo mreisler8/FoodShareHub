@@ -375,6 +375,8 @@ export class SearchEngineService {
 
   async search(options: SearchOptions): Promise<EnhancedSearchResult[]> {
     const { query, lat, lng, radius = 10000, userId, filters } = options;
+    
+    console.log(`🎯 SearchEngineService.search() received query: "${query}" with options:`, JSON.stringify(options, null, 2));
 
     // Step 1: Check for exact matches first
     const exactMatches = await this.findExactMatches(query);
@@ -489,7 +491,7 @@ export class SearchEngineService {
 
     } catch (error) {
       console.error('Typesense search error:', error);
-      console.log('Falling back to basic search with userId:', userId);
+      console.log(`🔄 Falling back to basic search with query: "${query}" and userId:`, userId);
       // Fallback to basic PostgreSQL search when Typesense fails
       const fallbackResults = await this.basicSearch(query, { lat, lng, radius, userId });
       console.log('Basic search returned:', fallbackResults.length, 'results');
@@ -567,134 +569,86 @@ export class SearchEngineService {
   }
 
   private async basicSearch(query: string, options: { lat?: number; lng?: number; radius?: number; userId?: number }): Promise<EnhancedSearchResult[]> {
-    const { lat, lng, radius, userId } = options;
+    const { userId } = options;
     const results: EnhancedSearchResult[] = [];
 
     try {
       const { db } = await import('../db');
-      const { restaurants, users, restaurantLists, posts } = await import('../../shared/schema');
-      const { eq, or, ilike, sql, desc, and } = await import('drizzle-orm');
+      const { restaurants, users, restaurantLists } = await import('../../shared/schema');
+      const { or, ilike, desc, and, eq } = await import('drizzle-orm');
 
-      // Enhanced restaurant search with relevance scoring
-      const restaurantResults = await db.select({
-        id: restaurants.id,
-        name: restaurants.name,
-        location: restaurants.location,
-        category: restaurants.category,
-        cuisine: restaurants.cuisine,
-        address: restaurants.address,
-        priceRange: restaurants.priceRange,
-        imageUrl: restaurants.imageUrl,
-        city: restaurants.city,
-        state: restaurants.state,
-        latitude: restaurants.latitude,
-        longitude: restaurants.longitude,
-        googlePlaceId: restaurants.googlePlaceId,
-        avgRating: sql<number>`COALESCE(AVG(${posts.rating}), 4.0)`,
-        relevanceScore: sql<number>`
-          CASE 
-            WHEN LOWER(${restaurants.name}) = LOWER(${query}) THEN 100
-            WHEN LOWER(${restaurants.name}) LIKE LOWER(${query + '%'}) THEN 90
-            WHEN LOWER(${restaurants.name}) LIKE LOWER(${'%' + query + '%'}) THEN 80
-            WHEN LOWER(${restaurants.category}) LIKE LOWER(${'%' + query + '%'}) THEN 70
-            WHEN LOWER(${restaurants.cuisine}) LIKE LOWER(${'%' + query + '%'}) THEN 70
-            ELSE 60
-          END
-        `.as('relevanceScore'),
-      })
-      .from(restaurants)
-      .leftJoin(posts, eq(restaurants.id, posts.restaurantId))
-      .where(
-        or(
-          ilike(restaurants.name, `%${query}%`),
-          ilike(restaurants.location, `%${query}%`),
-          ilike(restaurants.category, `%${query}%`),
-          ilike(restaurants.cuisine, `%${query}%`),
-          ilike(restaurants.address, `%${query}%`)
-        )
-      )
-      .groupBy(restaurants.id)
-      .orderBy(desc(sql`relevanceScore`), desc(sql`AVG(${posts.rating})`))
-      .limit(10);
+      console.log(`🔍 Basic search starting for query: "${query}"`);
 
-      // Search users (if userId provided)
-      if (userId) {
-        const userResults = await db.select()
-          .from(users)
-          .where(
-            and(
-              or(
-                ilike(users.name, `%${query}%`),
-                ilike(users.username, `%${query}%`),
-                ilike(users.bio, `%${query}%`),
-                ilike(users.favoriteFood, `%${query}%`),
-                ilike(users.favoriteRestaurant, `%${query}%`)
-              ),
-              sql`${users.id} != ${userId}`
-            )
+      // Simple restaurant search
+      const restaurantResults = await db
+        .select()
+        .from(restaurants)
+        .where(
+          or(
+            ilike(restaurants.name, `%${query}%`),
+            ilike(restaurants.address, `%${query}%`),
+            ilike(restaurants.city, `%${query}%`),
+            ilike(restaurants.location, `%${query}%`),
+            ilike(restaurants.category, `%${query}%`),
+            ilike(restaurants.cuisine, `%${query}%`)
           )
-          .limit(5);
+        )
+        .limit(20);
 
-        // Add user results
-        userResults.forEach(user => {
-          results.push({
-            id: user.id.toString(),
-            name: user.name,
-            type: 'user',
-            relevanceScore: 50,
-            metadata: user,
-          });
-        });
+      console.log(`✅ Found ${restaurantResults.length} restaurants`);
+      if (restaurantResults.length > 0) {
+        console.log('Restaurant matches:', restaurantResults.map(r => ({ id: r.id, name: r.name })));
       }
 
-      // Search lists  
-      const listResults = await db.select()
-        .from(restaurantLists)
-        .where(
-          and(
-            or(
-              ilike(restaurantLists.name, `%${query}%`),
-              ilike(restaurantLists.description, `%${query}%`),
-              sql`${restaurantLists.tags}::text ILIKE ${'%' + query + '%'}`
-            ),
-            eq(restaurantLists.makePublic, true)
-          )
-        )
-        .limit(5);
-
-      // Add restaurant results with enhanced relevance scoring
+      // Add restaurant results
       restaurantResults.forEach(restaurant => {
-        const relevanceScore = restaurant.relevanceScore || this.calculateRelevanceScore(restaurant.name, query);
+        const relevanceScore = this.calculateRelevanceScore(restaurant.name, query);
         results.push({
           id: restaurant.id.toString(),
           name: restaurant.name,
           type: 'restaurant',
           relevanceScore: relevanceScore,
           location: {
-            city: restaurant.location,
+            city: restaurant.city || restaurant.location,
             address: restaurant.address || undefined,
           },
           metadata: restaurant,
         });
       });
 
-      // Add list results
-      listResults.forEach(list => {
-        results.push({
-          id: list.id.toString(),
-          name: list.name,
-          type: 'list',
-          relevanceScore: 40,
-          location: {
-            city: list.primaryLocation || undefined,
-          },
-          metadata: list,
-        });
-      });
+      // Search lists if needed
+      try {
+        const listResults = await db
+          .select()
+          .from(restaurantLists)
+          .where(
+            and(
+              or(
+                ilike(restaurantLists.name, `%${query}%`),
+                ilike(restaurantLists.description, `%${query}%`)
+              ),
+              eq(restaurantLists.isPublic, true)
+            )
+          )
+          .limit(10);
 
+        listResults.forEach(list => {
+          results.push({
+            id: list.id.toString(),
+            name: list.name,
+            type: 'list',
+            relevanceScore: 40,
+            metadata: list,
+          });
+        });
+      } catch (listError) {
+        console.log('List search skipped due to error:', listError);
+      }
+
+      console.log(`🎯 Total search results: ${results.length}`);
       return results.sort((a, b) => b.relevanceScore - a.relevanceScore);
     } catch (error) {
-      console.error('Basic search error:', error);
+      console.error('❌ Basic search error:', error);
       return [];
     }
   }
