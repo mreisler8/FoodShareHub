@@ -41,12 +41,7 @@ const SearchPage: React.FC = () => {
   const [, navigate] = useLocation();
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Get user location on page load
-  useEffect(() => {
-    getUserLocation();
-  }, []);
-
-  const getUserLocation = async () => {
+  const getUserLocation = React.useCallback(async () => {
     setLocationStatus('loading');
     try {
       console.log('🌍 Getting user location...');
@@ -66,10 +61,24 @@ const SearchPage: React.FC = () => {
         country: 'Canada'
       });
     }
-  };
+  }, []);
 
-  // Search function with debouncing
-  const performSearch = async (searchQuery: string) => {
+  // Get user location on page load
+  useEffect(() => {
+    getUserLocation();
+  }, [getUserLocation]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Search function with debouncing - wrapped in useCallback to prevent recreation
+  const performSearch = React.useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       setSearchResults([]);
       return;
@@ -161,10 +170,10 @@ const SearchPage: React.FC = () => {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [location]); // Dependency on location only
 
-  // Handle search input with debouncing
-  const handleSearchChange = (value: string) => {
+  // Handle search input with debouncing - wrapped in useCallback
+  const handleSearchChange = React.useCallback((value: string) => {
     setQuery(value);
     
     // Clear existing timeout
@@ -176,10 +185,10 @@ const SearchPage: React.FC = () => {
     searchTimeoutRef.current = setTimeout(() => {
       performSearch(value);
     }, 300);
-  };
+  }, [performSearch]);
 
-  // Navigate to restaurant page
-  const handleRestaurantClick = (restaurant: SearchResult) => {
+  // Navigate to restaurant page - wrapped in useCallback
+  const handleRestaurantClick = React.useCallback((restaurant: SearchResult) => {
     console.log('🏪 Navigating to restaurant:', restaurant);
     
     // For Google Places results, use the googlePlaceId parameter
@@ -189,7 +198,7 @@ const SearchPage: React.FC = () => {
       // For database results, use the regular ID
       navigate(`/restaurants/${restaurant.id}`);
     }
-  };
+  }, [navigate]);
 
   // Format price range for display
   const formatPriceRange = (priceRange: string) => {
