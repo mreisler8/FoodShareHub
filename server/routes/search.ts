@@ -8,7 +8,7 @@ import { searchGooglePlaces } from '../services/google-places';
 const router = Router();
 
 // Unified search endpoint for restaurants, lists, posts, and users with Google Places integration
-router.get('/', authenticate, async (req, res) => {
+router.get('/unified', authenticate, async (req, res) => {
   try {
     const { q, type, limit = 20, offset = 0, lat, lng, radius } = req.query;
     const query = q as string;
@@ -239,6 +239,44 @@ router.get('/restaurants', authenticate, async (req, res) => {
   }
 });
 
+// User search endpoint for social features
+router.get('/users', authenticate, async (req, res) => {
+  try {
+    const { q, limit = 10 } = req.query;
+    const query = q as string;
+    
+    if (!query || query.trim().length < 1) {
+      return res.json([]);
+    }
+
+    const searchTerm = `%${query.trim()}%`;
+    
+    const userResults = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        bio: users.bio,
+        profilePicture: users.profilePicture,
+      })
+      .from(users)
+      .where(
+        or(
+          ilike(users.username, searchTerm),
+          ilike(users.name, searchTerm),
+          ilike(users.bio, searchTerm)
+        )
+      )
+      .orderBy(users.name)
+      .limit(parseInt(limit as string) || 10);
+
+    res.json(userResults);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'User search failed' });
+  }
+});
+
 // Recent searches endpoint (consolidated from search-analytics)
 router.get('/recent-searches', authenticate, async (req, res) => {
   try {
@@ -249,7 +287,7 @@ router.get('/recent-searches', authenticate, async (req, res) => {
 
     // For now return empty array - can be enhanced with actual user search history
     // TODO: Implement actual recent search tracking in database
-    const recentSearches = [];
+    const recentSearches: any[] = [];
     
     res.json({ recent: recentSearches });
   } catch (error) {
@@ -259,7 +297,7 @@ router.get('/recent-searches', authenticate, async (req, res) => {
 });
 
 // Trending tags endpoint (consolidated from search-analytics)
-router.get('/trending-tags', authenticate, async (req, res) => {
+router.get('/trending', authenticate, async (req, res) => {
   try {
     // Get actual trending data from search analytics or provide intelligent mock data
     const trendingTags = [

@@ -474,10 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/restaurants handler removed - handled by restaurants router
 
-  // Mount the search router
-  app.use('/api/search', searchRouter);
-
-  // Restaurant search is now handled by dedicated search router at /api/search
+  // Search router is mounted later in the router mounting section
 
   // Post routes
   app.get("/api/posts", async (req, res) => {
@@ -1842,13 +1839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Will be re-enabled after login is working properly
 
   // Return the express app since httpServer is not available in this context
-  // Add search functionality at the end to avoid circular dependencies
-  try {
-    const searchRouter = await import('./routes/search');
-    app.use('/api/search', searchRouter.default);
-  } catch (error) {
-    console.error('Failed to load search router:', error);
-  }
+  // Search router already mounted earlier in the router mounting section
 
   return app;
 }
