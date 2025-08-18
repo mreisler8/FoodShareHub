@@ -198,8 +198,15 @@ router.get('/unified', authenticate, async (req, res) => {
     if (results.posts) totalCounts.posts = results.posts.length;
     if (results.users) totalCounts.users = results.users.length;
 
+    // Return results in both formats for compatibility
     res.json({
+      // New format with results wrapper
       results,
+      // Legacy format for backwards compatibility
+      restaurants: results.restaurants || [],
+      lists: results.lists || [],
+      posts: results.posts || [],
+      users: results.users || [],
       pagination: {
         query,
         limit: limitNum,

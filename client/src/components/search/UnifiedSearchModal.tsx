@@ -124,13 +124,18 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         searchUrl += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
       }
 
+      console.log('🔍 Making search request to:', searchUrl);
+
       const response = await fetch(searchUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(8000) // Optimized timeout
+        credentials: 'include',
+        signal: AbortSignal.timeout(8000)
       });
+
+      console.log('🔍 Search response status:', response.status);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -146,27 +151,17 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         throw new Error(errorData.error || 'Search failed');
       }
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Invalid response content type:', contentType);
-        throw new Error('Invalid response format');
-      }
-
       const data = await response.json();
+      console.log('🔍 Search response data:', data);
 
-      // Ensure avgRating is always a valid number
-      const processResults = (results: SearchResult[]) => {
-        return results.map(result => ({
-          ...result,
-          avgRating: typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating : 4.0
-        }));
-      };
+      // Handle both new API format (data.results) and legacy format
+      const results = data.results || data;
 
       return {
-        restaurants: processResults(data.restaurants || []),
-        lists: data.lists || [],
-        posts: data.posts || [],
-        users: data.users || []
+        restaurants: results.restaurants || [],
+        lists: results.lists || [],
+        posts: results.posts || [],
+        users: results.users || []
       };
     },
     enabled: !!debouncedQuery && debouncedQuery.length >= 2,
@@ -227,29 +222,35 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         return;
       }
 
-      console.log('Navigating to result:', result.type, result.id);
+      console.log('🔗 Navigating to result:', result.type, result.id, result);
 
       // Navigate based on result type with enhanced routing
       switch (result.type) {
         case 'restaurant':
           // Handle both database and Google Places results
-          if (result.metadata?.googlePlaceId || result.id.startsWith('google_')) {
-            const googlePlaceId = result.metadata?.googlePlaceId || result.id.replace('google_', '');
-            if (googlePlaceId) {
-              setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
-            }
+          if (result.metadata?.googlePlaceId) {
+            console.log('🔗 Navigating to Google Places restaurant:', result.metadata.googlePlaceId);
+            setLocation(`/restaurants/google/${encodeURIComponent(result.metadata.googlePlaceId)}`);
+          } else if (result.id.toString().startsWith('google_')) {
+            const googlePlaceId = result.id.toString().replace('google_', '');
+            console.log('🔗 Navigating to Google Places restaurant (from ID):', googlePlaceId);
+            setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
           } else {
+            console.log('🔗 Navigating to database restaurant:', result.id);
             setLocation(`/restaurants/${encodeURIComponent(result.id)}`);
           }
           break;
         case 'list':
-          setLocation(`/lists/${encodeURIComponent(result.id)}`);
+          console.log('🔗 Navigating to list:', result.id);
+          setLocation(`/list-details?id=${encodeURIComponent(result.id)}`);
           break;
         case 'post':
-          setLocation(`/posts/${encodeURIComponent(result.id)}`);
+          console.log('🔗 Navigating to post:', result.id);
+          setLocation(`/post-details?id=${encodeURIComponent(result.id)}`);
           break;
         case 'user':
-          setLocation(`/profile/${encodeURIComponent(result.id)}`);
+          console.log('🔗 Navigating to user profile:', result.id);
+          setLocation(`/profile?userId=${encodeURIComponent(result.id)}`);
           break;
         default:
           console.error('Unknown result type:', result.type);

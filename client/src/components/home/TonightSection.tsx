@@ -140,12 +140,12 @@ export function TonightSection() {
 
   const { data: trendingRestaurants, isLoading: isLoadingTrending } = useQuery({
     queryKey: ['/api/restaurants/trending'],
-    enabled: false // Disabled since we're using mock data
+    enabled: true // Re-enabled to fetch real data
   });
 
   const { data: friendRecommendedRestaurants, isLoading: isLoadingFriendRecommended } = useQuery({
     queryKey: ['/api/restaurants/friend-recommended'],
-    enabled: false // Disabled since we're using mock data
+    enabled: true // Re-enabled to fetch real data
   });
 
   // For now, we'll use the mock data

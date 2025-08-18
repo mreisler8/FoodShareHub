@@ -46,7 +46,7 @@ export function FriendActivityFeed() {
   // In a real implementation, this would fetch from the API
   const { data: activities, isLoading } = useQuery({
     queryKey: ['/api/friend-activity'],
-    enabled: false // Disabled since we're using mock data for now
+    enabled: true // Re-enabled to fetch real data
   });
 
   // Use mock data for now
