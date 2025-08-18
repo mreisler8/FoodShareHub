@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, MapPin, Star, DollarSign, Navigation, Loader2 } from 'lucide-react';
@@ -7,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocation } from 'wouter';
-import { locationService } from '@/services/locationService';
+import { locationService, type LocationData } from '@/services/locationService';
+import { LocationControls } from '@/components/search/LocationControls';
 
 interface LocationData {
   lat: number;
@@ -85,12 +85,12 @@ const SearchPage: React.FC = () => {
     }
 
     setIsSearching(true);
-    
+
     try {
       console.log(`🔍 Searching for: "${searchQuery}" with location:`, location);
-      
+
       let searchUrl = `/api/search/unified?q=${encodeURIComponent(searchQuery)}&type=restaurants`;
-      
+
       // Add location parameters for geo-aware search
       if (location) {
         searchUrl += `&lat=${location.lat}&lng=${location.lng}&radius=25000`;
@@ -110,10 +110,10 @@ const SearchPage: React.FC = () => {
 
       const data = await response.json();
       console.log('🔍 Search results:', data);
-      
+
       // Extract restaurants from results
       const restaurants = data.results?.restaurants || data.restaurants || [];
-      
+
       // Apply prioritization framework:
       // 1. Google Places results first (verified = true, source = 'google_places')
       // 2. Exact name matches
@@ -125,21 +125,21 @@ const SearchPage: React.FC = () => {
           // Priority 1: Google Places results
           const aIsGoogle = a.source === 'google_places' || a.googlePlaceId;
           const bIsGoogle = b.source === 'google_places' || b.googlePlaceId;
-          
+
           if (aIsGoogle && !bIsGoogle) return -1;
           if (!aIsGoogle && bIsGoogle) return 1;
 
           // Priority 2: Exact name matches
           const aExactMatch = a.name.toLowerCase() === searchQuery.toLowerCase();
           const bExactMatch = b.name.toLowerCase() === searchQuery.toLowerCase();
-          
+
           if (aExactMatch && !bExactMatch) return -1;
           if (!aExactMatch && bExactMatch) return 1;
 
           // Priority 3: Relevance score
           const aRelevance = a.relevanceScore || 0;
           const bRelevance = b.relevanceScore || 0;
-          
+
           if (aRelevance !== bRelevance) {
             return bRelevance - aRelevance;
           }
@@ -147,7 +147,7 @@ const SearchPage: React.FC = () => {
           // Priority 4: Rating
           const aRating = a.rating || 0;
           const bRating = b.rating || 0;
-          
+
           if (aRating !== bRating) {
             return bRating - aRating;
           }
@@ -163,7 +163,7 @@ const SearchPage: React.FC = () => {
 
       setSearchResults(prioritizedResults);
       console.log(`🎯 Prioritized ${prioritizedResults.length} results`);
-      
+
     } catch (error) {
       console.error('🔍 Search error:', error);
       setSearchResults([]);
@@ -175,7 +175,7 @@ const SearchPage: React.FC = () => {
   // Handle search input with debouncing - wrapped in useCallback
   const handleSearchChange = React.useCallback((value: string) => {
     setQuery(value);
-    
+
     // Clear existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -190,7 +190,7 @@ const SearchPage: React.FC = () => {
   // Navigate to restaurant page - wrapped in useCallback
   const handleRestaurantClick = React.useCallback((restaurant: SearchResult) => {
     console.log('🏪 Navigating to restaurant:', restaurant);
-    
+
     // For Google Places results, use the googlePlaceId parameter
     if (restaurant.googlePlaceId && restaurant.source === 'google_places') {
       navigate(`/restaurants?googlePlaceId=${restaurant.googlePlaceId}`);
@@ -214,13 +214,22 @@ const SearchPage: React.FC = () => {
   // Format distance for display
   const formatDistance = (distance?: number) => {
     if (!distance) return null;
-    
+
     if (distance < 1000) {
       return `${Math.round(distance)}m`;
     } else {
       return `${(distance / 1000).toFixed(1)}km`;
     }
   };
+
+  const setUserLocation = (loc: LocationData | null) => {
+    setLocation(loc);
+    // When location is changed via controls, perform a search if query is active
+    if (query) {
+      performSearch(query);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -229,39 +238,18 @@ const SearchPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-gray-900">Search Restaurants</h1>
-            
-            {/* Location Status */}
-            <div className="flex items-center space-x-2 text-sm">
-              {locationStatus === 'loading' && (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                  <span className="text-gray-600">Getting location...</span>
-                </>
-              )}
-              
-              {locationStatus === 'success' && location && (
-                <>
-                  <MapPin className="h-4 w-4 text-green-500" />
-                  <span className="text-gray-600">
-                    {location.city || location.address || 'Location detected'}
-                  </span>
-                </>
-              )}
-              
-              {locationStatus === 'error' && (
-                <>
-                  <Navigation className="h-4 w-4 text-orange-500" />
-                  <span className="text-gray-600">Using default location</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={getUserLocation}
-                    className="ml-2"
-                  >
-                    Retry
-                  </Button>
-                </>
-              )}
+
+            {/* Enhanced Location Controls */}
+            <div className="mb-4">
+              <LocationControls onLocationChange={(location) => {
+                if (location) {
+                  setUserLocation(location);
+                  setLocationStatus(`Using location: ${location.city || 'Your location'}`);
+                } else {
+                  setUserLocation(null);
+                  setLocationStatus(null);
+                }
+              }} />
             </div>
           </div>
         </div>
@@ -301,7 +289,7 @@ const SearchPage: React.FC = () => {
         {/* Search Results */}
         <div className="space-y-3">
           {searchResults.map((restaurant) => (
-            <Card 
+            <Card
               key={`${restaurant.source}-${restaurant.id || restaurant.googlePlaceId}`}
               className="group hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-200 cursor-pointer border border-gray-100 hover:border-gray-200 bg-white rounded-xl overflow-hidden"
               onClick={() => handleRestaurantClick(restaurant)}
@@ -341,7 +329,7 @@ const SearchPage: React.FC = () => {
                               <h3 className="text-lg font-semibold text-gray-900 truncate leading-tight">
                                 {restaurant.name}
                               </h3>
-                              
+
                               {/* Source Badge */}
                               {restaurant.source === 'google_places' && (
                                 <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50">

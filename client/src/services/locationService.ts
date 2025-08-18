@@ -172,6 +172,82 @@ export class LocationService {
   }
 
   /**
+   * Get detailed location info with user-friendly display
+   */
+  async getCurrentLocationWithDisplay(): Promise<LocationData & { 
+    displayText: string; 
+    accuracy: 'high' | 'medium' | 'low';
+    lastUpdated: string;
+  }> {
+    const location = await this.getCurrentLocation();
+    
+    return {
+      ...location,
+      displayText: this.formatLocationDisplay(location),
+      accuracy: this.getAccuracyLevel(location),
+      lastUpdated: new Date(location.timestamp || Date.now()).toLocaleTimeString()
+    };
+  }
+
+  /**
+   * Check if location services are enabled by user preference
+   */
+  isLocationEnabled(): boolean {
+    return localStorage.getItem('circles_location_enabled') !== 'false';
+  }
+
+  /**
+   * Toggle location services on/off
+   */
+  setLocationEnabled(enabled: boolean): void {
+    localStorage.setItem('circles_location_enabled', enabled.toString());
+    if (!enabled) {
+      this.clearCache();
+    }
+  }
+
+  /**
+   * Get manual location override
+   */
+  getManualLocation(): LocationData | null {
+    try {
+      const manual = localStorage.getItem('circles_manual_location');
+      return manual ? JSON.parse(manual) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Set manual location override
+   */
+  setManualLocation(location: LocationData | null): void {
+    if (location) {
+      localStorage.setItem('circles_manual_location', JSON.stringify(location));
+    } else {
+      localStorage.removeItem('circles_manual_location');
+    }
+    this.clearCache();
+  }
+
+  private formatLocationDisplay(location: LocationData): string {
+    if (location.city && location.country) {
+      return `${location.city}, ${location.country}`;
+    }
+    if (location.address) {
+      return location.address;
+    }
+    return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
+  }
+
+  private getAccuracyLevel(location: LocationData): 'high' | 'medium' | 'low' {
+    const age = Date.now() - (location.timestamp || 0);
+    if (age < 5 * 60 * 1000) return 'high'; // < 5 minutes
+    if (age < 30 * 60 * 1000) return 'medium'; // < 30 minutes
+    return 'low';
+  }
+
+  /**
    * Clear cached location
    */
   clearCache(): void {
