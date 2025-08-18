@@ -610,23 +610,17 @@ export default function RestaurantDetailPage() {
         {/* Sidebar Cards Section - 3 Column Grid as per Development Brief */}
         <div className="grid md:grid-cols-3 gap-6">
           {/* Make a Reservation */}
-          <SectionBoundary 
-            title="Reservation"
-            fallback={<SkeletonCard lines={1} showActions={true} />}
-          >
+          <ErrorBoundary>
             <ReservationCard 
               restaurant={{
                 name: restaurant.name,
                 location: restaurant.location
               }}
             />
-          </SectionBoundary>
+          </ErrorBoundary>
 
           {/* View Menu & Order */}
-          <SectionBoundary 
-            title="Menu & Order"
-            fallback={<SkeletonCard lines={1} showActions={true} />}
-          >
+          <ErrorBoundary>
             <OrderOptionsCard 
               restaurant={{
                 name: restaurant.name,
@@ -636,20 +630,17 @@ export default function RestaurantDetailPage() {
               menuUrl={restaurant.website}
               orderUrl={undefined}
             />
-          </SectionBoundary>
+          </ErrorBoundary>
 
           {/* More Restaurant Actions */}
-          <SectionBoundary 
-            title="More Actions"
-            fallback={<SkeletonCard lines={1} showActions={true} />}
-          >
+          <ErrorBoundary>
             <MoreRestaurantActions 
               restaurant={{
                 name: restaurant.name,
                 location: restaurant.location
               }}
             />
-          </SectionBoundary>
+          </ErrorBoundary>
         </div>
 
         {/* Your Activity Section with Error Boundary */}
