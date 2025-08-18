@@ -271,16 +271,16 @@ const SearchPage: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Search Input */}
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
             placeholder="Search for restaurants, cuisines, or dishes..."
             value={query}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10 pr-4 py-3 text-lg border-2 border-gray-200 focus:border-blue-500 rounded-lg"
+            className="pl-10 pr-4 py-2 text-base border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md"
           />
           {isSearching && (
-            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 animate-spin text-blue-500" />
+            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-blue-500" />
           )}
         </div>
 
