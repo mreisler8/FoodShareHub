@@ -107,7 +107,7 @@ export function OptimizedSearchModal({
 
   const requestLocation = async () => {
     if (!showLocationServices) return;
-    
+
     try {
       setLocationPermission('prompt');
 
@@ -134,7 +134,7 @@ export function OptimizedSearchModal({
     queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation, type: searchType }],
     queryFn: async () => {
       let searchUrl: string;
-      
+
       if (searchType === 'unified') {
         searchUrl = `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`;
       } else if (searchType === 'users') {
@@ -313,12 +313,12 @@ export function OptimizedSearchModal({
     try {
       const action = isFollowing ? 'unfollow' : 'follow';
       const method = isFollowing ? 'DELETE' : 'POST';
-      
+
       await fetch(`/api/follow/${userId}`, { method });
-      
+
       // Refresh search results to update follow status
       await refetch();
-      
+
       // Invalidate user-related queries
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
     } catch (error) {
@@ -386,7 +386,7 @@ export function OptimizedSearchModal({
               <X className="h-4 w-4" />
             </Button>
           </div>
-          
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
             <Input

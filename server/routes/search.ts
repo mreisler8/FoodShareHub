@@ -11,6 +11,21 @@ const router = Router();
 // Initialize search engine service
 const searchEngine = SearchEngineService.getInstance();
 
+// Helper function to deduplicate restaurants based on googlePlaceId or database id
+const deduplicateRestaurants = (results: any[]) => {
+  const seen = new Set();
+  const deduplicated: any[] = [];
+
+  for (const result of results) {
+    const id = result.googlePlaceId ? `google_${result.googlePlaceId}` : result.id;
+    if (!seen.has(id)) {
+      seen.add(id);
+      deduplicated.push(result);
+    }
+  }
+  return deduplicated;
+};
+
 // Unified search endpoint using advanced SearchEngineService with person name detection
 router.get('/unified', authenticate, async (req, res) => {
   try {
@@ -42,15 +57,17 @@ router.get('/unified', authenticate, async (req, res) => {
 
     const results: any = {};
 
-    // Search restaurants using advanced SearchEngineService
+    // Search restaurants using combined database + Google Places approach
     if (!searchType || searchType === 'restaurants') {
-      console.log(`🔍 ADVANCED SEARCH START: "${query}" with person name detection`);
-      
+      console.log(`🔍 COMBINED SEARCH START: "${query}" with database + Google Places integration`);
+
+      let databaseResults: any[] = [];
+      let googleResults: any[] = [];
+
       try {
-        const restaurantResults = await searchEngine.search(searchOptions);
-        
-        // Transform advanced search results to match API contract
-        results.restaurants = restaurantResults.map((result: any) => ({
+        // First, try advanced search engine
+        const advancedResults = await searchEngine.search(searchOptions);
+        databaseResults = advancedResults.map((result: any) => ({
           id: result.id.includes('google_') ? result.id : parseInt(result.id),
           name: result.name,
           address: result.location?.address || result.metadata?.address,
@@ -65,13 +82,12 @@ router.get('/unified', authenticate, async (req, res) => {
           distance: result.location?.distance,
           relevanceScore: result.relevanceScore
         }));
-        
-        console.log(`🎯 Advanced search results: ${results.restaurants.length} restaurants with relevance scoring`);
-        console.log(`📈 Top result: ${results.restaurants[0]?.name} (score: ${results.restaurants[0]?.relevanceScore})`);
+
+        console.log(`🎯 Advanced search results: ${databaseResults.length} restaurants`);
       } catch (error) {
-        console.error('❌ ADVANCED SEARCH ERROR, falling back to basic search:', error);
-        
-        // Fallback to basic search if advanced search fails
+        console.error('❌ ADVANCED SEARCH ERROR, using basic database search:', error);
+
+        // Fallback to basic database search
         const basicResults = await db
           .select({
             id: restaurants.id,
@@ -95,8 +111,74 @@ router.get('/unified', authenticate, async (req, res) => {
           )
           .orderBy(desc(restaurants.verified), restaurants.name)
           .limit(limitNum);
-          
-        results.restaurants = basicResults;
+
+        databaseResults = basicResults.map(result => ({
+          ...result,
+          source: 'database',
+          relevanceScore: 70
+        }));
+      }
+
+      // Always search Google Places API for additional results
+      try {
+        console.log(`🌍 Searching Google Places API for: "${query}"`);
+        const location = searchOptions.location ? {
+          lat: searchOptions.location.lat,
+          lng: searchOptions.location.lng,
+          radius: searchOptions.radius
+        } : undefined;
+
+        googleResults = await searchGooglePlaces(query, location);
+
+        // Transform Google Places results
+        googleResults = googleResults.map(result => ({
+          id: `google_${result.googlePlaceId}`,
+          name: result.name,
+          address: result.address,
+          city: result.location,
+          cuisine: result.cuisine,
+          priceRange: result.priceRange,
+          imageUrl: result.imageUrl,
+          googlePlaceId: result.googlePlaceId,
+          verified: true,
+          source: 'google_places',
+          rating: result.rating,
+          distance: result.distance,
+          relevanceScore: result.relevanceScore || 75
+        }));
+
+        console.log(`🌍 Google Places results: ${googleResults.length} restaurants`);
+      } catch (error) {
+        console.error('❌ Google Places API error:', error);
+      }
+
+      // Combine and deduplicate results
+      const allResults = [...databaseResults, ...googleResults];
+      const deduplicatedResults = deduplicateRestaurants(allResults);
+
+      // Sort by relevance score and rating
+      results.restaurants = deduplicatedResults
+        .sort((a, b) => {
+          // Prioritize exact name matches
+          const aExactMatch = a.name.toLowerCase() === query.toLowerCase();
+          const bExactMatch = b.name.toLowerCase() === query.toLowerCase();
+
+          if (aExactMatch && !bExactMatch) return -1;
+          if (!aExactMatch && bExactMatch) return 1;
+
+          // Then by relevance score
+          if (a.relevanceScore !== b.relevanceScore) {
+            return b.relevanceScore - a.relevanceScore;
+          }
+
+          // Then by rating
+          return (b.rating || 0) - (a.rating || 0);
+        })
+        .slice(0, limitNum);
+
+      console.log(`🎯 Combined search results: ${results.restaurants.length} restaurants`);
+      if (results.restaurants.length > 0) {
+        console.log(`📈 Top result: ${results.restaurants[0]?.name} (source: ${results.restaurants[0]?.source}, score: ${results.restaurants[0]?.relevanceScore})`);
       }
     }
 
@@ -158,7 +240,7 @@ router.get('/unified', authenticate, async (req, res) => {
     // Search users - DIRECT DB QUERY TO PREVENT RESTAURANT MIXING
     if (!searchType || searchType === 'users') {
       console.log(`🔍 Searching users with direct DB query: "${query}"`);
-      
+
       // BYPASS SearchEngineService completely to prevent restaurant mixing
       const userResults = await db
         .select({
@@ -179,12 +261,12 @@ router.get('/unified', authenticate, async (req, res) => {
         .orderBy(users.name)
         .limit(limitNum)
         .offset(offsetNum);
-        
+
       results.users = userResults.map(user => ({
         ...user,
         relevanceScore: 80
       }));
-      
+
       console.log(`👥 Direct DB user search: ${results.users.length} users found`);
       if (results.users.length > 0) {
         console.log('User results:', results.users.map((u: any) => ({ id: u.id, name: u.name, username: u.username })));
@@ -227,7 +309,7 @@ router.get('/restaurants', authenticate, async (req, res) => {
   try {
     const { q, limit = 10, lat, lng } = req.query;
     const query = q as string;
-    
+
     if (!query || query.trim().length < 1) {
       return res.json([]);
     }
@@ -246,7 +328,7 @@ router.get('/restaurants', authenticate, async (req, res) => {
 
     try {
       const advancedResults = await searchEngine.search({ ...searchOptions });
-      
+
       // Transform to match autocomplete API contract
       const transformedResults = advancedResults.map((result: any) => ({
         id: result.id.includes('google_') ? result.id : parseInt(result.id),
@@ -258,11 +340,11 @@ router.get('/restaurants', authenticate, async (req, res) => {
         googlePlaceId: result.metadata?.googlePlaceId,
         relevanceScore: result.relevanceScore
       }));
-      
+
       res.json(transformedResults);
     } catch (error) {
       console.error('Advanced restaurant search failed, using fallback:', error);
-      
+
       // Fallback to basic search
       const basicResults = await db
         .select({
@@ -284,7 +366,7 @@ router.get('/restaurants', authenticate, async (req, res) => {
         )
         .orderBy(restaurants.name)
         .limit(parseInt(limit as string) || 10);
-        
+
       res.json(basicResults);
     }
   } catch (error) {
@@ -298,7 +380,7 @@ router.get('/users', authenticate, async (req, res) => {
   try {
     const { q, limit = 10 } = req.query;
     const query = q as string;
-    
+
     if (!query || query.trim().length < 1) {
       return res.json([]);
     }
@@ -311,7 +393,7 @@ router.get('/users', authenticate, async (req, res) => {
 
     try {
       const advancedResults = await searchEngine.search({ ...searchOptions });
-      
+
       // Transform to match user search API contract
       const transformedResults = advancedResults.map((result: any) => ({
         id: parseInt(result.id),
@@ -321,11 +403,11 @@ router.get('/users', authenticate, async (req, res) => {
         profilePicture: result.metadata?.profilePicture,
         relevanceScore: result.relevanceScore
       }));
-      
+
       res.json(transformedResults);
     } catch (error) {
       console.error('User search failed, using fallback:', error);
-      
+
       // Fallback to basic search
       const basicResults = await db
         .select({
@@ -345,7 +427,7 @@ router.get('/users', authenticate, async (req, res) => {
         )
         .orderBy(users.name)
         .limit(parseInt(limit as string) || 10);
-        
+
       res.json(basicResults);
     }
   } catch (error) {
@@ -365,7 +447,7 @@ router.get('/recent-searches', authenticate, async (req, res) => {
     // For now return empty array - can be enhanced with actual user search history
     // TODO: Implement actual recent search tracking in database
     const recentSearches: any[] = [];
-    
+
     res.json({ recent: recentSearches });
   } catch (error) {
     console.error('Error fetching recent searches:', error);
@@ -430,7 +512,7 @@ router.get('/trending', authenticate, async (req, res) => {
       { tag: 'coffee', count: 18 },
       { tag: 'tacos', count: 15 }
     ];
-    
+
     res.json(trendingTags);
   } catch (error) {
     console.error('Error fetching trending tags:', error);
