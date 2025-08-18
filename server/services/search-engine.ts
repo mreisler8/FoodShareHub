@@ -493,7 +493,7 @@ export class SearchEngineService {
       console.error('Typesense search error:', error);
       console.log(`🔄 Falling back to basic search with query: "${query}" and userId:`, userId);
       // Fallback to basic PostgreSQL search when Typesense fails
-      const fallbackResults = await this.basicSearch(query, { lat, lng, radius, userId, filters });
+      const fallbackResults = await this.basicSearch(query, { lat, lng, radius, userId });
       console.log('Basic search returned:', fallbackResults.length, 'results');
       return fallbackResults;
     }

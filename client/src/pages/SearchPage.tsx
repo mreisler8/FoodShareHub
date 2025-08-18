@@ -9,14 +9,6 @@ import { useLocation } from 'wouter';
 import { locationService, type LocationData } from '@/services/locationService';
 import { LocationControls } from '@/components/search/LocationControls';
 
-interface LocationData {
-  lat: number;
-  lng: number;
-  address?: string;
-  city?: string;
-  country?: string;
-}
-
 interface SearchResult {
   id: string;
   name: string;
@@ -244,10 +236,10 @@ const SearchPage: React.FC = () => {
               <LocationControls onLocationChange={(location) => {
                 if (location) {
                   setUserLocation(location);
-                  setLocationStatus(`Using location: ${location.city || 'Your location'}`);
+                  setLocationStatus('success');
                 } else {
                   setUserLocation(null);
-                  setLocationStatus(null);
+                  setLocationStatus('idle');
                 }
               }} />
             </div>

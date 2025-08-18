@@ -373,7 +373,10 @@ router.get('/restaurants', authenticate, async (req, res) => {
     };
 
     try {
-      const advancedResults = await searchEngine.search({ ...searchOptions });
+      const advancedResults = await searchEngine.search({ 
+        query: query,
+        ...searchOptions 
+      });
 
       // Transform to match autocomplete API contract
       const transformedResults = advancedResults.map((result: any) => ({
@@ -438,7 +441,10 @@ router.get('/users', authenticate, async (req, res) => {
     };
 
     try {
-      const advancedResults = await searchEngine.search({ ...searchOptions });
+      const advancedResults = await searchEngine.search({ 
+        query: query,
+        ...searchOptions 
+      });
 
       // Transform to match user search API contract
       const transformedResults = advancedResults.map((result: any) => ({
