@@ -125,15 +125,70 @@ export class LocationService {
         throw new Error('Reverse geocoding failed');
       }
 
-      return await response.json();
-    } catch (error) {
-      // Fallback to basic location description
+      const data = await response.json();
+      
+      // If we got proper city data, return it
+      if (data.city && data.city !== 'Current Location') {
+        return data;
+      }
+
+      // Fallback to client-side city detection
+      const cityInfo = this.detectCityFromCoordinates(lat, lng);
       return {
-        formatted_address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        city: 'Unknown',
-        country: 'Unknown'
+        formatted_address: cityInfo.address,
+        city: cityInfo.city,
+        country: cityInfo.country
+      };
+    } catch (error) {
+      // Final fallback to client-side city detection
+      const cityInfo = this.detectCityFromCoordinates(lat, lng);
+      return {
+        formatted_address: cityInfo.address,
+        city: cityInfo.city,
+        country: cityInfo.country
       };
     }
+  }
+
+  /**
+   * Detect city from coordinates using known city database
+   */
+  private detectCityFromCoordinates(lat: number, lng: number): {
+    address: string;
+    city: string;
+    country: string;
+  } {
+    // Known cities with their approximate boundaries
+    const cities = [
+      { name: 'Toronto', lat: 43.6532, lng: -79.3832, radius: 0.5, country: 'Canada' },
+      { name: 'Vancouver', lat: 49.2827, lng: -123.1207, radius: 0.5, country: 'Canada' },
+      { name: 'Montreal', lat: 45.5017, lng: -73.5673, radius: 0.5, country: 'Canada' },
+      { name: 'New York', lat: 40.7128, lng: -74.0060, radius: 0.5, country: 'USA' },
+      { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, radius: 0.5, country: 'USA' },
+      { name: 'Chicago', lat: 41.8781, lng: -87.6298, radius: 0.5, country: 'USA' },
+      { name: 'London', lat: 51.5074, lng: -0.1278, radius: 0.5, country: 'UK' },
+      { name: 'Paris', lat: 48.8566, lng: 2.3522, radius: 0.5, country: 'France' },
+      { name: 'Tokyo', lat: 35.6762, lng: 139.6503, radius: 0.5, country: 'Japan' },
+    ];
+
+    // Find closest city within radius
+    for (const city of cities) {
+      const distance = this.calculateDistance(lat, lng, city.lat, city.lng);
+      if (distance <= city.radius * 111) { // Convert degrees to km (roughly)
+        return {
+          address: `${city.name}, ${city.country}`,
+          city: city.name,
+          country: city.country
+        };
+      }
+    }
+
+    // No match found, return coordinates
+    return {
+      address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      city: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      country: 'Unknown'
+    };
   }
 
   /**

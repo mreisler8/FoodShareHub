@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MapPin, Settings, RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,23 @@ export function LocationControls({ onLocationChange }: LocationControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
+  // Helper function to format location display
+  const formatLocationDisplay = (location: LocationData): string => {
+    // Prioritize city + country format
+    if (location.city && location.country && location.city !== 'Unknown') {
+      return `${location.city}, ${location.country}`;
+    }
+
+    // Use address if available and not just coordinates
+    if (location.address && !location.address.match(/^\d+\.\d+, -?\d+\.\d+$/)) {
+      return location.address;
+    }
+
+    // Last resort: show coordinates with "Near" prefix
+    return `Near ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
+  };
+
+
   useEffect(() => {
     if (isEnabled) {
       refreshLocation();
@@ -29,7 +45,7 @@ export function LocationControls({ onLocationChange }: LocationControlsProps) {
       if (manual) {
         setCurrentLocation(manual);
         setDisplayInfo({
-          displayText: `${manual.city || 'Manual Location'}`,
+          displayText: formatLocationDisplay(manual),
           accuracy: 'medium',
           lastUpdated: 'Manual'
         });
@@ -39,19 +55,36 @@ export function LocationControls({ onLocationChange }: LocationControlsProps) {
 
   const refreshLocation = async () => {
     if (!isEnabled) return;
-    
+
     setIsLoading(true);
     try {
-      const locationWithDisplay = await locationService.getCurrentLocationWithDisplay();
-      setCurrentLocation(locationWithDisplay);
-      setDisplayInfo({
-        displayText: locationWithDisplay.displayText,
-        accuracy: locationWithDisplay.accuracy,
-        lastUpdated: locationWithDisplay.lastUpdated
-      });
-      onLocationChange?.(locationWithDisplay);
+      const locationData = await locationService.getCurrentLocation();
+      if (locationData) {
+        const formattedLocation = {
+          ...locationData,
+          displayText: formatLocationDisplay(locationData),
+          lastUpdated: new Date().toLocaleTimeString()
+        };
+        setCurrentLocation(locationData);
+        setDisplayInfo({
+          displayText: formattedLocation.displayText,
+          accuracy: formattedLocation.accuracy,
+          lastUpdated: formattedLocation.lastUpdated
+        });
+        onLocationChange?.(formattedLocation);
+      } else {
+        // Handle cases where location couldn't be fetched
+        setCurrentLocation(null);
+        setDisplayInfo(null);
+        onLocationChange?.(null);
+        console.warn('Failed to get current location.');
+      }
     } catch (error) {
       console.error('Location refresh failed:', error);
+      // Optionally set displayInfo to indicate an error or fallback
+      setCurrentLocation(null);
+      setDisplayInfo(null);
+      onLocationChange?.(null);
     } finally {
       setIsLoading(false);
     }
@@ -60,11 +93,14 @@ export function LocationControls({ onLocationChange }: LocationControlsProps) {
   const toggleLocation = (enabled: boolean) => {
     setIsEnabled(enabled);
     locationService.setLocationEnabled(enabled);
-    
+
     if (!enabled) {
       setCurrentLocation(null);
       setDisplayInfo(null);
       onLocationChange?.(null);
+    } else {
+      // If enabling, refresh the location
+      refreshLocation();
     }
   };
 
@@ -80,7 +116,7 @@ export function LocationControls({ onLocationChange }: LocationControlsProps) {
   return (
     <div className="flex items-center gap-2 text-sm">
       <MapPin className={`h-4 w-4 ${isEnabled && currentLocation ? 'text-blue-600' : 'text-gray-400'}`} />
-      
+
       {isEnabled && displayInfo ? (
         <div className="flex items-center gap-2">
           <span className="font-medium">{displayInfo.displayText}</span>
