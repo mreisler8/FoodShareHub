@@ -118,3 +118,12 @@
 {"t":"trace","op":"restaurant.read","path":"/google_ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":98,"note":"Restaurant details fetch","timestamp":"2025-08-18T01:38:33.059Z"}
 {"t":"trace","op":"restaurant.read","path":"/google_ChIJE6Tsk781K4gRMs7jM8cpcn8","userId":7,"cacheHit":false,"status":200,"ms":64,"note":"Restaurant details fetch","timestamp":"2025-08-18T01:40:42.241Z"}
 {"t":"trace","op":"restaurant.read","path":"/","placeId":"ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":87,"note":"Restaurant details fetch","timestamp":"2025-08-18T01:59:36.230Z"}
+{"t":"trace","op":"restaurant.read","path":"/","placeId":"ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":88,"note":"Restaurant details fetch","timestamp":"2025-08-18T02:04:52.749Z"}
+{"t":"trace","op":"restaurant.read","path":"/ChIJuQdEYaE1K4gRSb-QHzZpGss/lists","userId":7,"cacheHit":false,"status":400,"ms":1,"note":"Invalid restaurant ID","timestamp":"2025-08-18T02:04:54.152Z"}
+{"t":"trace","op":"restaurant.read","path":"/ChIJuQdEYaE1K4gRSb-QHzZpGss/posts","userId":7,"cacheHit":false,"status":400,"ms":0,"note":"Invalid restaurant ID","timestamp":"2025-08-18T02:04:54.153Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":77,"note":"User rating fetch","timestamp":"2025-08-18T02:04:54.231Z"}
+{"t":"trace","op":"ratings.write","path":"/","placeId":"ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":285,"note":"Rating save attempt","timestamp":"2025-08-18T02:04:59.863Z"}
+{"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-18T02:05:00.675Z"}
+{"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-18T02:05:01.997Z"}
+{"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-18T02:05:04.327Z"}
+{"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-18T02:05:11.203Z"}
