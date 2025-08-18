@@ -498,11 +498,15 @@ export class SearchEngineService {
   }
 
   private expandSemanticQuery(query: string): string {
+    if (!query || typeof query !== 'string') {
+      return query || '';
+    }
+    
     let expandedQuery = query;
 
     Object.entries(SEMANTIC_MAPPINGS).forEach(([key, synonyms]) => {
-      if (query.toLowerCase().includes(key)) {
-        expandedQuery += ' ' + synonyms.join(' ');
+      if (query.toLowerCase().includes(key.toLowerCase()) && Array.isArray(synonyms)) {
+        expandedQuery += ' ' + synonyms.filter(s => s && typeof s === 'string').join(' ');
       }
     });
 
@@ -696,6 +700,9 @@ export class SearchEngineService {
   }
 
   private async findExactMatches(query: string): Promise<any[]> {
+    if (!query || typeof query !== 'string') {
+      return [];
+    }
     const lowerQuery = query.toLowerCase().trim();
     
     try {
@@ -714,7 +721,7 @@ export class SearchEngineService {
           category: restaurants.category,
           cuisine: restaurants.cuisine,
           googlePlaceId: restaurants.googlePlaceId,
-        }).from(restaurants).where(sql`LOWER(${restaurants.name}) = ${lowerQuery}`),
+        }).from(restaurants).where(sql`LOWER(COALESCE(${restaurants.name}, '')) = ${lowerQuery}`),
         
         // Exact username matches
         db.select({
@@ -723,7 +730,7 @@ export class SearchEngineService {
           type: sql<string>`'user'`,
           username: users.username,
           bio: users.bio,
-        }).from(users).where(sql`LOWER(${users.username}) = ${lowerQuery}`),
+        }).from(users).where(sql`LOWER(COALESCE(${users.username}, '')) = ${lowerQuery}`),
         
         // Exact list name matches
         db.select({
@@ -732,7 +739,7 @@ export class SearchEngineService {
           type: sql<string>`'list'`,
           description: restaurantLists.description,
           tags: restaurantLists.tags,
-        }).from(restaurantLists).where(sql`LOWER(${restaurantLists.name}) = ${lowerQuery}`)
+        }).from(restaurantLists).where(sql`LOWER(COALESCE(${restaurantLists.name}, '')) = ${lowerQuery}`)
       ]);
 
       return [...restaurantMatches, ...userMatches, ...listMatches];
@@ -773,6 +780,7 @@ export class SearchEngineService {
   }
 
   private calculateRelevanceScore(restaurantName: string, query: string): number {
+    if (!restaurantName || !query) return 0;
     const name = restaurantName.toLowerCase();
     const searchTerm = query.toLowerCase();
     

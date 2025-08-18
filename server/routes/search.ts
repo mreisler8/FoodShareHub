@@ -371,6 +371,50 @@ router.get('/recent-searches', authenticate, async (req, res) => {
   }
 });
 
+// List search endpoint
+router.get('/lists', authenticate, async (req, res) => {
+  try {
+    const { q, limit = 20, offset = 0 } = req.query;
+    const query = q as string;
+    const limitNum = parseInt(limit as string) || 20;
+    const offsetNum = parseInt(offset as string) || 0;
+
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+    }
+
+    const { db } = await import('../db');
+    const { restaurantLists } = await import('../../shared/schema');
+    const { ilike, and, eq, desc } = await import('drizzle-orm');
+
+    const results = await db
+      .select({
+        id: restaurantLists.id,
+        name: restaurantLists.name,
+        description: restaurantLists.description,
+        tags: restaurantLists.tags,
+        createdById: restaurantLists.createdById,
+        createdAt: restaurantLists.createdAt,
+        coverImage: restaurantLists.coverImage
+      })
+      .from(restaurantLists)
+      .where(
+        and(
+          ilike(restaurantLists.name, `%${query.trim()}%`),
+          eq(restaurantLists.isPublic, true)
+        )
+      )
+      .orderBy(desc(restaurantLists.createdAt))
+      .limit(limitNum)
+      .offset(offsetNum);
+
+    res.json(results);
+  } catch (error) {
+    console.error('List search error:', error);
+    res.status(500).json({ error: 'Failed to search lists' });
+  }
+});
+
 // Trending tags endpoint (consolidated from search-analytics)
 router.get('/trending', authenticate, async (req, res) => {
   try {
