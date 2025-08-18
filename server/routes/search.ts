@@ -155,59 +155,39 @@ router.get('/unified', authenticate, async (req, res) => {
       results.posts = postResults;
     }
 
-    // Search users using SearchEngineService - FIXED TO PREVENT RESTAURANT MIXING
+    // Search users - DIRECT DB QUERY TO PREVENT RESTAURANT MIXING
     if (!searchType || searchType === 'users') {
-      try {
-        console.log(`🔍 Searching users with query: "${query}"`);
-        
-        // Use SearchEngineService but filter to only user results
-        const searchResults = await searchEngine.search({ ...searchOptions });
-        const userResults = searchResults.filter((result: any) => result.type === 'user');
-        
-        // Transform to match API contract
-        results.users = userResults.map((result: any) => ({
-          id: parseInt(result.id),
-          username: result.metadata?.username,
-          name: result.name,
-          bio: result.metadata?.bio,
-          profilePicture: result.metadata?.profilePicture,
-          relevanceScore: result.relevanceScore
-        }));
-        
-        console.log(`👥 User search results: ${results.users.length} users found`);
-        if (results.users.length > 0) {
-          console.log('User results:', results.users.map(u => ({ id: u.id, name: u.name, username: u.username })));
-        }
-      } catch (error) {
-        console.error('❌ USER SEARCH ERROR, falling back to direct DB query:', error);
-        
-        // Direct database fallback
-        const basicResults = await db
-          .select({
-            id: users.id,
-            username: users.username,
-            name: users.name,
-            bio: users.bio,
-            profilePicture: users.profilePicture
-          })
-          .from(users)
-          .where(
-            or(
-              ilike(users.username, `%${query.trim()}%`),
-              ilike(users.name, `%${query.trim()}%`),
-              ilike(users.bio, `%${query.trim()}%`)
-            )
+      console.log(`🔍 Searching users with direct DB query: "${query}"`);
+      
+      // BYPASS SearchEngineService completely to prevent restaurant mixing
+      const userResults = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          bio: users.bio,
+          profilePicture: users.profilePicture
+        })
+        .from(users)
+        .where(
+          or(
+            ilike(users.username, `%${query.trim()}%`),
+            ilike(users.name, `%${query.trim()}%`),
+            ilike(users.bio, `%${query.trim()}%`)
           )
-          .orderBy(users.name)
-          .limit(limitNum)
-          .offset(offsetNum);
-          
-        results.users = basicResults.map(user => ({
-          ...user,
-          relevanceScore: 80
-        }));
+        )
+        .orderBy(users.name)
+        .limit(limitNum)
+        .offset(offsetNum);
         
-        console.log(`👥 Direct DB user search: ${results.users.length} users found`);
+      results.users = userResults.map(user => ({
+        ...user,
+        relevanceScore: 80
+      }));
+      
+      console.log(`👥 Direct DB user search: ${results.users.length} users found`);
+      if (results.users.length > 0) {
+        console.log('User results:', results.users.map((u: any) => ({ id: u.id, name: u.name, username: u.username })));
       }
     }
 
@@ -258,7 +238,7 @@ router.get('/restaurants', authenticate, async (req, res) => {
     };
 
     try {
-      const advancedResults = await searchEngine.search({ ...searchOptions, contentTypes: ['restaurant'] });
+      const advancedResults = await searchEngine.search({ ...searchOptions });
       
       // Transform to match autocomplete API contract
       const transformedResults = advancedResults.map((result: any) => ({
@@ -323,7 +303,7 @@ router.get('/users', authenticate, async (req, res) => {
     };
 
     try {
-      const advancedResults = await searchEngine.search({ ...searchOptions, contentTypes: ['user'] });
+      const advancedResults = await searchEngine.search({ ...searchOptions });
       
       // Transform to match user search API contract
       const transformedResults = advancedResults.map((result: any) => ({
@@ -337,7 +317,7 @@ router.get('/users', authenticate, async (req, res) => {
       
       res.json(transformedResults);
     } catch (error) {
-      console.error('Advanced user search failed, using fallback:', error);
+      console.error('User search failed, using fallback:', error);
       
       // Fallback to basic search
       const basicResults = await db

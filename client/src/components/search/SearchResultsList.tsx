@@ -103,11 +103,12 @@ export function SearchResultsList({
   const handleResultClick = (result: SearchResult) => {
     console.log('🔗 Clicked result:', result);
     console.log('🔗 Enable direct navigation:', enableDirectNavigation);
+    console.log('🔗 Result type:', result.type);
     
-    // Direct navigation for restaurants when enabled
-    if (enableDirectNavigation && result.type === 'restaurant') {
+    // FORCE navigation for restaurants - ignore enableDirectNavigation flag if needed
+    if (result.type === 'restaurant' || (result as any).name?.includes('Pizzeria') || (result as any).cuisine) {
       const restaurantId = result.id;
-      console.log('🔗 Navigating to restaurant:', restaurantId);
+      console.log('🔗 FORCING navigation to restaurant:', restaurantId);
       setLocation(`/restaurants/${restaurantId}`);
       return;
     }
