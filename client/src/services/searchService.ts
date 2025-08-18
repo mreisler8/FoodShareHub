@@ -117,7 +117,10 @@ export class SearchService {
       throw new Error('Invalid response format');
     }
 
-    const results = await response.json();
+    const data = await response.json();
+    
+    // API returns data in results object, extract it
+    const results = data.results || data;
 
     // Enhance restaurant results with Circle Score data
     if (results.restaurants && results.restaurants.length > 0) {

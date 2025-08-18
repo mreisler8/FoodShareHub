@@ -165,14 +165,17 @@ export function OptimizedSearchModal({
       }
 
       const data = await response.json();
+      console.log('🔍 Search API Response:', data);
 
       // Handle both unified and specific search types
       if (searchType === 'unified') {
+        // API returns data in results object, extract it
+        const results = data.results || data;
         return {
-          restaurants: data.restaurants || [],
-          lists: data.lists || [],
-          posts: data.posts || [],
-          users: data.users || []
+          restaurants: results.restaurants || [],
+          lists: results.lists || [],
+          posts: results.posts || [],
+          users: results.users || []
         };
       } else if (searchType === 'users') {
         // Handle follow endpoint response format
