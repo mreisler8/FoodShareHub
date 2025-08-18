@@ -183,3 +183,8 @@ export class LocationService {
     return degrees * (Math.PI / 180);
   }
 }
+
+// Export singleton instance as default export for backward compatibility
+const locationService = LocationService.getInstance();
+export default locationService;
+export { locationService };

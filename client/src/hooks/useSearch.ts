@@ -96,15 +96,19 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
     queryFn: () => searchService.getRecentSearches(),
     enabled: enabled && includeRecentSearches,
     staleTime: 300000, // 5 minutes
-    onSuccess: (data) => {
-      setRecentSearches(data.recent || []);
-    }
   });
+
+  // Update recent searches when data changes
+  useEffect(() => {
+    if (recentSearchData) {
+      setRecentSearches(recentSearchData.recent || []);
+    }
+  }, [recentSearchData]);
 
   // Fetch trending content if enabled
   const { data: trendingData } = useQuery({
     queryKey: ['/api/search/trending', { location: userLocation }],
-    queryFn: () => searchService.getTrending({ location: userLocation }),
+    queryFn: () => searchService.getTrending({ location: userLocation || undefined }),
     enabled: enabled && includeTrending && !debouncedQuery,
     staleTime: 300000, // 5 minutes
   });
@@ -113,7 +117,7 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
   const { data: searchResults, isLoading, error } = useQuery({
     queryKey: ['/api/search', searchType, { q: debouncedQuery, location: userLocation }],
     queryFn: async () => {
-      const options = { location: userLocation, ...searchOptions };
+      const options = { location: userLocation || undefined, ...searchOptions };
       
       switch (searchType) {
         case 'restaurants':

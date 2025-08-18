@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { locationService } from '@/services/locationService';
 
 interface LocationData {
@@ -38,7 +38,7 @@ const SearchPage: React.FC = () => {
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Get user location on page load
