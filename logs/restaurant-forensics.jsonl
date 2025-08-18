@@ -116,3 +116,4 @@
 {"t":"trace","op":"restaurant.read","path":"/26","userId":7,"cacheHit":false,"status":200,"ms":301,"note":"Restaurant details fetch","timestamp":"2025-08-18T01:33:22.561Z"}
 {"t":"trace","op":"restaurant.read","path":"/google_ChIJE6Tsk781K4gRMs7jM8cpcn8","userId":7,"cacheHit":false,"status":200,"ms":76,"note":"Restaurant details fetch","timestamp":"2025-08-18T01:34:30.169Z"}
 {"t":"trace","op":"restaurant.read","path":"/google_ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":98,"note":"Restaurant details fetch","timestamp":"2025-08-18T01:38:33.059Z"}
+{"t":"trace","op":"restaurant.read","path":"/google_ChIJE6Tsk781K4gRMs7jM8cpcn8","userId":7,"cacheHit":false,"status":200,"ms":64,"note":"Restaurant details fetch","timestamp":"2025-08-18T01:40:42.241Z"}
