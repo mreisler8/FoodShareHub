@@ -94,6 +94,10 @@ export function SearchResultsList({
   sortBy = 'relevance',
   onSortChange
 }: SearchResultsListProps) {
+  // Debug logging for results
+  console.log('📋 SearchResultsList received results:', results);
+  console.log('📋 Results length:', results?.length);
+  
   const [, setLocation] = useLocation();
 
   const handleResultClick = (result: SearchResult) => {

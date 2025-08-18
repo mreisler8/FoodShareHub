@@ -352,6 +352,12 @@ export function OptimizedSearchModal({
   const hasResults = displayResults && Object.values(displayResults).some(arr => arr.length > 0);
   const totalResults = displayResults ? Object.values(displayResults).reduce((acc, arr) => acc + arr.length, 0) : 0;
 
+  // Debug logging
+  console.log('🔍 Display Results:', displayResults);
+  console.log('🔍 Has Results:', hasResults);
+  console.log('🔍 Active Tab:', activeTab);
+  console.log('🔍 Debounced Query:', debouncedQuery);
+
   // Determine which tabs to show based on search type
   const visibleTabs = searchType === 'unified' 
     ? ['restaurants', 'users', 'lists', 'posts']
