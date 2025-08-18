@@ -68,7 +68,7 @@ export function LocationControls({ onLocationChange }: LocationControlsProps) {
         setCurrentLocation(locationData);
         setDisplayInfo({
           displayText: formattedLocation.displayText,
-          accuracy: formattedLocation.accuracy,
+          accuracy: locationData.accuracy || 'medium',
           lastUpdated: formattedLocation.lastUpdated
         });
         onLocationChange?.(formattedLocation);
@@ -183,7 +183,7 @@ export function LocationControls({ onLocationChange }: LocationControlsProps) {
                   <div className="flex justify-between">
                     <span>Accuracy:</span>
                     <span className={getAccuracyColor(displayInfo.accuracy)}>
-                      {displayInfo.accuracy.toUpperCase()}
+                      {displayInfo.accuracy?.toUpperCase() || 'UNKNOWN'}
                     </span>
                   </div>
                   <div className="flex justify-between mt-1">

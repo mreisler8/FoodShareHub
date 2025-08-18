@@ -214,7 +214,7 @@ export function ListStarterForm({ onSuccess, onCancel, privacy }: ListStarterFor
                   <SelectContent>
                     {CATEGORIES.map((category) => (
                       <SelectItem key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                        {category?.charAt(0)?.toUpperCase() + category?.slice(1)?.replace('-', ' ') || category}
                       </SelectItem>
                     ))}
                   </SelectContent>

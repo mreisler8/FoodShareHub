@@ -4,6 +4,7 @@ export interface LocationData {
   address?: string;
   city?: string;
   country?: string;
+  accuracy?: 'high' | 'medium' | 'low';
   timestamp?: number;
 }
 
@@ -51,9 +52,17 @@ export class LocationService {
             accuracy: position.coords.accuracy
           });
 
+          // Calculate accuracy level based on GPS accuracy
+          const getAccuracyLevel = (accuracy: number): 'high' | 'medium' | 'low' => {
+            if (accuracy <= 20) return 'high';
+            if (accuracy <= 100) return 'medium';
+            return 'low';
+          };
+
           const locationData: LocationData = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
+            accuracy: getAccuracyLevel(position.coords.accuracy),
             timestamp: Date.now()
           };
 

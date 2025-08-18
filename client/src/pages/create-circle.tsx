@@ -112,7 +112,7 @@ export default function CreateCirclePage() {
       setSearchLoading(true);
       try {
         const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(memberSearchQuery)}`);
-        const users = response.users || [];
+        const users = response?.users || [];
         // Filter out already selected members
         const selectedIds = selectedMembers.map(m => m.id);
         const filteredUsers = users.filter((user: SearchUser) => !selectedIds.includes(user.id));
@@ -393,7 +393,7 @@ export default function CreateCirclePage() {
                             >
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                                  {user.name.charAt(0).toUpperCase()}
+                                  {user.name?.charAt(0)?.toUpperCase() || 'U'}
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium">{user.name}</p>
