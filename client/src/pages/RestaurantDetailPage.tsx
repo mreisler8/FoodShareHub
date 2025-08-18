@@ -567,16 +567,13 @@ export default function RestaurantDetailPage() {
         </DebugOrigin>
 
         {/* Circle Score Section - MVP Enhanced with Consistent Display */}
-        <SectionBoundary 
-          title="Circle Score"
-          fallback={<SkeletonCard lines={2} showHeader={true} />}
-        >
+        <ErrorBoundary>
           <CircleScoreEnhancement
             restaurantId={queryMethod === 'id' ? Number(restaurantId) : undefined}
             googlePlaceId={queryMethod === 'googlePlaceId' ? restaurantId : restaurant.googlePlaceId}
             variant="detailed"
           />
-        </SectionBoundary>
+        </ErrorBoundary>
 
         {/* Top Mentions - Enhanced with better mobile display */}
         {restaurant.communityInsights?.topDishes && restaurant.communityInsights.topDishes.length > 0 && (
