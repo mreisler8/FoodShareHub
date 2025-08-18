@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'wouter';
-import { Home, Compass, Users, User, Star, Activity } from 'lucide-react';
+import { Home, Compass, Users, User, Star, Activity, Search, MapPin } from 'lucide-react';
 
 export default function BottomNavigation() {
   const [location] = useLocation();
-  
+
   const navItems = [
     { href: '/feed', icon: Home, label: 'Home' },
     { href: '/discover', icon: Compass, label: 'Explore' },
+    { href: '/search', icon: Search, label: 'Search' },
     { href: '/circles', icon: Users, label: 'Circles' },
     { href: '/profile', icon: User, label: 'Profile' }
   ];
@@ -18,7 +19,7 @@ export default function BottomNavigation() {
           const isActive = location === href || 
             (href === '/feed' && (location === '/' || location === '/feed')) || 
             (href !== '/feed' && href !== '/' && location.startsWith(href));
-          
+
           return (
             <Link
               key={href}

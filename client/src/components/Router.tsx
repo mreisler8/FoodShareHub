@@ -32,6 +32,7 @@ import RestaurantDetailPage from "../pages/RestaurantDetailPage";
 import UserDiscovery from "../pages/user-discovery";
 import SocialDashboardPage from "../pages/social-dashboard";
 import QuickRatingsPage from "../pages/quick-ratings";
+import SearchPage from '@/pages/SearchPage';
 
 function Router() {
   // Add native app class to body for CSS targeting if running in native app
@@ -69,6 +70,7 @@ function Router() {
       <ProtectedRoute path="/user-discovery" component={UserDiscovery} />
       <ProtectedRoute path="/social-dashboard" component={SocialDashboardPage} />
       <ProtectedRoute path="/quick-ratings" component={QuickRatingsPage} />
+      <Route path="/search" component={SearchPage} />
 
       <ProtectedRoute path="/settings" component={Settings} />
       <Route path="/auth" component={AuthPage} />
