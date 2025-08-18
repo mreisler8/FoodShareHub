@@ -109,14 +109,16 @@ router.get('/unified', authenticate, async (req, res) => {
       } catch (error) {
         console.error('❌ ADVANCED SEARCH ERROR, using basic database search:', error);
 
-        // Fallback to basic database search
+        // Fallback to basic database search with enhanced data
         const basicResults = await db
           .select({
             id: restaurants.id,
             name: restaurants.name,
             address: restaurants.address,
             city: restaurants.city,
+            location: restaurants.location,
             cuisine: restaurants.cuisine,
+            category: restaurants.category,
             priceRange: restaurants.priceRange,
             imageUrl: restaurants.imageUrl,
             googlePlaceId: restaurants.googlePlaceId,
@@ -128,7 +130,9 @@ router.get('/unified', authenticate, async (req, res) => {
               ilike(restaurants.name, `%${query.trim()}%`),
               ilike(restaurants.address, `%${query.trim()}%`),
               ilike(restaurants.city, `%${query.trim()}%`),
-              ilike(restaurants.cuisine, `%${query.trim()}%`)
+              ilike(restaurants.location, `%${query.trim()}%`),
+              ilike(restaurants.cuisine, `%${query.trim()}%`),
+              ilike(restaurants.category, `%${query.trim()}%`)
             )
           )
           .orderBy(desc(restaurants.verified), restaurants.name)
@@ -137,7 +141,8 @@ router.get('/unified', authenticate, async (req, res) => {
         databaseResults = basicResults.map(result => ({
           ...result,
           source: 'database',
-          relevanceScore: 70
+          relevanceScore: result.name.toLowerCase().includes(query.toLowerCase()) ? 90 : 70,
+          rating: 4.0 // Default rating for display
         }));
       }
 

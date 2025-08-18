@@ -249,21 +249,29 @@ export default function RestaurantDetailPage() {
   });
 
   // CRITICAL: Use standardized queries for consistent cache keys and data integrity
+  // Always call hooks with consistent parameters to avoid React hooks violation
+  const restaurantParams = React.useMemo(() => {
+    if (restaurant) {
+      return {
+        id: typeof restaurant.id === 'string' ? parseInt(restaurant.id) : restaurant.id,
+        googlePlaceId: restaurant.googlePlaceId,
+        name: restaurant.name
+      };
+    }
+    return { 
+      id: queryMethod === 'id' && restaurantId ? parseInt(restaurantId) : undefined,
+      googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : undefined,
+      name: 'Loading...'
+    };
+  }, [restaurant, queryMethod, restaurantId]);
+
   const { 
     userRating, 
     circleScore, 
     isLoading: isRatingLoading,
     submitRating,
     data: { userRating: userRatingData, circleScore: circleScoreData }
-  } = useStandardizedRestaurantQueries(restaurant ? {
-    id: typeof restaurant.id === 'string' ? parseInt(restaurant.id) : restaurant.id,
-    googlePlaceId: restaurant.googlePlaceId,
-    name: restaurant.name
-  } : { 
-    id: queryMethod === 'id' ? parseInt(restaurantId!) : undefined,
-    googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : undefined,
-    name: 'Loading...'
-  });
+  } = useStandardizedRestaurantQueries(restaurantParams);
 
   if (isLoading) {
     return (

@@ -37,6 +37,8 @@ interface SearchResult {
     googlePlaceId?: string;
     [key: string]: any;
   };
+  rating?: number; // Added rating for restaurants
+  source?: string; // Added source for restaurants
 }
 
 interface SearchResults {
@@ -70,6 +72,7 @@ export function OptimizedSearchModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState(initialTab);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null); // Ref for the input element
 
   // Fetch personalized recent searches
   const { data: personalizedSearches } = useQuery({
@@ -88,6 +91,9 @@ export function OptimizedSearchModal({
   // Location detection with enhanced debugging
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+
+  // Debounced search query
+  const debouncedQuery = useDebounce(searchQuery, 500);
 
   useEffect(() => {
     const requestLocation = async () => {
@@ -315,12 +321,17 @@ export function OptimizedSearchModal({
     // Default navigation behavior
     switch (result.type) {
       case 'restaurant':
-        // Handle Google Places results
-        if (result.metadata?.googlePlaceId || result.id?.toString().startsWith('google_')) {
-          const placeId = result.metadata?.googlePlaceId || result.id?.toString().replace('google_', '');
-          setLocation(`/restaurants/google/${placeId}`);
+        // Handle both database and Google Places results
+        if (result.metadata?.googlePlaceId) {
+          console.log('🔗 Navigating to Google Places restaurant:', result.metadata.googlePlaceId);
+          setLocation(`/restaurants?googlePlaceId=${encodeURIComponent(result.metadata.googlePlaceId)}`);
+        } else if (result.id.toString().startsWith('google_')) {
+          const googlePlaceId = result.id.toString().replace('google_', '');
+          console.log('🔗 Navigating to Google Places restaurant (from ID):', googlePlaceId);
+          setLocation(`/restaurants?googlePlaceId=${encodeURIComponent(googlePlaceId)}`);
         } else {
-          setLocation(`/restaurants/${result.id}`);
+          console.log('🔗 Navigating to database restaurant:', result.id);
+          setLocation(`/restaurants/${encodeURIComponent(result.id)}`);
         }
         break;
       case 'user':
