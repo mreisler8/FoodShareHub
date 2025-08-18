@@ -155,12 +155,16 @@ router.get('/unified', authenticate, async (req, res) => {
       results.posts = postResults;
     }
 
-    // Search users using advanced SearchEngineService
+    // Search users using SearchEngineService - FIXED TO PREVENT RESTAURANT MIXING
     if (!searchType || searchType === 'users') {
       try {
-        const userResults = await searchEngine.search({ ...searchOptions, contentTypes: ['user'] });
+        console.log(`🔍 Searching users with query: "${query}"`);
         
-        // Transform advanced search results to match API contract
+        // Use SearchEngineService but filter to only user results
+        const searchResults = await searchEngine.search({ ...searchOptions });
+        const userResults = searchResults.filter((result: any) => result.type === 'user');
+        
+        // Transform to match API contract
         results.users = userResults.map((result: any) => ({
           id: parseInt(result.id),
           username: result.metadata?.username,
@@ -170,11 +174,14 @@ router.get('/unified', authenticate, async (req, res) => {
           relevanceScore: result.relevanceScore
         }));
         
-        console.log(`👥 Advanced user search: ${results.users.length} users found`);
+        console.log(`👥 User search results: ${results.users.length} users found`);
+        if (results.users.length > 0) {
+          console.log('User results:', results.users.map(u => ({ id: u.id, name: u.name, username: u.username })));
+        }
       } catch (error) {
-        console.error('❌ ADVANCED USER SEARCH ERROR, falling back to basic search:', error);
+        console.error('❌ USER SEARCH ERROR, falling back to direct DB query:', error);
         
-        // Fallback to basic search
+        // Direct database fallback
         const basicResults = await db
           .select({
             id: users.id,
@@ -195,7 +202,12 @@ router.get('/unified', authenticate, async (req, res) => {
           .limit(limitNum)
           .offset(offsetNum);
           
-        results.users = basicResults;
+        results.users = basicResults.map(user => ({
+          ...user,
+          relevanceScore: 80
+        }));
+        
+        console.log(`👥 Direct DB user search: ${results.users.length} users found`);
       }
     }
 

@@ -101,14 +101,14 @@ export function SearchResultsList({
   const [, setLocation] = useLocation();
 
   const handleResultClick = (result: SearchResult) => {
+    console.log('🔗 Clicked result:', result);
+    console.log('🔗 Enable direct navigation:', enableDirectNavigation);
+    
     // Direct navigation for restaurants when enabled
     if (enableDirectNavigation && result.type === 'restaurant') {
-      if ((result as any).metadata?.googlePlaceId || result.id.toString().startsWith('google_')) {
-        const googlePlaceId = (result as any).metadata?.googlePlaceId || result.id.toString().replace('google_', '');
-        setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
-      } else {
-        setLocation(`/restaurants/${result.id}`);
-      }
+      const restaurantId = result.id;
+      console.log('🔗 Navigating to restaurant:', restaurantId);
+      setLocation(`/restaurants/${restaurantId}`);
       return;
     }
 

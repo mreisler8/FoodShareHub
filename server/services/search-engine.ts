@@ -493,7 +493,7 @@ export class SearchEngineService {
       console.error('Typesense search error:', error);
       console.log(`🔄 Falling back to basic search with query: "${query}" and userId:`, userId);
       // Fallback to basic PostgreSQL search when Typesense fails
-      const fallbackResults = await this.basicSearch(query, { lat, lng, radius, userId });
+      const fallbackResults = await this.basicSearch(query, { lat, lng, radius, userId, filters });
       console.log('Basic search returned:', fallbackResults.length, 'results');
       return fallbackResults;
     }
@@ -615,6 +615,44 @@ export class SearchEngineService {
           metadata: restaurant,
         });
       });
+
+      // Search users - THIS WAS MISSING!
+      try {
+        const userResults = await db
+          .select()
+          .from(users)
+          .where(
+            or(
+              ilike(users.name, `%${query}%`),
+              ilike(users.username, `%${query}%`),
+              ilike(users.bio, `%${query}%`)
+            )
+          )
+          .limit(10);
+
+        console.log(`👥 Found ${userResults.length} users`);
+        if (userResults.length > 0) {
+          console.log('User matches:', userResults.map(u => ({ id: u.id, name: u.name, username: u.username })));
+        }
+
+        userResults.forEach(user => {
+          const relevanceScore = this.calculateRelevanceScore(user.name || user.username, query);
+          results.push({
+            id: user.id.toString(),
+            name: user.name || user.username,
+            type: 'user',
+            relevanceScore: relevanceScore,
+            metadata: {
+              ...user,
+              username: user.username,
+              bio: user.bio,
+              profilePicture: user.profilePicture
+            },
+          });
+        });
+      } catch (userError) {
+        console.log('User search skipped due to error:', userError);
+      }
 
       // Search lists if needed
       try {
