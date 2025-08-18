@@ -299,91 +299,107 @@ const SearchPage: React.FC = () => {
         )}
 
         {/* Search Results */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {searchResults.map((restaurant) => (
             <Card 
               key={`${restaurant.source}-${restaurant.id || restaurant.googlePlaceId}`}
-              className="hover:shadow-md transition-shadow cursor-pointer"
+              className="group hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-200 cursor-pointer border border-gray-100 hover:border-gray-200 bg-white rounded-xl overflow-hidden"
               onClick={() => handleRestaurantClick(restaurant)}
             >
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-4">
+              <CardContent className="p-0">
+                <div className="flex items-start space-x-0">
                   {/* Restaurant Image */}
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 relative">
                     {restaurant.imageUrl ? (
-                      <img
-                        src={restaurant.imageUrl}
-                        alt={restaurant.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
+                      <div className="relative w-20 h-20 overflow-hidden">
+                        <img
+                          src={restaurant.imageUrl}
+                          alt={restaurant.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent group-hover:from-black/20 transition-colors duration-200" />
+                      </div>
                     ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <Search className="h-6 w-6 text-gray-400" />
+                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        <Search className="h-7 w-7 text-gray-400" />
                       </div>
                     )}
                   </div>
 
                   {/* Restaurant Info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 p-4 pr-5">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        {/* Name and Badges */}
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="text-lg font-semibold text-gray-900 truncate">
-                            {restaurant.name}
-                          </h3>
-                          
-                          {/* Source Badge */}
-                          {restaurant.source === 'google_places' && (
-                            <Badge variant="secondary" className="text-xs">
-                              Google Places
-                            </Badge>
-                          )}
+                      <div className="flex-1 min-w-0">
+                        {/* Header Row */}
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h3 className="text-lg font-semibold text-gray-900 truncate leading-tight">
+                                {restaurant.name}
+                              </h3>
+                              
+                              {/* Source Badge */}
+                              {restaurant.source === 'google_places' && (
+                                <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50">
+                                  Verified
+                                </Badge>
+                              )}
+                            </div>
+
+                            {/* Address */}
+                            <p className="text-sm text-gray-600 mb-3 line-clamp-1 leading-relaxed">
+                              {restaurant.address || restaurant.city}
+                            </p>
+                          </div>
                         </div>
 
-                        {/* Address */}
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-                          {restaurant.address || restaurant.city}
-                        </p>
-
-                        {/* Rating, Price, Distance */}
-                        <div className="flex items-center space-x-4 text-sm">
-                          {/* Rating */}
+                        {/* Rating, Price, Distance - Redesigned as pills */}
+                        <div className="flex items-center flex-wrap gap-2">
+                          {/* Rating Pill */}
                           {restaurant.rating > 0 && (
-                            <div className="flex items-center space-x-1">
-                              <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                              <span className="font-medium">{restaurant.rating.toFixed(1)}</span>
+                            <div className="inline-flex items-center space-x-1.5 bg-yellow-50 text-yellow-800 px-2.5 py-1 rounded-full border border-yellow-200">
+                              <Star className="h-3.5 w-3.5 text-yellow-500 fill-current" />
+                              <span className="text-sm font-medium">{restaurant.rating.toFixed(1)}</span>
                               {restaurant.reviewCount > 0 && (
-                                <span className="text-gray-500">
+                                <span className="text-xs text-yellow-600">
                                   ({restaurant.reviewCount.toLocaleString()})
                                 </span>
                               )}
                             </div>
                           )}
 
-                          {/* Price Range */}
+                          {/* Price Range Pill */}
                           {restaurant.priceRange && (
-                            <div className="flex items-center space-x-1">
-                              <DollarSign className="h-4 w-4 text-green-600" />
-                              <span className="text-gray-700">
+                            <div className="inline-flex items-center space-x-1.5 bg-green-50 text-green-800 px-2.5 py-1 rounded-full border border-green-200">
+                              <DollarSign className="h-3.5 w-3.5 text-green-600" />
+                              <span className="text-sm font-medium">
                                 {formatPriceRange(restaurant.priceRange)}
                               </span>
                             </div>
                           )}
 
-                          {/* Distance */}
+                          {/* Distance Pill */}
                           {restaurant.distance && (
-                            <div className="flex items-center space-x-1">
-                              <MapPin className="h-4 w-4 text-blue-500" />
-                              <span className="text-gray-700">
+                            <div className="inline-flex items-center space-x-1.5 bg-blue-50 text-blue-800 px-2.5 py-1 rounded-full border border-blue-200">
+                              <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                              <span className="text-sm font-medium">
                                 {formatDistance(restaurant.distance)}
                               </span>
                             </div>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Action indicator */}
+                      <div className="flex-shrink-0 ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
                       </div>
                     </div>
