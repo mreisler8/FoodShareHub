@@ -11,18 +11,40 @@ const router = Router();
 // Initialize search engine service
 const searchEngine = SearchEngineService.getInstance();
 
-// Helper function to deduplicate restaurants based on googlePlaceId or database id
+// Helper function to deduplicate restaurants - PREFER GOOGLE PLACES over database entries
 const deduplicateRestaurants = (results: any[]) => {
-  const seen = new Set();
+  const seenByPlaceId = new Map();
+  const seenByDbId = new Set();
   const deduplicated: any[] = [];
 
+  // First pass: collect all Google Places results
   for (const result of results) {
-    const id = result.googlePlaceId ? `google_${result.googlePlaceId}` : result.id;
-    if (!seen.has(id)) {
-      seen.add(id);
-      deduplicated.push(result);
+    if (result.googlePlaceId && result.source === 'google_places') {
+      seenByPlaceId.set(result.googlePlaceId, result);
     }
   }
+
+  // Second pass: add results, preferring Google Places
+  for (const result of results) {
+    if (result.googlePlaceId) {
+      // If we have a Google Places version of this restaurant, use that
+      if (seenByPlaceId.has(result.googlePlaceId)) {
+        const googlePlacesResult = seenByPlaceId.get(result.googlePlaceId);
+        if (!deduplicated.includes(googlePlacesResult)) {
+          deduplicated.push(googlePlacesResult);
+        }
+      }
+      // Skip database versions if we have Google Places version
+    } else {
+      // Handle database-only results (no Google Place ID)
+      const dbId = result.id;
+      if (!seenByDbId.has(dbId)) {
+        seenByDbId.add(dbId);
+        deduplicated.push(result);
+      }
+    }
+  }
+
   return deduplicated;
 };
 
@@ -145,8 +167,17 @@ router.get('/unified', authenticate, async (req, res) => {
         source: 'google_places',
         rating: result.rating,
         distance: result.distance,
-        // BOOST Google Places results with location
-        relevanceScore: location ? (result.relevanceScore || 85) + 10 : (result.relevanceScore || 80)
+        // Add metadata for proper frontend handling
+        metadata: {
+          googlePlaceId: result.googlePlaceId,
+          source: 'google_places',
+          address: result.address,
+          city: result.location,
+          cuisine: result.cuisine,
+          rating: result.rating
+        },
+        // BOOST Google Places results significantly
+        relevanceScore: location ? (result.relevanceScore || 90) + 15 : (result.relevanceScore || 85)
       }));
 
       console.log(`🌍 Google Places PRIORITY results: ${googleResults.length} restaurants`);
@@ -155,26 +186,33 @@ router.get('/unified', authenticate, async (req, res) => {
       googleResults = [];
     }
 
-      // Combine and deduplicate results
+      // Combine and deduplicate results - PRIORITIZE GOOGLE PLACES
       const allResults = [...databaseResults, ...googleResults];
       const deduplicatedResults = deduplicateRestaurants(allResults);
 
-      // Sort by relevance score and rating
+      // Sort by GOOGLE PLACES FIRST, then relevance score and rating
       results.restaurants = deduplicatedResults
         .sort((a, b) => {
-          // Prioritize exact name matches
+          // PRIORITY 1: Google Places results always beat database results for same restaurant
+          const aIsGoogle = a.source === 'google_places';
+          const bIsGoogle = b.source === 'google_places';
+          
+          if (aIsGoogle && !bIsGoogle) return -1;
+          if (!aIsGoogle && bIsGoogle) return 1;
+
+          // PRIORITY 2: Exact name matches within same source
           const aExactMatch = a.name.toLowerCase() === query.toLowerCase();
           const bExactMatch = b.name.toLowerCase() === query.toLowerCase();
 
           if (aExactMatch && !bExactMatch) return -1;
           if (!aExactMatch && bExactMatch) return 1;
 
-          // Then by relevance score
+          // PRIORITY 3: Relevance score
           if (a.relevanceScore !== b.relevanceScore) {
             return b.relevanceScore - a.relevanceScore;
           }
 
-          // Then by rating
+          // PRIORITY 4: Rating
           return (b.rating || 0) - (a.rating || 0);
         })
         .slice(0, limitNum);

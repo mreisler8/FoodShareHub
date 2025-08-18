@@ -273,8 +273,10 @@ export function OptimizedSearchModal({
     // Default navigation behavior
     switch (result.type) {
       case 'restaurant':
-        if (result.metadata?.googlePlaceId) {
-          setLocation(`/restaurants/google/${result.metadata.googlePlaceId}`);
+        // Handle Google Places results
+        if (result.metadata?.googlePlaceId || result.id?.toString().startsWith('google_')) {
+          const placeId = result.metadata?.googlePlaceId || result.id?.toString().replace('google_', '');
+          setLocation(`/restaurants/google/${placeId}`);
         } else {
           setLocation(`/restaurants/${result.id}`);
         }
