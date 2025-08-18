@@ -27,7 +27,9 @@ function getRelevanceScore(restaurantName: string, query: string): number {
   // Prevent cache from growing too large
   if (relevanceCache.size > 1000) {
     const firstKey = relevanceCache.keys().next().value;
-    relevanceCache.delete(firstKey);
+    if (firstKey) {
+      relevanceCache.delete(firstKey);
+    }
   }
   
   return score;
@@ -243,18 +245,18 @@ export class SearchEngineService {
     const restaurantSchema = {
       name: 'restaurants',
       fields: [
-        { name: 'id', type: 'string' },
-        { name: 'name', type: 'string' },
-        { name: 'location', type: 'string' },
-        { name: 'category', type: 'string' },
-        { name: 'cuisine', type: 'string' },
-        { name: 'priceRange', type: 'string' },
-        { name: 'tags', type: 'string[]' },
-        { name: 'description', type: 'string', optional: true },
-        { name: 'geopoint', type: 'geopoint', optional: true },
-        { name: 'rating', type: 'float', optional: true },
-        { name: 'verified', type: 'bool' },
-        { name: 'popularity_score', type: 'int32' },
+        { name: 'id', type: 'string' as const },
+        { name: 'name', type: 'string' as const },
+        { name: 'location', type: 'string' as const },
+        { name: 'category', type: 'string' as const },
+        { name: 'cuisine', type: 'string' as const },
+        { name: 'priceRange', type: 'string' as const },
+        { name: 'tags', type: 'string[]' as const },
+        { name: 'description', type: 'string' as const, optional: true },
+        { name: 'geopoint', type: 'geopoint' as const, optional: true },
+        { name: 'rating', type: 'float' as const, optional: true },
+        { name: 'verified', type: 'bool' as const },
+        { name: 'popularity_score', type: 'int32' as const },
       ],
     };
 
@@ -262,14 +264,14 @@ export class SearchEngineService {
     const userSchema = {
       name: 'users',
       fields: [
-        { name: 'id', type: 'string' },
-        { name: 'name', type: 'string' },
-        { name: 'username', type: 'string' },
-        { name: 'bio', type: 'string', optional: true },
-        { name: 'preferredCuisines', type: 'string[]' },
-        { name: 'diningInterests', type: 'string[]' },
-        { name: 'location', type: 'string', optional: true },
-        { name: 'follower_count', type: 'int32' },
+        { name: 'id', type: 'string' as const },
+        { name: 'name', type: 'string' as const },
+        { name: 'username', type: 'string' as const },
+        { name: 'bio', type: 'string' as const, optional: true },
+        { name: 'preferredCuisines', type: 'string[]' as const },
+        { name: 'diningInterests', type: 'string[]' as const },
+        { name: 'location', type: 'string' as const, optional: true },
+        { name: 'follower_count', type: 'int32' as const },
       ],
     };
 
@@ -277,17 +279,17 @@ export class SearchEngineService {
     const listSchema = {
       name: 'lists',
       fields: [
-        { name: 'id', type: 'string' },
-        { name: 'name', type: 'string' },
-        { name: 'description', type: 'string', optional: true },
-        { name: 'tags', type: 'string[]' },
-        { name: 'createdById', type: 'string' },
-        { name: 'type', type: 'string' },
-        { name: 'primaryLocation', type: 'string', optional: true },
-        { name: 'geopoint', type: 'geopoint', optional: true },
-        { name: 'viewCount', type: 'int32' },
-        { name: 'saveCount', type: 'int32' },
-        { name: 'isPublic', type: 'bool' },
+        { name: 'id', type: 'string' as const },
+        { name: 'name', type: 'string' as const },
+        { name: 'description', type: 'string' as const, optional: true },
+        { name: 'tags', type: 'string[]' as const },
+        { name: 'createdById', type: 'string' as const },
+        { name: 'type', type: 'string' as const },
+        { name: 'primaryLocation', type: 'string' as const, optional: true },
+        { name: 'geopoint', type: 'geopoint' as const, optional: true },
+        { name: 'viewCount', type: 'int32' as const },
+        { name: 'saveCount', type: 'int32' as const },
+        { name: 'isPublic', type: 'bool' as const },
       ],
     };
 
@@ -316,7 +318,7 @@ export class SearchEngineService {
       geopoint: restaurant.latitude && restaurant.longitude 
         ? [parseFloat(restaurant.latitude), parseFloat(restaurant.longitude)]
         : undefined,
-      rating: typeof restaurant.rating === 'number' ? restaurant.rating : 4.0,
+      rating: 4.0, // Default rating since restaurants table doesn't have rating field
       verified: restaurant.verified || false,
       popularity_score: this.calculatePopularityScore(restaurant),
     };
@@ -547,14 +549,14 @@ export class SearchEngineService {
       tags.push('drinks', 'evening', 'social');
     }
 
-    return [...new Set(tags)];
+    return Array.from(new Set(tags));
   }
 
   private calculatePopularityScore(restaurant: Restaurant): number {
     let score = 0;
 
     if (restaurant.verified) score += 100;
-    if (restaurant.rating && restaurant.rating > 4) score += 50;
+    // Note: restaurant rating field doesn't exist in schema, skip rating-based scoring
     if (restaurant.googlePlaceId) score += 25;
 
     return score;
@@ -666,7 +668,7 @@ export class SearchEngineService {
           relevanceScore: relevanceScore,
           location: {
             city: restaurant.location,
-            address: restaurant.address,
+            address: restaurant.address || undefined,
           },
           metadata: restaurant,
         });
@@ -680,7 +682,7 @@ export class SearchEngineService {
           type: 'list',
           relevanceScore: 40,
           location: {
-            city: list.primaryLocation,
+            city: list.primaryLocation || undefined,
           },
           metadata: list,
         });

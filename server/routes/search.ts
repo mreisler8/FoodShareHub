@@ -4,10 +4,14 @@ import { restaurants, restaurantLists, posts, users } from '../../shared/schema'
 import { ilike, or, and, eq, desc } from 'drizzle-orm';
 import { authenticate } from '../auth';
 import { searchGooglePlaces } from '../services/google-places';
+import { SearchEngineService } from '../services/search-engine';
 
 const router = Router();
 
-// Unified search endpoint for restaurants, lists, posts, and users with Google Places integration
+// Initialize search engine service
+const searchEngine = SearchEngineService.getInstance();
+
+// Unified search endpoint using advanced SearchEngineService with person name detection
 router.get('/unified', authenticate, async (req, res) => {
   try {
     const { q, type, limit = 20, offset = 0, lat, lng, radius } = req.query;
@@ -20,79 +24,77 @@ router.get('/unified', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Search query must be at least 2 characters' });
     }
 
-    const searchTerm = `%${query.trim()}%`;
+    // Advanced search with person name detection and semantic expansion
+    const searchOptions = {
+      location: lat && lng ? {
+        lat: parseFloat(lat as string),
+        lng: parseFloat(lng as string)
+      } : undefined,
+      radius: radius ? parseInt(radius as string) : 10000,
+      limit: limitNum,
+      includeLocation: !!lat && !!lng,
+      sortBy: 'relevance' as const,
+      userId: req.user?.id
+    };
+
     const results: any = {};
 
-    // Parse location parameters
-    const location = lat && lng ? {
-      lat: parseFloat(lat as string),
-      lng: parseFloat(lng as string),
-      radius: radius ? parseInt(radius as string) : 10000 // Default 10km radius
-    } : undefined;
-
-    // Search restaurants if no type specified or type is 'restaurants'
+    // Search restaurants using advanced SearchEngineService
     if (!searchType || searchType === 'restaurants') {
-      // First, search local database
-      const localRestaurants = await db
-        .select({
-          id: restaurants.id,
-          name: restaurants.name,
-          address: restaurants.address,
-          city: restaurants.city,
-          cuisine: restaurants.cuisine,
-          priceRange: restaurants.priceRange,
-          imageUrl: restaurants.imageUrl,
-          googlePlaceId: restaurants.googlePlaceId,
-          verified: restaurants.verified
-        })
-        .from(restaurants)
-        .where(
-          or(
-            ilike(restaurants.name, searchTerm),
-            ilike(restaurants.address, searchTerm),
-            ilike(restaurants.city, searchTerm),
-            ilike(restaurants.cuisine, searchTerm)
-          )
-        )
-        .orderBy(desc(restaurants.verified), restaurants.name)
-        .limit(Math.min(limitNum, 10)); // Limit local results to make room for Google Places
-
-      // Then, search Google Places with location
-      let googlePlacesResults: any[] = [];
-      try {
-        console.log(`🔍 GOOGLE PLACES SEARCH START: "${query}" ${location ? `at ${location.lat},${location.lng}` : 'globally'}`);
-        console.log(`🔧 API Key available: ${!!process.env.GOOGLE_MAPS_API_KEY}`);
-        
-        googlePlacesResults = await searchGooglePlaces(query, location) || [];
-        
-        console.log(`📍 GOOGLE PLACES RESULTS: ${googlePlacesResults.length} restaurants found`);
-        if (googlePlacesResults.length > 0) {
-          console.log(`🏪 First result: ${googlePlacesResults[0]?.name} - ${googlePlacesResults[0]?.address}`);
-        }
-      } catch (error) {
-        console.error('❌ GOOGLE PLACES ERROR:', error);
-      }
-
-      // Transform Google Places results to match our restaurant format
-      const transformedGoogleResults = googlePlacesResults.slice(0, limitNum - localRestaurants.length).map((place: any) => ({
-        id: `google_${place.googlePlaceId}`,
-        name: place.name,
-        address: place.address,
-        city: place.city || 'Unknown',
-        cuisine: place.cuisine || place.category,
-        priceRange: place.priceRange,
-        imageUrl: place.imageUrl,
-        googlePlaceId: place.googlePlaceId,
-        verified: true, // Google Places are considered verified
-        source: 'google_places',
-        rating: place.rating,
-        distance: place.distance
-      }));
-
-      // Combine and sort results (local first, then Google Places)
-      results.restaurants = [...localRestaurants, ...transformedGoogleResults];
+      console.log(`🔍 ADVANCED SEARCH START: "${query}" with person name detection`);
       
-      console.log(`📊 Restaurant search results: ${localRestaurants.length} local + ${transformedGoogleResults.length} Google Places = ${results.restaurants.length} total`);
+      try {
+        const restaurantResults = await searchEngine.search(query, searchOptions);
+        
+        // Transform advanced search results to match API contract
+        results.restaurants = restaurantResults.map((result: any) => ({
+          id: result.id.includes('google_') ? result.id : parseInt(result.id),
+          name: result.name,
+          address: result.location?.address || result.metadata?.address,
+          city: result.location?.city || result.metadata?.city || result.metadata?.location,
+          cuisine: result.metadata?.cuisine || result.metadata?.category,
+          priceRange: result.metadata?.priceRange,
+          imageUrl: result.metadata?.imageUrl,
+          googlePlaceId: result.metadata?.googlePlaceId,
+          verified: result.metadata?.verified || result.metadata?.source === 'google_places',
+          source: result.metadata?.source || 'database',
+          rating: result.metadata?.rating,
+          distance: result.location?.distance,
+          relevanceScore: result.relevanceScore
+        }));
+        
+        console.log(`🎯 Advanced search results: ${results.restaurants.length} restaurants with relevance scoring`);
+        console.log(`📈 Top result: ${results.restaurants[0]?.name} (score: ${results.restaurants[0]?.relevanceScore})`);
+      } catch (error) {
+        console.error('❌ ADVANCED SEARCH ERROR, falling back to basic search:', error);
+        
+        // Fallback to basic search if advanced search fails
+        const basicResults = await db
+          .select({
+            id: restaurants.id,
+            name: restaurants.name,
+            address: restaurants.address,
+            city: restaurants.city,
+            cuisine: restaurants.cuisine,
+            priceRange: restaurants.priceRange,
+            imageUrl: restaurants.imageUrl,
+            googlePlaceId: restaurants.googlePlaceId,
+            verified: restaurants.verified
+          })
+          .from(restaurants)
+          .where(
+            or(
+              ilike(restaurants.name, `%${query.trim()}%`),
+              ilike(restaurants.address, `%${query.trim()}%`),
+              ilike(restaurants.city, `%${query.trim()}%`),
+              ilike(restaurants.cuisine, `%${query.trim()}%`)
+            )
+          )
+          .orderBy(desc(restaurants.verified), restaurants.name)
+          .limit(limitNum);
+          
+        results.restaurants = basicResults;
+      }
     }
 
     // Search lists if no type specified or type is 'lists'
@@ -110,8 +112,8 @@ router.get('/unified', authenticate, async (req, res) => {
         .where(
           and(
             or(
-              ilike(restaurantLists.name, searchTerm),
-              ilike(restaurantLists.description, searchTerm)
+              ilike(restaurantLists.name, `%${query.trim()}%`),
+              ilike(restaurantLists.description, `%${query.trim()}%`)
             ),
             eq(restaurantLists.isPublic, true) // Only show public lists in search
           )
@@ -139,7 +141,7 @@ router.get('/unified', authenticate, async (req, res) => {
         .from(posts)
         .where(
           and(
-            ilike(posts.content, searchTerm),
+            ilike(posts.content, `%${query.trim()}%`),
             eq(posts.visibility, 'public') // Only show public posts in search
           )
         )
@@ -150,29 +152,48 @@ router.get('/unified', authenticate, async (req, res) => {
       results.posts = postResults;
     }
 
-    // Search users if no type specified or type is 'users'
+    // Search users using advanced SearchEngineService
     if (!searchType || searchType === 'users') {
-      const userResults = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          name: users.name
-        })
-        .from(users)
-        .where(
-          or(
-            ilike(users.username, searchTerm),
-            ilike(users.name, searchTerm),
-            ilike(users.bio, searchTerm)
+      try {
+        const userResults = await searchEngine.search(query, { ...searchOptions, contentTypes: ['user'] });
+        
+        // Transform advanced search results to match API contract
+        results.users = userResults.map((result: any) => ({
+          id: parseInt(result.id),
+          username: result.metadata?.username,
+          name: result.name,
+          bio: result.metadata?.bio,
+          profilePicture: result.metadata?.profilePicture,
+          relevanceScore: result.relevanceScore
+        }));
+        
+        console.log(`👥 Advanced user search: ${results.users.length} users found`);
+      } catch (error) {
+        console.error('❌ ADVANCED USER SEARCH ERROR, falling back to basic search:', error);
+        
+        // Fallback to basic search
+        const basicResults = await db
+          .select({
+            id: users.id,
+            username: users.username,
+            name: users.name,
+            bio: users.bio,
+            profilePicture: users.profilePicture
+          })
+          .from(users)
+          .where(
+            or(
+              ilike(users.username, `%${query.trim()}%`),
+              ilike(users.name, `%${query.trim()}%`),
+              ilike(users.bio, `%${query.trim()}%`)
+            )
           )
-        )
-        .orderBy(users.name)
-        .limit(limitNum)
-        .offset(offsetNum);
-
-      // Remove password field for security
-      const safeUserResults = userResults.map(({ ...user }) => user);
-      results.users = safeUserResults;
+          .orderBy(users.name)
+          .limit(limitNum)
+          .offset(offsetNum);
+          
+        results.users = basicResults;
+      }
     }
 
     // Calculate total counts for pagination
@@ -199,47 +220,78 @@ router.get('/unified', authenticate, async (req, res) => {
   }
 });
 
-// Quick restaurant search for autocomplete
+// Quick restaurant search for autocomplete using advanced SearchEngineService
 router.get('/restaurants', authenticate, async (req, res) => {
   try {
-    const { q, limit = 10 } = req.query;
+    const { q, limit = 10, lat, lng } = req.query;
     const query = q as string;
     
     if (!query || query.trim().length < 1) {
       return res.json([]);
     }
 
-    const searchTerm = `%${query.trim()}%`;
-    
-    const restaurants_results = await db
-      .select({
-        id: restaurants.id,
-        name: restaurants.name,
-        address: restaurants.address,
-        city: restaurants.city,
-        cuisine: restaurants.cuisine,
-        imageUrl: restaurants.imageUrl,
-        googlePlaceId: restaurants.googlePlaceId
-      })
-      .from(restaurants)
-      .where(
-        or(
-          ilike(restaurants.name, searchTerm),
-          ilike(restaurants.address, searchTerm),
-          ilike(restaurants.city, searchTerm)
-        )
-      )
-      .orderBy(restaurants.name)
-      .limit(parseInt(limit as string) || 10);
+    // Use advanced search for restaurant autocomplete
+    const searchOptions = {
+      location: lat && lng ? {
+        lat: parseFloat(lat as string),
+        lng: parseFloat(lng as string)
+      } : undefined,
+      limit: parseInt(limit as string) || 10,
+      includeLocation: !!lat && !!lng,
+      sortBy: 'relevance' as const,
+      userId: req.user?.id
+    };
 
-    res.json(restaurants_results);
+    try {
+      const advancedResults = await searchEngine.search(query, { ...searchOptions, contentTypes: ['restaurant'] });
+      
+      // Transform to match autocomplete API contract
+      const transformedResults = advancedResults.map((result: any) => ({
+        id: result.id.includes('google_') ? result.id : parseInt(result.id),
+        name: result.name,
+        address: result.location?.address || result.metadata?.address,
+        city: result.location?.city || result.metadata?.city || result.metadata?.location,
+        cuisine: result.metadata?.cuisine || result.metadata?.category,
+        imageUrl: result.metadata?.imageUrl,
+        googlePlaceId: result.metadata?.googlePlaceId,
+        relevanceScore: result.relevanceScore
+      }));
+      
+      res.json(transformedResults);
+    } catch (error) {
+      console.error('Advanced restaurant search failed, using fallback:', error);
+      
+      // Fallback to basic search
+      const basicResults = await db
+        .select({
+          id: restaurants.id,
+          name: restaurants.name,
+          address: restaurants.address,
+          city: restaurants.city,
+          cuisine: restaurants.cuisine,
+          imageUrl: restaurants.imageUrl,
+          googlePlaceId: restaurants.googlePlaceId
+        })
+        .from(restaurants)
+        .where(
+          or(
+            ilike(restaurants.name, `%${query.trim()}%`),
+            ilike(restaurants.address, `%${query.trim()}%`),
+            ilike(restaurants.city, `%${query.trim()}%`)
+          )
+        )
+        .orderBy(restaurants.name)
+        .limit(parseInt(limit as string) || 10);
+        
+      res.json(basicResults);
+    }
   } catch (error) {
     console.error('Error searching restaurants:', error);
     res.status(500).json({ error: 'Restaurant search failed' });
   }
 });
 
-// User search endpoint for social features
+// User search endpoint for social features using advanced SearchEngineService
 router.get('/users', authenticate, async (req, res) => {
   try {
     const { q, limit = 10 } = req.query;
@@ -249,28 +301,51 @@ router.get('/users', authenticate, async (req, res) => {
       return res.json([]);
     }
 
-    const searchTerm = `%${query.trim()}%`;
-    
-    const userResults = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        name: users.name,
-        bio: users.bio,
-        profilePicture: users.profilePicture,
-      })
-      .from(users)
-      .where(
-        or(
-          ilike(users.username, searchTerm),
-          ilike(users.name, searchTerm),
-          ilike(users.bio, searchTerm)
-        )
-      )
-      .orderBy(users.name)
-      .limit(parseInt(limit as string) || 10);
+    // Use advanced search with person name detection
+    const searchOptions = {
+      limit: parseInt(limit as string) || 10,
+      userId: req.user?.id
+    };
 
-    res.json(userResults);
+    try {
+      const advancedResults = await searchEngine.search(query, { ...searchOptions, contentTypes: ['user'] });
+      
+      // Transform to match user search API contract
+      const transformedResults = advancedResults.map((result: any) => ({
+        id: parseInt(result.id),
+        username: result.metadata?.username,
+        name: result.name,
+        bio: result.metadata?.bio,
+        profilePicture: result.metadata?.profilePicture,
+        relevanceScore: result.relevanceScore
+      }));
+      
+      res.json(transformedResults);
+    } catch (error) {
+      console.error('Advanced user search failed, using fallback:', error);
+      
+      // Fallback to basic search
+      const basicResults = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          bio: users.bio,
+          profilePicture: users.profilePicture,
+        })
+        .from(users)
+        .where(
+          or(
+            ilike(users.username, `%${query.trim()}%`),
+            ilike(users.name, `%${query.trim()}%`),
+            ilike(users.bio, `%${query.trim()}%`)
+          )
+        )
+        .orderBy(users.name)
+        .limit(parseInt(limit as string) || 10);
+        
+      res.json(basicResults);
+    }
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ error: 'User search failed' });
@@ -314,208 +389,6 @@ router.get('/trending', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching trending tags:', error);
     res.status(500).json({ error: 'Failed to fetch trending tags' });
-  }
-});
-
-// Add unified endpoint alias for frontend compatibility
-router.get('/unified', authenticate, async (req, res) => {
-  try {
-    const { q, type, limit = 20, offset = 0, lat, lng, radius } = req.query;
-    const query = q as string;
-    const searchType = type as string;
-    const limitNum = parseInt(limit as string) || 20;
-    const offsetNum = parseInt(offset as string) || 0;
-
-    if (!query || query.trim().length < 2) {
-      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
-    }
-
-    const searchTerm = `%${query.trim()}%`;
-    const results: any = {};
-
-    // Parse location parameters
-    const location = lat && lng ? {
-      lat: parseFloat(lat as string),
-      lng: parseFloat(lng as string),
-      radius: radius ? parseInt(radius as string) : 10000 // Default 10km radius
-    } : undefined;
-
-    // Search restaurants if no type specified or type is 'restaurants'
-    if (!searchType || searchType === 'restaurants') {
-      // First, search local database
-      const localRestaurants = await db
-        .select({
-          id: restaurants.id,
-          name: restaurants.name,
-          address: restaurants.address,
-          city: restaurants.city,
-          cuisine: restaurants.cuisine,
-          priceRange: restaurants.priceRange,
-          imageUrl: restaurants.imageUrl,
-          googlePlaceId: restaurants.googlePlaceId,
-          verified: restaurants.verified
-        })
-        .from(restaurants)
-        .where(
-          or(
-            ilike(restaurants.name, searchTerm),
-            ilike(restaurants.address, searchTerm),
-            ilike(restaurants.city, searchTerm),
-            ilike(restaurants.cuisine, searchTerm)
-          )
-        )
-        .orderBy(desc(restaurants.verified), restaurants.name)
-        .limit(Math.min(limitNum, 10)); // Limit local results to make room for Google Places
-
-      // Then, search Google Places with location
-      let googlePlacesResults: any[] = [];
-      try {
-        console.log(`🔍 UNIFIED SEARCH - Google Places: "${query}" ${location ? `at ${location.lat},${location.lng}` : 'globally'}`);
-        
-        googlePlacesResults = await searchGooglePlaces(query, location) || [];
-        
-        console.log(`📍 UNIFIED SEARCH - Google Places returned ${googlePlacesResults.length} results`);
-      } catch (error) {
-        console.error('❌ UNIFIED SEARCH - Google Places error:', error);
-      }
-
-      // Transform Google Places results to match our restaurant format
-      const transformedGoogleResults = googlePlacesResults.slice(0, limitNum - localRestaurants.length).map((place: any) => ({
-        id: `google_${place.googlePlaceId}`,
-        name: place.name,
-        address: place.address,
-        city: place.city || 'Unknown',
-        cuisine: place.cuisine || place.category,
-        priceRange: place.priceRange,
-        imageUrl: place.imageUrl,
-        googlePlaceId: place.googlePlaceId,
-        verified: true, // Google Places are considered verified
-        source: 'google_places',
-        rating: place.rating,
-        distance: place.distance
-      }));
-
-      // Combine and sort results (local first, then Google Places)
-      results.restaurants = [...localRestaurants, ...transformedGoogleResults];
-      
-      console.log(`📊 UNIFIED SEARCH - Restaurant results: ${localRestaurants.length} local + ${transformedGoogleResults.length} Google Places = ${results.restaurants.length} total`);
-    }
-
-    // Search lists only if specifically requested to avoid SQL syntax errors
-    if (searchType === 'lists') {
-      try {
-        const listResults = await db
-          .select({
-            id: restaurantLists.id,
-            name: restaurantLists.name,
-            description: restaurantLists.description,
-            createdById: restaurantLists.createdById,
-            visibility: restaurantLists.visibilityV2,
-            tags: restaurantLists.tags,
-            coverImage: restaurantLists.coverImage,
-            createdAt: restaurantLists.createdAt
-          })
-          .from(restaurantLists)
-          .where(
-            and(
-              or(
-                ilike(restaurantLists.name, searchTerm),
-                ilike(restaurantLists.description, searchTerm)
-              ),
-              eq(restaurantLists.visibilityV2, 'public')
-            )
-          )
-          .orderBy(desc(restaurantLists.createdAt))
-          .limit(limitNum)
-          .offset(offsetNum);
-
-        results.lists = listResults;
-      } catch (error) {
-        console.error('Lists search error:', error);
-        results.lists = [];
-      }
-    }
-
-    // Search posts only if specifically requested to avoid SQL syntax errors
-    if (searchType === 'posts') {
-      try {
-        const postResults = await db
-          .select({
-            id: posts.id,
-            content: posts.content,
-            userId: posts.userId,
-            restaurantId: posts.restaurantId,
-            images: posts.images,
-            visibility: posts.visibility,
-            createdAt: posts.createdAt
-          })
-          .from(posts)
-          .where(
-            and(
-              ilike(posts.content, searchTerm),
-              eq(posts.visibility, 'public')
-            )
-          )
-          .orderBy(desc(posts.createdAt))
-          .limit(limitNum)
-          .offset(offsetNum);
-
-        results.posts = postResults;
-      } catch (error) {
-        console.error('Posts search error:', error);
-        results.posts = [];
-      }
-    }
-
-    // Search users only if specifically requested to avoid SQL syntax errors
-    if (searchType === 'users' || searchType === 'people') {
-      try {
-        const userResults = await db
-          .select({
-            id: users.id,
-            username: users.username,
-            name: users.name,
-            bio: users.bio
-          })
-          .from(users)
-          .where(
-            or(
-              ilike(users.username, searchTerm),
-              ilike(users.name, searchTerm)
-            )
-          )
-          .orderBy(users.username)
-          .limit(limitNum)
-          .offset(offsetNum);
-
-        results.users = userResults;
-      } catch (error) {
-        console.error('Users search error:', error);
-        results.users = [];
-      }
-    }
-
-    const totalCounts = {
-      restaurants: results.restaurants?.length || 0,
-      lists: results.lists?.length || 0,
-      posts: results.posts?.length || 0,
-      users: results.users?.length || 0
-    };
-
-    res.json({
-      results,
-      pagination: {
-        query,
-        limit: limitNum,
-        offset: offsetNum,
-        hasMore: Object.values(totalCounts).some(count => count === limitNum),
-        totalCounts
-      }
-    });
-
-  } catch (error) {
-    console.error('Search error:', error);
-    res.status(500).json({ error: 'Failed to perform search' });
   }
 });
 
