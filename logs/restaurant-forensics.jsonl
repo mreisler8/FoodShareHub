@@ -127,3 +127,4 @@
 {"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-18T02:05:01.997Z"}
 {"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-18T02:05:04.327Z"}
 {"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-18T02:05:11.203Z"}
+{"t":"trace","op":"restaurant.read","path":"/","placeId":"ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":80,"note":"Restaurant details fetch","timestamp":"2025-08-18T02:11:02.431Z"}
