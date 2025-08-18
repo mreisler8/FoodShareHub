@@ -62,11 +62,11 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
   const { toast } = useToast();
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const isEditMode = !!post;
-  
+
   // Step management
   const [step, setStep] = useState<'type' | 'form'>('type');
   const [selectedType, setSelectedType] = useState<PostType | null>(initialType || null);
-  
+
   // Form data
   const [formData, setFormData] = useState<PostFormData>({
     restaurant: null,
@@ -81,7 +81,7 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
     },
     taggedListIds: []
   });
-  
+
   const [isCreateListOpen, setIsCreateListOpen] = useState(false);
 
   // Initialize form for editing
@@ -98,7 +98,7 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
           }
         }));
       }
-      
+
       setFormData(prev => ({
         ...prev,
         rating: post.rating || 0,
@@ -106,14 +106,14 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
         dishName: post.dishName || '',
         category: post.category || ''
       }));
-      
+
       if (post.images && Array.isArray(post.images)) {
         setFormData(prev => ({
           ...prev,
           media: post.images.map((url: string) => ({ url, type: 'image' }))
         }));
       }
-      
+
       setSelectedType(post.postType || PostType.MOMENT);
       setStep('form');
     }
@@ -200,14 +200,14 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
       if (isEditMode && post) {
         queryClient.invalidateQueries({ queryKey: [`/api/posts/${post.id}`] });
       }
-      
+
       toast({
         title: isEditMode ? 'Post updated' : 'Post created',
         description: isEditMode 
           ? 'Your post has been updated successfully!' 
           : 'Your post has been shared successfully!',
       });
-      
+
       resetForm();
       onOpenChange(false);
     },
@@ -261,7 +261,7 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
             </div>
           </>
         );
-      
+
       case PostType.RESTAURANT:
         return (
           <>
@@ -302,7 +302,7 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
             </div>
           </>
         );
-      
+
       default:
         return null;
     }
@@ -393,7 +393,7 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full justify-start text-left font-normal"
+                  className="w-full justify-start font-normal"
                   onClick={() => setSearchModalOpen(true)}
                 >
                   <MapPin className="h-4 w-4 mr-2" />
@@ -548,7 +548,7 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
           </form>
         )}
       </DialogContent>
-      
+
       {/* Create List Modal */}
       <CreateListModal
         open={isCreateListOpen}
@@ -559,7 +559,7 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
         }}
       />
     </Dialog>
-    
+
     <OptimizedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}

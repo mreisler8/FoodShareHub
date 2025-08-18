@@ -40,7 +40,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
     description: '',
     tags: [] as string[]
   });
-  
+
   const [customTag, setCustomTag] = useState('');
 
   const recommendedTypes = [
@@ -340,7 +340,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
             <div>
               <label className="block text-sm font-medium mb-2">Tags</label>
               <p className="text-sm text-gray-500 mb-3">Add tags to help others discover your post</p>
-              
+
               {/* Selected Tags */}
               {formData.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -357,7 +357,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
                   ))}
                 </div>
               )}
-              
+
               {/* Custom Tag Input */}
               <div className="flex gap-2 mb-3">
                 <Input
@@ -377,7 +377,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               {/* Suggested Tags */}
               <div className="flex flex-wrap gap-2">
                 {suggestedTags.filter(tag => !formData.tags.includes(tag)).map((tag) => (
@@ -407,7 +407,7 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
         )}
       </DialogContent>
     </Dialog>
-    
+
     <OptimizedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
