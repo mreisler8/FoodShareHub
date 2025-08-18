@@ -85,18 +85,60 @@ export function OptimizedSearchModal({
     staleTime: 300000, // 5 minutes
   });
   const [, setLocation] = useLocation();
+  // Location detection with enhanced debugging
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
-
-  const inputRef = useRef<HTMLInputElement>(null);
-  const debouncedQuery = useDebounce(searchQuery, 300);
-  const queryClient = useQueryClient();
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
 
   useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+    const requestLocation = async () => {
+      console.log('🔍 LOCATION: Starting location detection for search');
+
+      try {
+        // Check if geolocation is supported
+        if (!navigator.geolocation) {
+          console.log('🔍 LOCATION: Geolocation not supported');
+          setLocationPermission('denied');
+          return;
+        }
+
+        // Check permission status
+        console.log('🔍 LOCATION: Checking permission status');
+        const permission = await LocationService.checkPermission();
+        console.log('🔍 LOCATION: Permission status:', permission);
+        setLocationPermission(permission);
+
+        if (permission === 'granted') {
+          console.log('🔍 LOCATION: Permission granted, fetching location');
+          const location = await LocationService.getCurrentLocation();
+          console.log('🔍 LOCATION: Location obtained:', {
+            lat: location.lat,
+            lng: location.lng,
+            city: location.city,
+            address: location.address
+          });
+          setUserLocation(location);
+        } else if (permission === 'prompt') {
+          console.log('🔍 LOCATION: Permission prompt - attempting to get location anyway');
+          try {
+            const location = await LocationService.getCurrentLocation();
+            console.log('🔍 LOCATION: Location obtained after prompt:', location);
+            setUserLocation(location);
+            setLocationPermission('granted');
+          } catch (promptError) {
+            console.log('🔍 LOCATION: User denied permission after prompt');
+            setLocationPermission('denied');
+          }
+        }
+      } catch (error) {
+        console.error('🔍 LOCATION: Location detection failed:', error);
+        setLocationPermission('denied');
+      }
+    };
+
+    if (showLocationServices) {
+      requestLocation();
     }
-  }, [open]);
+  }, [showLocationServices]);
 
   // Request location IMMEDIATELY on modal open for feed search
   useEffect(() => {

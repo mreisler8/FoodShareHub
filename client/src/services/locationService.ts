@@ -24,19 +24,33 @@ export class LocationService {
    * Get current location with caching
    */
   async getCurrentLocation(): Promise<LocationData> {
+    console.log('🌍 LOCATION SERVICE: getCurrentLocation called');
+    
     // Check if cached location is still valid
     if (this.cachedLocation && Date.now() - this.locationCacheTime < this.CACHE_DURATION) {
+      console.log('🌍 LOCATION SERVICE: Returning cached location:', this.cachedLocation);
       return this.cachedLocation;
     }
 
+    console.log('🌍 LOCATION SERVICE: No valid cache, requesting fresh location');
+
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
+        console.error('🌍 LOCATION SERVICE: Geolocation not supported');
         reject(new Error('Geolocation is not supported by this browser.'));
         return;
       }
 
+      console.log('🌍 LOCATION SERVICE: Calling navigator.geolocation.getCurrentPosition');
+
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          console.log('🌍 LOCATION SERVICE: Position obtained:', {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          });
+
           const locationData: LocationData = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
@@ -45,38 +59,49 @@ export class LocationService {
 
           // Try to get reverse geocoding
           try {
+            console.log('🌍 LOCATION SERVICE: Attempting reverse geocoding');
             const address = await this.reverseGeocode(locationData.lat, locationData.lng);
             locationData.address = address.formatted_address;
             locationData.city = address.city;
             locationData.country = address.country;
+            console.log('🌍 LOCATION SERVICE: Reverse geocoding successful:', address);
           } catch (error) {
-            console.warn('Reverse geocoding failed:', error);
+            console.warn('🌍 LOCATION SERVICE: Reverse geocoding failed:', error);
           }
 
           // Cache the location
           this.cachedLocation = locationData;
           this.locationCacheTime = Date.now();
 
+          console.log('🌍 LOCATION SERVICE: Final location data:', locationData);
           resolve(locationData);
         },
         (error) => {
+          console.error('🌍 LOCATION SERVICE: Geolocation error:', {
+            code: error.code,
+            message: error.message
+          });
+
           let message = 'Unable to get your location.';
           switch (error.code) {
             case error.PERMISSION_DENIED:
               message = 'Location access was denied. Please enable location permissions.';
+              console.error('🌍 LOCATION SERVICE: Permission denied');
               break;
             case error.POSITION_UNAVAILABLE:
               message = 'Location information is unavailable.';
+              console.error('🌍 LOCATION SERVICE: Position unavailable');
               break;
             case error.TIMEOUT:
               message = 'Location request timed out.';
+              console.error('🌍 LOCATION SERVICE: Request timeout');
               break;
           }
           reject(new Error(message));
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000, // Increased timeout to 15 seconds
           maximumAge: 300000 // 5 minutes
         }
       );
@@ -129,14 +154,19 @@ export class LocationService {
    * Check if location permission is granted
    */
   async checkPermission(): Promise<'granted' | 'denied' | 'prompt'> {
+    console.log('🌍 LOCATION SERVICE: Checking permission');
+    
     if (!navigator.permissions) {
+      console.log('🌍 LOCATION SERVICE: navigator.permissions not available, returning prompt');
       return 'prompt';
     }
 
     try {
       const result = await navigator.permissions.query({ name: 'geolocation' });
-      return result.state;
+      console.log('🌍 LOCATION SERVICE: Permission state:', result.state);
+      return result.state as 'granted' | 'denied' | 'prompt';
     } catch (error) {
+      console.warn('🌍 LOCATION SERVICE: Permission query failed:', error);
       return 'prompt';
     }
   }
