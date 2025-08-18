@@ -157,12 +157,30 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
       // Handle both new API format (data.results) and legacy format
       const results = data.results || data;
 
-      return {
-        restaurants: results.restaurants || [],
+      // Ensure we have proper arrays and transform restaurant data for UI
+      const transformedResults = {
+        restaurants: (results.restaurants || []).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          address: r.address,
+          city: r.city,
+          cuisine: r.cuisine,
+          priceRange: r.priceRange,
+          imageUrl: r.imageUrl,
+          googlePlaceId: r.googlePlaceId,
+          verified: r.verified,
+          source: r.source,
+          rating: r.rating,
+          distance: r.distance,
+          relevanceScore: r.relevanceScore
+        })),
         lists: results.lists || [],
         posts: results.posts || [],
         users: results.users || []
       };
+
+      console.log('🔍 Transformed search results:', transformedResults);
+      return transformedResults;
     },
     enabled: !!debouncedQuery && debouncedQuery.length >= 2,
     staleTime: 30000,
@@ -532,17 +550,141 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                   </div>
 
                   <div className="overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
-                    {Object.entries(searchResults || {}).map(([type, items]) => (
-                      <TabsContent key={type} value={type} className="m-0 p-6">
-                        <SearchResultsList
-                          results={items}
-                          onResultClick={handleResultClick}
-                          onFollowToggle={handleFollowToggle}
-                          showFollowButton={type === 'users'}
-                          className="space-y-2"
-                        />
-                      </TabsContent>
-                    ))}
+                    <TabsContent value="restaurants" className="m-0 p-6">
+                      {searchResults?.restaurants?.length > 0 ? (
+                        <div className="space-y-2">
+                          {searchResults.restaurants.map((restaurant: any) => (
+                            <div
+                              key={restaurant.id}
+                              onClick={() => handleResultClick({
+                                id: restaurant.id.toString(),
+                                name: restaurant.name,
+                                type: 'restaurant',
+                                location: restaurant.address || restaurant.city,
+                                subtitle: restaurant.cuisine,
+                                metadata: {
+                                  googlePlaceId: restaurant.googlePlaceId
+                                }
+                              })}
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
+                            >
+                              <UtensilsCrossed className="h-4 w-4 text-primary" />
+                              <div className="flex-1">
+                                <div className="font-medium">{restaurant.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {restaurant.cuisine} • {restaurant.address || restaurant.city}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No restaurants found
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="users" className="m-0 p-6">
+                      {searchResults?.users?.length > 0 ? (
+                        <div className="space-y-2">
+                          {searchResults.users.map((user: any) => (
+                            <div
+                              key={user.id}
+                              onClick={() => handleResultClick({
+                                id: user.id.toString(),
+                                name: user.name,
+                                type: 'user',
+                                subtitle: user.bio,
+                                username: user.username,
+                                profilePicture: user.profilePicture
+                              })}
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
+                            >
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.profilePicture} alt={user.name} />
+                                <AvatarFallback>
+                                  {user.name?.slice(0, 2).toUpperCase() || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  @{user.username}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No people found
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="lists" className="m-0 p-6">
+                      {searchResults?.lists?.length > 0 ? (
+                        <div className="space-y-2">
+                          {searchResults.lists.map((list: any) => (
+                            <div
+                              key={list.id}
+                              onClick={() => handleResultClick({
+                                id: list.id.toString(),
+                                name: list.name,
+                                type: 'list',
+                                subtitle: list.description,
+                                tags: list.tags
+                              })}
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
+                            >
+                              <FileText className="h-4 w-4 text-blue-500" />
+                              <div className="flex-1">
+                                <div className="font-medium">{list.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {list.description}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No lists found
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="posts" className="m-0 p-6">
+                      {searchResults?.posts?.length > 0 ? (
+                        <div className="space-y-2">
+                          {searchResults.posts.map((post: any) => (
+                            <div
+                              key={post.id}
+                              onClick={() => handleResultClick({
+                                id: post.id.toString(),
+                                name: post.content,
+                                type: 'post',
+                                subtitle: 'Post'
+                              })}
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
+                            >
+                              <MapPin className="h-4 w-4 text-blue-500" />
+                              <div className="flex-1">
+                                <div className="font-medium">{post.content}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Post
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No posts found
+                        </div>
+                      )}
+                    </TabsContent>
                   </div>
                 </Tabs>
               ) : (
