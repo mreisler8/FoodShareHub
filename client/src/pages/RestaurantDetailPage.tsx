@@ -248,30 +248,44 @@ export default function RestaurantDetailPage() {
     },
   });
 
-  // CRITICAL: Use standardized queries for consistent cache keys and data integrity
-  // Always call hooks with consistent parameters to avoid React hooks violation
+  // CRITICAL: Stabilize restaurant parameters to prevent React hooks violation
+  // Always ensure consistent object structure to avoid "more hooks than previous render" error
   const restaurantParams = React.useMemo(() => {
-    if (restaurant) {
-      return {
-        id: typeof restaurant.id === 'string' ? parseInt(restaurant.id) : restaurant.id,
-        googlePlaceId: restaurant.googlePlaceId,
-        name: restaurant.name
-      };
-    }
-    return { 
-      id: queryMethod === 'id' && restaurantId ? parseInt(restaurantId) : undefined,
-      googlePlaceId: queryMethod === 'googlePlaceId' ? restaurantId : undefined,
-      name: 'Loading...'
+    // Always return the same object structure to prevent hooks count changes
+    const baseParams = {
+      id: undefined as number | undefined,
+      googlePlaceId: undefined as string | undefined,
+      name: 'Loading...' as string
     };
-  }, [restaurant, queryMethod, restaurantId]);
 
+    if (restaurant?.id) {
+      baseParams.id = typeof restaurant.id === 'string' ? parseInt(restaurant.id) : restaurant.id;
+      baseParams.name = restaurant.name || 'Loading...';
+      if (restaurant.googlePlaceId) {
+        baseParams.googlePlaceId = restaurant.googlePlaceId;
+      }
+    } else if (restaurantId) {
+      // Fallback for when restaurant data isn't loaded yet
+      if (queryMethod === 'id') {
+        baseParams.id = parseInt(restaurantId);
+      } else if (queryMethod === 'googlePlaceId') {
+        baseParams.googlePlaceId = restaurantId;
+      }
+    }
+
+    return baseParams;
+  }, [restaurant?.id, restaurant?.name, restaurant?.googlePlaceId, restaurantId, queryMethod]);
+
+  // Only call hooks when we have a valid restaurant identifier to prevent empty queries
+  const hasValidId = restaurantParams.id || restaurantParams.googlePlaceId;
+  
   const { 
     userRating, 
     circleScore, 
     isLoading: isRatingLoading,
     submitRating,
     data: { userRating: userRatingData, circleScore: circleScoreData }
-  } = useStandardizedRestaurantQueries(restaurantParams);
+  } = useStandardizedRestaurantQueries(hasValidId ? restaurantParams : { id: undefined, googlePlaceId: undefined, name: 'Loading...' });
 
   if (isLoading) {
     return (
