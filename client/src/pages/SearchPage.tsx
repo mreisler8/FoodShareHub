@@ -182,12 +182,12 @@ const SearchPage: React.FC = () => {
   const handleRestaurantClick = (restaurant: SearchResult) => {
     console.log('🏪 Navigating to restaurant:', restaurant);
     
-    // For Google Places results, use the googlePlaceId
+    // For Google Places results, use the googlePlaceId parameter
     if (restaurant.googlePlaceId && restaurant.source === 'google_places') {
-      navigate(`/restaurant/google_${restaurant.googlePlaceId}`);
+      navigate(`/restaurants?googlePlaceId=${restaurant.googlePlaceId}`);
     } else {
       // For database results, use the regular ID
-      navigate(`/restaurant/${restaurant.id}`);
+      navigate(`/restaurants/${restaurant.id}`);
     }
   };
 

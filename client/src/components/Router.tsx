@@ -66,7 +66,8 @@ function Router() {
       <ProtectedRoute path="/join/:inviteCode" component={JoinCirclePage} />
       <Route path="/restaurants/:id" component={RestaurantDetailPage} />
       <Route path="/restaurants" component={RestaurantDetailPage} />
-      <Route path="/restaurants/google/:placeId" component={RestaurantDetailPage} />
+      <Route path="/restaurant/:id" component={RestaurantDetailPage} />
+      <Route path="/restaurant/google/:placeId" component={RestaurantDetailPage} />
       <ProtectedRoute path="/user-discovery" component={UserDiscovery} />
       <ProtectedRoute path="/social-dashboard" component={SocialDashboardPage} />
       <ProtectedRoute path="/quick-ratings" component={QuickRatingsPage} />
