@@ -50,6 +50,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 // Auth provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
+  console.log('🔐 AuthProvider initializing...');
   const { toast } = useToast();
   const [user, setUser] = useState<SelectUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const checkAuth = async () => {
       try {
+        console.log('🔍 Starting auth check...');
         setIsLoading(true);
         setError(null);
 
@@ -96,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Enhanced API authentication check
+        console.log('🌐 Making API call to /api/me...');
         const response = await fetch('/api/me', {
           method: 'GET',
           credentials: 'include',
@@ -104,8 +107,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
 
+        console.log('📡 API response:', response.status, response.statusText);
+
         if (response.ok) {
           const userData = await response.json();
+          console.log('✅ User authenticated:', userData);
 
           // Validate API response structure
           if (userData && typeof userData === 'object' && 
@@ -121,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setError('Invalid authentication response');
           }
         } else if (response.status === 401) {
+          console.log('🔒 User not authenticated (401) - this is expected');
           // Clear any invalid stored data
           if (typeof window !== 'undefined') {
             localStorage.removeItem('authToken');
@@ -166,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('userData');
         }
       } finally {
+        console.log('🏁 Auth check complete, setting isLoading to false');
         setIsLoading(false);
       }
     };

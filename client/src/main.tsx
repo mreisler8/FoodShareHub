@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
-import App from "./App";
-import "./index.css";
+import SimpleTest from "./test";
+
+console.log('🚀 TEST: main.tsx loading...');
 
 // Development debugging utilities
 if (process.env.NODE_ENV === 'development') {
@@ -13,7 +14,9 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+console.log('🚀 TEST: About to render simple test...');
+createRoot(document.getElementById("root")!).render(<SimpleTest />);
+console.log('🚀 TEST: Simple test render called');
 // Global error handling
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);

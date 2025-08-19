@@ -22,7 +22,9 @@ function AppContent() {
 
   useEffect(() => {
     // Redirect to auth if not authenticated and not already on auth page
+    console.log('🔀 App navigation check:', { isLoading, user: !!user, location });
     if (!isLoading && !user && location !== "/auth") {
+      console.log('➡️ Redirecting to /auth');
       navigate("/auth");
     }
   }, [user, isLoading, location, navigate]);
@@ -48,8 +50,11 @@ function AppContent() {
 }
 
 function App() {
+  console.log('🚀 App component initializing...');
+  
   // Setup global error handling on app initialization
   useEffect(() => {
+    console.log('🚀 App useEffect running...');
     setupGlobalErrorHandling();
     
     // Add unhandled rejection logging (dev-only; no noisy prod logs)
