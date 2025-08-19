@@ -1,0 +1,86 @@
+React Hooks Violation Audit Report
+RestaurantDetailPage.tsx Navigation Error Analysis
+
+Critical Finding: Conditional Hook Enablement Pattern
+Root Cause Identified
+The error "Rendered more hooks than during the previous render" occurs due to a conditional hook enablement pattern in the RestaurantDetailPage component that violates React's rules of hooks.
+
+Primary Violation: Lines 252-273
+// PROBLEM: Conditional parameter creation
+const restaurantParams = React.useMemo(() => {
+  if (!googlePlaceId) {
+    return null; // ❌ This causes hook enablement to change
+  }
+  return { googlePlaceId, name };
+}, [dependencies]);
+// PROBLEM: Hook called with changing enablement
+const { userRating, circleScore, ... } = useStandardizedRestaurantQueries(restaurantParams);
+Hook Call Analysis
+Stable Hooks (Always Called):
+
+✅ useParams() - Line 170
+✅ useLocation() - Line 171
+✅ useQueryClient() - Line 172
+✅ React.useMemo() - Line 252
+Problematic Hooks (Conditionally Enabled):
+
+❌ useStandardizedRestaurantQueries() - Line 267 (enabled based on restaurantParams)
+❌ useQuery for restaurant lists - Line 337 (enabled: !!restaurantId)
+❌ useQuery for restaurant posts - Line 362 (enabled: !!restaurantId)
+Inside useStandardizedRestaurantQueries:
+
+❌ useQuery for userRating - enabled: !!canonicalId
+❌ useQuery for circleScore - enabled: !!canonicalId
+❌ useMutation for submitRating - always enabled but parameters change
+Navigation Flow Impact Analysis
+Search Page → Restaurant Page Transition:
+Initial Render: restaurantId = undefined → restaurantParams = null
+Parameter Resolution: URL params parsed → restaurantId populated
+Hook Enablement Change: restaurantParams changes from null to object
+React Violation: Hook count/order changes between renders
+Specific Trigger Scenarios:
+Direct navigation from search results
+Browser back/forward with cached state
+Route parameter changes during navigation
+Query parameter parsing delays
+Impact Assessment
+User Experience Impact:
+Complete page crashes on restaurant navigation
+Error boundary activation
+Lost navigation state
+Broken search-to-detail flow
+Technical Impact:
+React development mode warnings
+Potential production instability
+Inconsistent component state
+Query invalidation issues
+Secondary Contributing Factors
+Query Enablement Pattern:
+Multiple queries use enabled: !!variable pattern, creating cascade of conditional hook executions.
+
+Parameter Resolution Complexity:
+Complex logic for determining restaurantId from multiple sources (URL params, query params, placeId) creates timing dependencies.
+
+Custom Hook Dependencies:
+useStandardizedRestaurantQueries expects consistent parameters but receives changing enablement states.
+
+Recommended Remediation Strategy
+Phase 1: Immediate Stabilization
+Always Enable Hooks: Remove conditional enablement and handle loading states internally
+Stable Parameter Structure: Provide consistent parameters structure, never null/undefined
+Guard Clause Relocation: Move validation logic inside query functions, not enablement conditions
+Phase 2: Architecture Improvement
+Parameter Resolution Refactor: Stabilize restaurant identification logic before hook calls
+Custom Hook Enhancement: Make useStandardizedRestaurantQueries more resilient to parameter changes
+Query Key Standardization: Ensure consistent query keys regardless of parameter source
+Phase 3: Navigation Flow Optimization
+Route Parameter Normalization: Standardize how restaurant IDs are passed through navigation
+State Persistence: Implement proper state management for navigation transitions
+Error Boundary Enhancement: Improve error handling for navigation edge cases
+Critical Priority Items
+Fix Hook Enablement - Lines 267, 337, 362
+Stabilize restaurantParams - Line 252-264
+Test Navigation Paths - Search → Detail transitions
+Validate Query Keys - Ensure consistent caching
+This audit reveals a clear violation of React's hooks rules causing navigation failures. The conditional enablement pattern must be refactored to ensure hooks are always called in the same order with stable parameters.
+
