@@ -118,16 +118,18 @@ export function AddListItemModal({
   const restaurants = searchResults?.restaurants || [];
 
   useEffect(() => {
-    if (selectedRestaurant) {
+    if (selectedRestaurant?.name) {
       dishForm.setValue("restaurantName", selectedRestaurant.name);
       dishForm.setValue("city", selectedRestaurant.location || "");
     }
   }, [selectedRestaurant, dishForm]);
 
   const handleAddRestaurant = (restaurant: Restaurant) => {
-    setSelectedRestaurant(restaurant);
-    restaurantForm.setValue("name", restaurant.name);
-    restaurantForm.setValue("city", restaurant.location || "");
+    if (restaurant?.name) {
+      setSelectedRestaurant(restaurant);
+      restaurantForm.setValue("name", restaurant.name);
+      restaurantForm.setValue("city", restaurant.location || "");
+    }
   };
 
   const handleRestaurantSubmit = async (values: z.infer<typeof restaurantFormSchema>) => {
