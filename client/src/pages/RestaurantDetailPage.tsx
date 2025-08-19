@@ -248,15 +248,12 @@ export default function RestaurantDetailPage() {
     },
   });
 
-  // STABLE: Always use Google Place ID as canonical identifier
+  // STABLE: Always provide consistent parameters to prevent hook violations
   const restaurantParams = React.useMemo(() => {
     // Extract Google Place ID from URL or restaurant data
-    const googlePlaceId = restaurantId || restaurant?.googlePlaceId;
-
-    if (!googlePlaceId) {
-      return null; // Don't call hooks if no Google Place ID
-    }
-
+    const googlePlaceId = restaurantId || restaurant?.googlePlaceId || '';
+    
+    // Always return stable object structure - never null
     return {
       googlePlaceId: googlePlaceId,
       name: restaurant?.name || 'Restaurant'
@@ -333,60 +330,74 @@ export default function RestaurantDetailPage() {
 
   const heroImageData = getHeroImageData();
 
-  // Real API data for lists and posts
+  // Real API data for lists and posts - always enabled with internal validation
   const { data: restaurantLists, isLoading: isListsLoading } = useQuery({
-    queryKey: ['restaurantLists', restaurantId],
+    queryKey: ['restaurantLists', restaurantId || 'none'],
     queryFn: async () => {
+      // Internal validation - return empty array for invalid IDs
       if (!restaurantId) return [];
-      const response = await fetch(`/api/restaurants/${restaurantId}/lists`);
-      if (!response.ok) return [];
-      const data = await response.json();
+      
+      try {
+        const response = await fetch(`/api/restaurants/${restaurantId}/lists`);
+        if (!response.ok) return [];
+        const data = await response.json();
 
-      // Transform API response to match ListMentionsCard interface  
-      return data.map((list: any) => ({
-        id: list.id,
-        name: list.name,
-        description: list.description,
-        owner: list.owner,
-        itemCount: list.itemCount || 0,
-        isPublic: list.isPublic || false,
-        ranking: list.ranking,
-        tags: list.tags || [],
-        createdAt: list.createdAt
-      }));
+        // Transform API response to match ListMentionsCard interface  
+        return data.map((list: any) => ({
+          id: list.id,
+          name: list.name,
+          description: list.description,
+          owner: list.owner,
+          itemCount: list.itemCount || 0,
+          isPublic: list.isPublic || false,
+          ranking: list.ranking,
+          tags: list.tags || [],
+          createdAt: list.createdAt
+        }));
+      } catch (error) {
+        console.warn('Failed to fetch restaurant lists:', error);
+        return [];
+      }
     },
-    enabled: !!restaurantId,
     staleTime: 60000, // 1 minute
+    retry: false
   });
 
   const { data: restaurantPosts, isLoading: isPostsLoading } = useQuery({
-    queryKey: ['restaurantPosts', restaurantId],
+    queryKey: ['restaurantPosts', restaurantId || 'none'],
     queryFn: async () => {
+      // Internal validation - return empty array for invalid IDs
       if (!restaurantId) return [];
-      const response = await fetch(`/api/restaurants/${restaurantId}/posts`);
-      if (!response.ok) return [];
-      const data = await response.json();
+      
+      try {
+        const response = await fetch(`/api/restaurants/${restaurantId}/posts`);
+        if (!response.ok) return [];
+        const data = await response.json();
 
-      // Transform API response to match PostMentionsCard interface
-      return data.map((post: any) => ({
-        id: post.id,
-        content: post.content,
-        rating: post.rating,
-        images: post.images || [],
-        author: {
-          id: post.author.id,
-          name: post.author.name,
-          username: post.author.username,
-          profileImage: undefined // Will be fetched separately if needed
-        },
-        createdAt: post.createdAt,
-        likes: post.likeCount || 0,
-        comments: post.commentCount || 0,
-        dishName: post.dishesTried?.[0] // Use first dish as primary dish
-      }));
+        // Transform API response to match PostMentionsCard interface
+        return data.map((post: any) => ({
+          id: post.id,
+          content: post.content,
+          rating: post.rating,
+          images: post.images || [],
+          author: {
+            id: post.author.id,
+            name: post.author.name,
+            username: post.author.username,
+            profileImage: undefined // Will be fetched separately if needed
+          },
+          createdAt: post.createdAt,
+          likes: post.likeCount || 0,
+          comments: post.commentCount || 0,
+          dishName: post.dishesTried?.[0] // Use first dish as primary dish
+        }));
+      } catch (error) {
+        console.warn('Failed to fetch restaurant posts:', error);
+        return [];
+      }
     },
-    enabled: !!restaurantId,
     staleTime: 60000, // 1 minute
+    retry: false
   });
 
   return (
