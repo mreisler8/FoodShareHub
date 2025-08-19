@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const checkAuth = async () => {
       try {
-        console.log('🔍 Starting auth check...');
+        console.log('🔍 Starting simplified auth check...');
         setIsLoading(true);
         setError(null);
 
@@ -136,36 +136,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setError(null); // Don't show error for unauthenticated state
         } else {
-          console.error('Authentication check failed with status:', response.status);
-          setUser(null);
-          
-          // Add single retry for transient errors (not 401)
-          if (!hasRetried && response.status !== 401) {
-            console.log('Retrying authentication check...');
-            hasRetried = true;
-            setTimeout(() => {
-              checkAuth();
-            }, 1000);
-            return;
+          console.log(`Auth check returned ${response.status} - user not authenticated`);
+          // Clear any stored data and set as unauthenticated
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
           }
-          
-          setError('Authentication check failed');
+          setUser(null);
+          setError(null); // Don't show error for unauthenticated state
         }
       } catch (err: any) {
         console.error('Authentication check error:', err);
-        
-        // Add single retry for network errors
-        if (!hasRetried) {
-          console.log('Retrying authentication check after network error...');
-          hasRetried = true;
-          setTimeout(() => {
-            checkAuth();
-          }, 2000);
-          return;
-        }
-        
-        setError('Network error during authentication check');
         setUser(null);
+        setError(null); // Don't show error for unauthenticated state
 
         // Clear potentially corrupted data on network errors
         if (typeof window !== 'undefined') {
@@ -307,7 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async (userData: RegisterData) => {
       const res = await apiRequest("/api/register", {
         method: "POST",
-        body: userData
+        body: JSON.stringify(userData)
       });
       if (!res.ok) {
         const errorData = await res.json();
