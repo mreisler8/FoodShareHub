@@ -161,3 +161,8 @@
 {"t":"trace","op":"ratings.write","path":"/","placeId":"ChIJuQdEYaE1K4gRSb-QHzZpGss","userId":7,"cacheHit":false,"status":200,"ms":315,"note":"Rating save attempt","timestamp":"2025-08-19T13:17:20.726Z"}
 {"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-19T13:17:21.507Z"}
 {"t":"trace","op":"circleScore.read","path":"/","userId":7,"cacheHit":false,"status":404,"ms":0,"note":"API endpoint not found","timestamp":"2025-08-19T13:17:22.780Z"}
+{"t":"trace","op":"restaurant.read","path":"/ChIJE6Tsk781K4gRMs7jM8cpcn8/lists","userId":7,"cacheHit":false,"status":400,"ms":1,"note":"Invalid restaurant ID","timestamp":"2025-08-19T13:20:38.107Z"}
+{"t":"trace","op":"restaurant.read","path":"/","placeId":"ChIJE6Tsk781K4gRMs7jM8cpcn8","userId":7,"cacheHit":false,"status":200,"ms":87,"note":"Restaurant details fetch","timestamp":"2025-08-19T13:20:38.190Z"}
+{"t":"trace","op":"ratings.read","path":"/restaurant/ChIJE6Tsk781K4gRMs7jM8cpcn8","userId":7,"cacheHit":false,"status":404,"ms":101,"note":"Rating not found","timestamp":"2025-08-19T13:20:38.191Z"}
+{"t":"trace","op":"circleScore.read","path":"/ChIJE6Tsk781K4gRMs7jM8cpcn8","userId":7,"cacheHit":false,"status":200,"ms":151,"note":"Circle Score fetch","timestamp":"2025-08-19T13:20:38.252Z"}
+{"t":"trace","op":"restaurant.read","path":"/ChIJE6Tsk781K4gRMs7jM8cpcn8/posts","userId":7,"cacheHit":false,"status":400,"ms":1,"note":"Invalid restaurant ID","timestamp":"2025-08-19T13:20:38.315Z"}
