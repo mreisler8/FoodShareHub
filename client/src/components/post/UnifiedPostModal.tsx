@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { ArrowLeft, MapPin, Star, X, Loader2, Plus, Camera, UtensilsCrossed, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { Restaurant } from '@/types/restaurant';
 import { PostType, PostFormData, PostSubmissionData } from '@/types/post';
 import MediaUploader from '@/components/MediaUploader';
@@ -560,22 +560,23 @@ export function UnifiedPostModal({ open, onOpenChange, post, initialType }: Unif
       />
     </Dialog>
 
-    <UnifiedSearchModal
+    <OptimizedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for a restaurant..."
       onSelect={(result) => {
-        if (result.type === 'restaurant') {
-          updateFormData({ 
-            restaurant: {
-              id: result.id,
-              name: result.name,
-              location: result.location || result.subtitle,
-              address: result.location,
-              avgRating: result.avgRating
-            }
-          });
-          setSearchModalOpen(false);
-        }
+        updateFormData({ 
+          restaurant: {
+            id: result.id,
+            name: result.name,
+            location: result.location || result.subtitle,
+            address: result.location,
+            avgRating: result.avgRating
+          }
+        });
+        setSearchModalOpen(false);
       }}
     />
     </>

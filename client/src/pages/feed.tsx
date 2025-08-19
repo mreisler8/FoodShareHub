@@ -33,7 +33,7 @@ import { SuggestedUsersCard } from '@/components/home/SuggestedUsersCard';
 import { TagExploreCard } from '@/components/home/TagExploreCard';
 import { PendingInvites } from '@/components/circles/PendingInvites';
 import { FollowRequestCard } from '@/components/follow/FollowRequestCard';
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { InstagramFoodMomentModal } from '@/components/modals/InstagramFoodMomentModal';
 import { EnhancedCreateListModal } from '@/components/modals/EnhancedCreateListModal';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -733,9 +733,13 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         )}
 
         {/* Universal Search Modal - Feed with Priority Location */}
-        <UnifiedSearchModal
+        <OptimizedSearchModal
           open={isSearchOpen}
           onOpenChange={setIsSearchOpen}
+          searchType="unified"
+          showLocationServices={true}
+          placeholder="Search restaurants near you, lists, posts, people…"
+          title="Search with Location"
         />
 
 
