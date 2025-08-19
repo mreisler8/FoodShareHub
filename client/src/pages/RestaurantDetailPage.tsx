@@ -269,68 +269,7 @@ export default function RestaurantDetailPage() {
     data: { userRating: userRatingData, circleScore: circleScoreData }
   } = useStandardizedRestaurantQueries(restaurantParams);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <LoadingSkeleton />
-      </div>
-    );
-  }
-
-  if (error || !restaurant) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <InlineError 
-          message={getErrorMessage(error)} 
-          onRetry={() => refetch()}
-        />
-      </div>
-    );
-  }
-
-  // Calculate percentages for circular progress
-  const googleScore = restaurant.googlePlaces?.rating 
-    ? Math.round((restaurant.googlePlaces.rating / 5) * 100)
-    : 0;
-
-  const circlesScore = restaurant.communityInsights?.followersAverageRating 
-    ? Math.round((restaurant.communityInsights.followersAverageRating / 5) * 100)
-    : 0;
-
-  // Get optimized restaurant image URL with proper fallbacks
-  const getHeroImageData = () => {
-    console.log('🖼️ Getting hero image for:', restaurant.name);
-    console.log('🖼️ Restaurant imageUrl:', restaurant.imageUrl);
-    console.log('🖼️ Google Places photos:', restaurant.googlePlaces?.photos?.length || 0);
-
-    // Priority 1: Backend-provided image URL (includes Google Places photos with API key)
-    if (restaurant.imageUrl && restaurant.imageUrl.startsWith('http')) {
-      console.log('✅ Using backend imageUrl:', restaurant.imageUrl);
-      return { 
-        src: restaurant.imageUrl,
-        aspectRatio: 16/9
-      };
-    }
-
-    // Priority 2: Fallback to beautiful food images
-    const sampleFoodImages = [
-      'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&q=80', // Pizza
-      'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=800&q=80', // Restaurant interior
-      'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80', // Italian food
-    ];
-
-    const imageIndex = restaurant.name.length % sampleFoodImages.length;
-    console.log('🎨 Using fallback image:', sampleFoodImages[imageIndex]);
-
-    return {
-      src: sampleFoodImages[imageIndex],
-      aspectRatio: 16/9
-    };
-  };
-
-  const heroImageData = getHeroImageData();
-
-  // Real API data for lists and posts - always enabled with internal validation
+  // Real API data for lists and posts - MUST be called BEFORE any early returns
   const { data: restaurantLists, isLoading: isListsLoading } = useQuery({
     queryKey: ['restaurantLists', restaurantId || 'none'],
     queryFn: async () => {
@@ -399,6 +338,68 @@ export default function RestaurantDetailPage() {
     staleTime: 60000, // 1 minute
     retry: false
   });
+
+  // NOW we can do early returns after ALL hooks have been called
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  if (error || !restaurant) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <InlineError 
+          message={getErrorMessage(error)} 
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
+
+  // Calculate percentages for circular progress
+  const googleScore = restaurant.googlePlaces?.rating 
+    ? Math.round((restaurant.googlePlaces.rating / 5) * 100)
+    : 0;
+
+  const circlesScore = restaurant.communityInsights?.followersAverageRating 
+    ? Math.round((restaurant.communityInsights.followersAverageRating / 5) * 100)
+    : 0;
+
+  // Get optimized restaurant image URL with proper fallbacks
+  const getHeroImageData = () => {
+    console.log('🖼️ Getting hero image for:', restaurant.name);
+    console.log('🖼️ Restaurant imageUrl:', restaurant.imageUrl);
+    console.log('🖼️ Google Places photos:', restaurant.googlePlaces?.photos?.length || 0);
+
+    // Priority 1: Backend-provided image URL (includes Google Places photos with API key)
+    if (restaurant.imageUrl && restaurant.imageUrl.startsWith('http')) {
+      console.log('✅ Using backend imageUrl:', restaurant.imageUrl);
+      return { 
+        src: restaurant.imageUrl,
+        aspectRatio: 16/9
+      };
+    }
+
+    // Priority 2: Fallback to beautiful food images
+    const sampleFoodImages = [
+      'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&q=80', // Pizza
+      'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=800&q=80', // Restaurant interior
+      'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80', // Italian food
+    ];
+
+    const imageIndex = restaurant.name.length % sampleFoodImages.length;
+    console.log('🎨 Using fallback image:', sampleFoodImages[imageIndex]);
+
+    return {
+      src: sampleFoodImages[imageIndex],
+      aspectRatio: 16/9
+    };
+  };
+
+  const heroImageData = getHeroImageData();
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
