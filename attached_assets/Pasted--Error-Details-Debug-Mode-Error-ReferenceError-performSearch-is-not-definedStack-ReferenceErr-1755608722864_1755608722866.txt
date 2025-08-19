@@ -1,0 +1,31 @@
+🔍 Error Details (Debug Mode)
+Error: ReferenceError: performSearch is not definedStack: ReferenceError: performSearch is not defined
+    at OptimizedSearchModal (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/search/OptimizedSearchModal.tsx:337:23)
+    at renderWithHooks (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:11548:26)
+    at mountIndeterminateComponent (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:14926:21)
+    at beginWork (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:15914:22)
+    at beginWork$1 (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:19753:22)
+    at performUnitOfWork (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:19198:20)
+    at workLoopSync (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:19137:13)
+    at renderRootSync (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:19116:15)
+    at recoverFromConcurrentError (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:18736:28)
+    at performConcurrentWorkOnRoot (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:18684:30)Component Stack: 
+    at OptimizedSearchModal (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/search/OptimizedSearchModal.tsx:75:3)
+    at UnifiedPostModal (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/post/UnifiedPostModal.tsx:67:36)
+    at div
+    at FeedLayoutProvider (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/feed/FeedLayoutProvider.tsx:20:38)
+    at FeedPage (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/pages/feed.tsx:140:36)
+    at component
+    at Route (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=2cea25a4:191:16)
+    at ProtectedRoute (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/lib/protected-route.tsx:24:3)
+    at Switch (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=2cea25a4:247:17)
+    at Router (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/Router.tsx:51:3)
+    at main
+    at div
+    at ErrorBoundary (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/common/ErrorBoundary.tsx:10:5)
+    at AppContent (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/App.tsx?v=eXOB_jcKV7eFU22AC56LA:35:31)
+    at AuthProvider (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/hooks/use-auth.tsx:38:32)
+    at SmartPollingProvider (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/optimized/SmartPollingProvider.tsx:22:40)
+    at QueryClientProvider (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=2cea25a4:2805:3)
+    at GlobalErrorBoundary (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/common/GlobalErrorBoundary.tsx:10:5)
+    at App (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/App.tsx?v=eXOB_jcKV7eFU22AC56LA:97:3)

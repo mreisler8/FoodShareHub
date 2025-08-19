@@ -736,7 +736,6 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
         <UnifiedSearchModal
           open={isSearchOpen}
           onOpenChange={setIsSearchOpen}
-          title="Search with Location"
         />
 
 
