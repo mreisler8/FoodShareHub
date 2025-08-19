@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import SmartTagInput from "./SmartTagInput";
+// import SmartTagInput from "./SmartTagInput";
 
 // Schema definitions
 const restaurantFormSchema = z.object({
@@ -69,7 +69,7 @@ interface AddListItemModalProps {
   list: { id: string; name: string };
 }
 
-export default function AddListItemModal({
+export function AddListItemModal({
   isOpen,
   onClose,
   onAddItem,
@@ -109,11 +109,13 @@ export default function AddListItemModal({
     data: searchResults,
     isLoading: isSearching,
     error: searchError,
-  } = useQuery({
+  } = useQuery<{ restaurants?: Restaurant[] }>({
     queryKey: ["/api/search/unified", searchQuery, "restaurants"],
     enabled: !!searchQuery && searchQuery.length > 2,
     staleTime: 30000,
   });
+
+  const restaurants = searchResults?.restaurants || [];
 
   useEffect(() => {
     if (selectedRestaurant) {
@@ -332,15 +334,15 @@ export default function AddListItemModal({
                             </div>
                           )}
 
-                          {!isSearching && searchResults && searchResults.length > 0 && (
+                          {!isSearching && restaurants && restaurants.length > 0 && (
                             <div className="p-6">
                               <div className="mb-6 text-center">
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">Found {searchResults.length} restaurants</h3>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Found {restaurants.length} restaurants</h3>
                                 <p className="text-gray-600">Click the + button to add a restaurant to your list</p>
                               </div>
                               
                               <div className="space-y-4 max-h-80 overflow-y-auto">
-                                {searchResults.map((restaurant: Restaurant) => (
+                                {restaurants.map((restaurant: Restaurant) => (
                                   <Card key={restaurant.id} className="group border-2 border-gray-100 hover:border-blue-300 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] rounded-xl">
                                     <CardContent className="p-5">
                                       <div className="flex items-center justify-between">
@@ -435,7 +437,7 @@ export default function AddListItemModal({
                             </div>
                           )}
 
-                          {!isSearching && searchQuery && searchResults && searchResults.length === 0 && (
+                          {!isSearching && searchQuery && restaurants && restaurants.length === 0 && (
                             <div className="flex items-center justify-center py-12">
                               <div className="text-center space-y-4 max-w-md">
                                 <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center mx-auto shadow-lg">
@@ -716,14 +718,26 @@ export default function AddListItemModal({
                               </Button>
                             </div>
 
-                            {/* Smart Tag Suggestions */}
-                            <SmartTagInput
-                              selectedTags={selectedTags}
-                              onTagsChange={setSelectedTags}
-                              maxTags={8}
-                              allowCustomTags={true}
-                              contextRestaurants={selectedRestaurant ? [{ cuisine: selectedRestaurant.category, location: selectedRestaurant.location }] : []}
-                            />
+                            {/* Quick Tag Suggestions */}
+                            <div className="flex flex-wrap gap-1">
+                              {[
+                                "casual", "fine-dining", "romantic", "family-friendly", 
+                                "quick-bite", "brunch", "date-night", "business-lunch",
+                                "spicy", "vegetarian", "vegan", "seafood", "steakhouse",
+                                "pizza", "sushi", "italian", "mexican", "asian", "american"
+                              ].filter(tag => !selectedTags.includes(tag)).slice(0, 6).map((tag) => (
+                                <Button
+                                  key={tag}
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedTags(prev => [...prev, tag])}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  + {tag}
+                                </Button>
+                              ))}
+                            </div>
                           </div>
 
                           <Button 
@@ -897,14 +911,25 @@ export default function AddListItemModal({
                               </Button>
                             </div>
 
-                            {/* Smart Tag Suggestions */}
-                            <SmartTagInput
-                              selectedTags={selectedTags}
-                              onTagsChange={setSelectedTags}
-                              maxTags={8}
-                              allowCustomTags={true}
-                              contextRestaurants={selectedRestaurant ? [{ cuisine: selectedRestaurant.category, location: selectedRestaurant.location }] : []}
-                            />
+                            {/* Quick Tag Suggestions */}
+                            <div className="flex flex-wrap gap-1">
+                              {[
+                                "spicy", "sweet", "savory", "crispy", "tender", "juicy",
+                                "signature", "recommended", "seasonal", "gluten-free",
+                                "vegetarian", "vegan", "dairy-free", "must-try", "local-favorite"
+                              ].filter(tag => !selectedTags.includes(tag)).slice(0, 6).map((tag) => (
+                                <Button
+                                  key={tag}
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedTags(prev => [...prev, tag])}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  + {tag}
+                                </Button>
+                              ))}
+                            </div>
                           </div>
 
                           <div className="flex gap-3 pt-4">
@@ -940,3 +965,5 @@ export default function AddListItemModal({
     </>
   );
 };
+
+export default AddListItemModal;
