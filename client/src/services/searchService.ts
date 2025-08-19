@@ -86,6 +86,8 @@ export class SearchService {
       searchUrl += `&sortBy=${options.sortBy}`;
     }
 
+    console.log(`🔍 SearchService calling unified API: ${searchUrl}`);
+
     const response = await fetch(searchUrl, {
       method: 'GET',
       headers: {
@@ -119,11 +121,16 @@ export class SearchService {
 
     const data = await response.json();
     
+    console.log(`🔍 Raw API response:`, data);
+    
     // API returns data in results object, extract it
     const results = data.results || data;
 
+    console.log(`🔍 Processed results:`, results);
+
     // Enhance restaurant results with Circle Score data
     if (results.restaurants && results.restaurants.length > 0) {
+      console.log(`🔍 Enhancing ${results.restaurants.length} restaurants with Circle Score`);
       results.restaurants = await this.enhanceRestaurantsWithCircleScore(results.restaurants);
     }
 

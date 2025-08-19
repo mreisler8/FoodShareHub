@@ -42,6 +42,7 @@ export interface ListItemData {
     name: string;
     location?: string;
     city?: string;
+    googlePlaceId?: string | null; // Added to store Google Place ID
   };
   dish?: {
     name: string;
@@ -125,6 +126,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
           name: data.name,
           location: data.city,
           city: data.city,
+          googlePlaceId: selectedRestaurant?.googlePlaceId || null,
         },
         tags: selectedTags,
         notes: data.notes,
@@ -157,6 +159,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
           name: data.restaurantName,
           location: data.city,
           city: data.city,
+          googlePlaceId: selectedRestaurant?.googlePlaceId || null,
         },
         dish: {
           name: data.dishName,
@@ -212,6 +215,27 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
     setShowSuccess(false);
     resetFormForNext();
   };
+
+  // Renamed `onAdd` to `onSave` to match the prop name
+  const onAdd = (restaurantData: any) => {
+    // This function is a placeholder and should be replaced by the actual onSave logic
+    // or you can directly use `onSave` if its signature matches what's needed here.
+    // For now, let's assume it maps to the ListItemData structure.
+
+    const listItem: ListItemData = {
+      type: "restaurant", // Assuming this modal is for restaurants for now
+      restaurant: {
+        googlePlaceId: restaurantData.googlePlaceId,
+        name: restaurantData.name,
+        location: restaurantData.location,
+        city: restaurantData.city, // Assuming city can be derived from location if not explicit
+      },
+      tags: [], // Tags will be handled separately
+      notes: restaurantData.notes,
+    };
+    onSave(listItem);
+  };
+
 
   return (
     <>
@@ -761,23 +785,36 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
         )}
       </DialogContent>
     </Dialog>
-    
+
     <OptimizedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
       searchType="restaurants"
       showLocationServices={true}
       placeholder="Search for restaurants..."
-      onSelect={(result) => {
-        handleRestaurantSelect({
-          id: result.id,
+      onSelectResult={(result) => {
+        // Handle both database and Google Places results
+        const restaurantData = {
+          // For Google Places results, use the Google Place ID as the primary identifier
+          id: result.googlePlaceId || result.id, // Use Google Place ID if available, otherwise use DB ID
+          googlePlaceId: result.googlePlaceId || (result.id?.toString().startsWith('ChIJ') ? result.id : null),
           name: result.name,
-          location: result.location || result.subtitle,
-          address: result.location,
-          avgRating: result.avgRating
-        });
+          location: result.location || result.address || result.metadata?.address,
+          category: result.cuisine || result.category || result.metadata?.cuisine,
+          priceRange: result.priceRange || result.metadata?.priceRange || '$$',
+          imageUrl: result.thumbnailUrl || result.imageUrl || result.metadata?.imageUrl,
+          rating: result.avgRating || result.metadata?.rating,
+          notes: '',
+          // Add source information to help with debugging
+          source: result.source || result.metadata?.source || 'database'
+        };
+
+        console.log('Selected restaurant for add:', restaurantData);
+        handleRestaurantSelect(restaurantData); // Use handleRestaurantSelect to update the state
         setSearchModalOpen(false);
       }}
+      hideUserSearch={true}
+      hidePostSearch={true}
     />
   </>
 );
