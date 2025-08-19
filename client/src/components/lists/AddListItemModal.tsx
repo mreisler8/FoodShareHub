@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, X, Plus, Check, AlertCircle, Search } from "lucide-react";
-import { UnifiedSearchModal } from '../search/UnifiedSearchModal';
+import { MapPin, X, Plus, Check, AlertCircle, Search, Loader2, UtensilsCrossed, Star } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { useDebounce } from '@/hooks/useDebounce';
 import { LocationService, type LocationData } from '@/services/locationService';
 import { SmartTagInput } from "./SmartTagInput";
 
@@ -69,6 +70,28 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addedRestaurants, setAddedRestaurants] = useState<string[]>([]);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  
+  // Restaurant search using unified search API
+  const { data: searchData, isLoading: isSearching } = useQuery({
+    queryKey: ["/api/search/unified", debouncedSearchQuery],
+    queryFn: async () => {
+      if (!debouncedSearchQuery.trim()) return null;
+      
+      const params = new URLSearchParams({
+        q: debouncedSearchQuery
+      });
+      
+      const response = await fetch(`/api/search/unified?${params.toString()}`);
+      const data = await response.json();
+      return data.results?.restaurants || [];
+    },
+    enabled: !!debouncedSearchQuery.trim()
+  });
+  
+  const searchResults = searchData || [];
 
   const restaurantForm = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantFormSchema),
@@ -786,34 +809,82 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
       </DialogContent>
     </Dialog>
 
-    <UnifiedSearchModal
-      open={searchModalOpen}
-      onOpenChange={setSearchModalOpen}
-      onSelect={(result) => {
-        // Only handle restaurant results for now
-        if (result.type === 'restaurant') {
-          // Handle both database and Google Places results
-          const restaurantData = {
-            // For Google Places results, use the Google Place ID as the primary identifier
-            id: result.googlePlaceId || result.id, // Use Google Place ID if available, otherwise use DB ID
-            googlePlaceId: result.googlePlaceId || (result.id?.toString().startsWith('ChIJ') ? result.id : null),
-            name: result.name,
-            location: result.location || result.address || result.metadata?.address,
-            category: result.cuisine || result.category || result.metadata?.cuisine,
-            priceRange: result.priceRange || result.metadata?.priceRange || '$$',
-            imageUrl: result.thumbnailUrl || result.imageUrl || result.metadata?.imageUrl,
-            rating: result.avgRating || result.metadata?.rating,
-            notes: '',
-            // Add source information to help with debugging
-            source: result.source || result.metadata?.source || 'database'
-          };
-
-          console.log('Selected restaurant for add:', restaurantData);
-          handleRestaurantSelect(restaurantData); // Use handleRestaurantSelect to update the state
-          setSearchModalOpen(false);
-        }
-      }}
-    />
+    {/* Restaurant Search Dialog */}
+    <Dialog open={searchModalOpen} onOpenChange={setSearchModalOpen}>
+      <DialogContent className="max-w-2xl max-h-[80vh] p-0">
+        <div className="p-6 pb-4 border-b">
+          <h2 className="text-lg font-semibold mb-4">Search Restaurants</h2>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
+            <Input
+              type="text"
+              placeholder="Search for restaurants..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-11"
+            />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          {isSearching && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Searching restaurants...</span>
+            </div>
+          )}
+          {searchResults && searchResults.length > 0 && (
+            <div className="space-y-3">
+              {searchResults.map((restaurant: any) => (
+                <Card key={restaurant.id} className="cursor-pointer hover:bg-gray-50" onClick={() => {
+                  const restaurantData = {
+                    id: restaurant.metadata?.googlePlaceId || restaurant.id,
+                    googlePlaceId: restaurant.metadata?.googlePlaceId || (restaurant.id?.toString().startsWith('ChIJ') ? restaurant.id : null),
+                    name: restaurant.name,
+                    location: restaurant.location || restaurant.subtitle,
+                    category: restaurant.cuisine || 'Restaurant',
+                    rating: restaurant.avgRating,
+                    source: restaurant.metadata?.source || 'database'
+                  };
+                  handleRestaurantSelect(restaurantData);
+                  setSearchModalOpen(false);
+                }}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-1">
+                        <h3 className="font-medium">{restaurant.name}</h3>
+                        {restaurant.location && (
+                          <p className="text-sm text-muted-foreground flex items-center">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {restaurant.location}
+                          </p>
+                        )}
+                        {restaurant.cuisine && (
+                          <Badge variant="outline" className="mt-1 text-xs">
+                            {restaurant.cuisine}
+                          </Badge>
+                        )}
+                      </div>
+                      {restaurant.avgRating && (
+                        <div className="flex items-center text-sm">
+                          <Star className="h-3 w-3 text-yellow-500 mr-1" />
+                          {restaurant.avgRating.toFixed(1)}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {searchQuery && !isSearching && (!searchResults || searchResults.length === 0) && (
+            <div className="text-center py-8 text-muted-foreground">
+              <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No restaurants found. Try a different search term.</p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   </>
 );
 }
