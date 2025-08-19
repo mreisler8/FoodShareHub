@@ -183,9 +183,9 @@ const SearchPage: React.FC = () => {
   const handleRestaurantClick = React.useCallback((restaurant: SearchResult) => {
     console.log('🏪 Navigating to restaurant:', restaurant);
 
-    // For Google Places results, use the googlePlaceId parameter
+    // For Google Places results, use the path parameter format (consistent with UnifiedSearchModal)
     if (restaurant.googlePlaceId && restaurant.source === 'google_places') {
-      navigate(`/restaurants?googlePlaceId=${restaurant.googlePlaceId}`);
+      navigate(`/restaurants/google/${restaurant.googlePlaceId}`);
     } else {
       // For database results, use the regular ID
       navigate(`/restaurants/${restaurant.id}`);
