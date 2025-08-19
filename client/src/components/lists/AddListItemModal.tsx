@@ -62,10 +62,21 @@ interface Restaurant {
   distance?: number;
 }
 
+export interface ListItemData {
+  type: "restaurant" | "dish";
+  name: string;
+  city?: string;
+  notes?: string;
+  tags: string[];
+  restaurant?: Restaurant;
+  dishName?: string;
+  restaurantName?: string;
+}
+
 interface AddListItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddItem: (item: any) => void;
+  onAddItem: (item: ListItemData) => void;
   list: { id: string; name: string } | null;
 }
 
@@ -135,8 +146,8 @@ export function AddListItemModal({
   const handleRestaurantSubmit = async (values: z.infer<typeof restaurantFormSchema>) => {
     setIsSubmitting(true);
     try {
-      const item = {
-        type: "restaurant",
+      const item: ListItemData = {
+        type: "restaurant" as const,
         name: values.name,
         city: values.city,
         notes: values.notes,
@@ -169,8 +180,9 @@ export function AddListItemModal({
   const handleDishSubmit = async (values: z.infer<typeof dishFormSchema>) => {
     setIsSubmitting(true);
     try {
-      const item = {
-        type: "dish",
+      const item: ListItemData = {
+        type: "dish" as const,
+        name: values.dishName,
         dishName: values.dishName,
         restaurantName: values.restaurantName,
         city: values.city,
