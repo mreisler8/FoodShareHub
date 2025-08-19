@@ -285,24 +285,22 @@ export function FoodMomentForm({
         </Button>
       </div>
 
-      <OptimizedSearchModal
+      <UnifiedSearchModal
         open={isRestaurantSearchOpen}
         onOpenChange={setIsRestaurantSearchOpen}
-        searchType="restaurants"
-        title="Select Restaurant"
-        placeholder="Search for a restaurant..."
-        showLocationServices={true}
         onSelect={(result) => {
-          const restaurant: Restaurant = {
-            id: result.id,
-            name: result.name,
-            location: result.location,
-            cuisine: result.cuisine,
-            rating: result.avgRating,
-            source: result.metadata?.googlePlaceId ? 'google' : 'database'
-          };
-          handleRestaurantSelect(restaurant);
-          setIsRestaurantSearchOpen(false);
+          if (result.type === 'restaurant') {
+            const restaurant: Restaurant = {
+              id: result.id,
+              name: result.name,
+              location: result.location,
+              cuisine: result.cuisine,
+              rating: result.avgRating,
+              source: result.source || 'database'
+            };
+            handleRestaurantSelect(restaurant);
+            setIsRestaurantSearchOpen(false);
+          }
         }}
       />
     </div>
