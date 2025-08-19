@@ -15,6 +15,18 @@ import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/useDebounce';
 import { LocationService, type LocationData } from '@/services/locationService';
 import { useEffect } from 'react';
+
+// Distance calculation utility
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
 import { SmartTagInput } from "./SmartTagInput";
 
 const restaurantFormSchema = z.object({
@@ -79,12 +91,9 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   useEffect(() => {
     const initializeLocation = async () => {
       try {
-        const permission = await LocationService.checkPermission();
-        if (permission === 'granted') {
-          const location = await LocationService.getCurrentLocation();
-          if (location) {
-            setUserLocation(location);
-          }
+        const location = await LocationService.getInstance().getCurrentLocation();
+        if (location) {
+          setUserLocation(location);
         }
       } catch (error) {
         console.error('Location initialization error:', error);
@@ -388,78 +397,148 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                               <p className="text-sm text-muted-foreground">
                                 Found {searchResults.length} restaurant{searchResults.length !== 1 ? 's' : ''}
                               </p>
-                              {searchResults.map((restaurant: any) => (
-                                <Card key={restaurant.id} className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => {
-                                  const restaurantData = {
-                                    id: restaurant.metadata?.googlePlaceId || restaurant.id,
-                                    googlePlaceId: restaurant.metadata?.googlePlaceId || (restaurant.id?.toString().startsWith('ChIJ') ? restaurant.id : null),
-                                    name: restaurant.name,
-                                    location: restaurant.location || restaurant.subtitle,
-                                    category: restaurant.cuisine || 'Restaurant',
-                                    rating: restaurant.avgRating,
-                                    source: restaurant.metadata?.source || 'database'
-                                  };
-                                  handleRestaurantSelect(restaurantData);
-                                  setSearchQuery(""); // Clear search after selection
-                                }}>
-                                  <CardContent className="p-4">
-                                    <div className="flex items-center space-x-4">
-                                      {/* Restaurant Image Placeholder */}
-                                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <UtensilsCrossed className="h-6 w-6 text-gray-400" />
-                                      </div>
-                                      
-                                      <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-base">{restaurant.name}</h3>
-                                        {restaurant.location && (
-                                          <p className="text-sm text-muted-foreground flex items-center mt-1">
-                                            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                                            <span className="truncate">{restaurant.location}</span>
-                                          </p>
-                                        )}
-                                        <div className="flex items-center gap-3 mt-2">
-                                          {restaurant.cuisine && (
-                                            <Badge variant="outline" className="text-xs">
-                                              {restaurant.cuisine}
-                                            </Badge>
-                                          )}
-                                          {restaurant.avgRating && (
-                                            <div className="flex items-center text-sm text-amber-600">
-                                              <Star className="h-3 w-3 text-amber-500 mr-1 fill-current" />
-                                              {restaurant.avgRating.toFixed(1)}
+                              {searchResults.map((restaurant: any) => {
+                                // Calculate distance if user location is available
+                                const distance = userLocation && restaurant.metadata?.coordinates ? 
+                                  calculateDistance(
+                                    userLocation.lat, userLocation.lng,
+                                    restaurant.metadata.coordinates.lat, restaurant.metadata.coordinates.lng
+                                  ) : null;
+
+                                return (
+                                  <Card key={restaurant.id} className="cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200 border-gray-200" onClick={() => {
+                                    const restaurantData = {
+                                      id: restaurant.metadata?.googlePlaceId || restaurant.id,
+                                      googlePlaceId: restaurant.metadata?.googlePlaceId || (restaurant.id?.toString().startsWith('ChIJ') ? restaurant.id : null),
+                                      name: restaurant.name,
+                                      location: restaurant.location || restaurant.subtitle,
+                                      category: restaurant.cuisine || 'Restaurant',
+                                      rating: restaurant.avgRating,
+                                      source: restaurant.metadata?.source || 'database'
+                                    };
+                                    handleRestaurantSelect(restaurantData);
+                                    setSearchQuery(""); // Clear search after selection
+                                  }}>
+                                    <CardContent className="p-4">
+                                      <div className="flex items-start space-x-4">
+                                        {/* Enhanced Restaurant Image */}
+                                        <div className="relative w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                                          <UtensilsCrossed className="h-7 w-7 text-blue-600" />
+                                          {restaurant.metadata?.source === 'google_places' && (
+                                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                              <div className="w-3 h-3 bg-white rounded-full flex items-center justify-center">
+                                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                              </div>
                                             </div>
                                           )}
-                                          {restaurant.metadata?.source === 'google_places' && (
-                                            <Badge variant="secondary" className="text-xs">
-                                              Google Places
-                                            </Badge>
+                                        </div>
+                                        
+                                        <div className="flex-1 min-w-0 space-y-2">
+                                          {/* Restaurant Name & Source */}
+                                          <div className="flex items-start justify-between">
+                                            <h3 className="font-semibold text-lg text-gray-900 leading-tight">{restaurant.name}</h3>
+                                            <Plus className="h-5 w-5 text-blue-600 flex-shrink-0 mt-1" />
+                                          </div>
+                                          
+                                          {/* Location with Distance */}
+                                          {restaurant.location && (
+                                            <div className="flex items-center text-sm text-gray-600">
+                                              <MapPin className="h-4 w-4 mr-1.5 text-gray-400 flex-shrink-0" />
+                                              <span className="truncate">{restaurant.location}</span>
+                                              {distance && (
+                                                <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
+                                                  {distance.toFixed(1)}km
+                                                </span>
+                                              )}
+                                            </div>
                                           )}
+                                          
+                                          {/* Metadata Row */}
+                                          <div className="flex items-center gap-3 flex-wrap">
+                                            {/* Cuisine Badge */}
+                                            {restaurant.cuisine && (
+                                              <Badge variant="outline" className="text-xs font-medium border-blue-200 text-blue-700 bg-blue-50">
+                                                {restaurant.cuisine}
+                                              </Badge>
+                                            )}
+                                            
+                                            {/* Rating Display */}
+                                            {restaurant.avgRating && (
+                                              <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md">
+                                                <Star className="h-3.5 w-3.5 text-amber-500 mr-1 fill-current" />
+                                                <span className="text-sm font-semibold text-amber-700">
+                                                  {restaurant.avgRating.toFixed(1)}
+                                                </span>
+                                                <span className="text-xs text-amber-600 ml-1">
+                                                  ({restaurant.metadata?.source === 'google_places' ? 'Google' : 'Users'})
+                                                </span>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Price Range Indicator */}
+                                            {restaurant.metadata?.priceLevel && (
+                                              <div className="flex items-center text-sm text-gray-600">
+                                                {Array.from({ length: 4 }, (_, i) => (
+                                                  <span key={i} className={i < restaurant.metadata.priceLevel ? 'text-green-600' : 'text-gray-300'}>
+                                                    $
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            )}
+                                            
+                                            {/* Operating Status */}
+                                            {restaurant.metadata?.isOpen !== undefined && (
+                                              <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                restaurant.metadata.isOpen 
+                                                  ? 'bg-green-100 text-green-800' 
+                                                  : 'bg-red-100 text-red-800'
+                                              }`}>
+                                                {restaurant.metadata.isOpen ? 'Open' : 'Closed'}
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
-                                      
-                                      <Plus className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))}
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
                             </div>
                           )}
 
                           {searchQuery && !isSearching && (!searchResults || searchResults.length === 0) && (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                              <p className="mb-2">No restaurants found for "{searchQuery}"</p>
-                              <Button variant="outline" onClick={() => setShowManualEntry(true)}>
+                            <div className="text-center py-12 text-gray-500">
+                              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <UtensilsCrossed className="h-8 w-8 text-gray-400" />
+                              </div>
+                              <h3 className="text-lg font-semibold text-gray-700 mb-2">No restaurants found</h3>
+                              <p className="text-sm text-gray-500 mb-4">
+                                We couldn't find any restaurants matching "{searchQuery}"
+                              </p>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => setShowManualEntry(true)}
+                                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                              >
                                 Add manually instead
                               </Button>
                             </div>
                           )}
 
                           {!searchQuery && (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                              <p className="mb-2">Start typing to search restaurants</p>
-                              <Button variant="outline" onClick={() => setShowManualEntry(true)}>
+                            <div className="text-center py-12 text-gray-500">
+                              <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Search className="h-8 w-8 text-blue-600" />
+                              </div>
+                              <h3 className="text-lg font-semibold text-gray-700 mb-2">Find restaurants</h3>
+                              <p className="text-sm text-gray-500 mb-4">
+                                Start typing to search for restaurants near you
+                              </p>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => setShowManualEntry(true)}
+                                className="border-gray-200 text-gray-600 hover:bg-gray-50"
+                              >
                                 Or add manually
                               </Button>
                             </div>
@@ -726,15 +805,11 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                     {!showManualEntry ? (
                       <div className="space-y-4">
                         {!selectedRestaurant ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                            onClick={() => setSearchModalOpen(true)}
-                          >
-                            <Search className="h-4 w-4 mr-2" />
-                            Search for the restaurant...
-                          </Button>
+                          <div className="text-center py-8 text-muted-foreground">
+                            <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p className="mb-2">First, search for a restaurant in the Restaurant tab</p>
+                            <p className="text-sm">Then come back here to add a specific dish</p>
+                          </div>
                         ) : null}
 
                         {selectedRestaurant && (
