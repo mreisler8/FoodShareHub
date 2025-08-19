@@ -7,12 +7,13 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { X, Plus, Sparkles, Check } from 'lucide-react';
+import { AddListItemModal } from '@/components/lists/AddListItemModal';
 import { ListItemPreview } from '@/components/lists/ListItemPreview';
 import { ShareDestinationCards } from '@/components/lists/ShareDestinationCards';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { AddListItemModal, type ListItemData } from '@/components/lists/AddListItemModal';
+import type { ListItemData } from '@/components/lists/AddListItemModal';
 
 interface EnhancedCreateListModalProps {
   isOpen: boolean;
@@ -30,8 +31,6 @@ interface ListFormData {
 interface ListItem extends ListItemData {
   id: string;
   rank?: number;
-  restaurant?: any;
-  notes?: string;
 }
 
 export interface ShareDestination {
@@ -454,10 +453,9 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
       </Dialog>
 
       <AddListItemModal
-        isOpen={showAddItemModal}
-        onClose={() => setShowAddItemModal(false)}
-        onAddItem={handleAddItem}
-        list={{ id: "temp", name: listData.title || "New List" }}
+        open={showAddItemModal}
+        onOpenChange={setShowAddItemModal}
+        onSave={handleAddItem}
       />
     </>
   );

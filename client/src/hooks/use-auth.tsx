@@ -50,7 +50,6 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 // Auth provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
-  console.log('🔐 AuthProvider initializing...');
   const { toast } = useToast();
   const [user, setUser] = useState<SelectUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const checkAuth = async () => {
       try {
-        console.log('🔍 Starting simplified auth check...');
         setIsLoading(true);
         setError(null);
 
@@ -98,7 +96,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Enhanced API authentication check
-        console.log('🌐 Making API call to /api/me...');
         const response = await fetch('/api/me', {
           method: 'GET',
           credentials: 'include',
@@ -107,11 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
 
-        console.log('📡 API response:', response.status, response.statusText);
-
         if (response.ok) {
           const userData = await response.json();
-          console.log('✅ User authenticated:', userData);
 
           // Validate API response structure
           if (userData && typeof userData === 'object' && 
@@ -127,7 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setError('Invalid authentication response');
           }
         } else if (response.status === 401) {
-          console.log('🔒 User not authenticated (401) - this is expected');
           // Clear any invalid stored data
           if (typeof window !== 'undefined') {
             localStorage.removeItem('authToken');
@@ -136,19 +129,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setError(null); // Don't show error for unauthenticated state
         } else {
-          console.log(`Auth check returned ${response.status} - user not authenticated`);
-          // Clear any stored data and set as unauthenticated
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userData');
-          }
+          console.error('Authentication check failed with status:', response.status);
           setUser(null);
-          setError(null); // Don't show error for unauthenticated state
+          
+          // Add single retry for transient errors (not 401)
+          if (!hasRetried && response.status !== 401) {
+            console.log('Retrying authentication check...');
+            hasRetried = true;
+            setTimeout(() => {
+              checkAuth();
+            }, 1000);
+            return;
+          }
+          
+          setError('Authentication check failed');
         }
       } catch (err: any) {
         console.error('Authentication check error:', err);
+        
+        // Add single retry for network errors
+        if (!hasRetried) {
+          console.log('Retrying authentication check after network error...');
+          hasRetried = true;
+          setTimeout(() => {
+            checkAuth();
+          }, 2000);
+          return;
+        }
+        
+        setError('Network error during authentication check');
         setUser(null);
-        setError(null); // Don't show error for unauthenticated state
 
         // Clear potentially corrupted data on network errors
         if (typeof window !== 'undefined') {
@@ -156,7 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('userData');
         }
       } finally {
-        console.log('🏁 Auth check complete, setting isLoading to false');
         setIsLoading(false);
       }
     };
@@ -290,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async (userData: RegisterData) => {
       const res = await apiRequest("/api/register", {
         method: "POST",
-        body: JSON.stringify(userData)
+        body: userData
       });
       if (!res.ok) {
         const errorData = await res.json();

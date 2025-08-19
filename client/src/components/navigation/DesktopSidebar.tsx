@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 
@@ -244,10 +244,11 @@ export function DesktopSidebar() {
         </div>
       </div>
 
-      {/* Restaurant Search Modal */}
-      <UnifiedSearchModal
+      {/* Optimized Search Modal */}
+      <OptimizedSearchModal
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
+        showLocationServices={true}
       />
     </div>
   );

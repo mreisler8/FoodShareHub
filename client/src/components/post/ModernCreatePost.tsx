@@ -10,7 +10,7 @@ import { X, ArrowLeft, Star, Upload, Search, MapPin, ArrowRight, Plus } from 'lu
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 
 interface ModernCreatePostProps {
   open: boolean;
@@ -408,9 +408,25 @@ export function ModernCreatePost({ open, onOpenChange, defaultType }: ModernCrea
       </DialogContent>
     </Dialog>
 
-    <UnifiedSearchModal
+    <OptimizedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for a restaurant..."
+      onSelect={(result) => {
+        setFormData(prev => ({ 
+          ...prev, 
+          restaurant: {
+            id: result.id,
+            name: result.name,
+            location: result.location || result.subtitle,
+            address: result.location,
+            avgRating: result.avgRating
+          }
+        }));
+        setSearchModalOpen(false);
+      }}
     />
   </>
 );

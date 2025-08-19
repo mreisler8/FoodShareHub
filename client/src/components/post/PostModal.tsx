@@ -16,7 +16,7 @@ import { RestaurantList } from '@shared/schema';
 import MediaUploader from '@/components/MediaUploader';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
 import { postService } from '@/services/postService';
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { Restaurant } from '@/types/restaurant';
 
 interface PostModalProps {
@@ -412,9 +412,22 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       />
     </Dialog>
     
-    <UnifiedSearchModal
+    <OptimizedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for a restaurant..."
+      onSelect={(result) => {
+        setSelectedRestaurant({
+          id: result.id,
+          name: result.name,
+          location: result.location || result.subtitle,
+          address: result.location,
+          avgRating: result.avgRating
+        });
+        setSearchModalOpen(false);
+      }}
     />
     </>
   );

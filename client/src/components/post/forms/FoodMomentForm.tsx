@@ -16,7 +16,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
 import { MediaUploader } from '@/components/MediaUploader';
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 
 interface Restaurant {
   id: string;
@@ -285,22 +285,24 @@ export function FoodMomentForm({
         </Button>
       </div>
 
-      <UnifiedSearchModal
+      <OptimizedSearchModal
         open={isRestaurantSearchOpen}
         onOpenChange={setIsRestaurantSearchOpen}
+        searchType="restaurants"
+        title="Select Restaurant"
+        placeholder="Search for a restaurant..."
+        showLocationServices={true}
         onSelect={(result) => {
-          if (result.type === 'restaurant') {
-            const restaurant: Restaurant = {
-              id: result.id,
-              name: result.name,
-              location: result.location,
-              cuisine: result.cuisine,
-              rating: result.avgRating,
-              source: result.source || 'database'
-            };
-            handleRestaurantSelect(restaurant);
-            setIsRestaurantSearchOpen(false);
-          }
+          const restaurant: Restaurant = {
+            id: result.id,
+            name: result.name,
+            location: result.location,
+            cuisine: result.cuisine,
+            rating: result.avgRating,
+            source: result.metadata?.googlePlaceId ? 'google' : 'database'
+          };
+          handleRestaurantSelect(restaurant);
+          setIsRestaurantSearchOpen(false);
         }}
       />
     </div>

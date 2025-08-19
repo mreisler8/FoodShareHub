@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, ArrowLeft, Star, Upload } from 'lucide-react';
-import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { postService } from '@/services/postService';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -307,24 +307,24 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
       </DialogContent>
     </Dialog>
     
-    <UnifiedSearchModal
+    <OptimizedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
+      searchType="restaurants"
+      showLocationServices={true}
+      placeholder="Search for a restaurant..."
       onSelect={(result) => {
-        if (result.type === 'restaurant') {
-          setFormData(prev => ({ 
-            ...prev, 
-            restaurant: {
-              id: result.id,
-              name: result.name,
-              location: result.location || result.subtitle,
-              address: result.location,
-              avgRating: result.avgRating,
-              source: result.source || 'database'
-            }
-          }));
-          setSearchModalOpen(false);
-        }
+        setFormData(prev => ({ 
+          ...prev, 
+          restaurant: {
+            id: result.id,
+            name: result.name,
+            location: result.location || result.subtitle,
+            address: result.location,
+            avgRating: result.avgRating
+          }
+        }));
+        setSearchModalOpen(false);
       }}
     />
     </>

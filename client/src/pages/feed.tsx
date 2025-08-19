@@ -732,10 +732,11 @@ export default function FeedPage({ scope = 'feed', circleId }: FeedPageProps) {
           </div>
         )}
 
-        {/* Restaurant Search Modal - Feed */}
+        {/* Universal Search Modal - Feed with Priority Location */}
         <UnifiedSearchModal
           open={isSearchOpen}
           onOpenChange={setIsSearchOpen}
+          title="Search with Location"
         />
 
 
