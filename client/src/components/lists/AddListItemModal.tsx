@@ -14,6 +14,7 @@ import { MapPin, X, Plus, Check, AlertCircle, Search, Loader2, UtensilsCrossed, 
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/useDebounce';
 import { LocationService, type LocationData } from '@/services/locationService';
+import { useEffect } from 'react';
 import { SmartTagInput } from "./SmartTagInput";
 
 const restaurantFormSchema = z.object({
@@ -69,20 +70,45 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addedRestaurants, setAddedRestaurants] = useState<string[]>([]);
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Initialize location services
+  useEffect(() => {
+    const initializeLocation = async () => {
+      try {
+        const permission = await LocationService.checkPermission();
+        if (permission === 'granted') {
+          const location = await LocationService.getCurrentLocation();
+          if (location) {
+            setUserLocation(location);
+          }
+        }
+      } catch (error) {
+        console.error('Location initialization error:', error);
+      }
+    };
+    initializeLocation();
+  }, []);
   
-  // Restaurant search using unified search API
+  // Enhanced restaurant search with location awareness
   const { data: searchData, isLoading: isSearching } = useQuery({
-    queryKey: ["/api/search/unified", debouncedSearchQuery],
+    queryKey: ["/api/search/unified", debouncedSearchQuery, userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
       if (!debouncedSearchQuery.trim()) return null;
       
       const params = new URLSearchParams({
         q: debouncedSearchQuery
       });
+      
+      // Add location parameters for proximity-based results
+      if (userLocation?.lat && userLocation?.lng) {
+        params.append('lat', userLocation.lat.toString());
+        params.append('lng', userLocation.lng.toString());
+        params.append('radius', '10000'); // 10km radius
+      }
       
       const response = await fetch(`/api/search/unified?${params.toString()}`);
       const data = await response.json();
@@ -336,34 +362,135 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                   <TabsContent value="restaurant" className="space-y-4 mt-0">
                     {!showManualEntry ? (
                       <div className="space-y-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                          onClick={() => setSearchModalOpen(true)}
-                        >
-                          <MapPin className="h-4 w-4 mr-2" />
-                          Search for restaurants...
-                        </Button>
+                        {/* Inline Restaurant Search */}
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
+                            <Input
+                              type="text"
+                              placeholder="Search restaurants..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10 h-12 text-base"
+                            />
+                          </div>
 
+                          {/* Search Results */}
+                          {isSearching && (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="h-6 w-6 animate-spin" />
+                              <span className="ml-2">Searching restaurants...</span>
+                            </div>
+                          )}
+
+                          {searchResults && searchResults.length > 0 && (
+                            <div className="space-y-3 max-h-80 overflow-y-auto">
+                              <p className="text-sm text-muted-foreground">
+                                Found {searchResults.length} restaurant{searchResults.length !== 1 ? 's' : ''}
+                              </p>
+                              {searchResults.map((restaurant: any) => (
+                                <Card key={restaurant.id} className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => {
+                                  const restaurantData = {
+                                    id: restaurant.metadata?.googlePlaceId || restaurant.id,
+                                    googlePlaceId: restaurant.metadata?.googlePlaceId || (restaurant.id?.toString().startsWith('ChIJ') ? restaurant.id : null),
+                                    name: restaurant.name,
+                                    location: restaurant.location || restaurant.subtitle,
+                                    category: restaurant.cuisine || 'Restaurant',
+                                    rating: restaurant.avgRating,
+                                    source: restaurant.metadata?.source || 'database'
+                                  };
+                                  handleRestaurantSelect(restaurantData);
+                                  setSearchQuery(""); // Clear search after selection
+                                }}>
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center space-x-4">
+                                      {/* Restaurant Image Placeholder */}
+                                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <UtensilsCrossed className="h-6 w-6 text-gray-400" />
+                                      </div>
+                                      
+                                      <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-base">{restaurant.name}</h3>
+                                        {restaurant.location && (
+                                          <p className="text-sm text-muted-foreground flex items-center mt-1">
+                                            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                                            <span className="truncate">{restaurant.location}</span>
+                                          </p>
+                                        )}
+                                        <div className="flex items-center gap-3 mt-2">
+                                          {restaurant.cuisine && (
+                                            <Badge variant="outline" className="text-xs">
+                                              {restaurant.cuisine}
+                                            </Badge>
+                                          )}
+                                          {restaurant.avgRating && (
+                                            <div className="flex items-center text-sm text-amber-600">
+                                              <Star className="h-3 w-3 text-amber-500 mr-1 fill-current" />
+                                              {restaurant.avgRating.toFixed(1)}
+                                            </div>
+                                          )}
+                                          {restaurant.metadata?.source === 'google_places' && (
+                                            <Badge variant="secondary" className="text-xs">
+                                              Google Places
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      <Plus className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          )}
+
+                          {searchQuery && !isSearching && (!searchResults || searchResults.length === 0) && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p className="mb-2">No restaurants found for "{searchQuery}"</p>
+                              <Button variant="outline" onClick={() => setShowManualEntry(true)}>
+                                Add manually instead
+                              </Button>
+                            </div>
+                          )}
+
+                          {!searchQuery && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p className="mb-2">Start typing to search restaurants</p>
+                              <Button variant="outline" onClick={() => setShowManualEntry(true)}>
+                                Or add manually
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Selected Restaurant Preview */}
                         {selectedRestaurant && (
-                          <Card className="bg-blue-50 border-blue-200">
-                            <CardContent className="p-3">
+                          <Card className="bg-green-50 border-green-200">
+                            <CardContent className="p-4">
                               <div className="flex items-center justify-between">
-                                <div>
-                                  <h5 className="font-medium">{selectedRestaurant.name}</h5>
-                                  {selectedRestaurant.location && (
-                                    <p className="text-sm text-gray-600 flex items-center gap-1">
-                                      <MapPin className="h-3 w-3" />
-                                      {selectedRestaurant.location}
-                                    </p>
-                                  )}
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <UtensilsCrossed className="h-5 w-5 text-green-600" />
+                                  </div>
+                                  <div>
+                                    <h5 className="font-semibold text-green-900">{selectedRestaurant.name}</h5>
+                                    {selectedRestaurant.location && (
+                                      <p className="text-sm text-green-700 flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        {selectedRestaurant.location}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => setSelectedRestaurant(null)}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-100"
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -371,16 +498,6 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                             </CardContent>
                           </Card>
                         )}
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowManualEntry(true)}
-                          className="w-full"
-                        >
-                          Can't find it? Add manually
-                        </Button>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -809,82 +926,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
       </DialogContent>
     </Dialog>
 
-    {/* Restaurant Search Dialog */}
-    <Dialog open={searchModalOpen} onOpenChange={setSearchModalOpen}>
-      <DialogContent className="max-w-2xl max-h-[80vh] p-0">
-        <div className="p-6 pb-4 border-b">
-          <h2 className="text-lg font-semibold mb-4">Search Restaurants</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
-            <Input
-              type="text"
-              placeholder="Search for restaurants..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-11"
-            />
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-6">
-          {isSearching && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Searching restaurants...</span>
-            </div>
-          )}
-          {searchResults && searchResults.length > 0 && (
-            <div className="space-y-3">
-              {searchResults.map((restaurant: any) => (
-                <Card key={restaurant.id} className="cursor-pointer hover:bg-gray-50" onClick={() => {
-                  const restaurantData = {
-                    id: restaurant.metadata?.googlePlaceId || restaurant.id,
-                    googlePlaceId: restaurant.metadata?.googlePlaceId || (restaurant.id?.toString().startsWith('ChIJ') ? restaurant.id : null),
-                    name: restaurant.name,
-                    location: restaurant.location || restaurant.subtitle,
-                    category: restaurant.cuisine || 'Restaurant',
-                    rating: restaurant.avgRating,
-                    source: restaurant.metadata?.source || 'database'
-                  };
-                  handleRestaurantSelect(restaurantData);
-                  setSearchModalOpen(false);
-                }}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex-1">
-                        <h3 className="font-medium">{restaurant.name}</h3>
-                        {restaurant.location && (
-                          <p className="text-sm text-muted-foreground flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {restaurant.location}
-                          </p>
-                        )}
-                        {restaurant.cuisine && (
-                          <Badge variant="outline" className="mt-1 text-xs">
-                            {restaurant.cuisine}
-                          </Badge>
-                        )}
-                      </div>
-                      {restaurant.avgRating && (
-                        <div className="flex items-center text-sm">
-                          <Star className="h-3 w-3 text-yellow-500 mr-1" />
-                          {restaurant.avgRating.toFixed(1)}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-          {searchQuery && !isSearching && (!searchResults || searchResults.length === 0) && (
-            <div className="text-center py-8 text-muted-foreground">
-              <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No restaurants found. Try a different search term.</p>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+
   </>
 );
 }
