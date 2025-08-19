@@ -42,14 +42,11 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
   const googlePlaceId = restaurant?.googlePlaceId;
   const { trackSuccess, trackError } = useQueryTelemetry('restaurant-queries', restaurantId);
 
-  // Safety guard: ensure we always have consistent hook calls
-  const isValidRestaurant = !!(restaurantId || googlePlaceId);
-
   // Standardized user rating query - CRITICAL: Always use ['userRating', restaurantId] 
   const userRating = useQuery<RatingData | null>({
     queryKey: ['userRating', restaurantId],
     queryFn: async () => {
-      // Always handle missing restaurantId gracefully
+      // Safe early return for null/undefined restaurantId
       if (!restaurantId) {
         console.warn('USER_RATING_QUERY: No restaurantId provided', { restaurant });
         return null;
@@ -62,7 +59,7 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
       }
       return response.json();
     },
-    enabled: isValidRestaurant && !!restaurantId,
+    enabled: !!restaurantId, // Simple check prevents execution, not hook calling
     staleTime: 30000, // 30 seconds
   });
 
@@ -70,7 +67,7 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
   const circleScore = useQuery<CircleScoreData>({
     queryKey: ['circleScore', restaurantId],
     queryFn: async () => {
-      // Always handle missing restaurantId gracefully
+      // Safe early return for null/undefined restaurantId
       if (!restaurantId) {
         console.warn('CIRCLE_SCORE_QUERY: No restaurantId provided', { 
           restaurant, 
@@ -104,7 +101,7 @@ export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
       
       return data || { score: 0, ratingsCount: 0, confidence: 'low' as const };
     },
-    enabled: isValidRestaurant && !!restaurantId,
+    enabled: !!restaurantId, // Simple check prevents execution, not hook calling
     staleTime: 180000, // 3 minutes
   });
 

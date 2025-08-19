@@ -253,8 +253,8 @@ export default function RestaurantDetailPage() {
   const restaurantParams = React.useMemo(() => {
     // Always return the same object structure to prevent hooks count changes
     const baseParams = {
-      id: undefined as number | undefined,
-      googlePlaceId: undefined as string | undefined,
+      id: null as number | null,
+      googlePlaceId: null as string | null,
       name: 'Loading...' as string
     };
 
@@ -276,16 +276,14 @@ export default function RestaurantDetailPage() {
     return baseParams;
   }, [restaurant?.id, restaurant?.name, restaurant?.googlePlaceId, restaurantId, queryMethod]);
 
-  // Only call hooks when we have a valid restaurant identifier to prevent empty queries
-  const hasValidId = restaurantParams.id || restaurantParams.googlePlaceId;
-  
+  // ALWAYS call the hooks with consistent parameters to prevent React hooks violation
   const { 
     userRating, 
     circleScore, 
     isLoading: isRatingLoading,
     submitRating,
     data: { userRating: userRatingData, circleScore: circleScoreData }
-  } = useStandardizedRestaurantQueries(hasValidId ? restaurantParams : { id: undefined, googlePlaceId: undefined, name: 'Loading...' });
+  } = useStandardizedRestaurantQueries(restaurantParams);
 
   if (isLoading) {
     return (
