@@ -66,7 +66,7 @@ interface AddListItemModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddItem: (item: any) => void;
-  list: { id: string; name: string };
+  list: { id: string; name: string } | null;
 }
 
 export function AddListItemModal({
@@ -234,7 +234,7 @@ export function AddListItemModal({
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-indigo-600/90 backdrop-blur-sm"></div>
           <div className="relative z-10">
             <DialogTitle className="text-3xl font-bold mb-2">
-              Add to "{list.name}"
+              Add to "{list?.name || 'List'}"
             </DialogTitle>
             <p className="text-blue-100 text-lg">
               Discover and add amazing restaurants or dishes to your curated list
