@@ -112,7 +112,8 @@ export default function CreateCirclePage() {
       setSearchLoading(true);
       try {
         const response = await apiRequest(`/api/search/unified?q=${encodeURIComponent(memberSearchQuery)}`);
-        const users = response?.users || [];
+        const data = await response.json();
+        const users = data?.users || [];
         // Filter out already selected members
         const selectedIds = selectedMembers.map(m => m.id);
         const filteredUsers = users.filter((user: SearchUser) => !selectedIds.includes(user.id));
@@ -174,7 +175,7 @@ export default function CreateCirclePage() {
           method: "POST",
           body: JSON.stringify(payload),
         });
-        return response;
+        return await response.json();
       } finally {
         setIsLoading(false);
       }
