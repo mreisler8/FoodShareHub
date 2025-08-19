@@ -1,183 +1,92 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRestaurantCache } from '@/features/restaurant/cache/restaurantCache';
-import { useQueryTelemetry } from './useQueryTelemetry';
 
-interface Restaurant {
-  id?: number;
-  googlePlaceId?: string;
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getCanonicalRestaurantId, getRatingEndpoint, getCircleScoreEndpoint } from '../../../server/lib/restaurantIdUtils';
+
+interface RestaurantParams {
+  googlePlaceId: string;
   name?: string;
 }
 
-interface RatingData {
-  id?: number;
-  userId: number;
-  restaurantId: number;
-  ratingValue: string;
-  note?: string;
-  tags?: string[];
-  circleIds?: number[];
-  isPrivate?: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-interface CircleScoreData {
-  score: number;
-  ratingsCount: number;
-  confidence?: 'high' | 'medium' | 'low';
-  error?: string;
-}
-
-/**
- * STANDARDIZED RESTAURANT QUERIES HOOK
- * - Unified query keys across all components: ['userRating', restaurantId] and ['circleScore', restaurantId] 
- * - Points to new unified Circle Score endpoint with identity resolution
- * - Handles cache invalidation consistently
- * - Supports both database restaurantId and Google Place ID resolution
- */
-export function useStandardizedRestaurantQueries(restaurant: Restaurant) {
+export function useStandardizedRestaurantQueries(params: RestaurantParams) {
   const queryClient = useQueryClient();
-  const restaurantCache = useRestaurantCache(queryClient);
-  const restaurantId = restaurant?.id;
-  const googlePlaceId = restaurant?.googlePlaceId;
-  const { trackSuccess, trackError } = useQueryTelemetry('restaurant-queries', restaurantId);
+  
+  // STABLE: Always use Google Place ID as canonical identifier
+  const canonicalId = params.googlePlaceId;
+  const restaurantName = params.name || 'Restaurant';
 
-  // Standardized user rating query - CRITICAL: Always use ['userRating', restaurantId] 
-  const userRating = useQuery<RatingData | null>({
-    queryKey: ['userRating', restaurantId],
+  // STABLE HOOK 1: User Rating - always called with same parameters
+  const userRating = useQuery({
+    queryKey: ['userRating', canonicalId],
     queryFn: async () => {
-      // Safe early return for null/undefined restaurantId
-      if (!restaurantId) {
-        console.warn('USER_RATING_QUERY: No restaurantId provided', { restaurant });
-        return null;
-      }
-      
-      const response = await fetch(`/api/ratings/restaurant/${restaurantId}`);
+      const response = await fetch(`/api/ratings/restaurant/${encodeURIComponent(canonicalId)}?type=google_place`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error('Failed to fetch user rating');
       }
       return response.json();
     },
-    enabled: !!restaurantId, // Simple check prevents execution, not hook calling
-    staleTime: 30000, // 30 seconds
+    enabled: !!canonicalId,
+    staleTime: 5 * 60 * 1000,
+    retry: false
   });
 
-  // Standardized circle score query - CRITICAL: Always use ['circleScore', restaurantId]
-  const circleScore = useQuery<CircleScoreData>({
-    queryKey: ['circleScore', restaurantId],
+  // STABLE HOOK 2: Circle Score - always called with same parameters  
+  const circleScore = useQuery({
+    queryKey: ['circleScore', canonicalId],
     queryFn: async () => {
-      // Safe early return for null/undefined restaurantId
-      if (!restaurantId) {
-        console.warn('CIRCLE_SCORE_QUERY: No restaurantId provided', { 
-          restaurant, 
-          hasPlaceId: !!googlePlaceId,
-          hasName: !!restaurant?.name 
-        });
-        return { 
-          score: 0, 
-          ratingsCount: 0, 
-          error: 'No restaurant ID available',
-          confidence: 'low' as const
-        };
-      }
-      
-      console.log('CIRCLE_SCORE_QUERY: Fetching for restaurant', restaurantId);
-      
-      // Use the new unified endpoint that handles identity resolution
-      const response = await fetch(`/api/restaurant/${restaurantId}/circle-score`);
-      if (!response.ok) {
-        console.warn(`Circle Score endpoint returned ${response.status} for restaurant ${restaurantId}`);
-        return { 
-          score: 0, 
-          ratingsCount: 0, 
-          error: `HTTP ${response.status}`,
-          confidence: 'low' as const
-        };
-      }
-      
-      const data = await response.json();
-      console.log('CIRCLE_SCORE_RESPONSE:', data);
-      
-      return data || { score: 0, ratingsCount: 0, confidence: 'low' as const };
-    },
-    enabled: !!restaurantId, // Simple check prevents execution, not hook calling
-    staleTime: 180000, // 3 minutes
-  });
-
-  // Standardized rating submission mutation with cache invalidation
-  const submitRating = useMutation({
-    mutationFn: async (ratingData: {
-      ratingValue: number;
-      note?: string;
-      tags?: string[];
-      circleIds?: number[];
-      isPrivate?: boolean;
-    }) => {
-      const response = await fetch('/api/ratings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          restaurantId: restaurantId,
-          googlePlaceId: googlePlaceId,
-          restaurantName: restaurant?.name,
-          ...ratingData,
-        }),
+      const response = await fetch(`/api/circle-score/${encodeURIComponent(canonicalId)}?type=google_place`, {
+        credentials: 'include'
       });
-
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to submit rating');
+        if (response.status === 404) return null;
+        throw new Error('Failed to fetch circle score');
       }
-
       return response.json();
     },
-    onSuccess: (data) => {
-      console.log('RATING_SUBMISSION: Success, coordinating updates');
-      
-      // Use centralized cache invalidation
-      if (restaurantId) {
-        restaurantCache.invalidateAll(restaurantId);
-        
-        // Emit event for widget coordination  
-        RestaurantEventHelpers.notifyRatingUpdate(
-          restaurantId,
-          data.ratingValue,
-          data.userId
-        );
-      }
-      
-      // Track telemetry
-      trackSuccess({ action: 'rating_submit', rating: data.ratingValue });
-    },
+    enabled: !!canonicalId,
+    staleTime: 5 * 60 * 1000,
+    retry: false
   });
 
+  // STABLE HOOK 3: Submit Rating Mutation - always called
+  const submitRating = useMutation({
+    mutationFn: async (ratingData: { ratingValue: number; note?: string; tags?: string[]; isPrivate?: boolean }) => {
+      const response = await fetch('/api/ratings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          googlePlaceId: canonicalId,
+          restaurantName: restaurantName,
+          ...ratingData
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit rating');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate related queries using stable keys
+      queryClient.invalidateQueries({ queryKey: ['userRating', canonicalId] });
+      queryClient.invalidateQueries({ queryKey: ['circleScore', canonicalId] });
+    }
+  });
+
+  // Return stable data structure
   return {
-    // Query states
-    userRating,
-    circleScore,
-    
-    // Data helpers
+    userRating: userRating.data,
+    circleScore: circleScore.data,
+    isLoading: userRating.isLoading || circleScore.isLoading,
+    submitRating: submitRating.mutate,
     data: {
       userRating: userRating.data,
-      circleScore: circleScore.data,
-    },
-    
-    // Loading states
-    isLoading: userRating.isLoading || circleScore.isLoading,
-    
-    // Error states
-    hasError: userRating.error || circleScore.error,
-    
-    // Actions
-    submitRating,
-    
-    // Cache management
-    invalidateAll: () => {
-      queryClient.invalidateQueries({ queryKey: ['userRating', restaurantId] });
-      queryClient.invalidateQueries({ queryKey: ['circleScore', restaurantId] });
-    },
+      circleScore: circleScore.data
+    }
   };
 }

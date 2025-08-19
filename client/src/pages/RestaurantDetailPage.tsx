@@ -173,7 +173,7 @@ export default function RestaurantDetailPage() {
 
   // Handle both path parameters and query parameters
   const urlParams = new URLSearchParams(window.location.search);
-  const googlePlaceId = urlParams.get('googlePlaceId');
+  const googlePlaceIdFromQuery = urlParams.get('googlePlaceId');
 
   // Determine the restaurant identifier and query method
   let restaurantId: string | undefined;
@@ -183,9 +183,9 @@ export default function RestaurantDetailPage() {
     // URL format: /restaurants/google/:placeId
     restaurantId = placeId;
     queryMethod = 'googlePlaceId';
-  } else if (googlePlaceId) {
+  } else if (googlePlaceIdFromQuery) {
     // URL format: /restaurants?googlePlaceId=...
-    restaurantId = googlePlaceId;
+    restaurantId = googlePlaceIdFromQuery;
     queryMethod = 'googlePlaceId';
   } else if (id) {
     // URL format: /restaurants/:id
@@ -194,7 +194,7 @@ export default function RestaurantDetailPage() {
   }
 
   // Add console log for debugging navigation
-  console.log('RestaurantDetailPage params:', { id, placeId, googlePlaceId, restaurantId, queryMethod });
+  console.log('RestaurantDetailPage params:', { id, placeId, googlePlaceIdFromQuery, restaurantId, queryMethod });
 
   const { data: restaurant, isLoading, error, refetch } = useQuery<RestaurantDetails>({
     queryKey: queryMethod === 'googlePlaceId' ? [`/api/restaurants?googlePlaceId=${restaurantId}`] : [`/api/restaurants/${restaurantId}`],
@@ -225,7 +225,7 @@ export default function RestaurantDetailPage() {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           const errorMessage = errorData.error || `Failed to fetch restaurant details (${response.status})`;
-          
+
           // Handle specific error types
           if (response.status === 404) {
             throw new Error('Restaurant not found');
@@ -234,7 +234,7 @@ export default function RestaurantDetailPage() {
           } else if (response.status === 400) {
             throw new Error('Invalid restaurant ID');
           }
-          
+
           throw new Error(errorMessage);
         }
         return response.json();
@@ -248,33 +248,20 @@ export default function RestaurantDetailPage() {
     },
   });
 
-  // CRITICAL: Stabilize restaurant parameters to prevent React hooks violation
-  // Always ensure consistent object structure to avoid "more hooks than previous render" error
+  // STABLE: Always use Google Place ID as canonical identifier
   const restaurantParams = React.useMemo(() => {
-    // Always return the same object structure to prevent hooks count changes
-    const baseParams = {
-      id: null as number | null,
-      googlePlaceId: null as string | null,
-      name: 'Loading...' as string
-    };
+    // Extract Google Place ID from URL or restaurant data
+    const googlePlaceId = restaurantId || restaurant?.googlePlaceId;
 
-    if (restaurant?.id) {
-      baseParams.id = typeof restaurant.id === 'string' ? parseInt(restaurant.id) : restaurant.id;
-      baseParams.name = restaurant.name || 'Loading...';
-      if (restaurant.googlePlaceId) {
-        baseParams.googlePlaceId = restaurant.googlePlaceId;
-      }
-    } else if (restaurantId) {
-      // Fallback for when restaurant data isn't loaded yet
-      if (queryMethod === 'id') {
-        baseParams.id = parseInt(restaurantId);
-      } else if (queryMethod === 'googlePlaceId') {
-        baseParams.googlePlaceId = restaurantId;
-      }
+    if (!googlePlaceId) {
+      return null; // Don't call hooks if no Google Place ID
     }
 
-    return baseParams;
-  }, [restaurant?.id, restaurant?.name, restaurant?.googlePlaceId, restaurantId, queryMethod]);
+    return {
+      googlePlaceId: googlePlaceId,
+      name: restaurant?.name || 'Restaurant'
+    };
+  }, [restaurantId, restaurant?.googlePlaceId, restaurant?.name]);
 
   // ALWAYS call the hooks with consistent parameters to prevent React hooks violation
   const { 
@@ -354,7 +341,7 @@ export default function RestaurantDetailPage() {
       const response = await fetch(`/api/restaurants/${restaurantId}/lists`);
       if (!response.ok) return [];
       const data = await response.json();
-      
+
       // Transform API response to match ListMentionsCard interface  
       return data.map((list: any) => ({
         id: list.id,
@@ -379,7 +366,7 @@ export default function RestaurantDetailPage() {
       const response = await fetch(`/api/restaurants/${restaurantId}/posts`);
       if (!response.ok) return [];
       const data = await response.json();
-      
+
       // Transform API response to match PostMentionsCard interface
       return data.map((post: any) => ({
         id: post.id,
@@ -409,7 +396,7 @@ export default function RestaurantDetailPage() {
         restaurantId={restaurant.id ? parseInt(restaurant.id.toString()) : undefined}
         placeId={restaurant.googlePlaceId}
       />
-      
+
       {/* Hero Section with enhanced mobile-first design */}
       <div className="relative h-48 md:h-64 w-full overflow-hidden">
         {heroImageData && heroImageData.src ? (
@@ -477,7 +464,7 @@ export default function RestaurantDetailPage() {
                 <span>{restaurant.priceRange}</span>
               </div>
             </div>
-            
+
             {/* Key Contact Info */}
             <div className="grid md:grid-cols-2 gap-3 pt-2 border-t">
               {restaurant.address && restaurant.address !== restaurant.location && (
@@ -523,7 +510,7 @@ export default function RestaurantDetailPage() {
                 </div>
               )}
 
-              
+
 
               {/* Business Status */}
               {restaurant.googlePlaces?.isOpen !== undefined && (
@@ -762,7 +749,7 @@ export default function RestaurantDetailPage() {
           )}
         </ErrorBoundary>
 
-        
+
       </div>
 
       {/* Mobile Action Bar - Fixed at bottom */}
