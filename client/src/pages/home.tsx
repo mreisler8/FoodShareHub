@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import "./HomePage.css";
 import { FollowRequestCard } from "@/components/follow/FollowRequestCard";
 import { PendingInvites } from "@/components/circles/PendingInvites";
-import { OptimizedSearchModal } from "@/components/search/OptimizedSearchModal";
+import { UnifiedSearchModal } from "@/components/search/UnifiedSearchModal";
 import { FloatingCreateButton } from "@/components/create/FloatingCreateButton";
 import { UnifiedPostModal } from "@/components/post/UnifiedPostModal";
 import { CreateCanvas } from "@/components/create/CreateCanvas";
@@ -210,12 +210,9 @@ export default function HomePage() {
       )}
 
       {/* Unified Search Modal */}
-      <OptimizedSearchModal
+      <UnifiedSearchModal
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
-        searchType="unified"
-        showLocationServices={true}
-        placeholder="Search restaurants, lists, posts, people…"
       />
 
       {/* Post Modal */}
@@ -332,12 +329,9 @@ export default function HomePage() {
       />
 
       {/* Modals */}
-      <OptimizedSearchModal
+      <UnifiedSearchModal
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
-        searchType="unified"
-        showLocationServices={true}
-        placeholder="Search restaurants, lists, posts, people…"
       />
 
       <UnifiedPostModal

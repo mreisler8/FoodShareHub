@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, X, Plus, Check, AlertCircle, Search } from "lucide-react";
-import { OptimizedSearchModal } from '../search/OptimizedSearchModal';
+import { UnifiedSearchModal } from '../search/UnifiedSearchModal';
 import { LocationService, type LocationData } from '@/services/locationService';
 import { SmartTagInput } from "./SmartTagInput";
 
@@ -786,35 +786,9 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
       </DialogContent>
     </Dialog>
 
-    <OptimizedSearchModal
+    <UnifiedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
-      searchType="restaurants"
-      showLocationServices={true}
-      placeholder="Search for restaurants..."
-      onSelectResult={(result) => {
-        // Handle both database and Google Places results
-        const restaurantData = {
-          // For Google Places results, use the Google Place ID as the primary identifier
-          id: result.googlePlaceId || result.id, // Use Google Place ID if available, otherwise use DB ID
-          googlePlaceId: result.googlePlaceId || (result.id?.toString().startsWith('ChIJ') ? result.id : null),
-          name: result.name,
-          location: result.location || result.address || result.metadata?.address,
-          category: result.cuisine || result.category || result.metadata?.cuisine,
-          priceRange: result.priceRange || result.metadata?.priceRange || '$$',
-          imageUrl: result.thumbnailUrl || result.imageUrl || result.metadata?.imageUrl,
-          rating: result.avgRating || result.metadata?.rating,
-          notes: '',
-          // Add source information to help with debugging
-          source: result.source || result.metadata?.source || 'database'
-        };
-
-        console.log('Selected restaurant for add:', restaurantData);
-        handleRestaurantSelect(restaurantData); // Use handleRestaurantSelect to update the state
-        setSearchModalOpen(false);
-      }}
-      hideUserSearch={true}
-      hidePostSearch={true}
     />
   </>
 );

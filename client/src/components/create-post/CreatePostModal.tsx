@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, ArrowLeft, Star, Upload } from 'lucide-react';
-import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
+import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
 import { postService } from '@/services/postService';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -307,25 +307,9 @@ export function CreatePostModal({ open, onOpenChange, postType }: CreatePostModa
       </DialogContent>
     </Dialog>
     
-    <OptimizedSearchModal
+    <UnifiedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
-      searchType="restaurants"
-      showLocationServices={true}
-      placeholder="Search for a restaurant..."
-      onSelect={(result) => {
-        setFormData(prev => ({ 
-          ...prev, 
-          restaurant: {
-            id: result.id,
-            name: result.name,
-            location: result.location || result.subtitle,
-            address: result.location,
-            avgRating: result.avgRating
-          }
-        }));
-        setSearchModalOpen(false);
-      }}
     />
     </>
   );

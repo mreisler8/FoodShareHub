@@ -18,7 +18,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
 import { MediaUploader } from '@/components/MediaUploader';
-import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
+import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
 
 interface Restaurant {
   id: string;
@@ -357,12 +357,9 @@ export function RecommendDishForm({
         </Button>
       </div>
 
-      <OptimizedSearchModal
+      <UnifiedSearchModal
         open={isRestaurantSearchOpen}
         onOpenChange={setIsRestaurantSearchOpen}
-        searchType="restaurants"
-        title="Select Restaurant"
-        placeholder="Search for a restaurant..."
         showLocationServices={true}
         onSelect={(result) => {
           const restaurant: Restaurant = {
