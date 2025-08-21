@@ -10,6 +10,7 @@ import { X, Plus, Sparkles, Check } from 'lucide-react';
 import { AddListItemModal } from '@/components/lists/AddListItemModal';
 import { ListItemPreview } from '@/components/lists/ListItemPreview';
 import { ShareDestinationCards } from '@/components/lists/ShareDestinationCards';
+import { DragDropListItems } from '@/components/lists/DragDropListItems';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -174,9 +175,57 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
     setShowAddItemModal(false);
   };
 
-  const handleRemoveItem = (itemId: string) => {
-    setListItems(prev => prev.filter(item => item.id !== itemId));
+  const handleReorderItems = (reorderedItems: any[]) => {
+    console.log('🔄 Reordering items:', reorderedItems);
+    
+    // Transform back to ListItem format with updated positions
+    const updatedItems: ListItem[] = reorderedItems.map((item, index) => ({
+      id: item.id,
+      type: item.type || "restaurant", // Default to restaurant
+      restaurant: {
+        id: item.restaurant?.id,
+        name: item.name,
+        location: item.location,
+        city: item.location?.split(',')[1]?.trim(),
+        googlePlaceId: item.googlePlaceId,
+      },
+      tags: item.tags || [],
+      notes: item.notes || "",
+      photo: item.photo || "",
+      rank: listData.isRanked ? index + 1 : undefined
+    }));
+    
+    setListItems(updatedItems);
   };
+
+  const handleRemoveItem = (itemId: string) => {
+    setListItems(prev => {
+      const filtered = prev.filter(item => item.id !== itemId);
+      // Re-rank remaining items if list is ranked
+      if (listData.isRanked) {
+        return filtered.map((item, index) => ({
+          ...item,
+          rank: index + 1
+        }));
+      }
+      return filtered;
+    });
+  };
+
+  // Transform listItems to the format expected by DragDropListItems
+  const transformedItems = listItems.map((item, index) => ({
+    id: item.id,
+    name: item.restaurant?.name || item.dish?.name || 'Unknown Item',
+    location: item.restaurant?.location || item.restaurant?.city,
+    rating: undefined, // Could add this if available
+    position: index + 1,
+    googlePlaceId: item.restaurant?.googlePlaceId,
+    cuisine: undefined, // Could add this if available
+    notes: item.notes,
+    tags: item.tags,
+    type: item.type,
+    restaurant: item.restaurant
+  }));
 
   const handleSubmit = () => {
     if (!listData.title.trim()) {
@@ -391,28 +440,13 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
                     </Button>
                   </div>
 
-                  {listItems.length === 0 ? (
-                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-                      <p className="text-gray-500 text-sm">No restaurants added yet</p>
-                      <Button
-                        onClick={() => setShowAddItemModal(true)}
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                      >
-                        Add your first restaurant
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {listItems.map((item, index) => (
-                        <ListItemPreview
-                          key={item.id}
-                          item={item}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <DragDropListItems
+                    items={transformedItems}
+                    onReorder={handleReorderItems}
+                    onRemove={handleRemoveItem}
+                    enableFallbackControls={true}
+                    className="mt-3"
+                  />
                 </div>
 
                 {/* Share Destination */}

@@ -51,9 +51,11 @@ interface UnifiedSearchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   // NEW: Optional context-aware props for list building
-  selectionMode?: 'navigate' | 'select' | 'both'; // Default: 'navigate'
+  selectionMode?: 'navigate' | 'select' | 'multi-select'; // Default: 'navigate'
   onSelectResult?: (result: SearchResult) => void;
+  onSelectMultiple?: (results: SearchResult[]) => void; // NEW: For bulk selection
   showSelectionUI?: boolean; // Default: false
+  allowMultiSelect?: boolean; // NEW: Enable multi-select mode
 }
 
 export function UnifiedSearchModal({ 
@@ -61,11 +63,16 @@ export function UnifiedSearchModal({
   onOpenChange,
   selectionMode = 'navigate',
   onSelectResult,
-  showSelectionUI = false
+  onSelectMultiple,
+  showSelectionUI = false,
+  allowMultiSelect = false
 }: UnifiedSearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('restaurants');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  // NEW: Multi-select state management
+  const [selectedResults, setSelectedResults] = useState<SearchResult[]>([]);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
 
   // Fetch personalized recent searches
   const { data: personalizedSearches } = useQuery({
@@ -260,6 +267,17 @@ export function UnifiedSearchModal({
         return;
       }
 
+      // Handle multi-select mode
+      if (selectionMode === 'multi-select' && allowMultiSelect) {
+        const isSelected = selectedResults.some(r => r.id === result.id);
+        if (isSelected) {
+          setSelectedResults(prev => prev.filter(r => r.id !== result.id));
+        } else {
+          setSelectedResults(prev => [...prev, result]);
+        }
+        return;
+      }
+
       // Default navigation behavior (preserves existing functionality)
       console.log('🔗 Navigating to result:', result.type, result.id, result);
 
@@ -387,11 +405,48 @@ export function UnifiedSearchModal({
         {/* Search Header */}
         <div className="p-6 pb-4 border-b">
           {/* Selection Mode Indicator */}
-          {selectionMode === 'select' && (
-            <div className="mb-3 flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm">
-              <UtensilsCrossed className="h-4 w-4" />
-              <span className="font-medium">Adding to list</span>
-              <span className="text-blue-600">• Click restaurants to add them</span>
+          {(selectionMode === 'select' || selectionMode === 'multi-select') && (
+            <div className="mb-3 flex items-center justify-between bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm">
+              <div className="flex items-center gap-2">
+                <UtensilsCrossed className="h-4 w-4" />
+                <span className="font-medium">Adding to list</span>
+                {selectionMode === 'multi-select' ? (
+                  <span className="text-blue-600">
+                    • Select multiple restaurants ({selectedResults.length} selected)
+                  </span>
+                ) : (
+                  <span className="text-blue-600">• Click restaurants to add them</span>
+                )}
+              </div>
+              
+              {/* Multi-select actions */}
+              {selectionMode === 'multi-select' && (
+                <div className="flex items-center gap-2">
+                  {selectedResults.length > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (onSelectMultiple) {
+                          onSelectMultiple(selectedResults);
+                          setSelectedResults([]);
+                          onOpenChange(false);
+                        }
+                      }}
+                      className="h-7 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                    >
+                      Add Selected ({selectedResults.length})
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedResults([])}
+                    className="h-7 px-2 text-blue-600 hover:text-blue-700 text-xs"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           
@@ -401,7 +456,7 @@ export function UnifiedSearchModal({
               ref={inputRef}
               type="text"
               placeholder={
-                selectionMode === 'select' 
+                selectionMode === 'select' || selectionMode === 'multi-select'
                   ? "Search restaurants to add to your list…"
                   : "Search restaurants, lists, posts, people…"
               }
@@ -601,11 +656,42 @@ export function UnifiedSearchModal({
                                 }
                               })}
                               className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                                selectionMode === 'select' 
+                                selectionMode === 'select' || selectionMode === 'multi-select'
                                   ? 'hover:bg-blue-50 border border-transparent hover:border-blue-200' 
                                   : 'hover:bg-muted'
+                              } ${
+                                selectionMode === 'multi-select' && selectedResults.some(r => r.id === restaurant.id.toString())
+                                  ? 'bg-blue-100 border-blue-300'
+                                  : ''
                               }`}
                             >
+                              {/* Multi-select checkbox */}
+                              {selectionMode === 'multi-select' && (
+                                <div 
+                                  className="flex items-center"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedResults.some(r => r.id === restaurant.id.toString())}
+                                    onChange={(e) => {
+                                      const result = {
+                                        id: restaurant.id.toString(),
+                                        name: restaurant.name,
+                                        type: 'restaurant' as const,
+                                        location: restaurant.address || restaurant.city,
+                                        subtitle: restaurant.cuisine,
+                                        metadata: {
+                                          googlePlaceId: restaurant.googlePlaceId
+                                        }
+                                      };
+                                      handleResultClick(result);
+                                    }}
+                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                  />
+                                </div>
+                              )}
+                              
                               <UtensilsCrossed className="h-4 w-4 text-primary" />
                               <div className="flex-1">
                                 <div className="font-medium">{restaurant.name}</div>

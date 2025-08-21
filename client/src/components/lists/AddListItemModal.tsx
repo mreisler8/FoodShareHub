@@ -69,6 +69,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addedRestaurants, setAddedRestaurants] = useState<string[]>([]);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
 
   const restaurantForm = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantFormSchema),
@@ -103,6 +104,56 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
       dishForm.setValue("city", restaurant.location || "");
     }
     setShowManualEntry(false);
+  };
+
+  const handleBulkRestaurantSelect = async (results: any[]) => {
+    console.log('🍽️ Bulk adding restaurants:', results);
+    
+    try {
+      setIsSubmitting(true);
+      for (const result of results) {
+        const restaurantData = {
+          id: result.id,
+          name: result.name,
+          location: result.location || result.subtitle,
+          city: result.location?.split(',')[1]?.trim(),
+          googlePlaceId: result.metadata?.googlePlaceId || (result.id.toString().startsWith('google_') ? result.id.toString().replace('google_', '') : null),
+          notes: '',
+          imageUrl: result.thumbnailUrl,
+          rating: result.avgRating,
+          cuisine: result.cuisine,
+          source: result.metadata?.googlePlaceId ? 'google' : 'database'
+        };
+
+        const item = {
+          type: "restaurant" as const,
+          restaurant: {
+            id: restaurantData.id,
+            name: restaurantData.name,
+            location: restaurantData.location,
+            city: restaurantData.city,
+            googlePlaceId: restaurantData.googlePlaceId,
+          },
+          tags: [],
+          notes: '',
+          photo: '',
+        };
+
+        await onSave(item);
+        setAddedCount(prev => prev + 1);
+        setAddedRestaurants(prev => [...prev, restaurantData.name]);
+      }
+      
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        handleClose();
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to add restaurants:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddCustomTag = () => {
@@ -313,6 +364,33 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                   <TabsContent value="restaurant" className="space-y-4 mt-0">
                     {!showManualEntry ? (
                       <div className="space-y-4">
+                        {/* Mode Toggle */}
+                        <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                          <span className="text-sm text-gray-600">Selection Mode:</span>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center gap-1 text-xs">
+                              <input
+                                type="radio"
+                                name="selectionMode"
+                                checked={!isMultiSelectMode}
+                                onChange={() => setIsMultiSelectMode(false)}
+                                className="w-3 h-3"
+                              />
+                              Single
+                            </label>
+                            <label className="flex items-center gap-1 text-xs">
+                              <input
+                                type="radio"
+                                name="selectionMode"
+                                checked={isMultiSelectMode}
+                                onChange={() => setIsMultiSelectMode(true)}
+                                className="w-3 h-3"
+                              />
+                              Multiple
+                            </label>
+                          </div>
+                        </div>
+                        
                         <Button
                           type="button"
                           variant="outline"
@@ -320,7 +398,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
                           onClick={() => setSearchModalOpen(true)}
                         >
                           <MapPin className="h-4 w-4 mr-2" />
-                          Search for restaurants...
+                          {isMultiSelectMode ? "Search & select multiple restaurants" : "Search for restaurants..."}
                         </Button>
 
                         {selectedRestaurant && (
@@ -789,7 +867,8 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
     <UnifiedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
-      selectionMode="select"
+      selectionMode={isMultiSelectMode ? "multi-select" : "select"}
+      allowMultiSelect={isMultiSelectMode}
       onSelectResult={(result) => {
         console.log('🍽️ Restaurant selected for list:', result);
         
@@ -810,6 +889,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
         handleRestaurantSelect(restaurantData);
         setSearchModalOpen(false);
       }}
+      onSelectMultiple={handleBulkRestaurantSelect}
       showSelectionUI={true}
     />
   </>
