@@ -50,9 +50,19 @@ interface SearchResults {
 interface UnifiedSearchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // NEW: Optional context-aware props for list building
+  selectionMode?: 'navigate' | 'select' | 'both'; // Default: 'navigate'
+  onSelectResult?: (result: SearchResult) => void;
+  showSelectionUI?: boolean; // Default: false
 }
 
-export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalProps) {
+export function UnifiedSearchModal({ 
+  open, 
+  onOpenChange,
+  selectionMode = 'navigate',
+  onSelectResult,
+  showSelectionUI = false
+}: UnifiedSearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('restaurants');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -234,12 +244,23 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   const handleResultClick = (result: SearchResult) => {
     try {
-      // Validate result before navigation
+      // Validate result before processing
       if (!result || !result.id || !result.type) {
         console.error('Invalid search result:', result);
         return;
       }
 
+      console.log('🔗 Processing result click:', result.type, result.id, result, 'Mode:', selectionMode);
+
+      // Handle selection mode for list building
+      if (selectionMode === 'select' && onSelectResult) {
+        console.log('📋 Selecting result for list:', result);
+        onSelectResult(result);
+        onOpenChange(false);
+        return;
+      }
+
+      // Default navigation behavior (preserves existing functionality)
       console.log('🔗 Navigating to result:', result.type, result.id, result);
 
       // Navigate based on result type with enhanced routing
@@ -365,12 +386,25 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
         </div>
         {/* Search Header */}
         <div className="p-6 pb-4 border-b">
+          {/* Selection Mode Indicator */}
+          {selectionMode === 'select' && (
+            <div className="mb-3 flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm">
+              <UtensilsCrossed className="h-4 w-4" />
+              <span className="font-medium">Adding to list</span>
+              <span className="text-blue-600">• Click restaurants to add them</span>
+            </div>
+          )}
+          
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Search restaurants, lists, posts, people…"
+              placeholder={
+                selectionMode === 'select' 
+                  ? "Search restaurants to add to your list…"
+                  : "Search restaurants, lists, posts, people…"
+              }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-11"
@@ -566,7 +600,11 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                                   googlePlaceId: restaurant.googlePlaceId
                                 }
                               })}
-                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
+                              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                selectionMode === 'select' 
+                                  ? 'hover:bg-blue-50 border border-transparent hover:border-blue-200' 
+                                  : 'hover:bg-muted'
+                              }`}
                             >
                               <UtensilsCrossed className="h-4 w-4 text-primary" />
                               <div className="flex-1">
@@ -575,6 +613,28 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                                   {restaurant.cuisine} • {restaurant.address || restaurant.city}
                                 </div>
                               </div>
+                              {selectionMode === 'select' && (
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleResultClick({
+                                      id: restaurant.id.toString(),
+                                      name: restaurant.name,
+                                      type: 'restaurant',
+                                      location: restaurant.address || restaurant.city,
+                                      subtitle: restaurant.cuisine,
+                                      metadata: {
+                                        googlePlaceId: restaurant.googlePlaceId
+                                      }
+                                    });
+                                  }}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add
+                                </Button>
+                              )}
                             </div>
                           ))}
                         </div>

@@ -789,6 +789,28 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
     <UnifiedSearchModal
       open={searchModalOpen}
       onOpenChange={setSearchModalOpen}
+      selectionMode="select"
+      onSelectResult={(result) => {
+        console.log('🍽️ Restaurant selected for list:', result);
+        
+        // Transform search result to restaurant data for list item
+        const restaurantData = {
+          id: result.id,
+          name: result.name,
+          location: result.location || result.subtitle,
+          city: result.location?.split(',')[1]?.trim(), // Extract city from location
+          googlePlaceId: result.metadata?.googlePlaceId || (result.id.toString().startsWith('google_') ? result.id.toString().replace('google_', '') : null),
+          notes: '',
+          imageUrl: result.thumbnailUrl,
+          rating: result.avgRating,
+          cuisine: result.cuisine,
+          source: result.metadata?.googlePlaceId ? 'google' : 'database'
+        };
+        
+        handleRestaurantSelect(restaurantData);
+        setSearchModalOpen(false);
+      }}
+      showSelectionUI={true}
     />
   </>
 );
