@@ -874,7 +874,7 @@ export function AddListItemModal({ open, onOpenChange, onSave }: AddListItemModa
         
         // Transform search result to restaurant data for list item
         const restaurantData = {
-          id: result.id,
+          id: typeof result.id === 'number' ? result.id : (typeof result.id === 'string' && !result.id.startsWith('google_') ? parseInt(result.id, 10) : null),
           name: result.name,
           location: result.location || result.subtitle,
           city: result.location?.split(',')[1]?.trim(), // Extract city from location
