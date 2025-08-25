@@ -216,7 +216,7 @@ router.get('/', authenticate, async (req, res) => {
           const allLists = [...ownLists, ...publicLists, ...circleSharedLists].map(list => ({
             ...list,
             derivedVisibility: deriveVisibility(list),
-            visibility: list.visibility || 'private' // Ensure visibility is always a string
+            visibility: (list.visibility as string | null) || 'private' // Ensure visibility is always a string
           }));
 
           console.log('[MINE FILTER API] Found lists for restaurant count calc:', allLists.map(l => l.id));

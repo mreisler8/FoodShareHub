@@ -219,7 +219,7 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
     location: item.restaurant?.location || item.restaurant?.city,
     rating: undefined, // Could add this if available
     position: index + 1,
-    googlePlaceId: item.restaurant?.googlePlaceId,
+    googlePlaceId: item.restaurant?.googlePlaceId || undefined, // Convert null to undefined
     cuisine: undefined, // Could add this if available
     notes: item.notes,
     tags: item.tags,
