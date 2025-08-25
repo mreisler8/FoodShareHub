@@ -13,11 +13,11 @@ const router = Router();
 // V2 Schema (new visibility system)
 // Schema for restaurant list items in V2
 const restaurantListItemSchemaV2 = z.object({
-  restaurantId: z.number().nullable().optional(),
-  position: z.number().nullable().optional(),
+  restaurantId: z.coerce.number().nullable().optional(), // Handle string-to-number conversion
+  position: z.coerce.number().nullable().optional(),
   notes: z.string().nullable().optional(),
   restaurant: z.object({
-    id: z.number().optional(),
+    id: z.coerce.number().optional(), // Handle string-to-number conversion
     name: z.string(),
     location: z.string().optional(),
     city: z.string().optional(),
