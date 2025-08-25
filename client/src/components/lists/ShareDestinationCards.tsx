@@ -64,7 +64,7 @@ export function ShareDestinationCards({ selected, onChange }: ShareDestinationCa
           <RadioGroupItem value="private" id="private" className="peer sr-only" />
           <Label
             htmlFor="private"
-            className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
+            className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white p-3 hover:bg-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
           >
             <div className="flex items-center space-x-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
@@ -83,7 +83,7 @@ export function ShareDestinationCards({ selected, onChange }: ShareDestinationCa
           <RadioGroupItem value="profile" id="profile" className="peer sr-only" />
           <Label
             htmlFor="profile"
-            className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
+            className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white p-3 hover:bg-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
           >
             <div className="flex items-center space-x-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
@@ -103,7 +103,7 @@ export function ShareDestinationCards({ selected, onChange }: ShareDestinationCa
             <RadioGroupItem value="circle" id="circle" className="peer sr-only" />
             <Label
               htmlFor="circle"
-              className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
+              className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white p-3 hover:bg-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
             >
               <div className="flex items-center space-x-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
@@ -142,7 +142,7 @@ export function ShareDestinationCards({ selected, onChange }: ShareDestinationCa
           <RadioGroupItem value="public" id="public" className="peer sr-only" />
           <Label
             htmlFor="public"
-            className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
+            className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white p-3 hover:bg-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
           >
             <div className="flex items-center space-x-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">

@@ -308,10 +308,10 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-2xl w-full h-[95vh] p-0 gap-0 flex flex-col">
+        <DialogContent className="max-w-2xl w-full h-[80vh] p-0 gap-0 flex flex-col">
           <div className="flex flex-col h-full">
             {/* Header - Fixed */}
-            <div className="flex-shrink-0 flex items-center justify-between p-6 border-b bg-white">
+            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b bg-white">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                   <Sparkles className="h-5 w-5 text-white" />
@@ -328,7 +328,7 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto min-h-0">
-              <div className="p-6 space-y-6">
+              <div className="p-4 space-y-4">
                 {/* Quick Templates */}
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Start Templates</h3>
@@ -463,7 +463,7 @@ export function EnhancedCreateListModal({ isOpen, onClose }: EnhancedCreateListM
             </div>
 
             {/* Footer - Fixed */}
-            <div className="flex-shrink-0 p-6 border-t bg-gray-50">
+            <div className="flex-shrink-0 p-4 border-t bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {isCompleted && (
