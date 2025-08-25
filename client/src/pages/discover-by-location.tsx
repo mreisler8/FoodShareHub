@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -68,7 +68,6 @@ export default function DiscoverByLocation() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Discover by Location</h1>
       <div className="flex gap-2 mb-8">
         <Input
           placeholder="Enter location (e.g. New York City, Chicago)"

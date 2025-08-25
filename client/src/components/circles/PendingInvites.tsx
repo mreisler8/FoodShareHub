@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Check, X, Clock, UserPlus, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 
 interface PendingInvite {
@@ -47,16 +48,39 @@ export function PendingInvites() {
   const [activeTab, setActiveTab] = useState('invites');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  // Fetch pending invites for current user
-  const { data: invites = [], isLoading: invitesLoading } = useQuery({
+  // Fetch pending invites for current user with proper cleanup
+  const { data: invites = [], isLoading: invitesLoading, error: invitesError } = useQuery({
     queryKey: ['/api/circles/invites/pending'],
+    enabled: !!user, // Only run when user is authenticated
+    refetchInterval: 30000, // Reduce frequency from default
+    staleTime: 10000, // Cache for 10 seconds
+    retry: (failureCount: number, error: Error) => {
+      console.error('Invites query failed:', error);
+      return failureCount < 2; // Limit retries
+    }
   });
 
-  // Fetch pending member requests for circles user owns/admins
-  const { data: memberRequests = [], isLoading: requestsLoading } = useQuery({
+  // Fetch pending member requests for circles user owns/admins with proper cleanup
+  const { data: memberRequests = [], isLoading: requestsLoading, error: requestsError } = useQuery({
     queryKey: ['/api/circles/requests/pending'],
+    enabled: !!user, // Only run when user is authenticated
+    refetchInterval: 30000, // Reduce frequency from default
+    staleTime: 10000, // Cache for 10 seconds
+    retry: (failureCount: number, error: Error) => {
+      console.error('Requests query failed:', error);
+      return failureCount < 2; // Limit retries
+    }
   });
+
+  // Cleanup queries when component unmounts
+  useEffect(() => {
+    return () => {
+      queryClient.cancelQueries({ queryKey: ['/api/circles/invites/pending'] });
+      queryClient.cancelQueries({ queryKey: ['/api/circles/requests/pending'] });
+    };
+  }, [queryClient]);
 
   // Accept/decline invite mutation
   const respondToInviteMutation = useMutation({
@@ -117,8 +141,8 @@ export function PendingInvites() {
     respondToRequestMutation.mutate({ requestId, action });
   };
 
-  const pendingInvitesCount = invites.filter((inv: PendingInvite) => inv.status === 'pending').length;
-  const pendingRequestsCount = memberRequests.filter((req: PendingMemberRequest) => req.status === 'pending').length;
+  const pendingInvitesCount = Array.isArray(invites) ? invites.filter((inv: any) => inv.status === 'pending').length : 0;
+  const pendingRequestsCount = Array.isArray(memberRequests) ? memberRequests.filter((req: any) => req.status === 'pending').length : 0;
 
   return (
     <Card>
@@ -154,14 +178,14 @@ export function PendingInvites() {
               <div className="flex items-center justify-center p-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
-            ) : invites.length === 0 ? (
+            ) : (Array.isArray(invites) && invites.length === 0) ? (
               <div className="text-center p-8 text-gray-500">
                 <UserPlus className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                 <p>No pending invitations</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {invites.map((invite: PendingInvite) => (
+                {Array.isArray(invites) && invites.map((invite: any) => (
                   <div key={invite.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <Avatar>
@@ -217,14 +241,14 @@ export function PendingInvites() {
               <div className="flex items-center justify-center p-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
-            ) : memberRequests.length === 0 ? (
+            ) : (Array.isArray(memberRequests) && memberRequests.length === 0) ? (
               <div className="text-center p-8 text-gray-500">
                 <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                 <p>No pending member requests</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {memberRequests.map((request: PendingMemberRequest) => (
+                {Array.isArray(memberRequests) && memberRequests.map((request: any) => (
                   <div key={request.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <Avatar>

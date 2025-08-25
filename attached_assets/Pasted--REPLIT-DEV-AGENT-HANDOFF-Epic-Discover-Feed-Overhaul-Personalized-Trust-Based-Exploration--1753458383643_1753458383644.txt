@@ -1,0 +1,106 @@
+🧠 REPLIT DEV AGENT HANDOFF
+📦 Epic: Discover Feed Overhaul – Personalized, Trust-Based Exploration
+🎯 Goal:
+Redesign and rebuild the Discover feed to showcase personalized, high-signal content from people and Circles users trust. This feed must be fast, visually clean, and data-smart, reflecting the full richness of Circle Score, lists, ratings, and follows.
+
+🔄 Functional Overview
+This feed is Circles’ For You engine. It must blend:
+
+Content Type	Data Priority	Notes
+Lists	High	Show Circle Score + save/follow options
+Quick Ratings	Medium-high	From people in your network
+Posts (Food Moments)	Medium	From followed users or Circles
+Optional: Restaurants	If trending in your Circles or saved by many	
+
+🧱 Technical Scope
+1. Create a Modular Feed Page
+File: pages/DiscoverFeed.tsx
+Tabs:
+
+For You (default)
+
+Trending
+
+Near You
+
+Use React Tabs or equivalent component.
+
+2. Feed Algorithm Logic (Backend or Client)
+Use existing data models to rank content by:
+
+circle_score × recency × engagement
+
+Followed user weight (e.g., 1.2× for someone I follow)
+
+Decay after 3–5 days unless resurfaced (via saves or reactions)
+
+Create utility: getDiscoverFeed(userId: string)
+Returns sorted mixed content with:
+
+ts
+Copy
+Edit
+type DiscoverItem = {
+  type: "list" | "rating" | "post" | "restaurant";
+  content: any;
+  score: number; // used for sorting
+};
+3. Display Logic (Frontend)
+Item Type	Display Requirements
+List	Title, creator, 1–2 items preview, Circle Score badge, save button
+Rating	Star score, tags, who rated it, optional note
+Post	Image, caption, who posted, time
+Restaurant	Name, cuisine, Circle Score, CTA to View or Rate
+
+Use reusable UI: FeedCard, CircleScoreCard, RatingDisplay, ListMiniCard.
+
+All items should support:
+
+Quick Save or “Add to My List”
+
+Light interaction: ❤️ or “I’ve Been Here”
+
+“Shared by X people you follow” (if applicable)
+
+🖼 UI Excellence Requirements
+Principle	Implementation
+Mobile-first layout	Vertical feed, swipe-friendly, thumb-zone buttons
+Clear trust signals	Show who shared or rated (avatars or usernames)
+Visual hierarchy	Each item has type label: “List”, “Rating”, etc.
+Responsive spacing	space-y-4, rounded-xl, shadow-sm, px-4
+Empty state design	"Follow foodies to personalize your feed" + CTA to follow
+Smooth loading	Use react-query + skeleton loaders + optimistic updates
+
+🔁 Backend & API Requirements
+/api/discover:
+
+Accepts: userId, tab (for-you | trending | near-you), limit, offset
+
+Returns sorted DiscoverItem[]
+
+Indexing for performance
+
+Must filter to content:
+
+From people the user follows or Circles they’re in (unless public/trending)
+
+With valid Circle Score or interaction
+
+🔒 NFRs
+Mobile UX must match home page system
+
+Do not display data from private Circles unless user is a member
+
+Use react-query for fetch, caching, and updates
+
+No regressions to homepage, profile, or restaurant detail components
+
+✅ Acceptance Criteria
+Feature	Requirement
+Tabs	For You, Trending, Near You
+Personalized content	Based on Circle Score, follows, recency
+UI Components	Modular, mobile-friendly, consistent with brand
+Actionable elements	Save, Rate, Add to List, View Profile, etc.
+Feed performance	<300ms initial render, paginated or infinite scroll
+No regressions	All components used remain functional across app
+

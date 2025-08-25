@@ -1,0 +1,331 @@
+/* Best-in-Class Feed Enhancements - Premium Social Media Quality */
+
+/* Enhanced Stories Section */
+.enhanced-stories-section {
+  @apply p-4 bg-white border-b border-gray-100;
+}
+
+.enhanced-stories-container {
+  @apply flex gap-4 overflow-x-auto pb-2;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.enhanced-stories-container::-webkit-scrollbar {
+  display: none;
+}
+
+.story-creator {
+  @apply flex flex-col items-center cursor-pointer;
+  min-width: 70px;
+}
+
+.story-creator-gradient {
+  @apply relative w-16 h-16 rounded-full flex items-center justify-center mb-1;
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+}
+
+.story-creator-plus {
+  @apply text-white text-2xl font-light;
+}
+
+.story-creator-label {
+  @apply text-xs text-gray-600 text-center;
+}
+
+.enhanced-story-item {
+  @apply flex flex-col items-center cursor-pointer;
+  min-width: 70px;
+}
+
+.enhanced-story-ring {
+  @apply relative w-16 h-16 rounded-full p-0.5 mb-1;
+}
+
+.enhanced-story-item.unviewed .enhanced-story-ring {
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+}
+
+.enhanced-story-item.viewed .enhanced-story-ring {
+  @apply bg-gray-300;
+}
+
+.enhanced-story-avatar {
+  @apply w-full h-full border-2 border-white;
+}
+
+.enhanced-story-username {
+  @apply text-xs text-gray-700 text-center max-w-full truncate;
+}
+
+/* Premium Video Player */
+.premium-video-player {
+  @apply relative w-full overflow-hidden;
+  border-radius: 4px !important;
+}
+
+.premium-video {
+  @apply w-full h-auto object-cover;
+  aspect-ratio: 9/16;
+}
+
+.premium-video-controls {
+  @apply absolute top-4 right-4 flex gap-2;
+}
+
+.premium-video-mute-btn {
+  @apply bg-black/30 text-white hover:bg-black/50 backdrop-blur-sm rounded-full p-2;
+}
+
+.premium-video-heart {
+  @apply absolute inset-0 flex items-center justify-center pointer-events-none;
+}
+
+.premium-heart-icon {
+  @apply text-red-500 drop-shadow-lg;
+  font-size: 4rem;
+}
+
+/* Instagram Image Carousel */
+.instagram-carousel {
+  @apply relative w-full overflow-hidden rounded-2xl;
+}
+
+.instagram-swiper {
+  @apply w-full h-auto;
+}
+
+.instagram-carousel-image {
+  @apply w-full h-auto object-cover cursor-pointer;
+  aspect-ratio: 4/5;
+}
+
+.instagram-pagination {
+  @apply absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10;
+}
+
+.instagram-dot {
+  @apply w-2 h-2 rounded-full bg-white/60 transition-all duration-300;
+}
+
+.instagram-dot.active {
+  @apply bg-white w-6;
+}
+
+.instagram-pagination-bullet {
+  @apply w-2 h-2 rounded-full bg-white/60 cursor-pointer transition-all duration-300;
+}
+
+.instagram-pagination-bullet-active {
+  @apply bg-white w-6;
+}
+
+/* Pinterest Masonry Layout */
+.pinterest-masonry {
+  @apply columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4 p-4;
+}
+
+.pinterest-masonry-item {
+  @apply relative mb-4 break-inside-avoid bg-white rounded-2xl overflow-hidden shadow-sm cursor-pointer group;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pinterest-image {
+  @apply w-full h-auto object-cover;
+}
+
+.pinterest-overlay {
+  @apply absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center;
+}
+
+.pinterest-actions {
+  @apply flex gap-2;
+}
+
+.pinterest-action {
+  @apply bg-white/90 text-gray-700 hover:bg-white hover:text-black rounded-full p-2 backdrop-blur-sm;
+}
+
+/* TikTok Vertical Feed */
+.tiktok-vertical-feed {
+  @apply relative w-full h-screen overflow-hidden;
+}
+
+.tiktok-post-container {
+  @apply absolute inset-0 flex items-center justify-center;
+}
+
+.tiktok-post {
+  @apply relative w-full max-w-sm h-full flex;
+}
+
+.tiktok-content {
+  @apply flex-1 relative rounded-2xl overflow-hidden;
+}
+
+.tiktok-media {
+  @apply w-full h-full object-cover;
+}
+
+.tiktok-actions {
+  @apply absolute right-4 bottom-20 flex flex-col gap-6;
+}
+
+.tiktok-action-btn {
+  @apply flex flex-col items-center gap-1 text-white cursor-pointer;
+}
+
+.tiktok-action-btn span {
+  @apply text-xs font-medium;
+}
+
+.tiktok-swipe-indicators {
+  @apply absolute right-8 top-1/2 transform -translate-y-1/2 flex flex-col gap-4;
+}
+
+.tiktok-swipe-btn {
+  @apply w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center transition-all duration-200;
+}
+
+.tiktok-swipe-btn:hover:not(:disabled) {
+  @apply bg-white/30 scale-110;
+}
+
+.tiktok-swipe-btn:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* AI Content Recommendations */
+.ai-recommendations {
+  @apply p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl mb-6;
+}
+
+.ai-recommendations-header {
+  @apply flex items-center gap-2 mb-4;
+}
+
+.ai-icon {
+  @apply text-purple-600;
+}
+
+.ai-recommendations-header span {
+  @apply font-semibold text-gray-900;
+}
+
+.ai-recommendations-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+.ai-recommendation-card {
+  @apply bg-white rounded-xl p-4 shadow-sm border border-white/50 cursor-pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-recommendation-card:hover {
+  @apply shadow-lg transform translateY(-2px);
+}
+
+/* Best-in-Class Feed Container */
+.best-in-class-feed {
+  @apply w-full max-w-4xl mx-auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pinterest-masonry {
+    @apply columns-1 gap-3 p-3;
+  }
+  
+  .enhanced-stories-container {
+    @apply gap-3;
+  }
+  
+  .story-creator,
+  .enhanced-story-item {
+    min-width: 60px;
+  }
+  
+  .story-creator-gradient,
+  .enhanced-story-ring {
+    @apply w-14 h-14;
+  }
+  
+  .enhanced-story-avatar {
+    @apply w-full h-full;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .enhanced-stories-section {
+    @apply bg-gray-900 border-gray-800;
+  }
+  
+  .story-creator-label,
+  .enhanced-story-username {
+    @apply text-gray-300;
+  }
+  
+  .pinterest-masonry-item {
+    @apply bg-gray-900;
+  }
+  
+  .ai-recommendations {
+    @apply bg-gradient-to-br from-purple-900/20 to-blue-900/20;
+  }
+  
+  .ai-recommendation-card {
+    @apply bg-gray-800 border-gray-700;
+  }
+}
+
+/* High Performance Optimizations */
+.enhanced-stories-container,
+.pinterest-masonry-item,
+.instagram-carousel-image,
+.tiktok-post {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Accessibility Improvements */
+.story-creator:focus,
+.enhanced-story-item:focus,
+.pinterest-masonry-item:focus {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2;
+}
+
+.tiktok-action-btn:focus,
+.pinterest-action:focus {
+  @apply outline-none ring-2 ring-white/50;
+}
+
+/* Smooth Animations */
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heartPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.pinterest-masonry-item {
+  animation: slideInFromBottom 0.6s ease-out;
+}
+
+.premium-heart-icon {
+  animation: heartPulse 0.6s ease-in-out;
+}

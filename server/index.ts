@@ -3,6 +3,9 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import uploadsRouter from "./routes/uploads";
 import { performanceMiddleware } from "./middleware/performance.js";
+import { traceMiddleware } from "./middleware/trace.js";
+// geocodeRouter imported and registered in registerRoutes function
+// searchRoutes and searchAnalyticsRoutes imported and registered in registerRoutes function
 
 const app = express();
 
@@ -24,6 +27,9 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '10mb' })); // Increased limit for media uploads
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Add trace middleware for audit (before routes)
+app.use(traceMiddleware);
 
 // Add caching headers for static content
 app.use((req, res, next) => {
@@ -47,6 +53,8 @@ app.use((req, res, next) => {
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
+    // Ensure response is always JSON
+    res.setHeader('Content-Type', 'application/json');
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
@@ -86,9 +94,13 @@ app.use((req, res, next) => {
 
     // Performance monitoring
     app.use(performanceMiddleware);
+    
+    // Error handling middleware
+    const { errorHandler } = await import('./middleware/errorHandler.js');
+    app.use(errorHandler);
 
     const server = await registerRoutes(app);
-    app.use('/api/uploads', uploadsRouter);
+    // Additional routes are registered in registerRoutes function
     console.log('Routes registered successfully');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -136,6 +148,23 @@ app.use((req, res, next) => {
   process.exit(1);
 });
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise Rejection at:', promise, 'reason:', reason);
+});
 
-
-// This was moved to the wrong location - removing from here
+// Handle uncaught exceptions with better error handling
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  
+  // Check if it's a database connection error that we can handle gracefully
+  if (error.message?.includes('Cannot set property message') || 
+      error.message?.includes('which has only a getter')) {
+    console.warn('Database connection error detected, but server will continue running');
+    return; // Don't exit on this specific Neon connection error
+  }
+  
+  // For other critical errors, still exit
+  console.error('Critical error, shutting down server');
+  process.exit(1);
+});

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { PostModal } from '@/components/post/PostModal';
+import { UnifiedPostModal } from '@/components/post/UnifiedPostModal';
 
 export function QuickCaptureButton() {
   const [showPostModal, setShowPostModal] = useState(false);
@@ -17,7 +17,7 @@ export function QuickCaptureButton() {
         <Plus className="h-6 w-6" />
       </Button>
       
-      <PostModal open={showPostModal} onOpenChange={setShowPostModal} />
+      <UnifiedPostModal open={showPostModal} onOpenChange={setShowPostModal} />
     </>
   );
 }

@@ -1,0 +1,75 @@
+Looking at your restaurant page code and the console logs showing repeated /api/list-reactions/ errors, I can see the restaurant page still has multiple confusing rating entry points. The agent needs a more specific prompt to consolidate these into the unified 10-point decimal system. Here's the corrected prompt:
+
+AGENT PROMPT: Eliminate Multiple Rating Entry Points - Unified 10-Point Decimal Rating System
+
+CRITICAL ISSUE: The restaurant page currently shows 3 different rating options causing user confusion:
+
+Circle Score "Rate This Place" button in CircleScoreCard
+Quick Rating button in RestaurantActionBar
+"Share Your Experience" rating in RestaurantActionBar
+OBJECTIVE: Consolidate to ONE rating entry point with 10-point decimal precision (0.1-10.0) that feeds directly into Circle Score calculations.
+
+CURRENT PROBLEMS FROM CONSOLE LOGS:
+
+Multiple /api/list-reactions/ 400 errors with "List ID required"
+Three separate rating entry points confusing users
+Current 1-5 star system lacks precision needed for trust-based scoring
+REQUIRED CHANGES:
+
+1. Remove Redundant Rating Entry Points:
+
+// In CircleScoreCard.tsx - REMOVE the "Rate This Place" button
+// Replace with purely informational display
+// Keep only the "See who rated this →" functionality
+// In RestaurantActionBar.tsx - REMOVE "Share Your Experience" button
+// Keep ONLY the QuickRateButton as the single rating entry point
+2. Upgrade QuickRateModal to 10-Point Decimal System:
+
+// Update QuickRateModal.tsx rating input:
+// - Change from 1-5 stars to 0.1-10.0 slider with decimal precision
+// - Visual: 10-star display with partial star fills (8.7 = 8 full stars + 70% of 9th star)
+// - Input: Interactive slider with 0.1 increments
+// - Validation: min 0.1, max 10.0, step 0.1
+3. Update Database Schema for Decimal Ratings:
+
+-- Update ratings table to support decimal precision
+ALTER TABLE ratings MODIFY COLUMN ratingValue DECIMAL(3,1) NOT NULL;
+4. Fix Circle Score Integration:
+
+// In circleScore.ts - Update calculation for 10-point scale:
+// - Adjust weight calculations: rating * 0.3 * recencyDecay (instead of rating * 3)
+// - Ensure decimal precision maintained through calculations
+// - Display format: "8.7 Circle Score" instead of "87%"
+5. Update Rating Display Components:
+
+// In RatingDisplay.tsx and ProfilePage.tsx:
+// - Change star display logic for 10-point scale
+// - Show "8.7/10" instead of "4/5"
+// - Update star fill calculations for decimal precision
+IMPLEMENTATION PRIORITY:
+
+FIRST: Remove redundant rating buttons (CircleScoreCard + RestaurantActionBar cleanup)
+SECOND: Upgrade QuickRateModal to 10-point decimal slider
+THIRD: Update database schema and Circle Score calculations
+FOURTH: Fix all rating display components
+API FIXES REQUIRED:
+
+Resolve /api/list-reactions/ errors by ensuring proper list ID context
+Update rating submission endpoints to handle decimal values
+Ensure Circle Score recalculation triggers on new decimal ratings
+SUCCESS VALIDATION:
+✅ Only ONE "Rate" button visible on restaurant page (QuickRateButton only)
+✅ Rating modal shows 0.1-10.0 slider with star visualization
+✅ No more /api/list-reactions/ console errors
+✅ Circle Score displays decimal precision: "8.7 Circle Score"
+✅ All rating displays show "X.X/10" format consistently
+
+UI/UX REQUIREMENTS:
+
+Single, prominent "Rate" button in RestaurantActionBar
+CircleScoreCard shows trust-based score + contributors (no rating button)
+10-star visual display with smooth decimal fills
+Touch-friendly slider for mobile (minimum 44px touch targets)
+Immediate Circle Score update after rating submission
+This eliminates the confusion while upgrading to the precision needed for Dave Portnoy-style decimal ratings and proper trust-based scoring.
+

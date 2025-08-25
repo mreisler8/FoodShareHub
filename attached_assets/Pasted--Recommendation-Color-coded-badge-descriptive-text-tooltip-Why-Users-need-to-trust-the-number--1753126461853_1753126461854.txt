@@ -1,0 +1,86 @@
+✅ Recommendation: Color-coded badge + descriptive text tooltip
+Why: Users need to trust the number, not just see it. Showing who contributed and how many makes the score meaningful.
+
+UI Spec:
+Score badge:
+
+90–100: bg-green-500/10 text-green-700
+
+70–89: bg-yellow-500/10 text-yellow-700
+
+Below 70: bg-red-500/10 text-red-700
+
+Tooltip or expandable row:
+
+“Based on 12 ratings from 4 Circles”
+“Most recent: 2 weeks ago from @jules.foodie”
+
+🔍 Optional confidence icon: 🛡️ or checkmark if sourced from verified or overlapping Circles
+
+2. 🔢 List Ranking Display
+✅ Recommendation: Show rank only when it’s Top 3 or explicitly ranked
+Why: Keeps UI clean. Rank only matters when it’s socially impressive (e.g., #1 on “Toronto Eats”)
+
+UI Spec:
+On ListMiniCard:
+
+If ranked: show corner badge or inline text:
+
+“#2 on ‘Best Brunch in Toronto’”
+
+Badge: bg-black text-white text-xs rounded-full px-2
+
+In full List view:
+
+Use ordered list (1, 2, 3…) or #1 tag left-aligned
+
+Keep consistent with your ranked/unranked list toggle
+
+3. 📝 Post Content Display
+✅ Recommendation: Snippets with “Tap to Expand” modal or drawer
+Why: Keeps page scannable while encouraging deeper discovery without page reloads.
+
+UI Spec:
+Display:
+
+Avatar + username
+
+First 1–2 lines of post
+
+Thumbnail (if image exists)
+
+Tap opens:
+
+Full post modal (reuse feed layout with back arrow)
+
+🪄 Optional micro-interaction: show full post on long-press (mobile-native feel)
+
+4. 📤 Sharing Strategy
+✅ Recommendation: Use native OS share sheet + “Share to Circle” drawer
+Why:
+
+OS share sheet = low effort distribution (iMessage, IG DM)
+
+“Share to Circle” = community-native loop with social value
+
+UI Spec:
+💬 On restaurant page:
+
+📤 Share icon → menu:
+
+“Share to Circle” → shows joined Circles
+
+“Send to Friend” → opens native share sheet
+
+✨ After share to Circle:
+
+Toast: “Shared to @TorontoBites”
+
+Optionally: “Add a comment?” modal
+
+Summary
+Question	Recommendation
+Circle Score Confidence	Color-coded badge + “Rated by 12 from 4 Circles”
+List Ranking	Show if Top 3 or ranked; omit otherwise
+Post Content	Snippets with tap-to-expand modal
+Sharing	

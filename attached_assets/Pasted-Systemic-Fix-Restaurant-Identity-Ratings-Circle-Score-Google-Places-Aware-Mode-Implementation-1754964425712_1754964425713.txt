@@ -1,0 +1,278 @@
+Systemic Fix — Restaurant Identity, Ratings, Circle Score (Google Places–Aware)
+Mode: Implementation (DB + API + client), plus a lightweight audit (counts + 20-row samples).
+Do NOT refactor architecture or change public API shapes beyond what’s specified.
+New behaviors behind feature flags.
+Goal: Ensure every restaurant page connects correctly to Google Places data, then works per-restaurant with strict identity binding, consistent Circle Score, and clean caches.
+
+Feature Flags (set true by default)
+ts
+Copy
+Edit
+FEATURE_STRICT_IDENTITY = true
+FEATURE_STRICT_RATING_BINDING = true
+FEATURE_DISABLE_RATING_FALLBACK = true
+FEATURE_STRICT_CACHE_KEYS = true
+FEATURE_CIRCLE_SCORE_UNIFIED = true
+FEATURE_PLACES_TIMEOUTS = true
+Phase 0 — Lightweight Audit (Counts + Small Samples Only)
+Create /docs/RESTAURANT_IDENTITY_COUNTS.md with results from:
+
+SQL:
+
+sql
+Copy
+Edit
+-- Identity coverage
+SELECT 
+  COUNT(*) FILTER (WHERE google_place_id IS NULL)        AS restaurants_no_placeid,
+  COUNT(*) FILTER (WHERE google_place_id IS NOT NULL)    AS restaurants_with_placeid
+FROM restaurants;
+
+-- Duplicate placeId mapping (should be 0)
+SELECT google_place_id, COUNT(*) AS c
+FROM restaurants
+WHERE google_place_id IS NOT NULL
+GROUP BY google_place_id
+HAVING COUNT(*) > 1
+LIMIT 20;
+
+-- Ratings that look like test/seed data (sample)
+SELECT r.id, r.restaurant_id, rt.name AS name_at_id, r.note
+FROM ratings r
+JOIN restaurants rt ON rt.id = r.restaurant_id
+WHERE r.is_test = TRUE
+   OR r.note ILIKE '%Universal system test%'
+LIMIT 20;
+
+-- Ratings with placeId only (if such column exists; sample for migration)
+SELECT COUNT(*) AS ratings_with_placeid_only
+FROM ratings
+WHERE restaurant_id IS NULL AND google_place_id IS NOT NULL;
+
+SELECT id, google_place_id
+FROM ratings
+WHERE restaurant_id IS NULL AND google_place_id IS NOT NULL
+LIMIT 20;
+No giant listing. Just counts and up to 20 samples.
+
+Phase 1 — Database Guardrails (Systemic Prevention)
+Migrations (/server/db/migrations/*):
+
+Canonical identity
+
+restaurants keeps id (PK) and unique nullable google_place_id.
+
+If you need many-to-one mapping historically, create:
+
+sql
+Copy
+Edit
+CREATE TABLE IF NOT EXISTS restaurant_place_map (
+  restaurant_id INT REFERENCES restaurants(id) ON DELETE CASCADE,
+  google_place_id TEXT UNIQUE,
+  PRIMARY KEY (restaurant_id, google_place_id)
+);
+Backfill restaurant_place_map from existing data where possible.
+
+Ratings referential integrity
+
+Ratings must reference restaurant_id only (FK).
+
+If a google_place_id column still exists in ratings, mark deprecated and stop reading it in API.
+
+Optional anti-abuse (if business rules allow):
+
+sql
+Copy
+Edit
+CREATE UNIQUE INDEX IF NOT EXISTS ux_user_restaurant_day
+  ON ratings (user_id, restaurant_id, date_trunc('day', created_at));
+Test data quarantine
+
+sql
+Copy
+Edit
+ALTER TABLE ratings ADD COLUMN IF NOT EXISTS is_test BOOLEAN DEFAULT FALSE;
+Phase 2 — Identity Resolution + Google Places Hand-off (the heart of it)
+Files: server/services/identity.ts, server/routes/restaurants.ts, server/services/google-places.ts
+
+2.1 Identity Resolver (single source of truth)
+Create resolveRestaurantCanonicalId({ restaurantId?, googlePlaceId? }):
+
+If restaurantId given → look up its google_place_id and return { restaurantId, googlePlaceId }.
+
+If only googlePlaceId given:
+
+Lookup restaurant_place_map/restaurants.
+
+If not found, create a restaurant row with minimal denormalized fields from Places (name, formatted address, lat/lng), assign google_place_id, and return its new restaurantId.
+
+If a request contains both and they don’t match → throw 409 (when FEATURE_STRICT_IDENTITY).
+
+Always return a canonical restaurantId.
+
+Log line (one per request that uses placeId):
+
+rust
+Copy
+Edit
+IDENTITY_RESOLVE placeId=XXX -> restaurantId=26 created=false
+2.2 Google Places integration (timeouts + cache + circuit breaker)
+Do not directly use Places data for ratings/score keys. Use Places only to:
+
+Enrich the restaurant row on first touch.
+
+Hydrate hero image, metadata, etc.
+
+Add:
+
+Timeout (e.g., 800ms) & circuit breaker for getPlaceDetails(placeId) when FEATURE_PLACES_TIMEOUTS is true.
+
+Cache (5–10 min) keyed by places:detail:{googlePlaceId}.
+
+If Places fails → keep page functional by showing DB data; never block the identity resolution.
+
+Phase 3 — Ratings: Strict Binding + No Fallback
+Files: server/routes/ratings.ts, server/services/ratings.ts, client/src/components/ratings/QuickRateModal.tsx
+
+All reads/writes go through identity resolver, then operate by restaurantId only.
+
+If no rating for that user+restaurant → return { exists:false }.
+Never fallback to another restaurant’s rating via placeId when FEATURE_DISABLE_RATING_FALLBACK is true.
+
+On write: persist restaurant_id, return payload including { restaurantId, restaurantName, googlePlaceId }.
+
+In production, filter out is_test = true rows.
+
+Log mismatches (should be none now):
+
+rust
+Copy
+Edit
+RATINGS_MISMATCH requested={rid:X, placeId:Y} resolved={rid:Z} -> 409
+Phase 4 — Circle Score: One Endpoint, One Cache Key
+Files: server/routes/circle-score.ts, client/src/components/.../useCircleScore.ts, client/src/pages/RestaurantDetailPage.tsx
+
+Unified endpoint for new code:
+
+GET /api/restaurant/:restaurantId/circle-score
+
+If a legacy path offers placeId, resolve to restaurantId then call the unified service; log a one-time deprecation notice.
+
+Server cache key: circleScore:{restaurantId} only
+
+Invalidate circleScore:{restaurantId} when a rating for that restaurant is written/updated.
+
+Client hook: useCircleScore(restaurantId)
+
+Both the “Circles Take” widget and the score box must call the same hook with the same React Query key:
+
+ts
+Copy
+Edit
+['circleScore', restaurantId]
+Phase 5 — Cache Standardization + Race Control
+Files: server/services/cache.ts, server/routes/ratings.ts, server/routes/circle-score.ts
+
+Keys:
+
+restaurantByPlaceId:{googlePlaceId} -> restaurantId
+
+restaurant:{restaurantId}
+
+rating:user:{userId}:restaurant:{restaurantId}
+
+circleScore:{restaurantId}
+
+Invalidate on rating write: rating:user:{uid}:restaurant:{rid}, circleScore:{rid}.
+
+Add a small single-flight/mutex around Circle Score computation keyed by restaurantId to avoid duplicate concurrent work.
+
+Phase 6 — Client Binding Guarantees (UI guards, everywhere)
+Files: client/src/pages/RestaurantDetailPage.tsx, client/src/components/ratings/QuickRateModal.tsx, any Circle Score widgets
+
+One identity hook per page
+
+useRestaurantIdentity({ id?, placeId? }) → resolves once via API, returns { restaurantId, googlePlaceId }.
+
+All other hooks receive restaurantId from this.
+
+Strict UI guard
+
+If rating.restaurantId !== page.restaurantId → do not render the rating (show “No rating yet”).
+
+Both Circle Score views must read the same useCircleScore(restaurantId).
+
+Optional log (should be rare/never):
+
+objectivec
+Copy
+Edit
+UI_BIND_GUARD prevented cross-restaurant render ridPage=26 ridRating=14
+Phase 7 — Data Migration (Batch; No Full Listing)
+Scripts: /scripts/fix_ratings_contamination.sql
+
+Backfill ratings.restaurant_id from restaurant_place_map where only placeId exists.
+
+Quarantine seed/test notes:
+
+sql
+Copy
+Edit
+UPDATE ratings SET is_test = TRUE
+WHERE note ILIKE '%Universal system test%';
+Report counts corrected/quarantined to /docs/RATINGS_DATA_MIGRATION_REPORT.md.
+
+Phase 8 — Validation (Prove it’s fixed app-wide)
+Automated tests (API + client):
+
+Contamination test: create R1 (Badiali) & R2 (Villa di Roma); attach rating to R2 only; fetch R1 by id and by placeId; assert R2’s rating never appears.
+
+Identity resolver: placeId resolves to one restaurantId; mismatch → 409 (when flag on).
+
+Circle Score consistency: two widgets on same page render identical score; rating write invalidates cache.
+
+Manual checks (sampling, not exhaustive):
+
+Pick any 5–10 restaurants (variety of data: with/without ratings, with/without placeId).
+
+Open via search (placeId path) → detail page resolves identity → ratings/score consistent.
+
+Refresh; confirm numbers stable and identical across widgets.
+
+Submit a new rating; see score update (or stay logically consistent) after invalidation.
+
+Perf targets:
+
+/api/restaurant/:restaurantId/circle-score P95 < 200ms under 100 concurrent.
+
+Ratings read/write P95 < 200ms.
+
+Logs sanity:
+
+IDENTITY_RESOLVE present for placeId paths.
+
+No RATINGS_MISMATCH/UI_BIND_GUARD in normal use.
+
+No duplicate cache keys by placeId.
+
+Success Criteria (must ALL pass):
+
+✅ No cross-restaurant ratings anywhere (systemic).
+
+✅ Circle Score is identical across all widgets for a given restaurant.
+
+✅ Search→page handoff (via Google Places) creates/uses canonical restaurantId and keeps the page fully functional even if Places times out.
+
+✅ Cache keys standardized; invalidation works on rating write.
+
+✅ Tests and docs attached.
+
+Rollback (safe toggles)
+ini
+Copy
+Edit
+FEATURE_DISABLE_RATING_FALLBACK=false
+FEATURE_CIRCLE_SCORE_UNIFIED=false
+FEATURE_STRICT_IDENTITY=false
+FEATURE_PLACES_TIMEOUTS=false

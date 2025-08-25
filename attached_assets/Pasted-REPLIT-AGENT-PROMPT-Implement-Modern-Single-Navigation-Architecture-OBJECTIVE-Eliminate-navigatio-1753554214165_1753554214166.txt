@@ -1,0 +1,72 @@
+REPLIT AGENT PROMPT: Implement Modern Single-Navigation Architecture
+
+OBJECTIVE: Eliminate navigation redundancy by implementing a single, device-appropriate navigation system. Remove the left sidebar on mobile (< 768px) and enhance the bottom navigation to be the primary mobile interface, while keeping the enhanced left sidebar for desktop only.
+
+CURRENT PROBLEM:
+
+Both left sidebar (DesktopSidebar.tsx) and bottom navigation (MobileNavigation.tsx) show on mobile
+Creates visual clutter and poor UX on mobile devices
+Not following modern app conventions (Instagram/TikTok pattern)
+NAVIGATION STRATEGY:
+
+Mobile (< 768px): Bottom navigation ONLY - clean, thumb-accessible
+Desktop (≥ 768px): Left sidebar ONLY - feature-rich with persistent search
+TECHNICAL IMPLEMENTATION:
+
+Update DesktopSidebar.tsx:
+
+Add responsive classes to hide on mobile: hidden lg:flex
+Ensure it only appears on screens ≥ 1024px
+Keep all existing functionality (search integration, notifications, etc.)
+Update MobileNavigation.tsx:
+
+Add responsive classes to hide on desktop: lg:hidden
+Enhance with activity indicators and better visual feedback
+Ensure it only appears on screens < 1024px
+Update CSS in index.css:
+
+The existing responsive navigation rules need refinement
+Ensure .sidebar-desktop is properly hidden on mobile
+Ensure .nav-mobile is properly hidden on desktop
+Update breakpoints to use 1024px (lg) as the cutoff
+Apply to All Pages:
+
+Update all page components that render both navigations
+Ensure proper responsive behavior across: feed.tsx, home.tsx, profile.tsx, etc.
+Remove duplicate navigation rendering
+RESPONSIVE BREAKPOINT STRATEGY:
+
+/* Mobile: Show bottom nav only */
+@media (max-width: 1023px) {
+  .desktop-sidebar { display: none !important; }
+  .mobile-navigation { display: flex; }
+}
+/* Desktop: Show left sidebar only */  
+@media (min-width: 1024px) {
+  .desktop-sidebar { display: flex; }
+  .mobile-navigation { display: none !important; }
+}
+FILES TO MODIFY:
+
+client/src/components/navigation/DesktopSidebar.tsx (add responsive hiding)
+client/src/components/navigation/MobileNavigation.tsx (add responsive hiding)
+client/src/index.css (update responsive navigation rules)
+client/src/pages/feed.tsx (ensure single navigation)
+client/src/pages/home.tsx (ensure single navigation)
+Any other pages rendering both navigations
+SUCCESS CRITERIA:
+
+Mobile users see ONLY bottom navigation (clean, Instagram-like)
+Desktop users see ONLY left sidebar (feature-rich with search)
+No navigation overlap or duplication at any screen size
+Smooth responsive behavior at the 1024px breakpoint
+All existing functionality preserved in appropriate navigation
+KEY IMPLEMENTATION NOTES:
+
+Use lg:hidden and hidden lg:flex Tailwind classes
+Test responsive behavior thoroughly at 1024px breakpoint
+Preserve all existing navigation functionality
+Follow the mobile-first approach: bottom nav is primary on phones
+Maintain accessibility and touch targets on mobile
+Transform this into a clean, modern navigation experience where each device type has its optimal navigation paradigm - no more busy, cluttered dual navigation on mobile.
+

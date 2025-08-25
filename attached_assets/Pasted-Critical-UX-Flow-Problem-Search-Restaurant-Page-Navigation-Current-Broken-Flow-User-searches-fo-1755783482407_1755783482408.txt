@@ -1,0 +1,43 @@
+Critical UX Flow Problem: Search → Restaurant Page Navigation
+Current Broken Flow:
+
+User searches for restaurants ✅ (working)
+User clicks on restaurant result → Goes directly to restaurant detail page ❌
+User has NO way to add restaurant to list from search
+Expected Flow for Adding Restaurants to Lists:
+
+User searches for restaurants
+User clicks restaurant → Should add to list (not navigate away)
+OR provide clear "Add to List" action in search results
+OR intercept restaurant page clicks when in "list building" context
+Recommended Changes Based on User Flow Analysis:
+1. Fix Search-to-List Integration 🚨 Critical
+The UnifiedSearchModal and OptimizedSearchModal need list-building context awareness:
+
+When opened from list creation, clicking restaurants should add them (not navigate)
+Add prominent "Add to List" buttons in search results
+Show visual feedback when restaurants are added
+2. Enhanced List Building Experience
+Based on the AddListItemModal.tsx analysis:
+
+Drag & Drop Ranking: Users want to reorder restaurants by preference
+Bulk Adding: Add multiple restaurants before finalizing
+Smart Suggestions: "People who added X also added Y"
+Occasion-Based Templates: "Date Night spots", "Business lunch", etc.
+3. Context-Aware Restaurant Discovery
+Progressive List Building: Start with 1 restaurant, suggest related ones
+Location Clustering: "Other spots in this neighborhood"
+Cuisine Matching: If adding Italian, suggest more Italian options
+Social Proof: "3 friends recommend this place"
+4. Modern List Creation Flow
+Instead of the current modal-heavy approach:
+
+Full-screen List Canvas: Instagram Stories-style creation
+Visual Restaurant Cards: Photos, not just text lists
+Real-time Collaboration: Friends can contribute to lists
+Smart Categories: Auto-suggest "Romantic", "Family-friendly" tags
+5. Enhanced Ranking & Organization
+Visual Drag-and-Drop: Touch-friendly reordering
+Tier System: "Must-try", "Good options", "Backup choices"
+Notes & Context: Why this restaurant? Special dishes?
+Price Range Indicators: Visual $ symbols

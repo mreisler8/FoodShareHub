@@ -1,0 +1,133 @@
+Track completion funnel: view → tried it → rated
+Add analytics for recommendation conversion rates
+Store referral chain data for multi-hop recommendations
+Consolidated Implementation Prompt:
+🎯 AGENT INSTRUCTION: Implement "Accept Recommendation" Feature
+
+OBJECTIVE: Build a complete "Tried It" system that tracks when users act on recommendations and provides feedback to recommenders.
+
+CORE REQUIREMENTS:
+
+1. DATABASE SCHEMA
+
+CREATE TABLE accepted_recommendations (
+  id SERIAL PRIMARY KEY,
+  actor_user_id INTEGER NOT NULL REFERENCES users(id),
+  recommender_user_id INTEGER NOT NULL REFERENCES users(id),
+  entity_type VARCHAR(20) NOT NULL CHECK (entity_type IN ('list', 'rating', 'post')),
+  entity_id INTEGER NOT NULL,
+  restaurant_id INTEGER NOT NULL,
+  source_context VARCHAR(50), -- 'list_item', 'restaurant_page', 'rating_card', etc.
+  rating_value INTEGER CHECK (rating_value BETWEEN 1 AND 5),
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(actor_user_id, entity_type, entity_id, restaurant_id)
+);
+2. API ENDPOINTS
+
+POST /api/recommendations/accept - Record acceptance with duplicate prevention
+GET /api/recommendations/accepted/:userId - User's accepted recommendations
+GET /api/recommendations/impact/:userId - Recommender's influence stats
+GET /api/recommendations/stats/:entityType/:entityId - Get acceptance count for content
+3. FRONTEND COMPONENTS
+
+TriedItButton.tsx:
+
+Three states: Default ("Tried It") → Loading ("...") → Success ("✅ Tried It")
+44px minimum tap target with proper ARIA labels
+Optimistic UI updates with error rollback
+Context-aware visibility (only show for others' recommendations)
+RecCreditBadge.tsx:
+
+Display format: "🔥 Tried by X people" with real-time updates
+Animate count increments with subtle pulse effect
+Click to expand list of people who tried it
+TriedItPromptModal.tsx:
+
+Triggered after successful "Tried It" if user hasn't rated this restaurant
+Quick 5-star rating + optional note field
+"Skip for now" vs "Rate & Share" options
+4. INTEGRATION POINTS
+
+Restaurant Lists (ListItemCard.tsx):
+
+Add TriedItButton next to Save button for each restaurant
+Show RecCreditBadge below restaurant name
+Pass list context and recommender info
+Restaurant Page (RestaurantDetailPage.tsx):
+
+Add TriedItButton in action bar (secondary position)
+Show aggregate "tried" stats from all recommendation sources
+Context: determine recommender from referral or most recent list/post
+Rating Cards & Posts:
+
+Add compact TriedItButton version
+Show mini RecCreditBadge when space allows
+5. BUSINESS LOGIC
+
+Recommendation Detection:
+
+Track recommendation source via URL params or session state
+Default to most recent recommender if multiple sources exist
+Only show button when viewing others' content (not your own)
+CircleScore Integration:
+
+Increment recommender's influence score on acceptance
+Weight acceptances higher than simple views/likes
+Feed data into existing circle score calculations
+6. NON-FUNCTIONAL REQUIREMENTS
+
+Performance:
+
+Optimistic updates for all UI interactions
+Debounced API calls (prevent double-clicks)
+Cache acceptance states locally with query invalidation
+Accessibility:
+
+All buttons meet WCAG 2.1 AA standards
+Screen reader support with descriptive ARIA labels
+Keyboard navigation support
+High contrast mode compatibility
+Data Integrity:
+
+Prevent duplicate acceptances via unique constraints
+Validate entity existence before recording acceptance
+Handle edge cases (deleted content, blocked users)
+Security:
+
+Authenticate all API calls
+Validate user permissions for entities
+Rate limit acceptance endpoints (max 10/minute per user)
+Mobile Responsiveness:
+
+Touch-friendly 44px minimum targets
+Appropriate button sizing for mobile screens
+Smooth animations on all devices
+7. ERROR HANDLING
+
+Network failure: Show retry option with clear messaging
+Already accepted: Update UI to reflect current state
+Deleted content: Graceful degradation with appropriate messaging
+Rate limiting: Clear feedback about temporary restrictions
+8. ANALYTICS TRACKING
+
+Log all acceptance events with context
+Track conversion funnel from view → tried → rated
+Monitor feature adoption rates
+A/B testing infrastructure ready
+CRITICAL SUCCESS METRICS:
+
+Zero regressions in existing list/rating/post functionality
+<500ms response time for acceptance API calls
+95% uptime for recommendation tracking
+
+Proper mobile responsiveness across all screen sizes
+TESTING REQUIREMENTS:
+
+Unit tests for all components and API endpoints
+Integration tests for complete user flows
+Accessibility testing with screen readers
+Performance testing under load
+Cross-browser compatibility validation
+This implementation must maintain all existing functionality while seamlessly integrating the new recommendation feedback system. The feature should feel native to the existing UI patterns and enhance rather than complicate the user experience.
+

@@ -1,0 +1,83 @@
+🧠 REPLIT DEV AGENT HANDOFF
+📦 Epic: Circle Score – Feed, List, and Explore Integration
+🎯 Goal:
+Now that Circle Scores are being calculated and shown on restaurant pages and search results, this Epic extends their visibility to all major discovery surfaces: feeds, lists, and the Explore page.
+
+✅ Scope of Work
+1. 🗺️ Explore Feed Cards
+Files: pages/Explore.tsx, components/feed/RestaurantCard.tsx
+
+Fetch Circle Score via /api/circle-score/:restaurantId
+
+Display:
+
+🔥 Circle Score: 91
+
+Tooltip or secondary text: “Rated by 6 people in your Circle”
+
+Use cached fetch or shared useCircleScore() hook for performance
+
+2. 🧾 Lists & List Items
+Files: components/lists/ListDetail.tsx, ListItemCard.tsx
+
+For each restaurant listed:
+
+Add Circle Score badge under the name
+
+Optional: show mini avatars or “Rated by X” preview
+
+3. 👥 Circle Feeds
+Files: pages/CircleFeed.tsx, components/CirclePost.tsx
+
+When a restaurant or dish is mentioned in a post or Quick Rating:
+
+Include the Circle Score below the name
+
+Example: “Rated 5/5 by Taylor (Circle Score: 89)”
+
+4. 🔍 Explore/Global Sort Option
+Add dropdown to sort by:
+
+Relevance
+
+Google/Yelp Score
+
+✅ “Top in My Circles”
+(This requires backend support to return results sorted by Circle Score—OK to stub in for now if needed)
+
+🔄 Technical Reuse
+Use shared CircleScoreCard.tsx and useCircleScore.ts
+
+Avoid duplicate fetches—use react-query caching
+
+Gracefully skip display if score is missing or confidence is “low”
+
+🔒 Non-Functional Requirements
+Circle Score must only be visible to logged-in users
+
+Score must reflect only trusted signals (Circle members, followed users)
+
+Maintain performance across all views
+
+No UI/UX regressions to layout, spacing, or card design
+
+✅ Acceptance Criteria
+Feature	Behavior
+✅ Explore feed	Score shown on each card if available
+✅ Lists	Each restaurant shows its Circle Score
+✅ Circle feeds	Score appears next to ratings or mentions
+✅ Sort dropdown	Includes “Top in Circles” option
+✅ Reusability	Circle Score fetch logic is modular
+✅ Performance	All pages remain responsive, use cache
+
+Once this is deployed, we’ll have a consistent trust-based signal layer across all discovery surfaces.
+
+Let me know when you’re ready for the next Epic—such as powering Discover feeds based entirely on Circle Score, or surfacing top trusted contributors.
+
+
+
+
+
+
+
+Ask ChatGPT

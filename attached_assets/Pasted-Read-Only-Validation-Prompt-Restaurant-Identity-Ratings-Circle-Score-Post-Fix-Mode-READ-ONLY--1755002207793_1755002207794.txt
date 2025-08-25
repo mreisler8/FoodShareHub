@@ -1,0 +1,131 @@
+Read-Only Validation Prompt — Restaurant Identity, Ratings, Circle Score (Post-Fix)
+Mode: READ-ONLY. Do not change code.
+Goal: Prove—via logs, samples, and metrics—that:
+
+Ratings never bleed across restaurants
+
+Search → detail handoff via Google Places always resolves to a canonical restaurantId
+
+Circle Score is consistent everywhere and cache invalidates on rating write
+
+Performance meets MVP targets
+
+Tasks (produce a single report):
+
+Feature flags & config sanity
+
+List current values for:
+
+FEATURE_STRICT_IDENTITY
+
+FEATURE_STRICT_RATING_BINDING
+
+FEATURE_DISABLE_RATING_FALLBACK
+
+FEATURE_STRICT_CACHE_KEYS
+
+FEATURE_CIRCLE_SCORE_UNIFIED
+
+FEATURE_PLACES_TIMEOUTS
+
+Confirm all are true in this environment.
+
+Lightweight DB checks (counts + small samples)
+
+Identity coverage:
+
+restaurants with google_place_id vs without
+Duplicate placeId mapping (should be 0; show up to 20 if any)
+
+Ratings flagged as test or with “Universal system test” in notes (count + up to 20 samples)
+
+Ratings rows that still have only google_place_id and missing restaurant_id (count should be 0; show up to 20 if not)
+
+Systemic contamination tests (programmatic)
+
+Create two ephemeral restaurants: R1 (“Test A”), R2 (“Test B”).
+
+Give only R2 a rating by the current user.
+
+Fetch ratings for R1 by restaurantId and by googlePlaceId.
+
+Expected: No rating found for R1 (exists=false). Include responses + relevant logs.
+
+Delete these ephemerals at the end.
+
+Search → page handoff (Google Places aware)
+
+Pick 5 real restaurants at random:
+
+Navigate via search (placeId) to detail page.
+
+Capture:
+
+IDENTITY_RESOLVE … -> restaurantId=…
+
+The page’s restaurantId
+
+User’s existing rating payload (if any): must have same restaurantId
+
+Circle Score shown in both widgets (they must match)
+
+Note any discrepancies (should be none).
+
+Cache & invalidation
+
+For 1 of the 5 sampled restaurants:
+
+Record current circleScore value.
+
+Submit a test rating update (small change) and then revert it.
+
+Verify:
+
+circleScore:{restaurantId} cache was invalidated
+
+The score recomputed (or logically remained same) and matches across both widgets
+
+Provide the log lines that show invalidation.
+
+Performance spot checks
+
+P95 under light concurrency for:
+
+GET /api/restaurant/:restaurantId/circle-score (target: ≤200ms)
+
+Ratings read and write (target: ≤200ms)
+
+Note any >500ms outliers and probable cause.
+
+Log anomalies
+
+Count occurrences in the last validation run window:
+
+RATINGS_MISMATCH
+
+UI_BIND_GUARD
+
+Circle Score deprecation warnings
+
+Expected: 0
+
+Verdict
+
+GO / NO-GO for restaurant page & ratings, with a one-line justification.
+
+List any follow-ups (if needed) as P0/P1.
+
+Output: /docs/RESTAURANT_POSTFIX_VALIDATION.md with:
+
+Flag values
+
+DB counts & samples
+
+Programmatic test outputs
+
+Logs (redacted tokens)
+
+Performance table (P50/P95)
+
+Final GO/NO-GO
+

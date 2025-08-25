@@ -1,0 +1,293 @@
+/* Modern Instagram/Pinterest-inspired Post Card */
+
+.modern-post-card {
+  @apply bg-white rounded-xl overflow-hidden transition-all duration-300;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.modern-post-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* View Mode Variations */
+.modern-post-card--list {
+  @apply w-full max-w-lg mx-auto mb-6;
+}
+
+.modern-post-card--grid {
+  @apply w-full break-inside-avoid mb-4;
+  max-width: 300px;
+}
+
+.modern-post-card--masonry {
+  @apply w-full break-inside-avoid mb-4;
+  column-break-inside: avoid;
+}
+
+/* Header */
+.modern-post-header {
+  @apply flex items-center justify-between p-4 pb-3;
+}
+
+.modern-post-author {
+  @apply flex items-center gap-3;
+}
+
+.modern-post-avatar {
+  @apply w-10 h-10 ring-2 ring-white shadow-md;
+}
+
+.modern-post-avatar-fallback {
+  @apply bg-gradient-to-br from-pink-400 to-purple-500 text-white font-semibold;
+}
+
+.modern-post-author-info {
+  @apply flex flex-col gap-1;
+}
+
+.modern-post-author-name {
+  @apply flex items-center gap-2 text-sm font-semibold text-gray-900;
+}
+
+.modern-post-type-badge {
+  @apply text-xs px-2 py-1 rounded-full text-white flex items-center gap-1;
+}
+
+.modern-post-location {
+  @apply flex items-center gap-1 text-xs text-gray-500;
+}
+
+.modern-post-time {
+  @apply text-gray-400;
+}
+
+.modern-post-menu {
+  @apply text-gray-400 hover:text-gray-600;
+}
+
+/* Media Section */
+.modern-post-media {
+  @apply relative cursor-pointer select-none;
+  aspect-ratio: 1 / 1;
+}
+
+.modern-post-image-container {
+  @apply relative w-full h-full overflow-hidden;
+}
+
+.modern-post-image {
+  @apply w-full h-full object-cover transition-transform duration-300;
+}
+
+.modern-post-image:hover {
+  transform: scale(1.05);
+}
+
+/* Video Support */
+.modern-post-video {
+  @apply relative w-full h-full;
+}
+
+.modern-post-video-element {
+  @apply w-full h-full object-cover;
+}
+
+.modern-post-video-overlay {
+  @apply absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 opacity-0 hover:opacity-100 transition-opacity duration-200;
+}
+
+.modern-post-play-icon {
+  @apply text-white w-12 h-12;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Carousel Indicators */
+.modern-post-carousel-dots {
+  @apply absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1;
+}
+
+.modern-post-dot {
+  @apply w-2 h-2 rounded-full bg-white bg-opacity-50 transition-all duration-200;
+}
+
+.modern-post-dot.active {
+  @apply bg-white scale-125;
+}
+
+/* Rating Overlay */
+.modern-post-rating-overlay {
+  @apply absolute top-3 right-3;
+}
+
+.modern-post-stars {
+  @apply flex items-center gap-1 bg-black bg-opacity-50 backdrop-blur-sm rounded-full px-3 py-1;
+}
+
+.modern-post-star {
+  @apply text-gray-300;
+}
+
+.modern-post-star.filled {
+  @apply text-yellow-400 fill-current;
+}
+
+.modern-post-rating-value {
+  @apply text-white text-sm font-semibold ml-1;
+}
+
+/* Heart Animation */
+.modern-post-heart-animation {
+  @apply absolute inset-0 flex items-center justify-center pointer-events-none;
+  animation: heartPulse 1s ease-out forwards;
+}
+
+.modern-post-heart-icon {
+  @apply text-red-500 fill-current;
+  width: 80px;
+  height: 80px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes heartPulse {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Actions */
+.modern-post-actions {
+  @apply p-4 pt-3;
+}
+
+.modern-post-action-buttons {
+  @apply flex items-center justify-between mb-3;
+}
+
+.modern-post-primary-actions {
+  @apply flex items-center gap-4;
+}
+
+.modern-post-action-btn {
+  @apply text-gray-700 hover:text-gray-900 transition-all duration-200 p-1;
+}
+
+.modern-post-action-btn:hover {
+  transform: scale(1.1);
+}
+
+.modern-post-action-btn.liked {
+  @apply text-red-500;
+  animation: likeHeartBeat 0.5s ease-out;
+}
+
+.modern-post-action-btn.saved {
+  @apply text-gray-900;
+}
+
+@keyframes likeHeartBeat {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* Engagement Stats */
+.modern-post-stats {
+  @apply mb-2;
+}
+
+.modern-post-likes {
+  @apply text-sm font-semibold text-gray-900;
+}
+
+/* Caption */
+.modern-post-caption {
+  @apply text-sm text-gray-900 mb-2 line-clamp-3;
+}
+
+.modern-post-author-username {
+  @apply font-semibold mr-2;
+}
+
+.modern-post-caption-text {
+  @apply text-gray-800;
+}
+
+/* Comments */
+.modern-post-comments-preview {
+  @apply text-sm;
+}
+
+.modern-post-view-comments {
+  @apply text-gray-500 hover:text-gray-700 transition-colors;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modern-post-card--list {
+    @apply mx-2;
+  }
+  
+  .modern-post-header {
+    @apply p-3 pb-2;
+  }
+  
+  .modern-post-actions {
+    @apply p-3 pt-2;
+  }
+  
+  .modern-post-avatar {
+    @apply w-8 h-8;
+  }
+}
+
+/* Glass Morphism Effect */
+.modern-post-card::before {
+  content: '';
+  @apply absolute inset-0 rounded-xl pointer-events-none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  backdrop-filter: blur(10px);
+  z-index: -1;
+}
+
+/* Smooth Transitions */
+.modern-post-card * {
+  transition: all 0.2s ease-out;
+}
+
+/* Touch Improvements for Mobile */
+@media (hover: none) and (pointer: coarse) {
+  .modern-post-action-btn {
+    @apply min-w-[44px] min-h-[44px];
+  }
+  
+  .modern-post-image:hover {
+    transform: none;
+  }
+  
+  .modern-post-card:hover {
+    transform: none;
+  }
+}

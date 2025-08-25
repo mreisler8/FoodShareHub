@@ -1,0 +1,43 @@
+🚀 Search System Validation Suite
+==================================
+🔐 Authenticating for protected endpoints...
+⚠️  Authentication failed - testing public endpoints only
+
+📈 1. Performance Testing
+========================
+
+📊 Testing Restaurant Search with 50 concurrent users...
+  ❌ All requests failed
+
+📊 Testing Restaurant Search with 100 concurrent users...
+  ❌ All requests failed
+⚠️  Skipping User Search - requires authentication
+
+📊 Testing List Search with 50 concurrent users...
+  ❌ All requests failed
+
+📊 Testing List Search with 100 concurrent users...
+  ❌ All requests failed
+
+📊 Testing Unified Search with 50 concurrent users...
+  ❌ All requests failed
+
+📊 Testing Unified Search with 100 concurrent users...
+  ❌ All requests failed
+
+📋 2. API Compliance Testing
+============================
+
+🔍 Validating API compliance for Restaurant Search...
+  API Compliance: 2/5 tests passed
+⚠️  Skipping User Search - requires authentication
+
+🔍 Validating API compliance for List Search...
+  API Compliance: 2/5 tests passed
+
+🔍 Validating API compliance for Unified Search...
+  API Compliance: 2/5 tests passed
+
+🗄️  Checking caching status...
+  Making first request...
+  ❌ Cache test failed: Request failed with status code 401

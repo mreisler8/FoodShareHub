@@ -1,0 +1,130 @@
+AGENT PROMPT: Transform Feed to Modern Image-First Social Experience
+OBJECTIVE: Convert the current FeedSection from a basic social feed to a premium, Instagram/Pinterest-inspired visual experience that prioritizes imagery, engagement, and modern UI patterns.
+
+CONTEXT: You have a sophisticated Circles app with Circle Score trust system, smart polling, memory management, and mobile-first design. The feed must integrate seamlessly while delivering a premium visual experience that rivals top social platforms.
+
+CORE REQUIREMENTS
+1. VISUAL HIERARCHY TRANSFORMATION
+
+Full-Width Images: Make images the primary focus - full-width, high-quality, with optimized aspect ratios
+Minimal Text Overlay: Restaurant name and user info should overlay images, not compete with them
+Grid Layout Option: Implement both list view (current) and grid view for discovery browsing
+Rich Media Support: Enhanced video, carousel, and story support
+2. MODERN INTERACTION PATTERNS
+
+Double-Tap to Like: Instagram-style heart animation on image double-tap
+Swipe Gestures: Horizontal swipe for image carousels, vertical for feed navigation
+Quick Actions: Floating action buttons that appear on hover/touch
+Story-Style Viewing: Full-screen story mode for Food Moments
+3. ENHANCED VISUAL DESIGN
+
+Gradient Overlays: Subtle gradients on images for text readability
+Blur Effects: Background blur for modals and overlays
+Smooth Animations: 60fps transitions, parallax effects, and micro-interactions
+Typography Scale: Bold, readable text hierarchy with proper contrast
+4. PINTEREST-STYLE DISCOVERY
+
+Masonry Grid: Optional Pinterest-style staggered grid layout
+Infinite Scroll: Seamless content loading with intelligent prefetching
+Smart Categorization: Visual tags and categories for easy browsing
+Related Content: "More like this" suggestions based on visual similarity
+TECHNICAL IMPLEMENTATION
+A. ENHANCED POST CARD COMPONENT
+
+// Modern image-first post card with:
+- Full-width hero images with lazy loading
+- Overlay user info with glass morphism effect
+- Floating action buttons with haptic feedback
+- Smart aspect ratio detection (square, portrait, landscape)
+- Progressive image enhancement
+B. FEED LAYOUT SYSTEM
+
+// Implement multiple view modes:
+- List View (current enhanced)
+- Grid View (2-3 columns)
+- Masonry View (Pinterest-style)
+- Stories View (full-screen)
+C. PERFORMANCE OPTIMIZATIONS
+
+Image Optimization: WebP format, multiple sizes, progressive loading
+Virtual Scrolling: Only render visible posts for performance
+Smart Caching: Intelligent image and content caching
+Memory Management: Integration with existing useMemoryManagement hook
+UI/UX SPECIFICATIONS
+STORIES SECTION ENHANCEMENT
+
+Larger story rings (20% bigger)
+Auto-playing preview videos
+Story creation quick-access
+Friend activity indicators
+POST INTERACTION REDESIGN
+
+Heart animation on double-tap (Instagram-style)
+Comment bubble with real-time count
+Share button with platform-specific options
+Save/bookmark with visual feedback
+VISUAL EFFECTS
+
+Parallax scrolling on hero images
+Fade-in animations for new content
+Smooth color transitions based on image dominant colors
+Glass morphism effects for overlays
+INTEGRATION REQUIREMENTS
+CIRCLE SCORE INTEGRATION
+
+Trust badges prominently displayed on posts
+Circle Score-influenced content ranking
+Visual trust indicators (verified checkmarks, trust rings)
+SMART POLLING & PERFORMANCE
+
+Maintain sub-300ms response times
+Smart content prefetching
+Battery-optimized animations
+Network-aware image loading
+COMPETITIVE BENCHMARKS
+Instagram Inspiration
+
+Stories carousel at top
+Double-tap interactions
+Clean overlay design
+Smooth transitions
+Pinterest Visual Design
+
+Image-first content strategy
+Masonry grid layouts
+Rich visual discovery
+Hover state interactions
+TikTok Engagement
+
+Full-screen content option
+Gesture-based navigation
+Quick action accessibility
+Seamless content flow
+MOBILE-FIRST CONSIDERATIONS
+Touch Interactions
+
+Large, accessible touch targets (44px minimum)
+Gesture-based navigation
+Haptic feedback for interactions
+One-handed operation optimization
+Performance
+
+60fps scrolling on mobile devices
+Optimized for low-power mode
+Progressive enhancement for slower connections
+Smart image compression
+DELIVERABLES
+Enhanced FeedSection.tsx - Modern layout with multiple view modes
+ModernPostCard.tsx - Image-first post component
+FeedLayoutProvider.tsx - Context for managing view modes
+Enhanced PostCard.css - Modern animations and effects
+ImageOptimizer.tsx - Smart image loading and optimization
+SUCCESS METRICS
+
+Visual appeal matches Instagram/Pinterest quality
+Maintains existing Circle Score and trust features
+Performance stays under 300ms response times
+Mobile-optimized touch interactions
+Seamless integration with existing architecture
+Transform this feed from a basic social timeline into a premium visual discovery experience that users will want to spend time exploring and engaging with.
+

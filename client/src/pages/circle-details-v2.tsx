@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
 import { ShareListModal } from "@/components/circles/ShareListModal";
-import { UserSearchModal } from "@/components/search/UserSearchModal";
+import { OptimizedSearchModal } from "@/components/search/OptimizedSearchModal";
 import { 
   ArrowLeft, 
   Users, 

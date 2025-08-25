@@ -1,14 +1,17 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2, Navigation } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Search, Clock, TrendingUp, MapPin, User, FileText, UtensilsCrossed, Star, Loader2, Navigation, UserPlus, UserCheck, Plus } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { locationService, type LocationData } from '@/services/locationService';
+import { LocationService, type LocationData } from '@/services/locationService';
+import { SearchResultsList } from './SearchResultsList';
+import { SearchReliabilityFix } from '@/components/mvp/SearchReliabilityFix';
 import './UnifiedSearchModal.css';
 
 interface SearchResult {
@@ -20,6 +23,21 @@ interface SearchResult {
   location?: string;
   thumbnailUrl?: string;
   avgRating?: number;
+  // User-specific fields
+  username?: string;
+  bio?: string;
+  profilePicture?: string;
+  isFollowing?: boolean;
+  // List-specific fields
+  description?: string;
+  tags?: string[];
+  // Restaurant-specific fields
+  cuisine?: string;
+  priceRange?: string;
+  metadata?: {
+    googlePlaceId?: string;
+    [key: string]: any;
+  };
 }
 
 interface SearchResults {
@@ -32,18 +50,50 @@ interface SearchResults {
 interface UnifiedSearchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // NEW: Optional context-aware props for list building
+  selectionMode?: 'navigate' | 'select' | 'multi-select'; // Default: 'navigate'
+  onSelectResult?: (result: SearchResult) => void;
+  onSelectMultiple?: (results: SearchResult[]) => void; // NEW: For bulk selection
+  showSelectionUI?: boolean; // Default: false
+  allowMultiSelect?: boolean; // NEW: Enable multi-select mode
 }
 
-export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalProps) {
+export function UnifiedSearchModal({ 
+  open, 
+  onOpenChange,
+  selectionMode = 'navigate',
+  onSelectResult,
+  onSelectMultiple,
+  showSelectionUI = false,
+  allowMultiSelect = false
+}: UnifiedSearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('restaurants');
-  const [recentSearches] = useState(['Pizza', 'Sushi', 'Best coffee', 'Date night', 'Brunch spots']);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  // NEW: Multi-select state management
+  const [selectedResults, setSelectedResults] = useState<SearchResult[]>([]);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+
+  // Fetch personalized recent searches
+  const { data: personalizedSearches } = useQuery({
+    queryKey: ['/api/search/recent-searches'],
+    queryFn: async () => {
+      const response = await fetch('/api/search/recent-searches');
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent searches');
+      }
+      return response.json();
+    },
+    enabled: open,
+    staleTime: 300000, // 5 minutes
+  });
   const [, setLocation] = useLocation();
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(searchQuery, 300);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -53,20 +103,30 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   // Request location on modal open
   useEffect(() => {
-    if (open && locationPermission === 'prompt') {
+    if (open && locationPermission === null) {
       requestLocation();
     }
-  }, [open]);
+  }, [open, locationPermission]);
 
   const requestLocation = async () => {
     try {
+      setLocationPermission('prompt');
+
+      // Use the LocationService instance with better error handling
+      const locationService = LocationService.getInstance();
       const location = await locationService.getCurrentLocation();
-      setUserLocation(location);
-      setLocationPermission('granted');
-      console.log('Location obtained:', location);
+
+      if (location && location.lat && location.lng) {
+        setUserLocation(location);
+        setLocationPermission('granted');
+        console.log('Location obtained:', location);
+      } else {
+        throw new Error('Invalid location data received');
+      }
     } catch (error) {
       console.error('Location access denied:', error);
       setLocationPermission('denied');
+      // Continue without location - this shouldn't break search
     }
   };
 
@@ -75,44 +135,83 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     queryKey: ['/api/search/unified', { q: debouncedQuery, location: userLocation }],
     queryFn: async () => {
       let searchUrl = `/api/search/unified?q=${encodeURIComponent(debouncedQuery)}`;
-      
+
       // Add location parameters if available
       if (userLocation) {
         searchUrl += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
       }
-      
+
+      console.log('🔍 Making search request to:', searchUrl);
+
       const response = await fetch(searchUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        credentials: 'include',
+        signal: AbortSignal.timeout(8000)
       });
-      
+
+      console.log('🔍 Search response status:', response.status);
+
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Search service unavailable');
+        }
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        if (response.status >= 500) {
+          throw new Error('Server error - please try again');
+        }
         const errorData = await response.json().catch(() => ({ error: 'Search failed' }));
         throw new Error(errorData.error || 'Search failed');
       }
+
       const data = await response.json();
-      
-      // Ensure avgRating is always a valid number
-      const processResults = (results: SearchResult[]) => {
-        return results.map(result => ({
-          ...result,
-          avgRating: typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating : 4.0
-        }));
+      console.log('🔍 Search response data:', data);
+
+      // Handle both new API format (data.results) and legacy format
+      const results = data.results || data;
+
+      // Ensure we have proper arrays and transform restaurant data for UI
+      const transformedResults = {
+        restaurants: (results.restaurants || []).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          address: r.address,
+          city: r.city,
+          cuisine: r.cuisine,
+          priceRange: r.priceRange,
+          imageUrl: r.imageUrl,
+          googlePlaceId: r.googlePlaceId,
+          verified: r.verified,
+          source: r.source,
+          rating: r.rating,
+          distance: r.distance,
+          relevanceScore: r.relevanceScore
+        })),
+        lists: results.lists || [],
+        posts: results.posts || [],
+        users: results.users || []
       };
-      
-      return {
-        restaurants: processResults(data.restaurants || []),
-        lists: data.lists || [],
-        posts: data.posts || [],
-        users: data.users || []
-      };
+
+      console.log('🔍 Transformed search results:', transformedResults);
+      return transformedResults;
     },
     enabled: !!debouncedQuery && debouncedQuery.length >= 2,
     staleTime: 30000,
-    retry: 3,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error.message.includes('Authentication required')) {
+        return false;
+      }
+      // Don't retry on client errors (4xx)
+      if (error.message.includes('service unavailable')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
@@ -121,16 +220,29 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
     queryKey: ['/api/search/trending', { location: userLocation }],
     queryFn: async () => {
       let trendingUrl = '/api/search/trending';
-      
+
       // Add location parameters if available
       if (userLocation) {
         trendingUrl += `?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`;
       }
-      
+
       const response = await fetch(trendingUrl);
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        if (response.status >= 500) {
+          throw new Error('Server error - please try again');
+        }
         throw new Error('Failed to fetch trending content');
       }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid trending response content type:', contentType);
+        throw new Error('Invalid response format');
+      }
+
       return response.json();
     },
     enabled: open && !debouncedQuery,
@@ -138,35 +250,123 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
   });
 
   const handleResultClick = (result: SearchResult) => {
-    // Navigate based on result type
-    switch (result.type) {
-      case 'restaurant':
-        // Handle both database and Google Places results
-        if (result.id.startsWith('google_')) {
-          const googlePlaceId = result.id.replace('google_', '');
-          setLocation(`/restaurants/google/${googlePlaceId}`);
+    try {
+      // Validate result before processing
+      if (!result || !result.id || !result.type) {
+        console.error('Invalid search result:', result);
+        return;
+      }
+
+      console.log('🔗 Processing result click:', result.type, result.id, result, 'Mode:', selectionMode);
+
+      // Handle selection mode for list building
+      if (selectionMode === 'select' && onSelectResult) {
+        console.log('📋 Selecting result for list:', result);
+        onSelectResult(result);
+        onOpenChange(false);
+        return;
+      }
+
+      // Handle multi-select mode
+      if (selectionMode === 'multi-select' && allowMultiSelect) {
+        const isSelected = selectedResults.some(r => r.id === result.id);
+        if (isSelected) {
+          setSelectedResults(prev => prev.filter(r => r.id !== result.id));
         } else {
-          setLocation(`/restaurants/${result.id}`);
+          setSelectedResults(prev => [...prev, result]);
         }
-        onOpenChange(false);
-        break;
-      case 'list':
-        setLocation(`/lists/${result.id}`);
-        onOpenChange(false);
-        break;
-      case 'post':
-        setLocation(`/posts/${result.id}`);
-        onOpenChange(false);
-        break;
-      case 'user':
-        setLocation(`/profile/${result.id}`);
-        onOpenChange(false);
-        break;
+        return;
+      }
+
+      // Default navigation behavior (preserves existing functionality)
+      console.log('🔗 Navigating to result:', result.type, result.id, result);
+
+      // Navigate based on result type with enhanced routing
+      switch (result.type) {
+        case 'restaurant':
+          // Handle both database and Google Places results
+          if (result.metadata?.googlePlaceId) {
+            console.log('🔗 Navigating to Google Places restaurant:', result.metadata.googlePlaceId);
+            setLocation(`/restaurants/google/${encodeURIComponent(result.metadata.googlePlaceId)}`);
+          } else if (result.id.toString().startsWith('google_')) {
+            const googlePlaceId = result.id.toString().replace('google_', '');
+            console.log('🔗 Navigating to Google Places restaurant (from ID):', googlePlaceId);
+            setLocation(`/restaurants/google/${encodeURIComponent(googlePlaceId)}`);
+          } else {
+            console.log('🔗 Navigating to database restaurant:', result.id);
+            setLocation(`/restaurants/${encodeURIComponent(result.id)}`);
+          }
+          break;
+        case 'list':
+          console.log('🔗 Navigating to list:', result.id);
+          setLocation(`/list-details?id=${encodeURIComponent(result.id)}`);
+          break;
+        case 'post':
+          console.log('🔗 Navigating to post:', result.id);
+          setLocation(`/post-details?id=${encodeURIComponent(result.id)}`);
+          break;
+        case 'user':
+          console.log('🔗 Navigating to user profile:', result.id);
+          setLocation(`/profile?userId=${encodeURIComponent(result.id)}`);
+          break;
+        default:
+          console.error('Unknown result type:', result.type);
+          return;
+      }
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error handling search result click:', error);
     }
   };
 
   const handleRecentSearchClick = (term: string) => {
     setSearchQuery(term);
+  };
+
+  const handleFollowToggle = async (userId: string, isFollowing?: boolean) => {
+    try {
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/follow/${userId}`, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `HTTP ${response.status}: ${errorText}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // Keep original error message if JSON parsing fails
+        }
+
+        // If already following/unfollowing, just refresh to sync state
+        if (errorMessage.includes('Already following') || errorMessage.includes('Not following')) {
+          refetch();
+          return;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // Refresh search results to update follow status
+      refetch();
+
+      // Also invalidate all user-related queries to ensure consistency
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/search/unified'] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/users'] 
+      });
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      // Show user-friendly error message
+      alert(error instanceof Error ? error.message : 'Failed to toggle follow');
+    }
   };
 
   const getTabIcon = (tab: string) => {
@@ -194,25 +394,78 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] p-0" aria-describedby="search-description">
+      <DialogContent 
+        className="max-w-2xl max-h-[80vh] p-0" 
+        aria-describedby="search-description"
+      >
         <div className="sr-only">
           <h2 id="search-title">Search</h2>
           <p id="search-description">Search for restaurants, lists, posts, and people</p>
         </div>
         {/* Search Header */}
         <div className="p-6 pb-4 border-b">
+          {/* Selection Mode Indicator */}
+          {(selectionMode === 'select' || selectionMode === 'multi-select') && (
+            <div className="mb-3 flex items-center justify-between bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm">
+              <div className="flex items-center gap-2">
+                <UtensilsCrossed className="h-4 w-4" />
+                <span className="font-medium">Adding to list</span>
+                {selectionMode === 'multi-select' ? (
+                  <span className="text-blue-600">
+                    • Select multiple restaurants ({selectedResults.length} selected)
+                  </span>
+                ) : (
+                  <span className="text-blue-600">• Click restaurants to add them</span>
+                )}
+              </div>
+              
+              {/* Multi-select actions */}
+              {selectionMode === 'multi-select' && (
+                <div className="flex items-center gap-2">
+                  {selectedResults.length > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (onSelectMultiple) {
+                          onSelectMultiple(selectedResults);
+                          setSelectedResults([]);
+                          onOpenChange(false);
+                        }
+                      }}
+                      className="h-7 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                    >
+                      Add Selected ({selectedResults.length})
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedResults([])}
+                    className="h-7 px-2 text-blue-600 hover:text-blue-700 text-xs"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Search restaurants, lists, posts, people…"
+              placeholder={
+                selectionMode === 'select' || selectionMode === 'multi-select'
+                  ? "Search restaurants to add to your list…"
+                  : "Search restaurants, lists, posts, people…"
+              }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-11"
             />
           </div>
-          
+
           {/* Location Status */}
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center gap-2">
@@ -220,7 +473,9 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                 <div className="flex items-center gap-1 text-xs text-green-600">
                   <Navigation className="h-3 w-3" />
                   <span>
-                    Searching near {userLocation.city || `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}`}
+                    Searching near {userLocation.city && userLocation.city !== `${userLocation.lat.toFixed(2)}, ${userLocation.lng.toFixed(2)}` 
+                      ? userLocation.city 
+                      : 'your location'}
                   </span>
                 </div>
               )}
@@ -238,8 +493,28 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                   </Button>
                 </div>
               )}
+              {locationPermission === 'prompt' && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Navigation className="h-3 w-3 animate-pulse" />
+                  <span>Requesting location access...</span>
+                </div>
+              )}
+              {!locationPermission && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span>Location services disabled</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={requestLocation}
+                    className="h-6 text-xs ml-2"
+                  >
+                    Enable Location
+                  </Button>
+                </div>
+              )}
             </div>
-            
+
             {debouncedQuery && (
               <div className="text-xs text-muted-foreground">
                 {userLocation ? 'Searching nearby' : 'Searching everywhere'}
@@ -259,7 +534,7 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                   <span className="text-sm font-medium">Recent Searches</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {recentSearches.map((term, index) => (
+                  {(personalizedSearches?.recent || []).map((term: string, index: number) => (
                     <Button
                       key={index}
                       variant="outline"
@@ -364,56 +639,198 @@ export function UnifiedSearchModal({ open, onOpenChange }: UnifiedSearchModalPro
                   </div>
 
                   <div className="overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
-                    {Object.entries(searchResults || {}).map(([type, items]) => (
-                      <TabsContent key={type} value={type} className="m-0 p-6">
+                    <TabsContent value="restaurants" className="m-0 p-6">
+                      {searchResults?.restaurants?.length > 0 ? (
                         <div className="space-y-2">
-                          {items.map((result: SearchResult) => (
-                            <Button
-                              key={result.id}
-                              variant="ghost"
-                              className="w-full h-auto p-3 justify-start"
-                              onClick={() => handleResultClick(result)}
+                          {searchResults.restaurants.map((restaurant: any) => (
+                            <div
+                              key={restaurant.id}
+                              onClick={() => handleResultClick({
+                                id: restaurant.id.toString(),
+                                name: restaurant.name,
+                                type: 'restaurant',
+                                location: restaurant.address || restaurant.city,
+                                subtitle: restaurant.cuisine,
+                                metadata: {
+                                  googlePlaceId: restaurant.googlePlaceId
+                                }
+                              })}
+                              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                selectionMode === 'select' || selectionMode === 'multi-select'
+                                  ? 'hover:bg-blue-50 border border-transparent hover:border-blue-200' 
+                                  : 'hover:bg-muted'
+                              } ${
+                                selectionMode === 'multi-select' && selectedResults.some(r => r.id === restaurant.id.toString())
+                                  ? 'bg-blue-100 border-blue-300'
+                                  : ''
+                              }`}
                             >
-                              <div className="flex items-center gap-3 w-full">
-                                <div className="flex-shrink-0">
-                                  {result.thumbnailUrl ? (
-                                    <img 
-                                      src={result.thumbnailUrl} 
-                                      alt={result.name}
-                                      className="w-10 h-10 object-cover rounded"
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                                      {getResultIcon(result.type)}
-                                    </div>
-                                  )}
+                              {/* Multi-select checkbox */}
+                              {selectionMode === 'multi-select' && (
+                                <div 
+                                  className="flex items-center"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedResults.some(r => r.id === restaurant.id.toString())}
+                                    onChange={(e) => {
+                                      const result = {
+                                        id: restaurant.id.toString(),
+                                        name: restaurant.name,
+                                        type: 'restaurant' as const,
+                                        location: restaurant.address || restaurant.city,
+                                        subtitle: restaurant.cuisine,
+                                        metadata: {
+                                          googlePlaceId: restaurant.googlePlaceId
+                                        }
+                                      };
+                                      handleResultClick(result);
+                                    }}
+                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                  />
                                 </div>
-                                <div className="flex-1 text-left">
-                                  <div className="font-medium text-sm">{result.name}</div>
-                                  <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                    {result.location && (
-                                      <span className="flex items-center gap-1">
-                                        <MapPin className="h-3 w-3" />
-                                        {result.location}
-                                      </span>
-                                    )}
-                                    {result.avgRating && (
-                                      <span className="flex items-center gap-1">
-                                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                        {typeof result.avgRating === 'number' && !isNaN(result.avgRating) ? result.avgRating.toFixed(1) : '4.0'}
-                                      </span>
-                                    )}
-                                    {result.subtitle && !result.location && !result.avgRating && (
-                                      <span>{result.subtitle}</span>
-                                    )}
-                                  </div>
+                              )}
+                              
+                              <UtensilsCrossed className="h-4 w-4 text-primary" />
+                              <div className="flex-1">
+                                <div className="font-medium">{restaurant.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {restaurant.cuisine} • {restaurant.address || restaurant.city}
                                 </div>
                               </div>
-                            </Button>
+                              {selectionMode === 'select' && (
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleResultClick({
+                                      id: restaurant.id.toString(),
+                                      name: restaurant.name,
+                                      type: 'restaurant',
+                                      location: restaurant.address || restaurant.city,
+                                      subtitle: restaurant.cuisine,
+                                      metadata: {
+                                        googlePlaceId: restaurant.googlePlaceId
+                                      }
+                                    });
+                                  }}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add
+                                </Button>
+                              )}
+                            </div>
                           ))}
                         </div>
-                      </TabsContent>
-                    ))}
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No restaurants found
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="users" className="m-0 p-6">
+                      {searchResults?.users?.length > 0 ? (
+                        <div className="space-y-2">
+                          {searchResults.users.map((user: any) => (
+                            <div
+                              key={user.id}
+                              onClick={() => handleResultClick({
+                                id: user.id.toString(),
+                                name: user.name,
+                                type: 'user',
+                                subtitle: user.bio,
+                                username: user.username,
+                                profilePicture: user.profilePicture
+                              })}
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
+                            >
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.profilePicture} alt={user.name} />
+                                <AvatarFallback>
+                                  {user.name?.slice(0, 2).toUpperCase() || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  @{user.username}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No people found
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="lists" className="m-0 p-6">
+                      {searchResults?.lists?.length > 0 ? (
+                        <div className="space-y-2">
+                          {searchResults.lists.map((list: any) => (
+                            <div
+                              key={list.id}
+                              onClick={() => handleResultClick({
+                                id: list.id.toString(),
+                                name: list.name,
+                                type: 'list',
+                                subtitle: list.description,
+                                tags: list.tags
+                              })}
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
+                            >
+                              <FileText className="h-4 w-4 text-blue-500" />
+                              <div className="flex-1">
+                                <div className="font-medium">{list.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {list.description}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No lists found
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="posts" className="m-0 p-6">
+                      {searchResults?.posts?.length > 0 ? (
+                        <div className="space-y-2">
+                          {searchResults.posts.map((post: any) => (
+                            <div
+                              key={post.id}
+                              onClick={() => handleResultClick({
+                                id: post.id.toString(),
+                                name: post.content,
+                                type: 'post',
+                                subtitle: 'Post'
+                              })}
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
+                            >
+                              <MapPin className="h-4 w-4 text-blue-500" />
+                              <div className="flex-1">
+                                <div className="font-medium">{post.content}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Post
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No posts found
+                        </div>
+                      )}
+                    </TabsContent>
                   </div>
                 </Tabs>
               ) : (

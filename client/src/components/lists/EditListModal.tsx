@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { queryKeys, useListCacheHelpers } from "@/lib/queryKeys";
+import { PrivacySelector } from "@/components/privacy/PrivacySelector";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -27,15 +29,24 @@ interface EditListModalProps {
 export function EditListModal({ open, onOpenChange, list }: EditListModalProps) {
   const [name, setName] = useState(list.name);
   const [description, setDescription] = useState(list.description || "");
+  const [visibility, setVisibility] = useState<'public' | 'private' | 'followers' | 'circle'>(
+    (list.visibility as 'public' | 'private' | 'followers' | 'circle') || (list.makePublic ? 'public' : 'private')
+  );
+  const [visibilityCircleIds, setVisibilityCircleIds] = useState<number[]>(
+    list.visibilityCircleIds || []
+  );
   const [shareWithCircle, setShareWithCircle] = useState(list.shareWithCircle || false);
   const [makePublic, setMakePublic] = useState(list.makePublic || false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateList, invalidateCollections } = useListCacheHelpers();
 
   // Reset form when list changes
   useEffect(() => {
     setName(list.name);
     setDescription(list.description || "");
+    setVisibility((list.visibility as 'public' | 'private' | 'followers' | 'circle') || (list.makePublic ? 'public' : 'private'));
+    setVisibilityCircleIds(list.visibilityCircleIds || []);
     setShareWithCircle(list.shareWithCircle || false);
     setMakePublic(list.makePublic || false);
   }, [list]);
@@ -43,23 +54,24 @@ export function EditListModal({ open, onOpenChange, list }: EditListModalProps) 
   const updateListMutation = useMutation({
     mutationFn: async () => {
       const data = {
-        name,
-        description: description || null,
-        shareWithCircle,
-        makePublic,
-        visibility: makePublic ? 'public' : (shareWithCircle ? 'circle' : 'private')
+        name: name.trim(),
+        description: description?.trim() || null,
+        visibility,
+        visibilityCircleIds: visibility === 'circle' ? visibilityCircleIds : null
       };
       
-      const res = await apiRequest("PUT", `/api/lists/${list.id}`, data);
-      return res.json();
+      return await apiRequest(`/api/lists/${list.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       toast({
         title: "List updated",
         description: "Your list has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/lists/${list.id}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      invalidateList(list.id);
+      invalidateCollections();
       onOpenChange(false);
     },
     onError: (error: Error) => {

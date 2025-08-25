@@ -1,690 +1,574 @@
-
-import { Router } from "express";
-import { authenticate } from "../auth";
-import { db } from "../db";
-import { restaurants, restaurantLists, posts, users, userFollowers, circleMembers } from "../../shared/schema";
-import { eq, and, or, like, desc, sql, ilike, ne } from "drizzle-orm";
-import { searchGooglePlaces, getPlaceDetails } from "../services/google-places";
-import { PermissionService } from "../services/permissions";
+import { Router } from 'express';
+import { db } from '../db';
+import { restaurants, restaurantLists, posts, users } from '../../shared/schema';
+import { ilike, or, and, eq, desc } from 'drizzle-orm';
+import { authenticate } from '../auth';
+import { searchGooglePlaces } from '../services/google-places';
+import { SearchEngineService } from '../services/search-engine';
 
 const router = Router();
 
-// Unified search endpoint with consistent response format
-router.get("/", authenticate, async (req, res) => {
+// Initialize search engine service
+const searchEngine = SearchEngineService.getInstance();
+
+// Helper function to deduplicate restaurants - PREFER GOOGLE PLACES over database entries
+const deduplicateRestaurants = (results: any[]) => {
+  const seenByPlaceId = new Map();
+  const seenByDbId = new Set();
+  const deduplicated: any[] = [];
+
+  // First pass: collect all Google Places results
+  for (const result of results) {
+    if (result.googlePlaceId && result.source === 'google_places') {
+      seenByPlaceId.set(result.googlePlaceId, result);
+    }
+  }
+
+  // Second pass: add results, preferring Google Places
+  for (const result of results) {
+    if (result.googlePlaceId) {
+      // If we have a Google Places version of this restaurant, use that
+      if (seenByPlaceId.has(result.googlePlaceId)) {
+        const googlePlacesResult = seenByPlaceId.get(result.googlePlaceId);
+        if (!deduplicated.includes(googlePlacesResult)) {
+          deduplicated.push(googlePlacesResult);
+        }
+      }
+      // Skip database versions if we have Google Places version
+    } else {
+      // Handle database-only results (no Google Place ID)
+      const dbId = result.id;
+      if (!seenByDbId.has(dbId)) {
+        seenByDbId.add(dbId);
+        deduplicated.push(result);
+      }
+    }
+  }
+
+  return deduplicated;
+};
+
+// Unified search endpoint using advanced SearchEngineService with person name detection
+router.get('/unified', authenticate, async (req, res) => {
   try {
-    const { q, type = "all" } = req.query;
-    
-    if (!q || typeof q !== "string") {
-      return res.status(400).json({ 
-        error: "Search query is required",
-        code: "MISSING_QUERY"
-      });
+    const { q, type, limit = 20, offset = 0, lat, lng, radius } = req.query;
+    const query = q as string;
+    const searchType = type as string;
+    const limitNum = parseInt(limit as string) || 20;
+    const offsetNum = parseInt(offset as string) || 0;
+
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
     }
-    
-    const searchTerm = q.trim();
-    if (searchTerm.length < 2) {
-      return res.status(400).json({ 
-        error: "Search query must be at least 2 characters",
-        code: "QUERY_TOO_SHORT"
-      });
-    }
-    
-    const searchPattern = `%${searchTerm}%`;
-    const results: any[] = [];
-    
-    // Search restaurants with consistent format
-    if (type === "all" || type === "restaurants") {
+
+    // Advanced search with person name detection and semantic expansion
+    const searchOptions = {
+      query: query,
+      location: lat && lng ? {
+        lat: parseFloat(lat as string),
+        lng: parseFloat(lng as string)
+      } : undefined,
+      radius: radius ? parseInt(radius as string) : 10000,
+      limit: limitNum,
+      includeLocation: !!lat && !!lng,
+      sortBy: 'relevance' as const,
+      userId: req.user?.id
+    };
+
+    console.log(`🔍 Search route processing query: "${query}" with options:`, searchOptions);
+
+    const results: any = {};
+
+    // Search restaurants using combined database + Google Places approach
+    if (!searchType || searchType === 'restaurants') {
+      console.log(`🔍 COMBINED SEARCH START: "${query}" with database + Google Places integration`);
+
+      let databaseResults: any[] = [];
+      let googleResults: any[] = [];
+
       try {
-        // First get restaurants from database
-        const restaurantResults = await db
+        // First, try advanced search engine
+        const advancedResults = await searchEngine.search(searchOptions);
+        databaseResults = advancedResults.map((result: any) => ({
+          id: result.id.includes('google_') ? result.id : parseInt(result.id),
+          name: result.name,
+          address: result.location?.address || result.metadata?.address,
+          city: result.location?.city || result.metadata?.city || result.metadata?.location,
+          cuisine: result.metadata?.cuisine || result.metadata?.category,
+          priceRange: result.metadata?.priceRange,
+          imageUrl: result.metadata?.imageUrl,
+          googlePlaceId: result.metadata?.googlePlaceId,
+          verified: result.metadata?.verified || result.metadata?.source === 'google_places',
+          source: result.metadata?.source || 'database',
+          rating: result.metadata?.rating,
+          distance: result.location?.distance,
+          relevanceScore: result.relevanceScore
+        }));
+
+        console.log(`🎯 Advanced search results: ${databaseResults.length} restaurants`);
+      } catch (error) {
+        console.error('❌ ADVANCED SEARCH ERROR, using basic database search:', error);
+
+        // Fallback to basic database search with enhanced data
+        const basicResults = await db
           .select({
             id: restaurants.id,
             name: restaurants.name,
+            address: restaurants.address,
+            city: restaurants.city,
             location: restaurants.location,
+            cuisine: restaurants.cuisine,
             category: restaurants.category,
             priceRange: restaurants.priceRange,
             imageUrl: restaurants.imageUrl,
-            cuisine: restaurants.cuisine,
-            address: restaurants.address,
             googlePlaceId: restaurants.googlePlaceId,
+            verified: restaurants.verified
           })
           .from(restaurants)
           .where(
             or(
-              ilike(restaurants.name, searchPattern),
-              ilike(restaurants.location, searchPattern),
-              ilike(restaurants.category, searchPattern),
-              ilike(restaurants.cuisine, searchPattern)
+              ilike(restaurants.name, `%${query.trim()}%`),
+              ilike(restaurants.address, `%${query.trim()}%`),
+              ilike(restaurants.city, `%${query.trim()}%`),
+              ilike(restaurants.location, `%${query.trim()}%`),
+              ilike(restaurants.cuisine, `%${query.trim()}%`),
+              ilike(restaurants.category, `%${query.trim()}%`)
             )
           )
-          .limit(10);
-        
-        console.log('Database search results:', restaurantResults.length, 'restaurants found');
-        
-        // Transform to unified format with proper rating calculation and location fetching
-        const formattedRestaurants = await Promise.all(restaurantResults.map(async (r) => {
-          let location = r.location;
+          .orderBy(desc(restaurants.verified), restaurants.name)
+          .limit(limitNum);
+
+        databaseResults = basicResults.map(result => ({
+          ...result,
+          source: 'database',
+          relevanceScore: result.name.toLowerCase().includes(query.toLowerCase()) ? 90 : 70,
+          rating: 4.0 // Default rating for display
+        }));
+      }
+
+      // PRIORITY 1: Search Google Places API first with location-based ranking
+    try {
+      console.log(`🌍 PRIORITY SEARCH: Google Places API for: "${query}"`);
+      const location = searchOptions.location ? {
+        lat: searchOptions.location.lat,
+        lng: searchOptions.location.lng,
+        radius: searchOptions.radius
+      } : undefined;
+
+      // Force Google Places search for all restaurant queries
+      googleResults = await searchGooglePlaces(query, location);
+
+      // Transform Google Places results with PRIORITY SCORING
+      googleResults = googleResults.map(result => ({
+        id: `google_${result.googlePlaceId}`,
+        name: result.name,
+        address: result.address,
+        city: result.location,
+        cuisine: result.cuisine,
+        priceRange: result.priceRange,
+        imageUrl: result.imageUrl,
+        googlePlaceId: result.googlePlaceId,
+        verified: true,
+        source: 'google_places',
+        rating: result.rating,
+        distance: result.distance,
+        // Add metadata for proper frontend handling
+        metadata: {
+          googlePlaceId: result.googlePlaceId,
+          source: 'google_places',
+          address: result.address,
+          city: result.location,
+          cuisine: result.cuisine,
+          rating: result.rating
+        },
+        // BOOST Google Places results significantly
+        relevanceScore: location ? (result.relevanceScore || 90) + 15 : (result.relevanceScore || 85)
+      }));
+
+      console.log(`🌍 Google Places PRIORITY results: ${googleResults.length} restaurants`);
+    } catch (error) {
+      console.error('❌ Google Places API error:', error);
+      googleResults = [];
+    }
+
+      // Combine and deduplicate results - PRIORITIZE GOOGLE PLACES
+      const allResults = [...databaseResults, ...googleResults];
+      const deduplicatedResults = deduplicateRestaurants(allResults);
+
+      // Sort by GOOGLE PLACES FIRST, then relevance score and rating
+      results.restaurants = deduplicatedResults
+        .sort((a, b) => {
+          // PRIORITY 1: Google Places results always beat database results for same restaurant
+          const aIsGoogle = a.source === 'google_places';
+          const bIsGoogle = b.source === 'google_places';
           
-          console.log('Processing restaurant:', r.name, 'with location:', location, 'googlePlaceId:', r.googlePlaceId);
-          
-          // If location is unknown but we have a Google Place ID, fetch the location
-          if ((!location || location === 'Unknown location') && r.googlePlaceId) {
-            try {
-              console.log('Fetching location for restaurant:', r.name, 'with place ID:', r.googlePlaceId);
-              const placeDetails = await getPlaceDetails(r.googlePlaceId);
-              if (placeDetails && placeDetails.address) {
-                location = placeDetails.address;
-                console.log('Updated location for restaurant:', r.name, 'to:', location);
-              } else {
-                console.log('No address found in place details for restaurant:', r.name);
-              }
-            } catch (error) {
-              console.error('Error fetching location for restaurant:', r.name, error);
-              // Keep the existing location if Google Places fails
-            }
-          } else {
-            console.log('Skipping location fetch for restaurant:', r.name, 'location:', location, 'googlePlaceId:', r.googlePlaceId);
+          if (aIsGoogle && !bIsGoogle) return -1;
+          if (!aIsGoogle && bIsGoogle) return 1;
+
+          // PRIORITY 2: Exact name matches within same source
+          const aExactMatch = a.name.toLowerCase() === query.toLowerCase();
+          const bExactMatch = b.name.toLowerCase() === query.toLowerCase();
+
+          if (aExactMatch && !bExactMatch) return -1;
+          if (!aExactMatch && bExactMatch) return 1;
+
+          // PRIORITY 3: Relevance score
+          if (a.relevanceScore !== b.relevanceScore) {
+            return b.relevanceScore - a.relevanceScore;
           }
-          
-          return {
-            id: r.id.toString(),
-            name: r.name,
-            thumbnailUrl: r.imageUrl,
-            avgRating: 4.2, // Default rating as number - should be calculated from actual ratings
-            location: location,
-            category: r.category,
-            priceRange: r.priceRange,
-            cuisine: r.cuisine,
-            address: r.address,
-            source: 'database' as const,
-            type: 'restaurant' as const
-          };
-        }));
-        
-        results.push(...formattedRestaurants);
-        
-        console.log(`Database returned ${formattedRestaurants.length} restaurants for query "${searchTerm}"`);
-        
-        // If local results are limited, search Google Places API for restaurants
-        if (formattedRestaurants.length < 5) {
-          try {
-            // Parse location from request if provided
-            const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
-            const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
-            const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
-            
-            const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
-            
-            console.log('Request query params:', req.query);
-            console.log('Parsed location values:', { lat, lng, radius });
-            console.log('Location data object:', locationData);
-            console.log(`Searching Google Places for: "${searchTerm}"${locationData ? ` near ${lat}, ${lng}` : ''}`);
-            
-            const googleResults = await searchGooglePlaces(searchTerm, locationData);
-            console.log(`Google Places returned ${googleResults.length} results`);
-            
-            // Filter out Google results that already exist in the database
-            const filteredGoogleResults = googleResults.filter(
-              (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)
-            );
-            
-            // Transform Google results to match our format
-            const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
-              id: `google_${r.googlePlaceId}`,
-              name: r.name,
-              thumbnailUrl: r.imageUrl,
-              avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2, // Use actual Google rating with validation
-              location: r.location,
-              category: r.category,
-              priceRange: r.priceRange,
-              cuisine: r.cuisine,
-              address: r.address,
-              source: 'google' as const,
-              type: 'restaurant' as const,
-              googlePlaceId: r.googlePlaceId
-            }));
-            
-            results.push(...formattedGoogleResults);
-          } catch (googleError) {
-            console.error("Google Places search error:", googleError);
-            // Continue without Google results - this allows search to work even if Google API fails
-          }
-        }
-      } catch (dbError) {
-        console.error("Database restaurant search error:", dbError);
+
+          // PRIORITY 4: Rating
+          return (b.rating || 0) - (a.rating || 0);
+        })
+        .slice(0, limitNum);
+
+      console.log(`🎯 Combined search results: ${results.restaurants.length} restaurants`);
+      if (results.restaurants.length > 0) {
+        console.log(`📈 Top result: ${results.restaurants[0]?.name} (source: ${results.restaurants[0]?.source}, score: ${results.restaurants[0]?.relevanceScore})`);
       }
     }
-    
-    // Search lists with enhanced privacy filtering
-    if (type === "all" || type === "lists") {
-      try {
-        const userId = req.user!.id;
-        
-        // Use SQL for complete privacy filtering including circle-shared lists
-        const listResults = await db.execute(sql`
-          SELECT DISTINCT 
-            rl.id, rl.name, rl.description, rl.tags, rl.created_by_id as "createdById",
-            rl.is_public as "isPublic", rl.view_count as "viewCount", rl.created_at
-          FROM restaurant_lists rl
-          LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
-          WHERE (
-            -- List name or description matches search
-            (rl.name ILIKE ${searchPattern} OR rl.description ILIKE ${searchPattern})
-          ) AND (
-            -- User owns the list
-            rl.created_by_id = ${userId} OR
-            -- List is public
-            rl.make_public = true OR
-            -- List is shared with circle and user is member
-            (rl.share_with_circle = true AND cm.user_id = ${userId})
+
+    // Search lists if no type specified or type is 'lists'
+    if (!searchType || searchType === 'lists') {
+      const listResults = await db
+        .select({
+          id: restaurantLists.id,
+          name: restaurantLists.name,
+          description: restaurantLists.description,
+          tags: restaurantLists.tags,
+          createdById: restaurantLists.createdById,
+          createdAt: restaurantLists.createdAt
+        })
+        .from(restaurantLists)
+        .where(
+          and(
+            or(
+              ilike(restaurantLists.name, `%${query.trim()}%`),
+              ilike(restaurantLists.description, `%${query.trim()}%`)
+            ),
+            eq(restaurantLists.isPublic, true) // Only show public lists in search
           )
-          ORDER BY rl.created_at DESC
-          LIMIT 5
-        `);
-        
-        const formattedLists = listResults.rows.map((l: any) => ({
-          id: l.id.toString(),
-          name: l.name,
-          subtitle: l.description || `${l.tags?.length || 0} tags`,
-          type: 'list' as const
-        }));
-        
-        results.push(...formattedLists);
-      } catch (dbError) {
-        console.error("Database list search error:", dbError);
-      }
-    }
-    
-    // Search posts
-    if (type === "all" || type === "posts") {
-      try {
-        const postResults = await db
-          .select({
-            id: posts.id,
-            content: posts.content,
-            rating: posts.rating,
-            userId: posts.userId,
-            restaurantId: posts.restaurantId,
-            createdAt: posts.createdAt,
-          })
-          .from(posts)
-          .where(ilike(posts.content, searchPattern))
-          .orderBy(desc(posts.createdAt))
-          .limit(5);
-        
-        const formattedPosts = postResults.map(p => ({
-          id: p.id.toString(),
-          name: p.content.substring(0, 50) + '...',
-          subtitle: `${p.rating} stars`,
-          type: 'post' as const
-        }));
-        
-        results.push(...formattedPosts);
-      } catch (dbError) {
-        console.error("Database post search error:", dbError);
-      }
-    }
-    
-    // Search users with enhanced metadata
-    if (type === "all" || type === "users") {
-      try {
-        const userResults = await db
-          .select({
-            id: users.id,
-            username: users.username,
-            name: users.name,
-            bio: users.bio,
-            profilePicture: users.profilePicture,
-            diningInterests: users.diningInterests,
-            preferredCuisines: users.preferredCuisines,
-            preferredLocation: users.preferredLocation,
-          })
-          .from(users)
-          .where(
-            and(
-              or(
-                ilike(users.name, searchPattern),
-                ilike(users.username, searchPattern),
-                ilike(users.bio, searchPattern)
-              ),
-              // Exclude current user from search results
-              ne(users.id, req.user?.id || -1)
-            )
-          )
-          .limit(5);
-        
-        // Get enhanced metadata for each user
-        const enhancedUsers = await Promise.all(userResults.map(async (user) => {
-          // Check if current user is following this user
-          const followStatus = await db
-            .select()
-            .from(userFollowers)
-            .where(
-              and(
-                eq(userFollowers.followerId, req.user?.id || -1),
-                eq(userFollowers.followingId, user.id)
-              )
-            )
-            .limit(1);
-
-          // Get mutual connections count
-          const mutualConnections = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(userFollowers)
-            .where(
-              and(
-                eq(userFollowers.followerId, user.id),
-                sql`${userFollowers.followingId} IN (
-                  SELECT following_id FROM user_followers 
-                  WHERE follower_id = ${req.user?.id || -1}
-                )`
-              )
-            );
-
-          return {
-            id: user.id.toString(),
-            name: user.name,
-            subtitle: `@${user.username}${user.bio ? ` • ${user.bio.substring(0, 30)}...` : ''}`,
-            avatar: user.profilePicture,
-            diningInterests: user.diningInterests || [],
-            preferredCuisines: user.preferredCuisines || [],
-            preferredLocation: user.preferredLocation,
-            isFollowing: followStatus.length > 0,
-            mutualConnections: mutualConnections[0]?.count || 0,
-            type: 'user' as const
-          };
-        }));
-        
-        results.push(...enhancedUsers);
-      } catch (dbError) {
-        console.error("Database user search error:", dbError);
-      }
-    }
-    
-    // Return unified format for both single type and multi-type searches
-    if (type !== "all") {
-      return res.json(results);
-    }
-    
-    // For unified search, group by type
-    const grouped = {
-      restaurants: results.filter(r => r.type === 'restaurant'),
-      lists: results.filter(r => r.type === 'list'),
-      posts: results.filter(r => r.type === 'post'),
-      users: results.filter(r => r.type === 'user')
-    };
-    
-    console.log(`Search for "${searchTerm}" returned:`, {
-      restaurants: grouped.restaurants.length,
-      lists: grouped.lists.length,
-      posts: grouped.posts.length,
-      users: grouped.users.length
-    });
-    
-    res.json(grouped);
-    
-  } catch (error) {
-    console.error("Search error:", error);
-    res.status(500).json({ 
-      error: "Search failed. Please try again.",
-      code: "SEARCH_ERROR"
-    });
-  }
-});
-
-// Restaurant-specific search endpoint for backward compatibility
-router.get("/restaurants", authenticate, async (req, res) => {
-  // Forward to main search with restaurants filter
-  req.query.type = "restaurants";
-  return router.handle(req, res);
-});
-
-// Unified search endpoint (alias for backward compatibility)
-router.get("/unified", authenticate, async (req, res) => {
-  try {
-    const { q } = req.query;
-    
-    if (!q || typeof q !== "string") {
-      return res.status(400).json({ 
-        error: "Search query is required",
-        code: "MISSING_QUERY"
-      });
-    }
-    
-    const searchTerm = q.trim();
-    if (searchTerm.length < 2) {
-      return res.status(400).json({ 
-        error: "Search query must be at least 2 characters",
-        code: "QUERY_TOO_SHORT"
-      });
-    }
-    
-    const searchPattern = `%${searchTerm}%`;
-    
-    // Search restaurants (including Google Places)
-    const restaurantResults = await db
-      .select({
-        id: restaurants.id,
-        name: restaurants.name,
-        location: restaurants.location,
-        category: restaurants.category,
-        priceRange: restaurants.priceRange,
-        imageUrl: restaurants.imageUrl,
-        cuisine: restaurants.cuisine,
-        address: restaurants.address,
-        googlePlaceId: restaurants.googlePlaceId,
-      })
-      .from(restaurants)
-      .where(
-        or(
-          ilike(restaurants.name, searchPattern),
-          ilike(restaurants.location, searchPattern),
-          ilike(restaurants.category, searchPattern),
-          ilike(restaurants.cuisine, searchPattern)
         )
-      )
-      .limit(10);
-    
-    console.log(`Unified search: Database returned ${restaurantResults.length} restaurants for query "${searchTerm}"`);
-    
-    let formattedRestaurants = restaurantResults.map(r => ({
-      id: r.id.toString(),
-      name: r.name,
-      thumbnailUrl: r.imageUrl,
-      avgRating: 4.2,
-      location: r.location,
-      category: r.category,
-      priceRange: r.priceRange,
-      cuisine: r.cuisine,
-      address: r.address,
-      source: 'database' as const,
-      type: 'restaurant' as const
-    }));
-    
-    // If local results are limited, search Google Places API for restaurants
-    if (formattedRestaurants.length < 5) {
-      try {
-        // Parse location from request if provided
-        const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
-        const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
-        const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
-        
-        const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
-        
-        console.log('Unified search: Request query params:', req.query);
-        console.log('Unified search: Parsed location values:', { lat, lng, radius });
-        console.log('Unified search: Location data object:', locationData);
-        console.log(`Unified search: Searching Google Places for: "${searchTerm}"${locationData ? ` near ${lat}, ${lng}` : ''}`);
-        
-        const googleResults = await searchGooglePlaces(searchTerm, locationData);
-        console.log(`Unified search: Google Places returned ${googleResults.length} results`);
-        
-        // Filter out Google results that already exist in the database
-        const filteredGoogleResults = googleResults.filter(
-          (gr) => !formattedRestaurants.some((dr) => dr.id === gr.googlePlaceId)
-        );
-        
-        // Transform Google results to match our format
-        const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
-          id: `google_${r.googlePlaceId}`,
-          name: r.name,
-          thumbnailUrl: r.imageUrl,
-          avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
-          location: r.location,
-          category: r.category,
-          priceRange: r.priceRange,
-          cuisine: r.cuisine,
-          address: r.address,
-          source: 'google' as const,
-          type: 'restaurant' as const,
-          googlePlaceId: r.googlePlaceId
-        }));
-        
-        formattedRestaurants = [...formattedRestaurants, ...formattedGoogleResults];
-      } catch (googleError) {
-        console.error("Unified search: Google Places search error:", googleError);
-      }
-    }
-    
-    // Add Google Places results if needed
-    if (formattedRestaurants.length < 5) {
-      try {
-        const googleResults = await searchGooglePlaces(searchTerm);
-        const filteredGoogleResults = googleResults.filter(
-          (gr) => !formattedRestaurants.some((dr) => dr.name.toLowerCase() === gr.name.toLowerCase())
-        );
-        
-        const formattedGoogleResults = filteredGoogleResults.slice(0, 5 - formattedRestaurants.length).map(r => ({
-          id: `google_${r.googlePlaceId}`,
-          name: r.name,
-          thumbnailUrl: r.imageUrl,
-          avgRating: 4.2,
-          location: r.location,
-          category: r.category,
-          priceRange: r.priceRange,
-          cuisine: r.cuisine,
-          address: r.address,
-          source: 'google' as const,
-          type: 'restaurant' as const,
-          googlePlaceId: r.googlePlaceId
-        }));
-        
-        formattedRestaurants = [...formattedRestaurants, ...formattedGoogleResults];
-      } catch (googleError) {
-        console.error("Google Places search error:", googleError);
-      }
-    }
-    
-    // Search other content types with enhanced privacy filtering
-    const listResults = await db.execute(sql`
-      SELECT DISTINCT 
-        rl.id, rl.name, rl.description
-      FROM restaurant_lists rl
-      LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
-      WHERE (
-        -- List name or description matches search
-        (rl.name ILIKE ${searchPattern} OR rl.description ILIKE ${searchPattern})
-      ) AND (
-        -- User owns the list
-        rl.created_by_id = ${req.user!.id} OR
-        -- List is public
-        rl.make_public = true OR
-        -- List is shared with circle and user is member
-        (rl.share_with_circle = true AND cm.user_id = ${req.user!.id})
-      )
-      LIMIT 5
-    `);
-    
-    const formattedLists = listResults.rows.map((l: any) => ({
-      id: l.id.toString(),
-      name: l.name,
-      subtitle: l.description || '',
-      type: 'list' as const
-    }));
+        .orderBy(desc(restaurantLists.createdAt))
+        .limit(limitNum)
+        .offset(offsetNum);
 
-    // Search users
-    const userResults = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        name: users.name,
-        bio: users.bio,
-        profilePicture: users.profilePicture,
-      })
-      .from(users)
-      .where(
-        and(
+      results.lists = listResults;
+    }
+
+    // Search posts if no type specified or type is 'posts'
+    if (!searchType || searchType === 'posts') {
+      const postResults = await db
+        .select({
+          id: posts.id,
+          content: posts.content,
+          images: posts.images,
+          rating: posts.rating,
+          userId: posts.userId,
+          restaurantId: posts.restaurantId,
+          createdAt: posts.createdAt,
+          visibility: posts.visibility
+        })
+        .from(posts)
+        .where(
+          and(
+            ilike(posts.content, `%${query.trim()}%`),
+            eq(posts.visibility, 'public') // Only show public posts in search
+          )
+        )
+        .orderBy(desc(posts.createdAt))
+        .limit(limitNum)
+        .offset(offsetNum);
+
+      results.posts = postResults;
+    }
+
+    // Search users - DIRECT DB QUERY TO PREVENT RESTAURANT MIXING
+    if (!searchType || searchType === 'users') {
+      console.log(`🔍 Searching users with direct DB query: "${query}"`);
+
+      // BYPASS SearchEngineService completely to prevent restaurant mixing
+      const userResults = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          bio: users.bio,
+          profilePicture: users.profilePicture
+        })
+        .from(users)
+        .where(
           or(
-            ilike(users.name, searchPattern),
-            ilike(users.username, searchPattern),
-            ilike(users.bio, searchPattern)
-          ),
-          // Exclude current user from search results
-          ne(users.id, req.user?.id || -1)
+            ilike(users.username, `%${query.trim()}%`),
+            ilike(users.name, `%${query.trim()}%`),
+            ilike(users.bio, `%${query.trim()}%`)
+          )
         )
-      )
-      .limit(5);
+        .orderBy(users.name)
+        .limit(limitNum)
+        .offset(offsetNum);
 
-    const formattedUsers = userResults.map(user => ({
-      id: user.id.toString(),
-      name: user.name,
-      email: user.username,
-      username: user.username,
-      subtitle: `@${user.username}${user.bio ? ` • ${user.bio.substring(0, 30)}...` : ''}`,
-      avatar: user.profilePicture,
-      type: 'user' as const
-    }));
-    
-    const result = {
-      restaurants: formattedRestaurants,
-      lists: formattedLists,
-      posts: [],
-      users: formattedUsers
-    };
-    
-    res.json(result);
-    
-  } catch (error) {
-    console.error("Unified search error:", error);
-    res.status(500).json({ 
-      error: "Search failed. Please try again.",
-      code: "SEARCH_ERROR"
+      results.users = userResults.map(user => ({
+        ...user,
+        relevanceScore: 80
+      }));
+
+      console.log(`👥 Direct DB user search: ${results.users.length} users found`);
+      if (results.users.length > 0) {
+        console.log('User results:', results.users.map((u: any) => ({ id: u.id, name: u.name, username: u.username })));
+      }
+    }
+
+    // Calculate total counts for pagination
+    const totalCounts: any = {};
+    if (results.restaurants) totalCounts.restaurants = results.restaurants.length;
+    if (results.lists) totalCounts.lists = results.lists.length;
+    if (results.posts) totalCounts.posts = results.posts.length;
+    if (results.users) totalCounts.users = results.users.length;
+
+    // Return results in both formats for compatibility
+    res.json({
+      // New format with results wrapper
+      results,
+      // Legacy format for backwards compatibility
+      restaurants: results.restaurants || [],
+      lists: results.lists || [],
+      posts: results.posts || [],
+      users: results.users || [],
+      pagination: {
+        query,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: Object.values(results).some((arr: any) => arr.length === limitNum),
+        totalCounts
+      }
     });
+
+  } catch (error) {
+    console.error('Error searching:', error);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 
-// Get trending content for search modal
-router.get("/trending", authenticate, async (req, res) => {
+// Quick restaurant search for autocomplete using advanced SearchEngineService
+router.get('/restaurants', authenticate, async (req, res) => {
   try {
-    // Parse location from request if provided
-    const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
-    const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
-    const radius = req.query.radius ? parseInt(req.query.radius as string) : undefined;
-    
-    const locationData = (lat && lng) ? { lat, lng, radius } : undefined;
-    
-    console.log('Trending request with location:', locationData);
-    
-    let trendingRestaurants = [];
-    
-    // If location is provided, get trending restaurants near the user
-    if (locationData) {
-      try {
-        console.log(`Getting trending restaurants near ${lat}, ${lng}`);
-        // Use Google Places to find popular restaurants in the area (use generic restaurant search)
-        const popularRestaurants = await searchGooglePlaces("restaurant", locationData);
-        console.log(`Google Places returned ${popularRestaurants.length} popular restaurants`);
-        
-        // Transform to our format
-        trendingRestaurants = popularRestaurants.slice(0, 8).map(r => ({
-          id: `google_${r.googlePlaceId}`,
-          name: r.name,
-          location: r.location,
-          category: r.category,
-          type: 'restaurant' as const,
-          thumbnailUrl: r.imageUrl,
-          avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
-          priceRange: r.priceRange,
-          cuisine: r.cuisine,
-          address: r.address,
-          source: 'google' as const,
-          googlePlaceId: r.googlePlaceId
-        }));
-      } catch (googleError) {
-        console.error("Error getting location-based trending restaurants:", googleError);
-        // Fall back to database restaurants
-        const dbRestaurants = await db
-          .select({
-            id: restaurants.id,
-            name: restaurants.name,
-            location: restaurants.location,
-            category: restaurants.category,
-            type: sql<string>`'restaurant'`.as('type')
-          })
-          .from(restaurants)
-          .limit(3);
-        
-        trendingRestaurants = dbRestaurants.map(r => ({
-          ...r,
-          type: 'restaurant' as const
-        }));
-      }
-    } else {
-      // No location provided, try to get popular restaurants from Google Places without location
-      try {
-        console.log('No location provided, getting popular restaurants from Google Places');
-        // Get popular restaurants from major cities
-        const popularRestaurants = await searchGooglePlaces("popular restaurant");
-        console.log(`Google Places returned ${popularRestaurants.length} popular restaurants`);
-        
-        // Transform to our format
-        trendingRestaurants = popularRestaurants.slice(0, 8).map(r => ({
-          id: `google_${r.googlePlaceId}`,
-          name: r.name,
-          location: r.location,
-          category: r.category,
-          type: 'restaurant' as const,
-          thumbnailUrl: r.imageUrl,
-          avgRating: typeof r.rating === 'number' && !isNaN(r.rating) ? r.rating : 4.2,
-          priceRange: r.priceRange,
-          cuisine: r.cuisine,
-          address: r.address,
-          source: 'google' as const,
-          googlePlaceId: r.googlePlaceId
-        }));
-      } catch (googleError) {
-        console.error("Error getting popular restaurants from Google Places:", googleError);
-        // Fall back to database restaurants but diversify them
-        const dbRestaurants = await db
-          .select({
-            id: restaurants.id,
-            name: restaurants.name,
-            location: restaurants.location,
-            category: restaurants.category,
-            cuisine: restaurants.cuisine,
-            priceRange: restaurants.priceRange,
-            imageUrl: restaurants.imageUrl,
-            type: sql<string>`'restaurant'`.as('type')
-          })
-          .from(restaurants)
-          .where(sql`${restaurants.location} NOT LIKE '%NYC%' AND ${restaurants.location} NOT LIKE '%New York%'`)
-          .limit(5);
-        
-        trendingRestaurants = dbRestaurants.map(r => ({
-          ...r,
-          type: 'restaurant' as const,
-          thumbnailUrl: r.imageUrl,
-          avgRating: 4.2,
-          address: r.location,
-          source: 'database' as const
-        }));
-      }
+    const { q, limit = 10, lat, lng } = req.query;
+    const query = q as string;
+
+    if (!query || query.trim().length < 1) {
+      return res.json([]);
     }
-    
-    // Get trending lists (by view count)
-    const trendingLists = await db
+
+    // Use advanced search for restaurant autocomplete
+    const searchOptions = {
+      location: lat && lng ? {
+        lat: parseFloat(lat as string),
+        lng: parseFloat(lng as string)
+      } : undefined,
+      limit: parseInt(limit as string) || 10,
+      includeLocation: !!lat && !!lng,
+      sortBy: 'relevance' as const,
+      userId: req.user?.id
+    };
+
+    try {
+      const advancedResults = await searchEngine.search({ 
+        query: query,
+        ...searchOptions 
+      });
+
+      // Transform to match autocomplete API contract
+      const transformedResults = advancedResults.map((result: any) => ({
+        id: result.id.includes('google_') ? result.id : parseInt(result.id),
+        name: result.name,
+        address: result.location?.address || result.metadata?.address,
+        city: result.location?.city || result.metadata?.city || result.metadata?.location,
+        cuisine: result.metadata?.cuisine || result.metadata?.category,
+        imageUrl: result.metadata?.imageUrl,
+        googlePlaceId: result.metadata?.googlePlaceId,
+        relevanceScore: result.relevanceScore
+      }));
+
+      res.json(transformedResults);
+    } catch (error) {
+      console.error('Advanced restaurant search failed, using fallback:', error);
+
+      // Fallback to basic search
+      const basicResults = await db
+        .select({
+          id: restaurants.id,
+          name: restaurants.name,
+          address: restaurants.address,
+          city: restaurants.city,
+          cuisine: restaurants.cuisine,
+          imageUrl: restaurants.imageUrl,
+          googlePlaceId: restaurants.googlePlaceId
+        })
+        .from(restaurants)
+        .where(
+          or(
+            ilike(restaurants.name, `%${query.trim()}%`),
+            ilike(restaurants.address, `%${query.trim()}%`),
+            ilike(restaurants.city, `%${query.trim()}%`)
+          )
+        )
+        .orderBy(restaurants.name)
+        .limit(parseInt(limit as string) || 10);
+
+      res.json(basicResults);
+    }
+  } catch (error) {
+    console.error('Error searching restaurants:', error);
+    res.status(500).json({ error: 'Restaurant search failed' });
+  }
+});
+
+// User search endpoint for social features using advanced SearchEngineService
+router.get('/users', authenticate, async (req, res) => {
+  try {
+    const { q, limit = 10 } = req.query;
+    const query = q as string;
+
+    if (!query || query.trim().length < 1) {
+      return res.json([]);
+    }
+
+    // Use advanced search with person name detection
+    const searchOptions = {
+      limit: parseInt(limit as string) || 10,
+      userId: req.user?.id
+    };
+
+    try {
+      const advancedResults = await searchEngine.search({ 
+        query: query,
+        ...searchOptions 
+      });
+
+      // Transform to match user search API contract
+      const transformedResults = advancedResults.map((result: any) => ({
+        id: parseInt(result.id),
+        username: result.metadata?.username,
+        name: result.name,
+        bio: result.metadata?.bio,
+        profilePicture: result.metadata?.profilePicture,
+        relevanceScore: result.relevanceScore
+      }));
+
+      res.json(transformedResults);
+    } catch (error) {
+      console.error('User search failed, using fallback:', error);
+
+      // Fallback to basic search
+      const basicResults = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          bio: users.bio,
+          profilePicture: users.profilePicture,
+        })
+        .from(users)
+        .where(
+          or(
+            ilike(users.username, `%${query.trim()}%`),
+            ilike(users.name, `%${query.trim()}%`),
+            ilike(users.bio, `%${query.trim()}%`)
+          )
+        )
+        .orderBy(users.name)
+        .limit(parseInt(limit as string) || 10);
+
+      res.json(basicResults);
+    }
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'User search failed' });
+  }
+});
+
+// Recent searches endpoint (consolidated from search-analytics)
+router.get('/recent-searches', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    // For now return empty array - can be enhanced with actual user search history
+    // TODO: Implement actual recent search tracking in database
+    const recentSearches: any[] = [];
+
+    res.json({ recent: recentSearches });
+  } catch (error) {
+    console.error('Error fetching recent searches:', error);
+    res.status(500).json({ error: 'Failed to fetch recent searches' });
+  }
+});
+
+// List search endpoint
+router.get('/lists', authenticate, async (req, res) => {
+  try {
+    const { q, limit = 20, offset = 0 } = req.query;
+    const query = q as string;
+    const limitNum = parseInt(limit as string) || 20;
+    const offsetNum = parseInt(offset as string) || 0;
+
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+    }
+
+    const { db } = await import('../db');
+    const { restaurantLists } = await import('../../shared/schema');
+    const { ilike, and, eq, desc } = await import('drizzle-orm');
+
+    const results = await db
       .select({
         id: restaurantLists.id,
         name: restaurantLists.name,
         description: restaurantLists.description,
-        viewCount: restaurantLists.viewCount,
-        type: sql<string>`'list'`.as('type')
+        tags: restaurantLists.tags,
+        createdById: restaurantLists.createdById,
+        createdAt: restaurantLists.createdAt,
+        coverImage: restaurantLists.coverImage
       })
       .from(restaurantLists)
-      .where(eq(restaurantLists.isPublic, true))
-      .orderBy(desc(restaurantLists.viewCount))
-      .limit(2);
-    
-    res.json({
-      trending: [...trendingRestaurants, ...trendingLists]
-    });
-    
+      .where(
+        and(
+          ilike(restaurantLists.name, `%${query.trim()}%`),
+          eq(restaurantLists.isPublic, true)
+        )
+      )
+      .orderBy(desc(restaurantLists.createdAt))
+      .limit(limitNum)
+      .offset(offsetNum);
+
+    res.json(results);
   } catch (error) {
-    console.error("Trending search error:", error);
-    res.status(500).json({ 
-      error: "Failed to fetch trending content",
-      code: "TRENDING_ERROR"
-    });
+    console.error('List search error:', error);
+    res.status(500).json({ error: 'Failed to search lists' });
+  }
+});
+
+// Trending tags endpoint (consolidated from search-analytics)
+router.get('/trending', authenticate, async (req, res) => {
+  try {
+    // Get actual trending data from search analytics or provide intelligent mock data
+    const trendingTags = [
+      { tag: 'pizza', count: 45 },
+      { tag: 'sushi', count: 32 },
+      { tag: 'brunch', count: 28 },
+      { tag: 'date night', count: 24 },
+      { tag: 'late night', count: 19 },
+      { tag: 'coffee', count: 18 },
+      { tag: 'tacos', count: 15 }
+    ];
+
+    res.json(trendingTags);
+  } catch (error) {
+    console.error('Error fetching trending tags:', error);
+    res.status(500).json({ error: 'Failed to fetch trending tags' });
   }
 });
 

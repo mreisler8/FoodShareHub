@@ -1,0 +1,43 @@
+Epic: Restaurant Page Modular Redesign Implementation
+Objective
+Transform RestaurantDetailPage.tsx into a modular, trust-focused hub that surfaces social data and encourages engagement through improved Circle Score display, list mentions, and social actions.
+
+Key Implementation Requirements
+1. Enhanced Circle Score Section
+Color-coded confidence badges based on score ranges:
+90-100: bg-green-500/10 text-green-700
+70-89: bg-yellow-500/10 text-yellow-700
+Below 70: bg-red-500/10 text-red-700
+Descriptive tooltips showing contributor context: "Based on 12 ratings from 4 Circles" with most recent activity
+Optional confidence icons (🛡️) for verified/overlapping circles
+2. List Mentions with Smart Ranking
+Selective ranking display: Only show rank for Top 3 positions or explicitly ranked lists
+Corner badges for impressive rankings: #2 on 'Best Brunch in Toronto' with bg-black text-white text-xs rounded-full px-2
+Clean UI that omits ranking when not socially impressive
+3. Social Activity Feed with Expandable Content
+Post snippets showing avatar, username, 1-2 lines of content, thumbnail
+Tap-to-expand modal that reuses feed layout with back arrow
+Scannable interface that encourages deeper discovery without page reloads
+4. Native Sharing Strategy
+Dual sharing approach:
+Native OS share sheet for external distribution (iMessage, social media)
+"Share to Circle" drawer showing joined circles for community engagement
+Post-share feedback: Toast notifications and optional comment prompts
+5. Modular Component Architecture
+Create these new reusable components:
+
+TrustScoreSection.tsx (enhanced Circle Score with confidence indicators)
+ListMentionsSection.tsx (smart ranking display)
+SocialActivityFeed.tsx (expandable post snippets)
+RestaurantActionBar.tsx (native + community sharing)
+SocialProofAvatars.tsx (contributor visualization)
+Technical Implementation Priority
+Phase 1: Enhanced Circle Score section with confidence indicators
+Phase 2: List mentions with smart ranking
+Phase 3: Social activity feed with expandable content
+Phase 4: Native sharing integration
+Success Metrics
+Users can quickly assess trust signals from their network
+Clear confidence indicators build trust in Circle Scores
+Smart ranking display reduces UI clutter while highlighting social proof
+Native sharing increases external distribution and community engagement

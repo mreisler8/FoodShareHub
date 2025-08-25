@@ -1,0 +1,75 @@
+Transform Feed Page to Modern Social Experience with Home Integration
+
+OBJECTIVE: Convert the current /feed page into a modern, image-first social media experience that incorporates the best elements from both the feed and home pages, while implementing competitive navigation improvements.
+
+CONTEXT:
+
+Current feed page: client/src/pages/feed.tsx
+Current home page: client/src/pages/home.tsx
+Enhanced components available: BestInClassFeedEnhancements.tsx, EnhancedModernPostCard.tsx
+Navigation: DesktopSidebar.tsx needs strategic improvements
+CORE REQUIREMENTS:
+
+MERGE HOME + FEED FUNCTIONALITY
+
+Integrate Stories Section from home into feed
+Move FeaturedCircles and SuggestedUsersCard to feed
+Combine unified content (posts + lists + moments) into single feed
+Keep existing feed filtering and view modes (list/grid/masonry)
+IMPLEMENT BEST-IN-CLASS FEED ENHANCEMENTS
+
+Replace current PostCard with EnhancedModernPostCard throughout
+Add Instagram-style image carousel for multi-image posts
+Implement TikTok-style video autoplay and controls
+Add Pinterest-style masonry layout option
+Include heart animation on double-tap
+Add advanced engagement metrics display
+NAVIGATION STRATEGIC IMPROVEMENTS (DesktopSidebar.tsx):
+
+Search Elevation: Move search to top of sidebar (like Instagram)
+Activity Indicators: Add notification badges for pending invites/requests
+Create Prominence: Make "Create Post" more visually prominent
+Context-Aware States: Show active states and hover effects
+MODERN SOCIAL FEATURES:
+
+Enhanced Stories with creation capability
+Advanced infinite scroll with performance optimization
+Smooth animations and micro-interactions
+Mobile-optimized touch gestures
+Memory management for large feeds
+MAINTAIN EXISTING FUNCTIONALITY:
+
+Keep all current API endpoints and data flow
+Preserve PostTypeFeedFilter functionality
+Maintain circle/feed tab switching
+Keep FloatingCreateButton
+Preserve all sharing and creation flows
+TECHNICAL IMPLEMENTATION:
+
+Update client/src/pages/feed.tsx to use enhanced components
+Integrate components from BestInClassFeedEnhancements.tsx
+Update DesktopSidebar.tsx with competitive navigation features
+Ensure EnhancedModernPostCard.tsx replaces all PostCard usage
+Add proper TypeScript interfaces for new component props
+Maintain responsive design across all screen sizes
+SUCCESS CRITERIA:
+
+Feed page feels like Instagram/TikTok quality social experience
+Smooth animations and premium interactions throughout
+Enhanced navigation with proper activity indicators
+All existing functionality preserved and enhanced
+Mobile-optimized with excellent performance
+NON-FUNCTIONAL REQUIREMENTS:
+
+Maintain current API structure - no backend changes needed
+Preserve all existing routes and navigation patterns
+Keep current authentication and permission systems
+Ensure accessibility standards are maintained
+Optimize for performance with large content volumes
+FILES TO MODIFY:
+
+client/src/pages/feed.tsx (primary transformation)
+client/src/components/navigation/DesktopSidebar.tsx (navigation improvements)
+client/src/pages/home.tsx (remove duplicated features, redirect to feed)
+Any component imports/exports as needed
+Transform this into a world-class social media feed experience that competes with the best platforms while maintaining our unique restaurant-focused value proposition.

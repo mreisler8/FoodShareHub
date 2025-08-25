@@ -13,8 +13,8 @@ export function MediaCarousel({ images, alt = "Media", className = "" }: MediaCa
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
-  // Filter out empty or invalid image URLs
-  const validImages = images?.filter(img => img && img.trim() !== '') || [];
+  // Safe array filtering - ensure images is array before filtering
+  const validImages = Array.isArray(images) ? images.filter(img => img && img.trim() !== '') : [];
   
   if (validImages.length === 0) {
     return null;

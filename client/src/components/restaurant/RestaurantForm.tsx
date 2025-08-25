@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { SectionBoundary } from "@/components/common/SectionBoundary";
+import { useRestaurantCache } from "@/features/restaurant/cache/restaurantCache";
 import { Loader2 } from "lucide-react";
 
 // Extend the schema with validations
@@ -53,6 +55,7 @@ const categoryOptions = [
 
 export function RestaurantForm({ isOpen, onClose, initialData = {}, onSuccess }: RestaurantFormProps) {
   const { toast } = useToast();
+  const restaurantCache = useRestaurantCache(queryClient);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Set up form
@@ -85,7 +88,11 @@ export function RestaurantForm({ isOpen, onClose, initialData = {}, onSuccess }:
     onSuccess: async (response) => {
       const data = await response.json();
       
-      // Invalidate queries to update UI
+      // Use coordinated cache invalidation
+      if (data.id) {
+        restaurantCache.invalidateAll(data.id);
+      }
+      // Also invalidate general restaurant list
       queryClient.invalidateQueries({ queryKey: ["/api/restaurants"] });
       
       toast({

@@ -1,0 +1,47 @@
+AGENT PROMPT: Fix Critical Database and API Infrastructure Errors
+
+OBJECTIVE: Resolve the core database schema mismatches and API endpoint failures that are preventing the list functionality from working properly.
+
+CRITICAL ISSUES TO RESOLVE:
+
+Database Schema Field Mismatch in listReactions Table:
+
+The schema defines reactionType but the actual database column is reaction
+This is causing "Cannot convert undefined or null to object" errors in Drizzle ORM
+Fix the schema to match the actual database structure
+Saved Lists API Database Query Error:
+
+The /api/saved-lists/ endpoint is throwing "Cannot convert undefined or null to object"
+This occurs in orderSelectedFields function in Drizzle ORM
+Add proper null checking and field selection logic
+List Reactions API Route Registration:
+
+The /api/list-reactions/ endpoint returns 404
+Verify the listReactions router is properly mounted in routes.ts
+Ensure no path conflicts or duplicate registrations
+SPECIFIC TASKS:
+
+Fix Schema Alignment (shared/schema.ts):
+
+Update the listReactions table definition to use reaction instead of reactionType
+Ensure field names match the migration file (0007_add_list_reactions.sql)
+Verify all related type exports are consistent
+Fix Saved Lists Route (server/routes/saved-lists.ts):
+
+Add proper null/undefined checking in database queries
+Handle missing field selections gracefully
+Test the getSavedListsByUser function with proper error handling
+Fix Route Registration (server/routes.ts):
+
+Verify listReactions router is properly imported and mounted
+Check for any path conflicts or duplicate route definitions
+Ensure the router export path is correct
+VALIDATION REQUIREMENTS:
+
+All API endpoints should return proper JSON responses (not 404/500 errors)
+Database queries should handle null/undefined values without crashing
+The rating system should work end-to-end from UI to database
+EXPECTED OUTCOME: Users can successfully rate restaurants, save lists, and interact with the rating system without console errors.
+
+PRIORITY: Critical - these are blocking core restaurant discovery and rating functionality.
+

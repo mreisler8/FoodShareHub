@@ -1,0 +1,180 @@
+✅ REPLIT DEV TASK PACKAGE
+Feature: List Detail View & Backend Save Handler
+Agent: Full-Stack Dev Agent for Circles
+Goal:
+
+Build a ListDetails.tsx component to render a full list with metadata, items, and a Save button.
+
+Create a backend POST handler at /api/lists to store lists and their items in PostgreSQL.
+
+🧩 FILE 1: components/ListDetails.tsx
+tsx
+Copy
+Edit
+import { SaveListButton } from "./SaveListButton";
+
+interface ListItem {
+  name: string;
+  notes?: string;
+  tags?: string[];
+  city?: string;
+  mediaUrl?: string;
+  rank?: number;
+}
+
+interface ListDetailsProps {
+  list: {
+    id: string;
+    title: string;
+    creator: string;
+    cuisine?: string;
+    city?: string;
+    cover_image?: string;
+    items: ListItem[];
+  };
+  userId: string;
+}
+
+export function ListDetails({ list, userId }: ListDetailsProps) {
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-xl font-bold">{list.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            By @{list.creator} {list.cuisine && `· ${list.cuisine}`}{" "}
+            {list.city && `· ${list.city}`}
+          </p>
+        </div>
+        <SaveListButton listId={list.id} userId={userId} />
+      </div>
+
+      {list.cover_image && (
+        <img
+          src={list.cover_image}
+          alt="Cover"
+          className="w-full h-48 object-cover rounded-lg"
+        />
+      )}
+
+      <div className="space-y-2">
+        {list.items.map((item, i) => (
+          <div
+            key={i}
+            className="border p-3 rounded-lg bg-white shadow-sm space-y-1"
+          >
+            <div className="font-medium">
+              {item.rank && `${item.rank}. `} {item.name}
+            </div>
+            {item.city && <div className="text-sm text-muted-foreground">{item.city}</div>}
+            {item.notes && <p className="text-sm">{item.notes}</p>}
+            {item.tags && (
+              <div className="flex flex-wrap gap-1 text-xs text-gray-500">
+                {item.tags.map((tag) => (
+                  <span key={tag} className="px-2 py-0.5 bg-gray-100 rounded-full">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            {item.mediaUrl && (
+              <img
+                src={item.mediaUrl}
+                alt="Item"
+                className="w-full h-40 object-cover rounded-md"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+🧩 FILE 2: server/api/lists.ts
+📍 Backend handler (assuming Express or similar in Replit custom backend)
+
+ts
+Copy
+Edit
+// server/api/lists.ts
+import express from "express";
+import db from "../db"; // your PostgreSQL client (e.g., pg or drizzle)
+
+const router = express.Router();
+
+router.post("/", async (req, res) => {
+  const { title, type, audience, userId, items, coverImage } = req.body;
+
+  if (!title || !type || !userId || !items?.length) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const listInsert = await db.query(
+      `INSERT INTO lists (title, type, audience, user_id, cover_image)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [title, type, audience, userId, coverImage]
+    );
+
+    const listId = listInsert.rows[0].id;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      await db.query(
+        `INSERT INTO list_items (list_id, name, notes, tags, city, media_url, rank)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          listId,
+          item.name,
+          item.notes || null,
+          item.tags || [],
+          item.city || null,
+          item.mediaUrl || null,
+          item.rank || i + 1,
+        ]
+      );
+    }
+
+    return res.status(200).json({ success: true, listId });
+  } catch (err) {
+    console.error("Error saving list:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+export default router;
+🧩 POSTGRESQL SCHEMA (CONFIRM EXISTS)
+sql
+Copy
+Edit
+create table lists (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  title text not null,
+  type text check (type in ('restaurant', 'dish')),
+  audience text check (audience in ('profile', 'circle', 'public')),
+  cover_image text,
+  created_at timestamp default now()
+);
+
+create table list_items (
+  id uuid primary key default gen_random_uuid(),
+  list_id uuid references lists on delete cascade,
+  name text not null,
+  notes text,
+  tags text[],
+  city text,
+  media_url text,
+  rank int
+);
+✅ INTEGRATION CHECKLIST
+ Add ListDetails to route or modal after list creation
+
+ Confirm API call from CreateListForm.tsx to /api/lists works
+
+ Backend saves list + items in PostgreSQL
+
+ Handle image uploads via separate API if needed (TBD)
+
+ Secure backend via auth middleware if auth is custom
+

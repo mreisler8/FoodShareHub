@@ -3,7 +3,7 @@ import { RestaurantListCard } from "./RestaurantListCard";
 import { CreateListModal } from "./CreateListModal";
 import { ShareListToCircleModal } from "../circles/ShareListToCircleModal";
 import { useState } from "react";
-import { Button } from "../Button";
+import { Button } from "@/components/ui/button";
 import { Plus, Share2, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { RestaurantList } from "@shared/schema";
@@ -44,7 +44,9 @@ export function CircleListsSection({
   // Delete list mutation
   const deleteListMutation = useMutation({
     mutationFn: async (listId: number) => {
-      return apiRequest(`/api/lists/${listId}`, "DELETE");
+      return apiRequest(`/api/lists/${listId}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/circles/${circleId}/lists`] });
@@ -64,7 +66,9 @@ export function CircleListsSection({
   // Unshare list from circle mutation
   const unshareListMutation = useMutation({
     mutationFn: async (listId: number) => {
-      return apiRequest(`/api/lists/${listId}/circles/${circleId}`, "DELETE");
+      return apiRequest(`/api/lists/${listId}/circles/${circleId}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/circles/${circleId}/lists`] });

@@ -1,9 +1,11 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route, RouteProps } from "wouter";
+import { InlineError } from "@/components/common/InlineError";
+import { getErrorMessage } from "@/lib/error-utils";
 
 interface ProtectedRouteProps extends Omit<RouteProps, 'component'> {
-  component: React.ComponentType;
+  component: React.ComponentType<any>;
   redirectTo?: string;
 }
 
@@ -13,28 +15,40 @@ export function ProtectedRoute({
   redirectTo = "/auth",
   ...rest
 }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, error } = useAuth();
 
-  // Show loading indicator while checking auth state
-  if (isLoading) {
-    return (
-      <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </Route>
-    );
-  }
+  return (
+    <Route path={path}>
+      {() => {
+        // Show loading indicator while checking auth state
+        if (isLoading) {
+          return (
+            <div className="flex items-center justify-center min-h-screen">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          );
+        }
 
-  // Redirect to auth page if not authenticated
-  if (!user) {
-    return (
-      <Route path={path}>
-        <Redirect to={redirectTo} />
-      </Route>
-    );
-  }
+        // Show inline error if auth check failed (not 401)
+        if (error && error !== 'unauthenticated') {
+          return (
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <InlineError 
+                message={getErrorMessage(error)} 
+                onRetry={() => window.location.reload()}
+              />
+            </div>
+          );
+        }
 
-  // Render the protected component if authenticated
-  return <Route path={path} component={Component} {...rest} />;
+        // Redirect to auth page if not authenticated
+        if (!user) {
+          return <Redirect to={redirectTo} />;
+        }
+
+        // Render the protected component if authenticated
+        return <Component {...rest} />;
+      }}
+    </Route>
+  );
 }

@@ -1,0 +1,25 @@
+Error: Error: Rendered more hooks than during the previous render.Stack: Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:11678:21)
+    at updateEffectImpl (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:12074:22)
+    at updateEffect (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:12099:18)
+    at Object.useEffect (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:12703:22)
+    at Object.useEffect (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QCHXOAYK.js?v=2cea25a4:1078:29)
+    at useClearResetErrorBoundary (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=2cea25a4:2871:10)
+    at useBaseQuery (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=2cea25a4:3010:3)
+    at useQuery (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=2cea25a4:3068:10)
+    at RestaurantDetailPage (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/pages/RestaurantDetailPage.tsx:294:64)
+    at renderWithHooks (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=2cea25a4:11548:26)Component Stack: 
+    at RestaurantDetailPage (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/pages/RestaurantDetailPage.tsx:156:27)
+    at Route (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=2cea25a4:191:16)
+    at Switch (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=2cea25a4:247:17)
+    at Router (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/Router.tsx:50:3)
+    at main
+    at div
+    at ErrorBoundary (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/common/ErrorBoundary.tsx:10:5)
+    at AppContent (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/App.tsx?v=NeLLBlKPFyWRAqKljG1NN:35:31)
+    at AuthProvider (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/hooks/use-auth.tsx:38:32)
+    at SmartPollingProvider (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/optimized/SmartPollingProvider.tsx:22:40)
+    at QueryClientProvider (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=2cea25a4:2805:3)
+    at GlobalErrorBoundary (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/components/common/GlobalErrorBoundary.tsx:10:5)
+    at App (https://569b8f5b-fe7d-444a-a966-c78d010fa3fe-00-13fjnyyxri63e.kirk.replit.dev/src/App.tsx?v=NeLLBlKPFyWRAqKljG1NN:97:3)
+Try Again

@@ -1,0 +1,79 @@
+COMPREHENSIVE API SYSTEMIZATION & PERFORMANCE OPTIMIZATION PROMPT
+Context: Your Circles app has multiple systemic API issues including HTTP 500 errors, infinite re-renders, slow database queries (2-3 second response times), and memory leaks. This needs a comprehensive fix considering scale, performance, and future roadmap requirements.
+
+CRITICAL ISSUES TO FIX:
+HTTP 500 Errors: /api/users/8/ratings endpoint failing
+Infinite Re-renders: SendToFriendModal causing maximum update depth exceeded
+Slow Database Queries: Circle invites/requests taking 2-3 seconds
+Memory Leaks: Performance middleware showing concerning memory deltas
+Missing Error Boundaries: Unhandled promise rejections
+SYSTEMIZATION REQUIREMENTS:
+Performance & Scale NFRs:
+
+All API endpoints must respond under 300ms (currently failing at 2-3 seconds)
+Implement comprehensive error handling with graceful degradation
+Add database connection pooling and query optimization
+Implement proper caching strategies with TTL
+Add circuit breaker patterns for external services
+Memory usage must stay under 100MB per request
+Reliability NFRs:
+
+99.9% API uptime with proper health checks
+Comprehensive logging and monitoring
+Proper HTTP status codes and error messages
+Rate limiting per user/IP with exponential backoff
+Database transaction rollback on failures
+Security NFRs:
+
+Input validation on all endpoints
+SQL injection prevention
+Authentication/authorization on all protected routes
+CSRF protection
+Request size limits
+Future Roadmap Considerations:
+
+Microservices-ready API design
+GraphQL compatibility layer
+Real-time WebSocket support for recommendations
+Multi-tenant architecture support
+API versioning strategy
+IMPLEMENTATION SCOPE:
+Fix All HTTP 500 Errors:
+
+Debug and fix /api/users/8/ratings endpoint
+Add comprehensive error handling to all routes
+Implement proper database error recovery
+Optimize Database Performance:
+
+Add missing indexes for slow queries
+Implement query result caching
+Add database connection pooling
+Optimize N+1 query problems
+Fix React Infinite Renders:
+
+Fix SendToFriendModal useEffect dependencies
+Add proper cleanup for all components
+Implement proper state management patterns
+Add Comprehensive Monitoring:
+
+Enhance performance middleware with metrics
+Add health check endpoints
+Implement proper logging with structured data
+Add alert thresholds for slow queries
+Scale-Ready Architecture:
+
+Implement Redis caching layer
+Add API rate limiting per user
+Create reusable error handling middleware
+Add automated database migrations
+Priority Order: Fix HTTP 500s → Database performance → React renders → Monitoring → Scale architecture
+
+Success Criteria:
+
+All API endpoints respond under 300ms
+Zero HTTP 500 errors in production
+No React infinite render warnings
+Memory usage stable under 50MB per request
+Comprehensive error logging and recovery
+This systematic approach ensures your API infrastructure can handle current issues while being prepared for future scale and feature requirements like real-time recommendations, Circle Score analytics, and multi-user collaboration features.
+

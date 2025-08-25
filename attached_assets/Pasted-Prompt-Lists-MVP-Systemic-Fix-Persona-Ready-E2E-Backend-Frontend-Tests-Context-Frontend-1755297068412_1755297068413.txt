@@ -1,0 +1,265 @@
+Prompt: Lists MVP — Systemic Fix & Persona‑Ready E2E (Backend + Frontend + Tests)
+
+Context
+
+Frontend: React (TS, Vite, Tailwind, React Query)
+
+Backend: Node/Express, Postgres (Drizzle)
+
+Goal: Make “Create → Add Items → Set visibility/share → Save/Unsave → Persist → View across personas” bulletproof.
+
+Mode: Implement. Keep changes surgical and reversible. Preserve existing contracts unless explicitly updated below.
+
+0) Guardrails (must follow)
+
+TypeScript strict on; no any in new/modified code.
+
+Don’t touch unrelated features. No breaking renames.
+
+Additive DB migrations only; keep legacy fields readable but stop using them in new code.
+
+All new/changed endpoints fully typed with Zod I/O validation and supertest coverage.
+
+Feature flags: LISTS_VISIBILITY_V2, LISTS_SAVE_STATUS_V1, DEV_TEST_PERSONAS.
+
+1) Visibility: single source of truth (fix the conflicts)
+
+Problem (from audit): isPublic, makePublic, shareWithCircle, and visibility (json|string) disagree; access checks read different fields.
+
+Solution
+
+Add canonical column (non‑breaking):
+
+Migration: add visibility_v2 (enum: 'private' | 'public' | 'followers' | 'circle') and visibility_circle_ids (int[], nullable).
+
+Backfill script:
+
+If makePublic=true OR isPublic=true → visibility_v2='public'.
+
+Else if shareWithCircle=true AND circleId IS NOT NULL → visibility_v2='circle', visibility_circle_ids=[circleId].
+
+Else if legacy visibility JSON indicates followers → visibility_v2='followers'.
+
+Else → visibility_v2='private'.
+
+Keep legacy fields for read‑only compatibility; stop writing to them when LISTS_VISIBILITY_V2=true.
+
+API writes (create/update) must:
+
+Accept only visibility_v2 + optional visibility_circle_ids.
+
+Normalize/validate: if visibility_v2!=='circle' then visibility_circle_ids=null.
+
+Access control everywhere reads only visibility_v2 (+ circle checks when 'circle'), never legacy booleans.
+
+2) Save/Unsave: add status endpoint + fix reconciliation
+
+Problem: UI checks /api/saved-lists (full collection), causing inefficiency/races. No single‑list status endpoint.
+
+Solution
+
+Endpoints
+
+GET /api/lists/:id/save-status → { saved: boolean } (auth required).
+
+POST /api/lists/:id/save → 200 idempotent; no duplicate saves.
+
+DELETE /api/lists/:id/save → 200 idempotent.
+
+Frontend
+
+SaveListButton should:
+
+Use React Query keys: ['saved-lists', listId].
+
+Read GET /api/lists/:id/save-status.
+
+Use optimistic updates for POST/DELETE and invalidate both ['saved-lists', listId] and ['lists', listId].
+
+Tests
+
+supertest: first POST returns 200, second POST still 200; status flips accordingly. DELETE idem potent.
+
+3) Add Items: confirm endpoint & wire UI
+
+Problem: Add‑item modal exists; POST path not validated end‑to‑end.
+
+Solution
+
+Endpoint (confirm/implement):
+
+POST /api/lists/:id/items body:
+
+{
+  "restaurantId": number,
+  "position": number | null,
+  "notes": string | null,
+  "mustTryDishes": string[] | null
+}
+
+
+Server rules:
+
+Auth required; owner or editor.
+
+Idempotency: if same restaurantId already exists on list, return 200 and respond with existing row (no duplicate).
+
+Positioning: if null, append; otherwise place and shift others.
+
+PUT /api/lists/:id/items/reorder for drag‑reorder (array of itemIds in final order), transactional.
+
+Frontend
+
+AddListItemModal → calls POST; on success invalidate ['lists', listId, 'items'].
+
+DraggableRestaurantList → uses reorder mutation with optimistic update and rollback on error (React Query).
+
+4) Query Key Standardization (React Query)
+
+Replace string keys with hierarchical arrays:
+
+Collections:
+
+['lists'], ['lists','user',userId], ['saved-lists']
+
+Single list & items:
+
+['lists', listId], ['lists', listId, 'items']
+
+Save status:
+
+['saved-lists', listId]
+
+Apply across: list details page, my‑lists, profile tab, save button, add‑item modal, reorder.
+
+5) Create Flow UX polish (no big UI refresh)
+
+Create List page:
+
+After successful POST /api/lists, route to /lists/:id with toast: “List created — add places to get started.”
+
+Disable submit until name has non‑whitespace chars; 100‑char max client + server.
+
+If visibility is circle, require at least one circle in visibility_circle_ids.
+
+List Details:
+
+Show empty state CTA when items.length===0: “No places yet — Add your first.”
+
+“Save” button state reflects save-status and persists after refresh.
+
+Back button uses global AppHeader (no page‑local headers).
+
+Accessibility:
+
+Save button aria-label toggles (“Save list” / “Remove from saved”).
+
+Reorder list supports keyboard (arrow keys + space/enter). Add focus ring and live region “Moved X to position Y”.
+
+6) Pagination (lightweight, MVP scale)
+
+Add optional ?limit=&cursor= to:
+
+GET /api/lists (owner’s lists)
+
+GET /api/saved-lists
+
+GET /api/lists/:id/items
+
+Default limit=20. Return { results, nextCursor }.
+
+Frontend uses infinite query for large collections; graceful when small.
+
+7) Dev test personas (so we can truly validate flows)
+
+Feature flag DEV_TEST_PERSONAS=true in development only.
+
+Seed script:
+
+User A (owner), User B (follower of A), Circle C1 (A + B), Circle C2 (A only).
+
+Seed 2–3 lists for A with each visibility, some saved by B.
+
+Important: No bypass in production; dev only.
+
+8) Observability & performance
+
+Log timing for /api/lists/* routes with t: 'lists' JSON logs: path, ms, userId, listId, rows.
+
+Targets (MVP):
+
+P95: GET /api/lists/:id ≤ 200ms
+
+Save/Unsave ≤ 150ms
+
+Add item ≤ 250ms, Reorder ≤ 250ms
+
+Indexes:
+
+saved_lists (user_id, list_id) UNIQUE
+
+restaurant_list_items (list_id, position)
+
+restaurant_lists (created_by_id); optional GIN on tags if used in filters.
+
+9) Validation checklist (sign‑off)
+
+Run as User A unless noted; then repeat where noted as User B.
+
+Create & Visibility
+
+Create four lists with visibility_v2 = private | public | followers | circle (choose C1 for circle). ✅
+
+Confirm GET /api/lists/:id returns visibility_v2 correctly; legacy fields present but ignored. ✅
+
+Add Items
+
+Add the same restaurant twice → single row; second returns existing item. ✅
+
+Drag reorder 3+ items; refresh → order persists. ✅
+
+Save/Unsave
+
+On list details, save-status reflects current state; save; refresh; still saved. ✅
+
+As User B:
+
+Public list is viewable & saveable.
+
+Circle‑only list is viewable only if B ∈ C1; not viewable for C2.
+
+Followers list is viewable only if B follows A.
+
+Pagination
+
+With >20 saved lists, infinite query loads more on scroll; nextCursor advances. ✅
+
+Query Keys
+
+After save/unsave, ['saved-lists', listId] and ['lists', listId] caches reconcile without fetching entire /api/saved-lists. ✅
+
+A11y
+
+Keyboard reorder announces positions; Save button has correct aria-label. ✅
+
+Perf
+
+JSON logs show P95 within targets for add item, reorder, save, get list. ✅
+
+No regressions
+
+Global header/back button behave consistently; no page‑local headers reintroduced. ✅
+
+10) Deliverables
+
+Migrations + backfill script; feature flags wired.
+
+Updated routes with tests (supertest) for create/update, save status, add item, reorder.
+
+Updated React components: SaveListButton, CreateList*, ListDetails, AddListItemModal, DraggableRestaurantList.
+
+README updates: visibility v2 contract; how to run seeds; dev persona usage.
+
+Validation log with pass/fail and timings.
+
+If anything in the codebase blocks these exact steps (e.g., conflicting file paths or existing handler names), stop and list assumptions at the top of your PR before coding.

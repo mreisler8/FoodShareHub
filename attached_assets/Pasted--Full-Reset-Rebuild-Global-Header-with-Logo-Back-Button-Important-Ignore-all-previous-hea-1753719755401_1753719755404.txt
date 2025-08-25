@@ -1,0 +1,85 @@
+🚨 Full Reset & Rebuild: Global Header with Logo + Back Button
+
+❗ Important: Ignore all previous header-related code or logic.
+Delete or remove any existing header, logo, or back-button code
+from the codebase. We are starting from scratch.
+
+---
+
+🎯 Objective
+Build a single, enterprise-grade global header component that:
+
+1. Displays the Circles logo (provided in /public/assets/logo/circles-logo.svg)
+   on every page to maintain brand alignment.
+
+2. Includes a back button (using a unified BackButton component)
+   on all pages that are NOT root landing zones.
+
+3. Works consistently across ALL landing zones:
+   /feed, /discover, /circles, /profile, /create-list-enhanced
+
+4. Meets enterprise UI/UX standards:
+   - Perfect alignment & spacing
+   - Accessible (ARIA labels, keyboard navigation)
+   - Works on mobile & desktop
+   - Respects safe-area padding for iOS
+
+---
+
+🛠 Tasks
+
+### 1. Remove Existing Header Code
+- Search and delete all current header or logo code in the codebase
+  (e.g. any `Header`, `AppHeader`, or custom header logic).
+- Confirm that no conflicting header components remain.
+
+### 2. Build New Components
+- `/components/ui/AppHeader.tsx`
+  - Fixed at top, 56px height
+  - Contains Circles logo (link to `/feed`)
+  - Slot for optional page title (centered)
+  - Slot for BackButton (left side, only on deep pages)
+
+- `/components/ui/BackButton.tsx`
+  - Extract existing back-button logic if valid OR rebuild
+  - `aria-label="Back"`, 44×44 px, calls `router.back()`
+
+### 3. Integrate Globally
+- Wrap each landing page (`/feed`, `/discover`, `/circles`, `/profile`, `/create-list-enhanced`)
+  in a layout component that includes `AppHeader`.
+
+- **Show BackButton** only on deep routes (e.g. Restaurant detail, List detail, etc.)
+  Root landing zones should not show BackButton.
+
+### 4. Visual & Functional QA
+- Logo appears on every page, centered vertically.
+- BackButton works on all non-root pages.
+- Header styling is consistent across breakpoints.
+- Test safe-area padding on iOS simulator.
+- Run axe-core a11y check: zero violations.
+- Storybook entries for AppHeader and BackButton.
+
+---
+
+📦 Deliverables
+- One PR with:
+  - `/components/ui/AppHeader.tsx` (final, clean version)
+  - `/components/ui/BackButton.tsx` (final, clean version)
+  - Updated layout integration for all pages
+  - Storybook entries for both components
+  - QA checklist (with screenshots) confirming:
+    - Logo visibility
+    - Back button functionality
+    - a11y compliance
+    - safe-area padding
+- Update `CHANGELOG.md` under “Global Header Rebuild”
+
+---
+
+🚨 Critical Notes
+- DO NOT reuse old header or logo code—remove it all.
+- Code must exactly match the new spec above.
+- Confirm changes visually and functionally before marking complete.
+- If any error occurs during integration, fix and re-test before PR submission.
+
+Thank you—this is a ground-up rebuild. Deliver **pixel-perfect, accessible, consistent UI** across all landing pages.

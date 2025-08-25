@@ -39,23 +39,30 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
   const { data: circles, isLoading: circlesLoading } = useQuery({
     queryKey: ["/api/me/circles"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/me/circles");
+      const res = await apiRequest("/api/me/circles");
       return res.json();
     },
   });
 
-  // Fetch circles the list is already shared with
+  // Fetch circles the list is already shared with (optional - fail silently)
   const {
-    data: sharedWith,
+    data: sharedWith = [],
     isLoading: sharedWithLoading,
     refetch: refetchSharedWith,
   } = useQuery({
     queryKey: ["/api/restaurant-lists", listId, "shared-with"],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/restaurant-lists/${listId}/shared-with`);
-      return res.json();
+      try {
+        const res = await apiRequest(`/api/restaurant-lists/${listId}/shared-with`);
+        return res.json();
+      } catch (error) {
+        console.warn("Failed to fetch shared circles:", error);
+        return [];
+      }
     },
     enabled: !!listId,
+    retry: false,
+    staleTime: Infinity,
   });
 
   // Mutation to share list with a circle
@@ -67,10 +74,13 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
       
       const permissions = canEdit ? "edit" : canReshare ? "reshare" : "view";
       
-      const res = await apiRequest("POST", "/api/shared-lists", {
-        listId,
-        circleId: parseInt(selectedCircleId),
-        permissions,
+      const res = await apiRequest("/api/shared-lists", {
+        method: "POST",
+        body: JSON.stringify({
+          listId,
+          circleId: parseInt(selectedCircleId),
+          permissions,
+        }),
       });
       
       return res.json();
@@ -98,7 +108,9 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
   // Mutation to remove sharing
   const removeShareMutation = useMutation({
     mutationFn: async (circleId: number) => {
-      const res = await apiRequest("DELETE", `/api/restaurant-lists/${listId}/shared-with/${circleId}`);
+      const res = await apiRequest(`/api/restaurant-lists/${listId}/shared-with/${circleId}`, {
+        method: "DELETE",
+      });
       return res;
     },
     onSuccess: () => {
@@ -119,7 +131,7 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
 
   // Filter out circles the list is already shared with
   const availableCircles = circles?.filter(
-    (circle) => !sharedWith?.some((share) => share.circle.id === circle.id)
+    (circle: any) => !sharedWith?.some((share: any) => share.circle.id === circle.id)
   );
 
   const handleShare = () => {
@@ -153,7 +165,7 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
                   <SelectValue placeholder="Select a circle to share with" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableCircles?.map((circle) => (
+                  {availableCircles?.map((circle: any) => (
                     <SelectItem key={circle.id} value={circle.id.toString()}>
                       {circle.name}
                     </SelectItem>
@@ -193,7 +205,7 @@ export function ShareListModal({ open, onOpenChange, listId }: ShareListModalPro
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-3">Currently Shared With</h3>
               <div className="space-y-3">
-                {sharedWith.map((share) => (
+                {sharedWith.map((share: any) => (
                   <div key={share.id} className="flex items-center justify-between border-b pb-2">
                     <div>
                       <p className="font-medium">{share.circle.name}</p>

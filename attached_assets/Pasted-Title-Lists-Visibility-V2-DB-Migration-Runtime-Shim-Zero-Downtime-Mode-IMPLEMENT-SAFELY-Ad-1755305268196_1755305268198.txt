@@ -1,0 +1,52 @@
+Title: Lists Visibility V2 — DB Migration + Runtime Shim (Zero-Downtime)
+
+Mode: IMPLEMENT SAFELY. Additive DB migration + minimal code changes. Preserve legacy fields (read-only). Feature-flag writes. Include tests. Do not modify unrelated features.
+
+Tasks:
+1) DB Migration
+- Add enum visibility_v2_enum('private','public','followers','circle').
+- Add columns: visibility_v2 (enum), visibility_circle_ids INT[] NULL.
+- Backfill visibility_v2 and visibility_circle_ids from legacy fields:
+  - public if make_public OR is_public
+  - circle if share_with_circle AND circle_id exists (use circle_id as single entry array)
+  - followers if legacy visibility JSON says audience=followers
+  - else private
+- Set default visibility_v2='private'.
+- Add indexes: idx_lists_visibility_v2, idx_lists_visibility_circle_ids (GIN).
+
+2) Runtime Shim
+- In lists service, implement deriveVisibility(listRow) as in the spec to compute effective visibility, preferring v2, else legacy fallback.
+- Update all read paths (get list, collections, saved lists) to use deriveVisibility() for access enforcement and response shape.
+- Update write paths:
+  - If LISTS_VISIBILITY_V2=true: write only visibility_v2 and visibility_circle_ids; do NOT mutate legacy fields.
+  - If flag is false: keep legacy writes; v2 stays null. Reads still use deriveVisibility().
+
+3) API Contract
+- Create/Update endpoints accept either:
+  - { visibility_v2: 'public'|'private'|'followers'|'circle', visibility_circle_ids?: number[] }
+  - OR legacy booleans (makePublic/shareWithCircle), but normalize to v2 internally when flag is on.
+- GET endpoints return a single `visibility` object:
+  { type: 'public'|'private'|'followers'|'circle', circleIds?: number[] }
+
+4) Frontend (minimal)
+- Ensure components read `list.visibility.type` (10 lines max change).
+- No other UI refactors; keep current query key scheme as already migrated.
+
+5) Tests
+- Add unit tests for mapping/backfill (12 cases).
+- Supertest:
+  - Create list with each visibility; verify GET returns expected visibility object.
+  - Persona access matrix (A owner, B follower, C circle member, D unrelated) for each visibility returns 200/403 as appropriate.
+- Record results to docs/lists-validation/VISIBILITY_V2_MIGRATION_RESULTS.md.
+
+Deliverables:
+- Migration file (Drizzle or SQL).
+- Updated list service with deriveVisibility().
+- Updated routes with flag-controlled writes.
+- Tests + report in docs/lists-validation/.
+- A short rollback section (how to ignore v2 at runtime by toggling flag).
+
+Guardrails:
+- No destructive migrations.
+- No renames of existing legacy columns.
+- Do not alter authentication or other features.

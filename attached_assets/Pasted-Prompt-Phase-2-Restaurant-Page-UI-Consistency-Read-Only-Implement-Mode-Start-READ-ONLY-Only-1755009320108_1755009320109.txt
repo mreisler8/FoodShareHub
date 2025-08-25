@@ -1,0 +1,148 @@
+Prompt — Phase 2: Restaurant Page UI Consistency (Read-Only → Implement)
+Mode: Start READ-ONLY. Only after producing the inventory + diffs, proceed to IMPLEMENTATION.
+
+Goals
+Every widget on the restaurant page consumes the same canonical data and shows the same numbers.
+
+Exactly one “Your Rating” UI is rendered.
+
+No mock “Similar” or “Lists” content.
+
+Circle Score shows the same value anywhere it appears.
+
+Part A — READ-ONLY UI Consistency Inventory (required before code)
+Produce /docs/restaurant_fixes/PHASE2_UI_INVENTORY.md that answers:
+
+Widget → Data Source Map (exact file + hook + query key + endpoint)
+
+YourRatingCard
+
+CircleScore (all placements: “Circles Take”, score chip by Google score, etc.)
+
+Lists that include this restaurant
+
+Similar/Related restaurants
+
+Any badge/chip that repeats rating/score
+
+Mismatches & Causes
+
+Different query keys for the same data? (e.g., ['circleScore', id] vs ['/api/circle-score'])
+
+Duplicate fetches? (two components both calling ratings)
+
+Mock or placeholder content still present?
+
+Mixed identity usage? (placeId vs restaurantId)
+
+Screenshots
+
+One restaurant with ?debug=1 (e.g., Badiali): full page, plus close-ups of each widget
+
+Note the displayed values next to their data source + query key
+
+Do not change code yet.
+
+Part B — IMPLEMENTATION (only after the inventory is checked in)
+1) Standardize data access via a single hook
+File: client/src/hooks/useStandardizedRestaurantQueries.ts
+
+Must expose:
+
+ts
+Copy
+Edit
+{
+  restaurantId: number; placeId?: string;
+  userRating,        // ['userRating', restaurantId]
+  circleScore,       // ['circleScore', restaurantId]
+  listsWithRestaurant, // ['listsWithRestaurant', restaurantId]
+  similarRestaurants,  // ['similarRestaurants', restaurantId]
+  submitRating(), invalidateAll()
+}
+Internally resolve identity once (restaurantId canonical). No component should call endpoints directly.
+
+2) Remove duplicate rating UI & duplicate fetches
+Keep only YourRatingCard.tsx for the personal rating display.
+
+Delete/disable any secondary “Your Rating” indicators/cards/badges.
+
+Ensure no component fetches ratings directly—only through the standardized hook.
+
+3) Unify Circle Score usage
+All Circle Score placements must read the same query:
+
+useQuery(['circleScore', restaurantId], GET /api/restaurant/:restaurantId/circle-score)
+
+Replace any legacy keys/endpoints (e.g., ['/api/circle-score'], ['circle-score-data']).
+
+If ratingsCount < 2 (or the returned confidence is “low”), show the low-data state consistently instead of contradictory numbers.
+
+4) Lists & Similar: no mocks, real data only
+Remove or production-gate any mock arrays (lists/posts/similar).
+
+Wire both to the standardized hook keys above.
+
+If no results, show empty states (don’t fabricate content).
+
+5) Accessibility quick wins (tight scope)
+QuickRateModal: add DialogTitle + DialogDescription.
+
+Action buttons: aria-label (Save, Quick Rate, Add to List).
+
+Rating slider: keyboard left/right = ±0.1 with correct ARIA attributes.
+
+6) Cache & invalidation wiring (frontend)
+On submitRating success:
+
+Invalidate ['userRating', restaurantId] and ['circleScore', restaurantId].
+
+Do not use or revive legacy query keys.
+
+Acceptance Criteria (must pass)
+Single source of truth
+
+Grep shows exactly one Circle Score query key in the repo: ['circleScore', restaurantId].
+
+Grep shows exactly one ratings key: ['userRating', restaurantId].
+
+No duplicate rating UI
+
+Only YourRatingCard renders the user’s rating.
+
+Score consistency
+
+On the same page load, “Circles Take” and the small score chip show the same score (or the same low-data state).
+
+No mock content
+
+No mock lists/similar on prod builds; empty states are used when data is missing.
+
+Badiali verification
+
+With ?debug=1, identity panel shows the canonical id and no Villa di Roma strings anywhere.
+
+Docs & evidence
+
+/docs/restaurant_fixes/PHASE2_UI_INVENTORY.md (pre-change)
+
+/docs/restaurant_fixes/PHASE2_VALIDATION.md with after screenshots and values
+
+Test Plan (add/update)
+RTL: RestaurantDetailPage renders one rating module; two Circle Score placements show an equal value; lists/similar empty states.
+
+Supertest: no UI in this phase, but keep Phase-1 backend tests green.
+
+Manual: Load three restaurants (Badiali + 2 others) with ?debug=1. Confirm identity/score/rating parity and no mock content.
+
+Guardrails
+Do not change backend contracts introduced in Phase 1.
+
+Keep search and navigation behavior unchanged.
+
+If a widget cannot source real data yet, prefer an empty state over fallbacks/mocks.
+
+If you must add a prop or move a file, include a one-line reasoning note in the PR header.
+
+Please execute Part A (read-only) first, check in the inventory doc, then perform Part B, and attach the validation doc.
+

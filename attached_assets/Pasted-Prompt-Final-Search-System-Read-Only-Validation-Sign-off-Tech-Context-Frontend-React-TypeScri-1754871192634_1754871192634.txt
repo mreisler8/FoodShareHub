@@ -1,0 +1,104 @@
+Prompt — Final Search System Read-Only Validation & Sign-off
+Tech Context:
+Frontend: React (TypeScript, Vite, Tailwind CSS)
+Backend: Node.js/Express, PostgreSQL (Drizzle ORM), Redis (production-enabled), Google Places API (with circuit breaker & caching)
+
+Goal:
+Perform a final, read-only end-to-end validation of the search system across all entities (restaurants, users, lists, themes, and people/follow search) to confirm MVP readiness.
+No code modifications — audit and reporting only.
+Deliver a single file: SEARCH_VALIDATION_REPORT.md containing findings, evidence, and a Go/No-Go decision.
+
+Validation Steps
+Endpoint & API Contract Verification
+
+Verify /api/search/restaurants, /api/search/users, /api/search/lists, /api/search/themes, /api/search/unified, and /api/search/follow all return:
+
+HTTP 200 for authenticated requests
+
+HTTP 401 for unauthenticated requests
+
+Responses match the unified API contract:
+
+json
+Copy
+Edit
+{
+  "results": [...],
+  "total": number,
+  "entity": "string",
+  "meta": { "page": number, "hasMore": boolean }
+}
+Verify all endpoints respect authentication and visibility rules (public vs private content).
+
+UI/UX Consistency Validation
+
+Confirm OptimizedSearchModal is the only search UI in use across all entry points (feed, discover, circles, profile, list creation, post creation, circle creation wizard, follow/people search).
+
+Confirm placeholder text, icons, debounce timing (300ms), loading/error states, and result list layout are consistent across all entity searches.
+
+Verify location services toggle is correctly applied (restaurants: ON, others: OFF).
+
+Performance Validation
+
+With Redis enabled, warm cache for each entity type.
+
+Perform authenticated load test for 100 concurrent users on each search endpoint:
+
+Measure P50, P95 latency, and cache hit rate for each.
+
+Target: P95 ≤ 300ms and cache hit rate ≥ 60% for repeated queries.
+
+Verify circuit breaker & Places API timeout settings are working (no search request blocked >200ms by Places API).
+
+Confirm parallel execution for unified search is functioning.
+
+People/Follow Search Validation
+
+Confirm /api/search/follow returns:
+
+Suggested users when no query is provided (mutuals first).
+
+Relevant matches when a query is entered.
+
+Verify performance (P95 ≤ 300ms) and cache utilization.
+
+Confirm consistent UI inside OptimizedSearchModal’s “Users” tab.
+
+Security & Error Handling
+
+Verify standardized error response format for 401/404/500 errors.
+
+Ensure no sensitive data is returned in search results or errors.
+
+Deliverable
+Generate a file named SEARCH_VALIDATION_REPORT.md containing:
+
+Executive Summary
+
+Overall status: ✅ PASS / ⚠ PARTIAL / ❌ FAIL
+
+Go/No-Go decision for MVP.
+
+Test Configuration
+
+Environment, date, performance targets, Redis status.
+
+Validation Results
+
+Table of all endpoints with pass/fail and key metrics (latency, cache hit %).
+
+UI/UX consistency checklist.
+
+Security compliance status.
+
+Critical Findings
+
+Any blockers for MVP launch.
+
+Recommended fixes (if applicable).
+
+Final Assessment
+
+Confirmation of backend + frontend search optimization.
+
+Sign-off readiness statement.

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Search, MapPin, Star, X, Loader2, Plus } from 'lucide-react';
+import { MapPin, Star, X, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { MultiSelect } from '@/components/ui/multi-select';
@@ -15,6 +15,9 @@ import { CreateListModal } from '@/components/lists/CreateListModal';
 import { RestaurantList } from '@shared/schema';
 import MediaUploader from '@/components/MediaUploader';
 import { VisibilitySelector } from '@/components/VisibilitySelector';
+import { postService } from '@/services/postService';
+import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { Restaurant } from '@/types/restaurant';
 
 interface PostModalProps {
   open: boolean;
@@ -22,31 +25,15 @@ interface PostModalProps {
   post?: any; // Optional post for editing mode
 }
 
-interface RestaurantSearchResult {
-  id: string;
-  name: string;
-  thumbnailUrl: string | null;
-  avgRating: number;
-  location?: string;
-  source: 'database' | 'google';
-}
-
-interface SelectedRestaurant {
-  id: string;
-  name: string;
-  location?: string;
-  source: 'database' | 'google';
-}
-
 export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const isEditMode = !!post;
 
   // Form state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRestaurant, setSelectedRestaurant] = useState<SelectedRestaurant | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [rating, setRating] = useState(0);
   const [liked, setLiked] = useState('');
   const [disliked, setDisliked] = useState('');
@@ -55,7 +42,6 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [media, setMedia] = useState<any[]>([]);
   const [imageTags, setImageTags] = useState<string[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
   const [taggedListIds, setTaggedListIds] = useState<number[]>([]);
   const [isCreateListOpen, setIsCreateListOpen] = useState(false);
   
@@ -66,29 +52,17 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     circleIds: [] as number[]
   });
 
-  // Debounced search
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300); // 300ms debounce as per user story
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
   // Pre-populate form when editing
   useEffect(() => {
     if (isEditMode && post && open) {
       // Set restaurant info
       if (post.restaurant) {
         setSelectedRestaurant({
-          id: post.restaurantId.toString(),
+          id: post.restaurantId?.toString() || '',
           name: post.restaurant.name,
           location: post.restaurant.location,
           source: 'database'
         });
-        setSearchQuery(post.restaurant.name);
       }
 
       // Set rating
@@ -102,7 +76,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       let dislikedText = '';
       let notesText = '';
 
-      lines.forEach(line => {
+      lines.forEach((line: string) => {
         if (line.startsWith('What I liked:')) {
           likedText = line.replace('What I liked:', '').trim();
         } else if (line.startsWith('What I didn\'t like:')) {
@@ -127,45 +101,50 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       // Set existing media for uploader
       const existingMedia = [];
       if (post.images && Array.isArray(post.images)) {
-        existingMedia.push(...post.images.map(url => ({ url, thumbnailUrl: url, type: 'image' as const })));
+        existingMedia.push(...post.images.map((url: string) => ({ url, thumbnailUrl: url, type: 'image' as const })));
       }
       if (post.videos && Array.isArray(post.videos)) {
-        existingMedia.push(...post.videos.map(url => ({ url, thumbnailUrl: url, type: 'video' as const })));
+        existingMedia.push(...post.videos.map((url: string) => ({ url, thumbnailUrl: url, type: 'video' as const })));
       }
       setMedia(existingMedia);
     }
   }, [isEditMode, post, open]);
 
-  // Search restaurants
-  const { data: searchResults = [], isLoading: isSearching } = useQuery<RestaurantSearchResult[]>({
-    queryKey: ['/api/restaurants', debouncedQuery],
-    enabled: debouncedQuery.length >= 1 && showSearchResults,
-  });
+  // Handle restaurant selection
+  const handleRestaurantSelect = (restaurant: Restaurant) => {
+    setSelectedRestaurant(restaurant);
+  };
 
-  // Fetch user lists for tagging
-  const { data: userLists = [] } = useQuery<RestaurantList[]>({
+  // Get user's restaurant lists for tagging
+  const { data: userLists = [] } = useQuery({
     queryKey: ['/api/lists'],
-    enabled: !!user,
+    select: (data: any) => data?.lists || []
   });
 
-  // Create/Update post mutation
+  // Save post mutation using centralized service
   const savePostMutation = useMutation({
-    mutationFn: async (postData: any) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      if (isEditMode && post) {
-        // Update existing post
-        const response = await apiRequest('PUT', `/api/posts/${post.id}`, postData);
-        return response.json();
-      } else {
-        // Create new post
-        const response = await apiRequest('POST', '/api/posts', {
-          ...postData,
-          userId: user.id,
-          listIds: taggedListIds,
-        });
-        return response.json();
+    mutationFn: async () => {
+      if (!selectedRestaurant || !rating || !liked.trim() || !user) {
+        throw new Error('Missing required fields');
       }
+
+      const postData = {
+        restaurantId: selectedRestaurant.id,
+        restaurantName: selectedRestaurant.name,
+        restaurantLocation: selectedRestaurant.location,
+        rating,
+        liked: liked.trim(),
+        disliked: disliked.trim(),
+        notes: notes.trim(),
+        media,
+        imageTags,
+        taggedListIds,
+        visibilitySettings,
+        userId: user.id,
+        postId: isEditMode ? post.id : undefined
+      };
+
+      return await postService.createPost(postData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
@@ -195,7 +174,6 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
   });
 
   const resetForm = () => {
-    setSearchQuery('');
     setSelectedRestaurant(null);
     setRating(0);
     setLiked('');
@@ -205,31 +183,11 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
     setImageUrls([]);
     setMedia([]);
     setImageTags([]);
-    setShowSearchResults(false);
     setVisibilitySettings({
       public: true,
       followers: false,
       circleIds: []
     });
-  };
-
-  const handleSearchInputChange = (value: string) => {
-    setSearchQuery(value);
-    setShowSearchResults(value.length >= 1);
-    if (value.length === 0) {
-      setSelectedRestaurant(null);
-    }
-  };
-
-  const handleRestaurantSelect = (restaurant: RestaurantSearchResult) => {
-    setSelectedRestaurant({
-      id: restaurant.id,
-      name: restaurant.name,
-      location: restaurant.location,
-      source: restaurant.source,
-    });
-    setSearchQuery(restaurant.name);
-    setShowSearchResults(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -244,46 +202,23 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
       return;
     }
 
-    // Combine the structured fields into content for current schema compatibility
-    const contentParts = [];
-    if (liked.trim()) contentParts.push(`What I liked: ${liked.trim()}`);
-    if (disliked.trim()) contentParts.push(`What I didn't like: ${disliked.trim()}`);
-    if (notes.trim()) contentParts.push(`Additional notes: ${notes.trim()}`);
-    const content = contentParts.join('\n\n');
-
-    // Extract media URLs
-    const images = media.filter(f => f.type === 'image').map(f => f.url);
-    const videos = media.filter(f => f.type === 'video').map(f => f.url);
-
-    // Handle restaurant ID - if Google place, we need to create/find the restaurant first
-    if (selectedRestaurant.source === 'google') {
-      // For Google Places, we'll need to create the restaurant first
-      // For now, show an error message as this requires additional API integration
+    if (!user) {
       toast({
-        title: 'Google Places Integration',
-        description: 'Creating posts with Google Places restaurants will be implemented in the next iteration.',
+        title: 'Authentication required',
+        description: 'Please log in to create posts.',
         variant: 'destructive',
       });
       return;
     }
 
-    const restaurantId = parseInt(selectedRestaurant.id);
-
-    savePostMutation.mutate({
-      userId: user.id,
-      restaurantId,
-      rating,
-      content,
-      images,
-      videos,
-      imageTags,
-      visibility: visibilitySettings
-    });
+    // Submit using the centralized post service
+    savePostMutation.mutate();
   };
 
   const isFormValid = selectedRestaurant && rating > 0 && liked.trim().length > 0;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -294,81 +229,22 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
           {/* Restaurant Search */}
           <div className="space-y-2">
             <Label htmlFor="restaurant-search">Find a restaurant</Label>
-            <div className="relative">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  id="restaurant-search"
-                  type="text"
-                  placeholder="Search for a restaurant..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearchInputChange(e.target.value)}
-                  className="pl-10"
-                  autoComplete="off"
-                />
-                {isSearching && (
-                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                )}
-              </div>
-
-              {/* Search Results Dropdown */}
-              {showSearchResults && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {searchResults.length > 0 ? (
-                    <ul className="py-1">
-                      {searchResults.map((restaurant) => (
-                        <li key={restaurant.id}>
-                          <button
-                            type="button"
-                            className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none flex items-center gap-3"
-                            onClick={() => handleRestaurantSelect(restaurant)}
-                          >
-                            {restaurant.thumbnailUrl && (
-                              <img 
-                                src={restaurant.thumbnailUrl} 
-                                alt={restaurant.name}
-                                className="w-10 h-10 rounded object-cover flex-shrink-0"
-                              />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">
-                                {restaurant.name}
-                              </p>
-                              {restaurant.location && (
-                                <p className="text-sm text-gray-500 truncate flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {restaurant.location}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span className="text-xs text-gray-500">
-                                {restaurant.avgRating.toFixed(1)}
-                              </span>
-                            </div>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="px-4 py-3 text-sm text-gray-500">
-                      No matches found.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Selected Restaurant Display */}
-          {selectedRestaurant && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
+            {!selectedRestaurant ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => setSearchModalOpen(true)}
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Search for a restaurant...
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                <div className="flex-1">
                   <p className="font-medium text-gray-900">{selectedRestaurant.name}</p>
                   {selectedRestaurant.location && (
-                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
                       {selectedRestaurant.location}
                     </p>
@@ -378,22 +254,18 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setSelectedRestaurant(null);
-                    setSearchQuery('');
-                  }}
-                  className="text-gray-600 hover:text-gray-800"
+                  onClick={() => setSelectedRestaurant(null)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Rating */}
           <div className="space-y-2">
-            <Label>Your Rating *</Label>
-            <div className="flex gap-1">
+            <Label>Rating</Label>
+            <div className="flex items-center space-x-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
@@ -402,7 +274,7 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
                   className="focus:outline-none"
                 >
                   <Star
-                    className={`h-6 w-6 ${
+                    className={`h-6 w-6 transition-colors ${
                       star <= rating
                         ? 'fill-yellow-400 text-yellow-400'
                         : 'text-gray-300 hover:text-yellow-400'
@@ -410,34 +282,38 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
                   />
                 </button>
               ))}
+              <span className="text-sm text-gray-500 ml-2">
+                {rating > 0 ? `${rating} star${rating > 1 ? 's' : ''}` : 'No rating'}
+              </span>
             </div>
           </div>
 
-          {/* What I Liked - Required */}
+          {/* What I Liked */}
           <div className="space-y-2">
             <Label htmlFor="liked">What I liked *</Label>
             <Textarea
               id="liked"
-              placeholder="Tell us what you enjoyed about this place..."
+              placeholder="Describe what you enjoyed about this restaurant..."
               value={liked}
               onChange={(e) => setLiked(e.target.value)}
               className="min-h-[80px]"
+              required
             />
           </div>
 
-          {/* What I Didn't Like - Optional */}
+          {/* What I Didn't Like */}
           <div className="space-y-2">
             <Label htmlFor="disliked">What I didn't like (optional)</Label>
             <Textarea
               id="disliked"
-              placeholder="Any areas for improvement..."
+              placeholder="Anything you didn't enjoy or would change..."
               value={disliked}
               onChange={(e) => setDisliked(e.target.value)}
               className="min-h-[60px]"
             />
           </div>
 
-          {/* Additional Notes - Optional */}
+          {/* Additional Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Additional notes (optional)</Label>
             <Textarea
@@ -531,9 +407,15 @@ export function PostModal({ open, onOpenChange, post }: PostModalProps) {
         onOpenChange={setIsCreateListOpen}
         onSuccess={(newList) => {
           queryClient.invalidateQueries({ queryKey: ['/api/lists'] });
-          setTaggedListIds([...taggedListIds, newList.id]);
+          setTaggedListIds([...taggedListIds, (newList as any).id]);
         }}
       />
     </Dialog>
+    
+    <UnifiedSearchModal
+      open={searchModalOpen}
+      onOpenChange={setSearchModalOpen}
+    />
+    </>
   );
 }

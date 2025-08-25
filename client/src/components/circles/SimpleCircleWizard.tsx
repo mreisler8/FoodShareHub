@@ -9,11 +9,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { X, ArrowLeft, ArrowRight } from "lucide-react";
 
 interface SimpleCircleWizardProps {
+  isOpen: boolean;
   onClose: () => void;
 }
 
-export function SimpleCircleWizard({ onClose }: SimpleCircleWizardProps) {
+export function SimpleCircleWizard({ isOpen, onClose }: SimpleCircleWizardProps) {
   const [step, setStep] = useState(1);
+  const [allowPublicJoin, setAllowPublicJoin] = useState(false);
+  const [coverImage, setCoverImage] = useState<File | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -22,7 +25,7 @@ export function SimpleCircleWizard({ onClose }: SimpleCircleWizardProps) {
   const [circleName, setCircleName] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
-  const [allowPublicJoin, setAllowPublicJoin] = useState(false);
+
 
   const handleCreateCircle = async () => {
     if (!circleName.trim()) {
@@ -50,12 +53,12 @@ export function SimpleCircleWizard({ onClose }: SimpleCircleWizardProps) {
       });
 
       await queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
-      
+
       toast({
         title: "Success!",
         description: "Your circle has been created",
       });
-      
+
       onClose();
     } catch (error) {
       console.error("Create circle error:", error);
@@ -68,6 +71,8 @@ export function SimpleCircleWizard({ onClose }: SimpleCircleWizardProps) {
       setIsCreating(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -148,14 +153,27 @@ export function SimpleCircleWizard({ onClose }: SimpleCircleWizardProps) {
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  id="public"
+                  id="allowPublicJoin"
                   checked={allowPublicJoin}
                   onChange={(e) => setAllowPublicJoin(e.target.checked)}
-                  className="rounded"
+                  className="rounded border-gray-300"
                 />
-                <Label htmlFor="public" className="font-normal">
-                  Allow anyone to join with invite link
+                <Label htmlFor="allowPublicJoin" className="text-sm">
+                  Allow public joining
                 </Label>
+              </div>
+
+              <div>
+                <Label htmlFor="coverImage" className="text-sm font-medium">
+                  Cover Image (optional)
+                </Label>
+                <input
+                  type="file"
+                  id="coverImage"
+                  accept="image/*"
+                  onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
+                  className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
               </div>
             </div>
           )}
@@ -186,24 +204,15 @@ export function SimpleCircleWizard({ onClose }: SimpleCircleWizardProps) {
             onClick={step === 1 ? onClose : () => setStep(1)}
             disabled={isCreating}
           >
-            {step === 1 ? 'Cancel' : <><ArrowLeft className="h-4 w-4 mr-1" /> Back</>}
+            {step === 1 ? 'Cancel' : 'Back'}
           </Button>
           
-          {step === 1 ? (
-            <Button
-              onClick={() => setStep(2)}
-              disabled={!circleName.trim() || isCreating}
-            >
-              Next <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleCreateCircle}
-              disabled={isCreating}
-            >
-              {isCreating ? "Creating..." : "Create Circle"}
-            </Button>
-          )}
+          <Button
+            onClick={step === 1 ? () => setStep(2) : handleCreateCircle}
+            disabled={isCreating || (step === 1 && !circleName.trim())}
+          >
+            {isCreating ? 'Creating...' : (step === 1 ? 'Next' : 'Create Circle')}
+          </Button>
         </div>
       </div>
     </div>

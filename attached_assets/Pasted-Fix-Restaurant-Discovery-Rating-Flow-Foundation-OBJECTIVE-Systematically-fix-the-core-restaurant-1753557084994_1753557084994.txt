@@ -1,0 +1,80 @@
+Fix Restaurant Discovery & Rating Flow Foundation
+
+OBJECTIVE: Systematically fix the core restaurant discovery and rating flow to ensure robust, consistent functionality regardless of future features built on top.
+
+CRITICAL SYSTEM-LEVEL FIXES REQUIRED:
+
+1. Dynamic Restaurant Data Pipeline
+Problem: Restaurant pages show static data instead of dynamic content
+Fix Required:
+
+Ensure all restaurant detail endpoints (/api/restaurants/:id and /api/restaurants?googlePlaceId=) return complete, real-time data
+Fix any caching issues preventing dynamic updates
+Verify Google Places API integration returns fresh data
+Test that search results properly link to dynamic restaurant pages
+Validation: Navigate from search → restaurant page should show real ratings, real reviews, real business hours
+
+2. Unified Rating System Architecture
+Problem: Multiple confusing rating entry points, ratings don't persist through UI
+Fix Required:
+
+Single Source of Truth: Consolidate all rating functionality to use useRestaurantRatingState hook and QuickRateModal component
+Remove Duplicate Entry Points: Audit and remove any competing rating components or flows
+State Persistence: Ensure rating state properly syncs between API, local state, and UI display
+Universal ID Handling: Use the existing Universal Restaurant ID System (server/lib/restaurantIdUtils.ts) for all rating operations
+Validation: Only ONE rating entry point visible per restaurant, ratings persist on page refresh, rating updates immediately reflect in UI
+
+3. Circle Score Integration Consistency
+Problem: Trust-based recommendations not showing consistently
+Fix Required:
+
+Ensure Circle Score displays on ALL restaurant touchpoints (search results, restaurant pages, lists)
+Fix any API endpoint failures in /api/circle-score/ routes
+Verify Circle Score calculations work for both database restaurants and Google Places restaurants
+Add proper loading and fallback states for Circle Score components
+Validation: Circle Score visible on search results AND restaurant detail pages, shows real data or proper "N/A" state
+
+4. Search → Restaurant → Rate Flow Integration
+Problem: Search results don't properly connect to restaurant rating system
+Fix Required:
+
+Verify SearchResultsList component properly handles both database and Google Places restaurant IDs
+Ensure restaurant navigation from search preserves all necessary data for rating functionality
+Fix any routing issues between search results and restaurant detail pages
+Test rating functionality works from search results AND restaurant detail pages
+Validation: Complete user flow: Search "restaurant name" → Click result → See dynamic data → Rate restaurant → Rating persists
+
+5. Error Handling & Fallback Systems
+Problem: Silent failures causing broken user experiences
+Fix Required:
+
+Add comprehensive error boundaries around rating components
+Implement proper loading states for all restaurant data fetching
+Add fallback content when Google Places API fails
+Ensure graceful degradation when Circle Score data unavailable
+Validation: No white screens, no broken states, clear error messages when things fail
+
+IMPLEMENTATION PRIORITY ORDER:
+Fix Dynamic Data Pipeline - Restaurant pages must show real data
+Consolidate Rating System - Single, working rating flow
+Integrate Circle Score - Trust indicators working everywhere
+Test Complete Flow - Search → Restaurant → Rate → Persist
+Add Error Handling - Graceful failures and loading states
+SUCCESS CRITERIA:
+✅ Search Flow: "PAI Toronto" search → Click result → See real restaurant data with current hours, real reviews, dynamic ratings
+
+✅ Rating Flow: Single "Quick Rate" button per restaurant, ratings persist on refresh, updates immediately visible
+
+✅ Circle Score: Trust-based scores visible in search results AND restaurant pages, with proper loading/fallback states
+
+✅ Data Consistency: Same restaurant data whether accessed via search, lists, or direct navigation
+
+✅ Error Resilience: No broken states when APIs fail, proper loading indicators, graceful fallbacks
+
+TECHNICAL APPROACH:
+Use existing useRestaurantRatingState hook for ALL rating functionality
+Leverage server/lib/restaurantIdUtils.ts for universal restaurant ID handling
+Follow established patterns in SearchResultsList.tsx and RestaurantActionBar.tsx
+Test with both database restaurants (like Pai) and Google Places restaurants (like Costa Verde)
+EXPECTED OUTCOME: Restaurant discovery and rating flow works flawlessly for any restaurant, from any source, with consistent behavior that won't break when new features are added.
+

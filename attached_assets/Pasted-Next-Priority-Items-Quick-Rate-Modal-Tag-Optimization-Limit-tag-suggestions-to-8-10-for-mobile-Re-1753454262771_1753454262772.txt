@@ -1,0 +1,148 @@
+Next Priority Items:
+Quick Rate Modal Tag Optimization - Limit tag suggestions to 8-10 for mobile
+Restaurant Page Action Integration - Fix Add to List functionality
+Search Integration - Update ShareListModal to use unified search service
+Authentication Edge Cases - Resolve any follow/authorization issues
+The core infrastructure is now stable, so component-level fixes should be much more straightforward to implement and test.
+
+Would you like me to help you tackle any specific component-level issues next, or do you want to run some mobile QA testing first to validate the infrastructure improvements?
+
+Provide clear guidance on his to fix those for our agent to follow
+
+MI
+
+mitchreisler
+Assistant
+just now
+Based on the console logs and codebase analysis, I can see several critical issues that need systematic remediation. Here's clear guidance for your development agent:
+
+Root Cause Analysis
+1. Unhandled Promise Rejections
+
+Issue: Multiple unhandled rejections are causing React state corruption
+Evidence: 5 consecutive {"type":"unhandledrejection"} errors in console
+Impact: Breaking component state management and user interactions
+2. Persistent API Polling Without Cleanup
+
+Issue: Queries for pending invites/requests are running continuously without proper cleanup
+Evidence: Repeated API calls every few seconds to /api/circles/invites/pending, /api/circles/requests/pending, /api/follow/requests/pending
+Impact: Performance degradation and potential memory leaks
+3. Restaurant Page Component State Corruption
+
+Issue: React hooks are being called conditionally or components are unmounting improperly
+Evidence: Based on previous chat history showing RestaurantActionBar and rating system issues
+Systematic Fix Implementation
+Phase 1: Critical Error Handling (Highest Priority)
+1. Fix Unhandled Promise Rejections
+
+Update all API calls in restaurant components to include proper error boundaries:
+
+// In RestaurantActionBar, QuickRateModal, AddToListModal
+try {
+  const result = await apiCall();
+  // handle success
+} catch (error) {
+  console.error('API Error:', error);
+  toast({
+    title: "Action failed",
+    description: error.message || "Please try again",
+    variant: "destructive"
+  });
+  // Don't let the error bubble up unhandled
+}
+2. Add Query Error Boundaries
+
+Update all useQuery hooks to include proper error handling:
+
+const { data, error, isLoading } = useQuery({
+  queryKey: ['/api/endpoint'],
+  queryFn: apiFunction,
+  retry: (failureCount, error) => {
+    console.error('Query failed:', error);
+    return failureCount < 2; // Limit retries
+  },
+  onError: (error) => {
+    // Log but don't throw
+    console.error('Query error:', error);
+  }
+});
+Phase 2: Fix Persistent Polling Issues
+3. Implement Proper Query Cleanup
+
+Update components with pending request queries to include proper cleanup:
+
+// In components that poll for pending requests
+useEffect(() => {
+  return () => {
+    // Cancel any ongoing queries when component unmounts
+    queryClient.cancelQueries({ queryKey: ['/api/circles/invites/pending'] });
+    queryClient.cancelQueries({ queryKey: ['/api/circles/requests/pending'] });
+    queryClient.cancelQueries({ queryKey: ['/api/follow/requests/pending'] });
+  };
+}, [queryClient]);
+4. Add Conditional Query Enabling
+
+Only run pending request queries when actually needed:
+
+const { data: pendingInvites } = useQuery({
+  queryKey: ['/api/circles/invites/pending'],
+  enabled: isOpen && !!user, // Only when modal is open and user is authenticated
+  refetchInterval: 30000, // Reduce frequency from default
+  staleTime: 10000 // Cache for 10 seconds
+});
+Phase 3: Restaurant Page State Management
+5. Fix RestaurantActionBar Hook Dependencies
+
+Ensure useRestaurantRatingState is called consistently:
+
+// In RestaurantActionBar.tsx
+const restaurantForRating = useMemo(() => ({
+  id: restaurant.id,
+  googlePlaceId: restaurant.googlePlaceId,
+  name: restaurant.name
+}), [restaurant.id, restaurant.googlePlaceId, restaurant.name]);
+const { rating, hasRated, label, isLoading, error } = useRestaurantRatingState(restaurantForRating);
+6. Add Component Error Boundaries
+
+Wrap problematic components in error boundaries:
+
+// Create ErrorBoundary wrapper for restaurant components
+const RestaurantActionBarWithBoundary = () => (
+  <ErrorBoundary fallback={<div>Action bar unavailable</div>}>
+    <RestaurantActionBar {...props} />
+  </ErrorBoundary>
+);
+Phase 4: Search Integration Fixes
+7. Update ShareListModal Search
+
+Implement proper restaurant search in share modals using the unified search service:
+
+// In ShareListModal.tsx
+import { SearchService } from '@/services/searchService';
+const searchService = SearchService.getInstance();
+const handleRestaurantSearch = async (query: string) => {
+  try {
+    const results = await searchService.searchRestaurants(query, {
+      location: userLocation,
+      limit: 10
+    });
+    setSearchResults(results);
+  } catch (error) {
+    console.error('Search failed:', error);
+    setSearchResults([]);
+  }
+};
+Implementation Priority
+Fix unhandled promise rejections (Critical - affects all functionality)
+Stop persistent polling (High - performance impact)
+Fix restaurant page state management (High - core user journey)
+Update search integration (Medium - feature completeness)
+Validation Steps
+After implementing fixes:
+
+Check console for zero unhandled rejections
+Verify API calls stop when components unmount
+Test restaurant page actions work consistently
+Confirm search functionality works in all modals
+This systematic approach will resolve the core stability issues while preserving all existing functionality.
+

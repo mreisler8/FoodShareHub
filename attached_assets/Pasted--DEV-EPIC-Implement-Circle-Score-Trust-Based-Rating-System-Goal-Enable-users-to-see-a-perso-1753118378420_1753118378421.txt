@@ -1,0 +1,107 @@
+🧭 DEV EPIC: Implement Circle Score — Trust-Based Rating System
+🎯 Goal:
+Enable users to see a personalized Circle Score for each restaurant based on meaningful actions from people they trust. This replaces anonymous public review scores with high-signal data from Circles and followed users—surfaced directly in search results and restaurant pages.
+
+🔨 BACKEND – Scoring Engine & API
+1. Circle Score Calculation Logic
+File: lib/circleScore.ts
+
+Inputs: restaurantId, requestingUserId
+
+Process:
+
+Fetch relevant Quick Ratings shared by trusted users (Circles and follows)
+
+Fetch Lists shared in Circles where the restaurant is ranked
+
+Optionally fetch Reactions and Saves (if available now or later)
+
+Apply scoring formula:
+
+ts
+Copy
+Edit
+rawScore = (
+  quickRatingValue × 3 +
+  listPlacementWeight +
+  reactions × 2 +
+  saves × 1
+) × recencyDecay × confidenceModifier
+Normalize to a 0–100 score
+
+Return: { score, confidenceLevel, contributors[] }
+
+2. API Endpoint
+Route: GET /api/circle-score/:restaurantId
+Output:
+
+ts
+Copy
+Edit
+{
+  score: number;               // 0–100
+  confidence: "low" | "moderate" | "high",
+  contributors: [
+    { userId, username, actionType, value }
+  ]
+}
+Authenticated only
+
+Only includes shared data from trusted sources
+
+🖥 FRONTEND – UI Integration
+3. Search Results Integration
+File: components/search/SearchResultsList.tsx
+
+For each result:
+
+Fetch Circle Score via new API
+
+Display: 🔥 Circle Score: 92
+
+Tooltip or detail modal shows contributors (optional)
+
+Use ghost badge or pill design aligned with your home UI
+
+4. Restaurant Detail Page
+File: pages/RestaurantDetailPage.tsx
+
+Add “Your Circle’s Take” section:
+
+Score value
+
+Confidence summary (e.g., “Rated by 5 people in your Circle”)
+
+Contributor avatars or names (if available)
+
+Reuse shared component: CircleScoreCard.tsx
+
+📦 BONUS – Reusability & Optimization
+Move shared logic to CircleScoreCard.tsx and useCircleScore.ts
+
+Debounce or batch fetches where possible
+
+Use react-query to avoid redundant fetches
+
+🔒 NFRs & Data Integrity
+Don’t show scores if no valid data (graceful fallback)
+
+Must be Circle-based only (no global averages)
+
+Performance: indexed queries only; avoid N+1 issues
+
+Privacy: no exposure of hidden/private content
+
+Circle integrity: verify circle_member status before exposing data
+
+✅ Acceptance Criteria
+Feature	Requirement
+🔧 API	Returns Circle Score personalized to requesting user
+🧠 Score Logic	Uses Quick Ratings, List Ranks, Reactions, Saves
+🧮 Confidence	Dynamically assessed by contributor count & signal diversity
+🔍 Search	Score appears next to restaurant name
+📄 Detail Page	Full breakdown section with score + contributors
+🔄 Caching	Uses react-query or internal memoization
+🔒 Secure	Only scores from trusted users shown
+🚀 Zero Regressions	No impact to existing search, post, list, or rating flows
+

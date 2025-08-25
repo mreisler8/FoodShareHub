@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { CircleWithStats } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { TrustIndicators } from "@/components/shared/TrustIndicators";
 import {
   Users,

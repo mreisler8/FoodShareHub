@@ -1,14 +1,27 @@
-import { useQuery } from "@tanstack/react-query";
-import { User } from "@shared/schema";
+import { useQuery } from '@tanstack/react-query';
 
-/**
- * Hook to get the current user
- * Returns the authenticated user or null if not authenticated
- */
+interface CurrentUser {
+  id: number;
+  username: string;
+  name: string;
+  bio?: string;
+  profilePicture?: string;
+  favoriteFood?: string;
+  favoriteRestaurant?: string;
+  preferredCuisines?: string[];
+}
+
 export function useCurrentUser() {
-  const { data: currentUser, isLoading, error } = useQuery<User | null>({
-    queryKey: ["/api/me"],
+  const { data: currentUser, isLoading, error } = useQuery<CurrentUser>({
+    queryKey: ['/api/me'],
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
-  
-  return { currentUser, isLoading, error };
+
+  return {
+    currentUser,
+    isLoading,
+    error,
+    isAuthenticated: !!currentUser
+  };
 }

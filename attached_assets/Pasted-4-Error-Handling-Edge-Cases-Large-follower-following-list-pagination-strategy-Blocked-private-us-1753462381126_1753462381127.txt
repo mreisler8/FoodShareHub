@@ -1,0 +1,139 @@
+4. Error Handling & Edge Cases
+
+Large follower/following list pagination strategy
+Blocked/private user profile handling
+Network failure graceful degradation
+🧠 CONSOLIDATED PROFILE PAGE EPIC INSTRUCTION
+📦 Epic: Profile Page Overhaul – Unified Food Identity & Social Hub
+🎯 OBJECTIVE
+Redesign and rebuild the Profile Page (pages/ProfilePage.tsx) as a mobile-first social hub that showcases users as curators of trusted food recommendations, integrating Posts, Lists, Ratings, and social network data with enterprise-grade performance and security.
+
+🔨 IMPLEMENTATION SCOPE
+1. Profile Header Architecture
+File: pages/ProfilePage.tsx
+
+Components Required:
+
+User avatar (fallback to initials)
+Display name + username (@handle)
+Bio/tagline (140 char limit)
+Follower/Following counts (clickable navigation to Network tab)
+Circle memberships display (max 3 visible, "View All" expansion)
+Action buttons: Follow/Unfollow, Share Profile
+Integration Points:
+
+Leverage existing follow system (/api/follow/:userId, /api/followers, /api/following)
+Connect to Circle Score system for trust indicators
+Use shared_recommendations table for social proof metrics
+2. Tabbed Content System
+Implementation: Use existing Tabs, TabsList, TabsTrigger, TabsContent components
+
+Tab	Content	API Endpoint	Component Reuse
+Posts	User's food moments	/api/posts?userId=X	Existing PostCard
+Lists	Created lists with metrics	/api/lists?userId=X	Existing ListCard + Circle Score
+Ratings	Quick Ratings history	/api/ratings?userId=X	Existing RatingDisplay
+Network	Followers & Following	/api/followers, /api/following	Grid with Follow buttons
+3. Social Features Integration
+Follow System:
+
+Optimistic UI updates for Follow/Unfollow actions
+Real-time follower count updates
+Integration with existing enterprise social network analytics
+Privacy & Permissions:
+
+Respect Circle privacy settings (only show accessible content)
+Handle private profiles gracefully
+Implement blocked user content filtering
+4. Performance & Caching Strategy
+React Query Implementation:
+
+Profile data: 5-minute cache TTL
+Posts/Lists/Ratings: 2-minute cache TTL
+Follower counts: 30-second cache TTL
+Lazy load tab content on selection
+Pagination:
+
+20 items per tab initially
+Infinite scroll for Posts/Ratings
+"Load More" for Lists/Network tabs
+🚀 NON-FUNCTIONAL REQUIREMENTS
+Performance Targets
+Page Load: < 2 seconds for profile header + first tab
+Tab Switch: < 300ms transition time
+Follow Action: < 500ms optimistic update + confirmation
+Search/Filter: < 200ms debounced response
+Security & Privacy
+Circle Privacy: Only display content user has permission to view
+Rate Limiting: 10 follow/unfollow actions per minute per user
+Content Filtering: Block inappropriate/reported content
+Profile Visibility: Respect user privacy settings
+Scalability
+Pagination: Maximum 50 items per API call
+Cache Strategy: Multi-level caching (browser + server)
+Error Boundaries: Graceful fallbacks for each tab section
+Mobile Optimization: Touch-friendly interactions, responsive breakpoints
+Data Privacy
+Anonymous Viewing: Support logged-out profile viewing (public data only)
+GDPR Compliance: Respect user data deletion requests
+Activity Tracking: Log profile views for analytics (with consent)
+🖼 UI/UX SPECIFICATIONS
+Mobile-First Design
+Sticky Tabs: Fixed position during scroll
+Touch Targets: Minimum 44px hit areas
+Swipe Navigation: Between tabs on mobile
+Bottom Sheet: For follower/following lists on mobile
+Visual Hierarchy
+Card-Based Layout: Consistent with existing design system
+Social Proof Indicators: Circle Score badges, trust signals
+Empty States: Engaging CTAs for each tab ("Create your first list!")
+Loading States: Skeleton screens for all tab content
+Accessibility
+ARIA Labels: Screen reader support for all interactive elements
+Keyboard Navigation: Tab/Enter/Space key support
+Color Contrast: WCAG 2.1 AA compliance
+Focus Management: Clear focus indicators
+🔗 INTEGRATION REQUIREMENTS
+Existing Systems
+Search Service: Profile searchability via SearchService.searchUsers()
+Sharing System: Profile share via SendToFriendModal and public links
+Circle Score: Display user's reputation and trust metrics
+Analytics: Track profile engagement and social interactions
+Component Reuse
+SendToFriendModal: For profile sharing
+CircleScoreCard: Trust indicators display
+ActionButton: Follow/Unfollow interactions
+EmptyState: Consistent empty tab experiences
+✅ ACCEPTANCE CRITERIA
+Core Features
+ 4-tab system (Posts, Lists, Ratings, Network) fully functional
+ Follow/Unfollow with optimistic UI and real-time count updates
+ Circle membership display with privacy respect
+ Profile sharing (internal + external links)
+Performance
+ All NFR targets met (load times, interaction speeds)
+ Lazy loading implemented for all tabs
+ React Query caching strategy working
+ Mobile responsiveness across all breakpoints
+Security & Privacy
+ Circle privacy rules enforced
+ Rate limiting active for social actions
+ Content filtering for blocked/inappropriate content
+ Error boundaries protecting against crashes
+User Experience
+ Empty states present for all tabs with engaging CTAs
+ Loading skeletons for all dynamic content
+ Accessibility compliance verified
+ Cross-browser compatibility tested
+🎯 SUCCESS METRICS
+Profile engagement rate increase > 40%
+Follow action success rate > 95%
+Page load performance < 2s target
+Zero regression in existing functionality
+Mobile user satisfaction improvement
+This consolidated instruction provides complete technical specifications while ensuring seamless integration with your existing Circles architecture, sharing systems, and Circle Score trust framework.
+
+
+Scroll to latest
+Assistant mode
+
+advanced

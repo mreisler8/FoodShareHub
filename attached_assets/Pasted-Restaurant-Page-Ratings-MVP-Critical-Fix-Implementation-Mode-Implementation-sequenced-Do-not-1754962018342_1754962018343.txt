@@ -1,0 +1,115 @@
+Restaurant Page & Ratings — MVP Critical Fix Implementation
+Mode: Implementation (sequenced).
+Do not change API contracts, delete data, or refactor architecture.
+Feature flags only for new behaviors.
+Create a single PR with docs + test evidence.
+
+Execution Order (must follow)
+Fix rating data integrity → 2) Accessibility compliance → 3) Abuse prevention → 4) Rating context & editability → 5) User feedback & engagement → 6) Circle Score privacy & transparency → 7) Performance & cache → 8) Testing & validation.
+
+1) Data Integrity (Highest Priority)
+Files: client/src/components/ratings/QuickRateModal.tsx, server/routes/ratings.ts
+
+API must return restaurantId and restaurantName with rating.
+
+In UI, cross-check rating.restaurantId with current page restaurantId; if mismatch → hide rating (“No rating yet”).
+
+Ensure queries join by ID, never name; remove stale local state paths.
+
+2) Accessibility
+Files: QuickRateModal.tsx, RestaurantActionBar.tsx
+
+Add <DialogTitle> + <DialogDescription>.
+
+ARIA labels on all action buttons.
+
+Slider keyboard nav (Left/Right), role="slider", aria values; touch targets ≥ 44px.
+
+3) Abuse Prevention & Validation
+Files: server/routes/ratings.ts, server/middleware/rateLimiter.ts
+
+Duplicate prevention: same user+restaurant blocked for 24h.
+
+Rate limit: max 5 ratings / 15 min per user/IP.
+
+Specific errors:
+
+429 duplicate: “You’ve already rated this restaurant today. You can update your rating tomorrow.”
+
+429 limit: “You’ve reached your rating limit. Please try again later.”
+
+Validate rating range 0.1–10.0.
+
+4) Rating Context & Editability
+File: QuickRateModal.tsx
+
+Show scale legend (“0.1 = Poor, 10.0 = Perfect”).
+
+If user has rating >24h old, prefill and allow update; clearly label “Update rating”.
+
+5) User Feedback & Engagement
+Files: QuickRateModal.tsx, client/src/components/mvp/MVPComprehensiveFixes.tsx
+
+Success animation on submit.
+
+Optimistic Circle Score update; show impact “Your rating changed Circle Score from X to Y”.
+
+Minimal social proof: “You’re the Nth person in your circles to rate this.”
+
+6) Circle Score Privacy & Transparency
+Files: client/src/components/mvp/MVPComprehensiveFixes.tsx, server/routes/circle-score.ts, shared/schema.ts
+
+DB: add users.circle_score_opt_out BOOLEAN DEFAULT FALSE (via migration).
+
+If user opted out → hide their contribution; allow toggle in settings.
+
+Tooltip/“What’s this?”: explain calculation, show freshness (“Updated X min ago”), show count only (no private names unless permitted).
+
+7) Performance & Cache
+File: server/routes/circle-score.ts
+
+5-min cache; invalidate on rating create/update.
+
+Target P95 < 200ms for /api/circle-score/:id.
+
+Testing & Validation (must include in PR)
+Unit: duplicate prevention; error messages; accessibility props present.
+Integration: full rating flow (create/update) with optimistic score.
+Perf: P95 of circle-score < 200ms under 100 concurrent users.
+A11y: axe score ≥ 90 on restaurant page + modal.
+Manual QA: mobile + desktop; keyboard-only path; screen reader sanity.
+
+Feature Flags
+ini
+Copy
+Edit
+FEATURE_CIRCLE_SCORE_PRIVACY=true
+FEATURE_RATING_LIMITS=true
+FEATURE_A11Y_RATINGS=true
+Deliverables (required)
+Code changes per steps above.
+
+/docs/RESTAURANT_PAGE_VALIDATION.md with:
+
+Before/after screenshots (mobile + desktop)
+
+Perf table (P50/P95/P99) for circle-score
+
+A11y results (axe)
+
+Proof of duplicate-prevention & rate-limit handling (screens/logs)
+
+Short rollback notes for each change (how to disable via flags).
+
+Success Criteria
+
+No rating/restaurant mismatches.
+
+A11y ≥ 90.
+
+Circle Score privacy respected; clear explanation + freshness.
+
+P95 < 200ms for circle-score; rating submit < 200ms perceived (optimistic).
+
+Clear, specific user errors (no generic “Something went wrong”).
+

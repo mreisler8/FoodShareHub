@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { LocationService } from "@/services/locationService";
 import { MobileNavigation } from "@/components/navigation/MobileNavigation";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { DesktopRightSidebar } from "@/components/navigation/DesktopRightSidebar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Rating } from "@/components/ui/rating";
@@ -16,26 +17,36 @@ import { Restaurant, Circle } from "@shared/schema";
 import { CircleWithStats } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecentRecommendations } from "@/components/recommendations/RecentRecommendations";
+// PageHeader replaced with AppHeader which is already imported
+import { useAuth } from '@/hooks/use-auth';
+import DiscoverItemRenderer from '@/components/discover/DiscoverItemRenderer';
 
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("restaurants");
-  
+  const [useLocation, setUseLocation] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [filters, setFilters] = useState({
+    priceRange: '',
+    cuisine: '',
+    radius: 5000
+  });
+
   // Fetch restaurants
   const { data: restaurants, isLoading: isRestaurantsLoading } = useQuery<Restaurant[]>({
     queryKey: [`/api/restaurants${searchQuery ? `?query=${searchQuery}` : ""}`],
   });
-  
+
   // Fetch circles
   const { data: circles, isLoading: isCirclesLoading } = useQuery<CircleWithStats[]>({
     queryKey: ["/api/circles"],
   });
-  
+
   // Fetch users (not implemented in API yet)
-  const { data: users, isLoading: isUsersLoading } = useQuery({
+  const { data: users = [], isLoading: isUsersLoading } = useQuery<any[]>({
     queryKey: ["/api/users"],
   });
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // The query will automatically update based on the state change
@@ -45,16 +56,19 @@ export default function Discover() {
     <div className="flex min-h-screen mb-16 md:mb-0">
       {/* Mobile navigation at bottom of screen */}
       <MobileNavigation />
-      
+
       {/* Desktop Sidebar */}
       <DesktopSidebar />
-      
-      {/* Main Content Area */}
-      <div className="flex-1 max-w-5xl mx-auto px-4 py-6 md:px-8">
-        {/* Page Header */}
-        <header className="mb-6">
-          <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-4">Discover</h1>
-          
+
+      {/* App Header */}
+      <div className="flex-1">
+        <GlobalHeader showBackButton={false} />
+
+        {/* Main Content Area */}
+        <div className="max-w-5xl mx-auto px-4 py-6 md:px-8 pt-14">
+          {/* Page Header */}
+          <header className="mb-6">
+
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative flex-1">
@@ -91,7 +105,7 @@ export default function Discover() {
             </div>
           </form>
         </header>
-        
+
         {/* Content Tabs */}
         <Tabs defaultValue="restaurants" className="mb-6" onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0">
@@ -137,7 +151,7 @@ export default function Discover() {
               Recommendations
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Restaurants Tab */}
           <TabsContent value="restaurants" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             {isRestaurantsLoading ? (
@@ -197,7 +211,7 @@ export default function Discover() {
               </div>
             )}
           </TabsContent>
-          
+
           {/* Food Circles Tab */}
           <TabsContent value="circles" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             {isCirclesLoading ? (
@@ -219,7 +233,7 @@ export default function Discover() {
                       <Card className="overflow-hidden transition-transform duration-200 hover:translate-y-[-4px]">
                         <div className="relative h-32">
                           <img 
-                            src={circle.image} 
+                            src={circle.coverImage || '/placeholder-circle.jpg'} 
                             alt={circle.name} 
                             className="w-full h-full object-cover"
                           />
@@ -245,7 +259,7 @@ export default function Discover() {
               </div>
             )}
           </TabsContent>
-          
+
           {/* People Tab */}
           <TabsContent value="people" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             {isUsersLoading ? (
@@ -290,19 +304,20 @@ export default function Discover() {
               </div>
             )}
           </TabsContent>
-          
+
           {/* Recommendations Tab */}
           <TabsContent value="recommendations" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
             <RecentRecommendations />
           </TabsContent>
         </Tabs>
-        
+
         {/* Floating Action Button */}
         <CreatePostButton />
+        </div>
+
+        {/* Right Sidebar (Desktop Only) */}
+        <DesktopRightSidebar />
       </div>
-      
-      {/* Right Sidebar (Desktop Only) */}
-      <DesktopRightSidebar />
     </div>
   );
 }

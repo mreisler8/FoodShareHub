@@ -1,0 +1,65 @@
+Based on your audit and the Phase 2 prompt requirements, here are my strategic recommendations for systematic component consolidation:
+
+Strategic Decisions
+1. Button Consolidation Strategy
+Recommendation: Enhance the existing /client/src/components/ui/button.tsx as your single source of truth. It's already built on Shadcn with proper variant support - don't rebuild what's working.
+
+Action Plan:
+
+Audit all ActionButton.tsx and custom button implementations
+Extend the existing button.tsx with any missing variants/sizes
+Create a comprehensive migration map showing every file that imports old button components
+Execute global find-and-replace for all button imports in a single pass
+Delete all redundant button files and CSS immediately after migration
+2. Modal Standardization
+Recommendation: Standardize on Radix UI Dialog components since they're already partially implemented and provide excellent accessibility. Create a unified ModalWrapper.tsx that encapsulates common modal behaviors.
+
+Why: You already have the foundation - building on existing patterns prevents introducing new inconsistencies.
+
+3. Typography Implementation
+Recommendation: Hybrid approach with both CSS utilities AND React components.
+
+Rationale:
+
+CSS utilities for quick styling (preserve existing workflow)
+React components for semantic consistency (<Heading>, <Text>, etc.)
+This allows gradual adoption while enforcing consistency
+4. Search System Priority
+Recommendation: Tackle search LAST. Focus on buttons → modals → typography first.
+
+Why: Search has the most complex business logic and specialized implementations. Clean up the simpler UI patterns first to establish your consolidation methodology.
+
+Migration Execution Strategy
+Systematic Approach (ALL-AT-ONCE per component type)
+Recommended Order:
+
+Buttons First - Simplest to migrate, highest impact on consistency
+Modals Second - More complex but builds on button patterns
+Typography Third - Touches every component but straightforward replacement
+Search Last - Most complex business logic
+Critical Success Factors
+Pre-Implementation Requirements:
+
+Complete inventory of EVERY file using old implementations
+Explicit deletion checklist for obsolete files
+Breaking change analysis with import update plan
+Quality Gates:
+
+Zero console errors after each migration
+All pages load without visual regressions
+No unused imports remain in any file
+Complete file cleanup verification
+Phase 2 Anti-Fragmentation Protocol
+Enforcement Rules:
+
+No gradual rollouts - migrate each component type completely
+Delete old implementations immediately, not "later"
+Update ALL imports in single atomic operation
+Test on ALL pages, not just a few
+File Management:
+
+No "legacy" or "backup" files allowed
+Explicit .tsx and .css file deletion
+Import statement cleanup across entire codebase
+This approach ensures you achieve true consistency while preventing the accumulation of technical debt that caused the current duplication problem.
+

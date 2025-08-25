@@ -1,0 +1,30 @@
+Objective: Enhance the user experience by integrating the sharing functionality for food moments, lists, and posts within the core UI. Ensure the new features align with our established social sharing aspects, improving both visibility and accessibility.
+
+Unified Sharing Interface:
+
+Implement a modal overlay for creating lists instead of a separate page to streamline the user experience.
+Ensure the overlay integrates seamlessly with the feed for quick access and context-aware sharing.
+Food Moment Functionality:
+
+Create a Visual Food Moment feature that allows users to quickly capture and share their experiences through photos and videos without navigating away from the feed. This should include:
+Multi-media uploads with tagging capabilities for restaurants.
+A location service integration to auto-fill location data.
+Immediate feedback during the upload process with progress indicators.
+Feedback Mechanisms:
+
+Incorporate real-time notifications confirming when a post or list has been successfully created or shared. This feedback should be visually appealing and user-friendly.
+Enhanced Share Button:
+
+Redesign the share button on the feed to ensure it is prominent and clear, encouraging users to share their experiences effortlessly.
+Social Sharing Integration:
+
+Integrate the sharing features to work with existing social circles, allowing users to choose visibility options (public, circle, private) intuitively.
+Ensure all sharing functionalities (lists, moments) are harmonized across the platform with uniform design and interaction patterns.
+Technical Considerations:
+
+Ensure the backend APIs are fully integrated to support these new functionalities effectively.
+Maintain a mobile-first design approach, ensuring responsive layouts for all new components.
+Resulting Action: Create and optimize the features as specified, ensuring smooth transitions between functionalities and enhancing the overall social sharing experience.
+
+This comprehensive prompt should guide the agent in implementing all necessary enhancements while keeping the user experience as a primary focus.
+

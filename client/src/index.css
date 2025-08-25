@@ -1,7 +1,23 @@
 /* Modern Design System - Updated July 2, 2025 1:13 AM */
+/* Import modern post animations */
+@import './components/post/modern-post-animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Safe area support for iOS */
+@layer utilities {
+  .safe-area-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .safe-area-y {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
 
 @layer base {
   :root {
@@ -69,13 +85,20 @@
     /* Typography */
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  }
 
-    /* Spacing & Layout */
-    --radius: 8px;
+    /* Safe Area Support for Mobile */
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+
+    /* Spacing & Layout - Standardized 4px Border Radius */
+    --radius: 4px;
     --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
+    --radius-md: 4px;
+    --radius-lg: 4px;
+    --radius-xl: 4px;
 
     /* Shadows - Modern Elevation System */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -127,7 +150,6 @@
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
   }
-}
 
 @layer base {
   * {
@@ -137,21 +159,25 @@
   html {
     margin: 0;
     padding: 0;
-    height: 100%;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
     overflow-x: hidden;
+    width: 100%;
   }
 
   body {
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
     color: hsl(var(--foreground));
     background: hsl(var(--background));
     font-feature-settings: "rlig" 1, "calt" 1;
-    height: 100%;
+    height: 100vh;
+    height: 100dvh;
     position: relative;
     top: 0;
     left: 0;
     overflow-x: hidden;
+    width: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -159,10 +185,13 @@
   #root {
     margin: 0;
     padding: 0;
-    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
     position: relative;
     top: 0;
     left: 0;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   * {
@@ -232,7 +261,103 @@
   }
 }
 
+/* Universal Bottom Navigation Architecture - User Preference */
+
+/* Always hide desktop sidebar */
+.desktop-sidebar {
+  display: none !important;
+}
+
+/* Always show bottom navigation on all screen sizes */
+.mobile-navigation {
+  display: flex !important;
+}
+
+/* Force override any conflicting Tailwind classes */
+.lg\\:flex.desktop-sidebar {
+  display: none !important;
+}
+
+.lg\\:hidden.mobile-navigation {
+  display: flex !important;
+}
+
 @layer components {
+  /* SYSTEM-WIDE BORDER RADIUS OVERRIDE - 4px Standard */
+  /* This prevents all excessive border radius throughout the entire application */
+  [data-radix-dialog-content],
+  [data-radix-popover-content],
+  [data-radix-dropdown-menu-content],
+  [data-radix-tooltip-content],
+  [data-radix-alert-dialog-content],
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl,
+  .sm\\:rounded-lg,
+  .sm\\:rounded-xl,
+  .sm\\:rounded-2xl,
+  .md\\:rounded-lg,
+  .md\\:rounded-xl,
+  .md\\:rounded-2xl,
+  .lg\\:rounded-lg,
+  .lg\\:rounded-xl,
+  .lg\\:rounded-2xl,
+  .xl\\:rounded-lg,
+  .xl\\:rounded-xl,
+  .xl\\:rounded-2xl {
+    border-radius: 4px !important; /* Standardized 4px border radius */
+  }
+  
+  /* Force override any card components */
+  .bg-card,
+  .bg-popover,
+  .bg-background,
+  [class*="card"],
+  [class*="modal"],
+  [class*="dialog"],
+  [class*="popover"],
+  [class*="dropdown"],
+  [class*="wizard"],
+  [class*="canvas"],
+  [data-state="open"],
+  [data-state="closed"] {
+    border-radius: 4px !important;
+  }
+  
+  /* Comprehensive Dialog and Modal Override */
+  div[role="dialog"],
+  div[data-radix-dialog-overlay],
+  div[data-radix-dialog-content],
+  .dialog-content,
+  .modal-content,
+  .wizard-modal,
+  .create-canvas,
+  .circle-wizard-modal,
+  .circle-wizard-close {
+    border-radius: 4px !important;
+  }
+  
+  /* Ultimate Border Radius Prevention System */
+  /* Force all elements to use 4px border radius */
+  * {
+    --radius: 4px !important;
+  }
+  
+  /* Global override for all border radius properties */
+  *[class*="rounded"],
+  *[style*="border-radius"] {
+    border-radius: 4px !important;
+  }
+  
+  /* Set all root level containers to 4px */
+  :root,
+  body, 
+  html, 
+  #root {
+    --radius: 4px !important;
+  }
+  
   /* Modern Button System */
   .btn {
     @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
@@ -274,7 +399,8 @@
   }
 
   .btn-lg {
-    @apply h-12 px-8 text-base rounded-lg;
+    @apply h-12 px-8 text-base;
+    border-radius: 4px !important;
   }
 
   /* Modern Card System */
@@ -486,24 +612,79 @@
   }
 
   /* Navigation fixes */
+  /* Enhanced Mobile Navigation - QA Fix */
   .nav-mobile {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 50;
-    background: hsl(var(--background));
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-top: 1px solid hsl(var(--border));
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    padding-bottom: var(--safe-area-inset-bottom);
+    width: 100%;
   }
 
-  @media (min-width: 768px) {
-    .nav-mobile {
-      display: none;
+  .mobile-button {
+    min-height: 44px; /* iOS recommended touch target size */
+    min-width: 44px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    touch-action: manipulation; /* Prevents zoom on double-tap */
+    -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
+  }
+
+  .mobile-button:active {
+    scale: 0.95;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .mobile-button:hover {
+      transform: translateY(-1px);
     }
   }
 
+  /* Proper responsive navigation - only one at a time */
+  @media (max-width: 1024px) {
+    .sidebar-desktop {
+      display: none !important;
+    }
+    
+    /* Ensure mobile content has proper spacing for fixed bottom nav */
+    .mobile-content {
+      padding-bottom: calc(80px + var(--safe-area-inset-bottom));
+    }
+  }
+
+  /* Desktop navigation */
   .nav-desktop {
     display: none;
+  }
+
+  @media (min-width: 1025px) {
+    .nav-mobile {
+      display: none !important;
+    }
+    
+    .mobile-content {
+      padding-bottom: 0;
+    }
+    
+    .nav-desktop {
+      display: block;
+    }
+  }
+
+  /* Fix scrolling issues on mobile */
+  .mobile-page {
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   @media (min-width: 768px) {

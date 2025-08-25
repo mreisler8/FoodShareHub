@@ -1,0 +1,203 @@
+READ-ONLY AUDIT — Lists MVP (Persona Flows, Data Integrity, Save Reliability)
+
+Mode: READ-ONLY ONLY — do not change any code.
+Goal: Produce a single audit report that proves the Create → Add items → Set visibility/share → Save/Unsave → Refresh → State persists flow works across personas on both mobile & desktop. If anything fails, provide exact root cause with file paths/lines and reproduction.
+
+Personas & Must-pass user journeys (end-to-end)
+
+Create two real accounts for testing:
+
+User A (Owner/Creator)
+
+User B (Viewer) with these roles verified:
+
+Follows A
+
+Member of one of A’s circles (C1)
+
+Not a member of another circle (C2)
+
+Journey 1 — Owner creates & saves (User A)
+
+A creates four lists: Private, Followers, Circle(C1), Public.
+
+A adds 2–3 restaurants to each (via search), reorders items.
+
+A taps Save (bookmark) on one of their own lists → refresh page → saved state persists.
+
+Journey 2 — Follower view & save (User B follows A)
+
+Visit A’s profile → Lists tab:
+
+Sees: Followers, Circle(C1) (because B is in C1), Public.
+
+Does not see: Private or Circle(C2).
+
+B opens a visible list, taps Save/Unsave, refreshes, navigates away/back → icon & count stay correct.
+
+Journey 3 — Circle member view (User B in C1)
+
+In /circles/:id(C1) → Lists tab, B sees the Circle list; in C2 they do not.
+
+Open list details; items load and reorder persists (view-only unless granted).
+
+Journey 4 — Public discoverability (Logged-out or B not following A)
+
+In Discover/Public, A’s Public list appears; other visibilities do not.
+
+Opening the list works; save is hidden or prompts auth (per current product rules).
+
+All journeys must pass on:
+
+Mobile viewport (≤ 768px) and Desktop
+
+Header/back behavior consistent (global AppHeader present; back → previous or /feed)
+
+Evidence to collect (no code)
+
+A single report: docs/LISTS_MVP_AUDIT.md
+
+Screenshots for each persona/journey state (mobile + desktop)
+
+Network captures (copy/paste of request + response bodies and status codes) for:
+
+Create list (POST /api/lists)
+
+Add item(s) (POST /api/lists/:id/restaurants or items)
+
+Save/Unsave (POST/DELETE /api/saved-lists)
+
+Saved status (GET /api/saved-lists/:listId/status)
+
+Visibility-scoped fetches (profile lists, circle lists, discover/public)
+
+Exact file paths + line numbers for any failures (frontend + backend)
+
+React Query keys used for: lists collections, list details, saved status (show the code lines)
+
+Headers/back: confirm no page renders a duplicate/non-global header
+
+Checks (mark each ✅/❌ with evidence)
+1) Routes & components map (current truth)
+
+Pages: /create-list, /my-lists, /lists/:id, profile lists tab, circles list tab, discover/public lists.
+
+Components: creation forms, add-item modal, draggable list, share/visibility controls, SaveListButton, reactions UI.
+
+Backend routes actually invoked + payload/response shapes.
+
+Call out any legacy/duplicate components still in use.
+
+2) Visibility enforcement matrix (system of record)
+
+Build a 4×4 matrix (Private / Followers / Circle(C1) / Public × Profile / Circle / Discover / List details):
+
+For each cell: Who sees what, why (SQL/where-clause, middleware), and evidence (network response and UI screenshot).
+
+Verify followers logic is truly follower-based (not just “any user”).
+
+Verify circle visibility matches membership (C1 visible, C2 hidden for B).
+
+3) Save/Unsave truth & reconciliation
+
+On every list tile and list-details page, confirm UI state comes from GET /api/saved-lists/:listId/status (not stale props).
+
+After save/unsave:
+
+Optimistic UI shows the change.
+
+A status refetch reconciles the final state.
+
+Refresh and navigate away/back → state persists.
+
+Note any place not calling the status endpoint (list tiles, details, profile grid, circle tab, discover cards).
+
+4) Create & Add-items reliability
+
+Confirm create request body matches the backend contract (name, description, tags, visibility).
+
+Confirm add-items batches are idempotent (no duplicates on refresh).
+
+Confirm reorder persists and survives refresh; show the API call & payload.
+
+5) Data integrity & null-safety (resilience)
+
+In list-details.tsx and item cards:
+
+No crash when items=[], fields missing, or partial restaurant data.
+
+Provide file + line where null checks/guards exist (or missing).
+
+Confirm TypeScript types are strict (no any in critical paths).
+
+6) Performance (MVP scale)
+
+Collections (my lists, public lists) use pagination or limits; list details avoid N+1 per item fetch.
+
+Provide P95 from existing perf logs for:
+
+GET /api/lists/:id
+
+profile lists query
+
+circle lists query
+
+discover/public lists query
+
+7) A11y & Mobile UX minimums
+
+Keyboard reorder works (document the keys).
+
+Buttons/inputs have labels/roles (e.g., save buttons have aria-label).
+
+Empty/error states are present and legible on mobile.
+
+8) Regression & consistency
+
+No duplicate headers; back button returns consistently per global rule.
+
+No duplicate “save” logic across components (if duplicated, list the files).
+
+No conflicting visibility fields (e.g., isPublic vs visibility JSON) in write or read paths.
+
+“Create & Save” Failure Forensics (required section)
+
+If any save failure occurs (icon not persistent after refresh, 4xx/5xx, or inconsistent state), fill this tree with concrete evidence:
+
+Auth/session: request headers show valid auth? response 401/403?
+
+Endpoint contract: payload fields match server schema? (paste request/response)
+
+Race condition: optimistic UI not reconciled by a status refetch? (show React Query key + where refetch should happen)
+
+Cache key mismatch: saved state hook uses different key than list tiles/details? (paste keys)
+
+Visibility constraints: server rejects save due to access rule? (paste server error)
+
+Unique constraints/duplicates: DB conflict or double-click? (paste error)
+
+UI state leak: component derives saved state from stale props? (show file/line)
+
+For every failed step, provide:
+
+Exact network call (method, URL, body, status)
+
+UI component (file:line)
+
+Proposed 1-line fix (no code now—just the minimal change)
+
+Output format
+
+Create one markdown file: docs/LISTS_MVP_AUDIT.md with:
+
+Persona flows — screenshots + network evidence for each step (mobile/desktop)
+
+Visibility matrix — ✅/❌ per cell with proof
+
+Save reconciliation table — pages/components vs “uses status endpoint?” (Yes/No)
+
+Failure forensics — root causes with file:line and proposed 1-line fixes
+
+Fix-Only Checklist — a short, surgical list of code changes (file list + acceptance test per item)
+
+Hard rule: This is a read-only audit. Do not modify code. If anything is ambiguous, state the assumption and continue.

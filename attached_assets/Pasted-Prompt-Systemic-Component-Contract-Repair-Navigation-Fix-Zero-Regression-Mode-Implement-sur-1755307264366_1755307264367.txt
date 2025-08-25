@@ -1,0 +1,247 @@
+Prompt — Systemic Component Contract Repair & Navigation Fix (Zero-Regression)
+
+Mode: Implement (surgical, reversible).
+Goal: Resolve the 5 LSP errors and the underlying architectural drift: unify error component contracts, fix profile navigation, repair create-list chain, and enforce guardrails so this doesn’t slip again.
+
+0) Guardrails (must follow)
+
+Do not redesign UI. No breaking route or API changes.
+
+TypeScript strict. Zero any in modified code.
+
+Only touch files listed or where imports require.
+
+All changes must compile with 0 TypeScript errors and pass lint.
+
+Add small tests where specified.
+
+1) Immediate “red-zone” fixes (Phase 1: unblock crashes)
+1.1 Feed page — InlineError prop mismatch
+
+File: client/src/pages/feed.tsx
+Symptoms: At ~lines 412 and 492 we pass an error prop that the component doesn’t accept.
+
+Fix:
+
+Replace those usages to match a single standardized interface (see §2).
+Temporarily (Phase 1), change call sites to:
+
+<InlineError
+  title="Couldn’t load content"
+  message={errMessage /* string | ReactNode */}
+  actionLabel="Retry"
+  onRetry={refetchFn}
+  data-testid="feed-inline-error"
+/>
+
+
+Do not pass raw error object. Convert to a friendly message.
+
+1.2 Create list flow chain — missing Search import
+
+File(s): client/src/components/lists/AddListItemModal.tsx (or the modal used by /create-list)
+Fix: Import the icon correctly and add a fallback:
+
+import { Search } from "lucide-react"; // primary
+// Fallback (if design system wraps icons)
+import { IconSearch as SearchFallback } from "@/components/ui/icons";
+const SearchIcon = Search ?? SearchFallback;
+
+
+Replace <Search .../> with <SearchIcon className="h-4 w-4" aria-hidden />.
+
+1.3 Profile page — bottom nav + header failures
+
+File: client/src/pages/ProfilePage.tsx
+Issues found:
+
+Types at 686–690 and 751–755 use unknown where ReactNode is required.
+
+At line 854, referencing a non-existent AppHeader.
+
+Fixes:
+
+Update props/locals to React.ReactNode (no unknown). For conditional rendering, narrow types before render.
+
+Replace AppHeader with the real, shared header (we standardized earlier):
+
+import { GlobalHeader } from '@/components/ui/GlobalHeader';
+// use <GlobalHeader backButton /> consistently
+
+
+Ensure the profile button in bottom nav uses your router’s Link (not a custom onClick) to /profile and is keyboard accessible:
+
+<Link to="/profile" aria-label="Open your profile" role="link" />
+
+2) Standardize a single InlineError contract (Phase 2)
+
+Create/confirm: client/src/components/common/InlineError.tsx
+
+export type InlineErrorProps = {
+  title?: string;
+  message: string | React.ReactNode;
+  actionLabel?: string;
+  onRetry?: () => void;
+  icon?: React.ReactNode;
+  className?: string;
+  'data-testid'?: string;
+};
+
+export function InlineError({
+  title = 'Something went wrong',
+  message,
+  actionLabel = 'Retry',
+  onRetry,
+  icon,
+  className,
+  ...rest
+}: InlineErrorProps) {
+  return (
+    <div role="alert" className={cn('rounded-md border p-3', className)} {...rest}>
+      <div className="flex items-start gap-2">
+        {icon ?? <AlertCircle className="h-4 w-4" aria-hidden />}
+        <div className="space-y-1">
+          {title && <h4 className="font-medium">{title}</h4>}
+          <div className="text-sm text-muted-foreground">{message}</div>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-2 text-sm underline"
+              aria-label={`${actionLabel}: retry last action`}
+            >
+              {actionLabel}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+Then:
+
+Remove/merge any duplicate InlineError components.
+
+Replace all imports of legacy InlineError with the path above.
+
+Update all usages to pass message (string/ReactNode) instead of raw error.
+
+3) Header & back-button consistency (prevents future breakage)
+
+Create/confirm: client/src/components/ui/GlobalHeader.tsx
+
+Props: { title?: string; backButton?: boolean; rightSlot?: React.ReactNode }
+
+Behavior:
+
+If backButton, render an accessible back control:
+
+<button type="button" onClick={() => navigate(-1)} aria-label="Go back" />
+
+
+Fallback to navigate('/') if there’s no history.
+
+Always include a consistent region role: role="banner".
+
+Enforce:
+
+All pages (Feed, Profile, Create List, List Details) must use GlobalHeader (no page-local headers).
+
+Fix the ProfilePage import to this shared header.
+
+4) Preventive guardrails (Phase 3)
+4.1 Component boundary (local error isolation)
+
+Create: client/src/components/common/ComponentBoundary.tsx
+
+A tiny wrapper with ErrorBoundary + fallback → returns InlineError with “Retry”.
+
+Use around risky widgets (create list widget on Feed; profile summary).
+
+4.2 TS & lint safety
+
+Ensure tsconfig.json has "strict": true.
+
+Lint rule: ban implicit any; error on unused vars; no-floating-promises.
+
+Add a small type test to catch unknown bleeding into React nodes:
+
+client/src/types/type-tests.ts with a dummy component expecting ReactNode.
+
+4.3 Unhandled rejection logging
+
+In app root, add a once listener:
+
+if (import.meta.env.DEV) {
+  window.addEventListener('unhandledrejection', (e) => {
+    console.warn('[unhandledrejection]', e.reason);
+  });
+}
+
+
+(Dev-only; no noisy prod logs.)
+
+5) Tests (minimal but effective)
+5.1 Unit/UI (RTL)
+
+InlineError.spec.tsx
+
+Renders title + message.
+
+Calls onRetry when button pressed.
+
+Axe: no critical violations.
+
+GlobalHeader.spec.tsx
+
+Renders back button when backButton.
+
+Back button is focusable and triggers navigate.
+
+5.2 Integration (page smoketests)
+
+Feed.integration.spec.tsx
+
+Mount Feed with the green create widget; simulate an error — InlineError appears (no crash).
+
+Verify clicking “Retry” calls the provided function.
+
+Profile.integration.spec.tsx
+
+Mount ProfilePage — assert no TypeScript casts to any/unknown in props; header renders; bottom profile nav navigates to /profile.
+
+6) Acceptance criteria (PR checklist)
+
+ 0 TypeScript errors.
+
+ Feed page compiles & runs; create list widget no longer crashes; missing Search icon fixed.
+
+ Profile page loads; header present; bottom nav → /profile works with keyboard.
+
+ All usages of InlineError now import from components/common/InlineError.
+
+ No duplicate InlineError components remain.
+
+ GlobalHeader used on Feed, Profile, Create List, List Details.
+
+ Tests added (see §5) and passing.
+
+ Short REPORT committed as /docs/COMPONENT_CONTRACT_REPAIR_VALIDATION.md:
+
+List of files touched
+
+Before/after examples for two InlineError call sites
+
+Screenshot or log proving Feed/Profile no longer error
+
+7) Manual test script (paste into PR)
+
+Feed → force a network error in the dev tools for one widget → see InlineError (no stack page), click Retry, content recovers.
+
+Click the green Create List widget → modal opens → Search icon visible; add an item; close without errors.
+
+Tap/click the Profile button in bottom nav → Profile renders with GlobalHeader, no crashes.
+
+Hard refresh both pages → no console TypeScript/a11y warnings.

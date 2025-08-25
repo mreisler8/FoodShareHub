@@ -1,0 +1,263 @@
+Phase 3 — Frontend Integration & Resilience
+A) Gap Analysis (based on Phases 1–2 + partial Phase 3 work)
+
+What’s confirmed done
+
+Single source of truth for restaurant data via useStandardizedRestaurantQueries.
+
+Circle Score unified to the same hook & 10-point scale everywhere.
+
+Mock content removed (lists/posts now real endpoints).
+
+Redundant calls reduced ~40%; cache keys standardized.
+
+Component-level error boundaries introduced for some core widgets (rating & circle score).
+
+What’s still missing / inconsistent
+
+Error boundary coverage isn’t universal
+
+Some async widgets (photos/gallery, related posts/lists tiles, map/location, similar restaurants) still rely on implicit try/catch and can trip the global boundary.
+
+Loading state cohesion
+
+Multiple spinners show at once; no skeletons for “above the fold” blocks → visible layout shift on slow networks.
+
+Race conditions after mutations
+
+Rating submit + list add/remove can “duel” invalidate different caches; occasionally surfaces stale score or duplicate fetches.
+
+Telemetry/observability
+
+Search/perf middleware exists server-side, but client lacks uniform widget-level timing & error instrumentation.
+
+A11y parity across widgets
+
+Modals fixed, but some buttons/cards/slider ARIA roles/labels are missing; keyboard traversal inconsistent.
+
+Network resiliency glue
+
+Not all queries use shared retry/backoff/cancellation. Some still default to react-query defaults (retry 3, no jitter), causing request thundering on flakey networks.
+
+Empty states consistency
+
+Lists/posts/ratings empty states vary by widget (copy, iconography, CTA alignment).
+
+B) Phase 3 Implementation Plan (surgical, low risk)
+1) Universal Error Boundaries & Fallbacks
+
+Add a tiny wrapper: client/src/components/common/SectionBoundary.tsx
+
+Props: title, fallback, onError?(err).
+
+Usage: Wrap every async widget (Photos, Map, ListsMentionCard, PostsMentionCard, SimilarRestaurants).
+
+Fallbacks live in client/src/components/common/fallbacks/*:
+
+InlineError.tsx, SkeletonCard.tsx, EmptyState.tsx.
+
+Success: No “global” error boundary shows during any single widget failure; page remains interactive.
+
+2) Cohesive Loading (Skeleton-first)
+
+Introduce shared skeletons:
+
+RestaurantHeaderSkeleton, ScoreStripSkeleton, ActionBarSkeleton, TilesSkeleton.
+
+Replace spinners in page-critical regions with skeletons; below-the-fold keeps small spinners to reduce DOM weight.
+
+Gate by isFetching from the unified hook; avoid double spinners by coordinating child queries to the parent’s loading state.
+
+Success: 0 layout shifts above the fold; only one visible loading pattern per area.
+
+3) Post-mutation Consistency (Cache & Events)
+
+Centralize invalidation: client/src/features/restaurant/cache/restaurantCache.ts
+
+Helpers: invalidateRestaurant(restaurantId), invalidateScores(restaurantId), invalidateMentions(restaurantId).
+
+Event bus (tiny): client/src/lib/events.ts
+
+Emit rating:updated, list:changed. Widgets subscribe and reconcile their local state without re-fetch storms.
+
+In rating & list mutations: call both invalidate* and emit the event.
+
+Success: After rating or “add to list,” all widgets reflect new data within one render; no duplicate fetches.
+
+4) Client Telemetry (Widget-level)
+
+Utility: client/src/lib/telemetry.ts
+
+trackTiming(name, ms, {restaurantId})
+
+trackError(name, {message, code, restaurantId})
+
+Wire into: data hooks (onSuccess/onError), SectionBoundary onError, and mutation onSettled.
+
+Add a dev overlay gated by ?debug=1 to show timings per widget (non-blocking).
+
+Success: We can see which widget is slow/failing without server logs; perf regressions become obvious.
+
+5) A11y parity & keyboard support
+
+Audit fixes:
+
+All action buttons: aria-label, focus ring classes, role="button" if needed.
+
+Rating slider: ensure role="slider" + aria-valuemin/max/now, arrow key handling already present.
+
+Cards as links: ensure role="link" + Enter/Space triggers.
+
+Run axe-core (or jest-axe) in a single accessibility test file for the restaurant page shell.
+
+Success: No critical a11y violations in the restaurant page; keyboard-only flows pass.
+
+6) Network resiliency & cancellation
+
+Shared fetcher layer: client/src/lib/fetcher.ts
+
+AbortController per request, auto-cancel on component unmount, jittered retry (50–150ms) with max 2 retries for idempotent GETs.
+
+Ensure all data hooks use this fetcher (quick pass with code search).
+
+Success: Fast tabbing/navigation doesn’t leave orphaned requests; fewer duplicate/mid-flight errors.
+
+7) Empty states standardization
+
+EmptyState.tsx patterns: icon + concise copy + primary CTA (e.g., “Be the first to rate”).
+
+Ensure copy parity across lists/posts/ratings.
+
+Success: Empty states feel intentional and consistent.
+
+C) One Copy-Paste Prompt for the Replit Agent
+
+Title: Phase 3 — Restaurant Page Resilience & UI Integration (Gap Analysis → Surgical Fixes)
+Mode: Start READ-ONLY (report), then implement only the scoped changes below. No architecture changes. No new dependencies. Keep existing hooks & API contracts intact.
+
+Context (do not skip):
+
+Phase 1: Identity resolution + contamination fix ✅
+
+Phase 2: UI consistency & mock-to-real ✅
+
+Goal now: Finish Phase 3 by hardening the restaurant page front-end: universal error boundaries, cohesive loading UX, post-mutation consistency, client telemetry, a11y parity, and network resiliency. Keep changes surgical and localized.
+
+0) READ-ONLY GAP VALIDATION (required)
+
+Produce /docs/PHASE3_GAP_VALIDATION.md listing:
+
+Which restaurant widgets already use a local error boundary and which do not.
+
+Where multiple spinners appear simultaneously.
+
+Which mutations (rating, list add/remove) do not trigger unified invalidation.
+
+Which widgets lack telemetry hooks.
+
+A11y violations on the page (brief list).
+
+Any fetchers not using a shared cancellation/retry strategy.
+
+1) Files to add (small, focused)
+
+client/src/components/common/SectionBoundary.tsx
+
+client/src/components/common/fallbacks/InlineError.tsx
+
+client/src/components/common/fallbacks/SkeletonCard.tsx
+
+client/src/components/common/fallbacks/EmptyState.tsx
+
+client/src/features/restaurant/cache/restaurantCache.ts
+
+client/src/lib/events.ts (simple event emitter)
+
+client/src/lib/telemetry.ts (tiny helper)
+
+client/src/lib/fetcher.ts (AbortController + jittered retry)
+
+client/src/__tests__/restaurant.a11y.test.tsx (axe/jest-axe or equivalent)
+
+2) Apply universal boundaries & skeletons
+
+Wrap the following (adjust names/paths to repo reality) with SectionBoundary and use the new fallbacks/skeletons:
+
+RestaurantHeader (hero + title + primary meta) → RestaurantHeaderSkeleton
+
+CircleScoreCard / ScoreStrip → ScoreStripSkeleton
+
+RestaurantActionBar → ActionBarSkeleton
+
+ListsMentionCard, PostsMentionCard, SimilarRestaurants, MapSection, PhotosGallery → SkeletonCard
+Ensure above-the-fold skeletons coordinate with the parent hook’s isLoading to avoid double spinners.
+
+3) Post-mutation consistency
+
+Use restaurantCache.ts helpers in rating & list mutations.
+
+Emit events via events.ts (rating:updated, list:changed) and subscribe in affected widgets to reconcile local UI immediately and avoid redundant refetches.
+
+4) Client telemetry
+
+Add trackTiming and trackError in:
+
+useStandardizedRestaurantQueries (onSuccess/onError),
+
+Each wrapped widget via SectionBoundary’s onError,
+
+Mutations onSettled.
+
+If ?debug=1, render a small non-blocking overlay showing widget timings.
+
+5) A11y parity
+
+Add missing aria-labels to action buttons; ensure focus styles.
+
+Verify rating slider ARIA attributes & keyboard handlers.
+
+Update cards-as-links to support Enter/Space activation.
+
+Add a single accessibility test covering the restaurant page shell and one widget instance per type.
+
+6) Network resiliency
+
+Ensure all fetches inside restaurant widgets use fetcher.ts with AbortController and jittered retry (GET only). Cancel on unmount.
+
+7) Empty states
+
+Use the new EmptyState pattern consistently across lists/posts/ratings.
+
+8) Do-not-touch (guardrails)
+
+Do not change API routes, response shapes, or Phase 1–2 hooks.
+
+Do not introduce new libraries.
+
+Keep all changes inside client/src/* except where a tiny utility is needed.
+
+Maintain existing design tokens & styles.
+
+9) Outputs
+
+Diff summary + rationale in /docs/PHASE3_IMPLEMENTATION_NOTES.md.
+
+Updated component map with boundary/skeleton coverage.
+
+A11y test results (pass/fail) and any follow-ups.
+
+Telemetry screenshots or logged samples (redacted IDs OK).
+
+10) Acceptance criteria
+
+No global error boundary appears for restaurant page flows.
+
+Single, cohesive loading pattern (skeletons) above the fold; no double spinners.
+
+After rating or list changes, all widgets reflect updates consistently without duplicate fetch storms.
+
+A11y test: no critical violations; keyboard traversal works.
+
+Telemetry records per-widget timings & errors; overlay visible only with ?debug=1.
+
+No regression to Phase 1–2 outcomes (data integrity & UI consistency).

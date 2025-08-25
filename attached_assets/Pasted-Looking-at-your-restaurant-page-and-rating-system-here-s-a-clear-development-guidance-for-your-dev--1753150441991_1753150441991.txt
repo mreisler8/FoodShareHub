@@ -1,0 +1,67 @@
+Looking at your restaurant page and rating system, here's a clear development guidance for your dev agent to implement the core functionality fixes:
+
+Restaurant Page Rating System - Implementation Guide
+Current Issues Analysis
+Rating State Management: The useRestaurantRatingState hook has basic error handling but needs optimization for better UX
+Circle Score Integration: Ratings aren't properly triggering Circle Score recalculation
+User Feedback: Missing success/error feedback when ratings are saved
+React Hook Violations: Console shows multiple hook rule violations causing instability
+Core Implementation Tasks
+1. Enhanced Rating State Management
+File: client/src/hooks/useRestaurantRatingState.ts
+
+Improve error handling with specific error messages for different failure scenarios
+Add loading states for better UX during rating submission
+Implement optimistic updates so UI responds immediately while API processes
+Add retry logic for failed rating submissions
+Better validation for restaurant identifiers (Google Place ID vs database ID)
+2. Circle Score Integration & Auto-Recalculation
+File: server/routes/ratings.ts
+
+Ensure onNewRating() function properly triggers when ratings are created/updated
+Add error handling for Circle Score calculation failures
+Implement background job queuing for Circle Score updates to prevent blocking user actions
+Add logging to track Circle Score calculation triggers
+3. Success Feedback System
+Files: client/src/components/ratings/QuickRateModal.tsx
+
+Add toast notifications for successful rating submissions
+Show visual confirmation (checkmark animation) when rating is saved
+Display error messages clearly when rating fails
+Add "shared with circles" confirmation when applicable
+4. Fix React Hook Violations
+Multiple Files: All components using rating hooks
+
+Ensure hooks are called at component top level, not inside conditions
+Fix dependency arrays in useEffect hooks
+Remove any conditional hook calls
+Ensure rating state updates don't cause infinite re-renders
+5. Restaurant Page Action Integration
+File: client/src/pages/RestaurantDetailPage.tsx
+
+Integrate rating functionality with "Add to List" and "Save" buttons
+Ensure all action buttons work consistently across mobile and desktop
+Add loading states for all interactive elements
+Fix button validation issues mentioned in console logs
+6. Database Error Handling
+File: server/routes/ratings.ts
+
+Fix "invalid input syntax for type integer: 'NaN'" errors
+Add proper validation for restaurant IDs before database queries
+Handle Google Place ID vs database restaurant ID scenarios properly
+Add input sanitization for all rating parameters
+Success Criteria
+Users can rate restaurants and see immediate feedback
+Ratings properly update Circle Scores for trusted network members
+No React hook violations in console
+All restaurant page buttons function correctly
+Mobile and desktop experiences work seamlessly
+Error handling provides clear, actionable feedback
+Testing Priority
+Rate a restaurant and verify it saves correctly
+Check that Circle Score updates for network members
+Test both Google Places restaurants and database restaurants
+Verify mobile action bar functionality
+Confirm no console errors during rating flow
+This implementation will make your restaurant page fully functional with reliable rating and Circle Score integration.
+

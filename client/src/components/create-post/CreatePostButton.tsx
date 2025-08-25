@@ -1,31 +1,33 @@
-import { useState } from "react";
-import { Plus } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { PostModal } from "@/components/post/PostModal";
+import React from 'react';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 
 export function CreatePostButton() {
-  const isMobile = useIsMobile();
-  const [showPostModal, setShowPostModal] = useState(false);
-  
-  // Don't render the floating button on mobile as we have the tab bar button
-  if (isMobile) {
-    return (
-      <>
-        <PostModal open={showPostModal} onOpenChange={setShowPostModal} />
-      </>
-    );
-  }
-  
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  const handleCreatePost = () => {
+    try {
+      setLocation('/create-post');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      toast({
+        title: "Navigation Error",
+        description: "Unable to navigate to create post. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <>
-      <div 
-        className="fixed bottom-8 right-5 z-40 w-14 h-14 bg-primary rounded-full flex items-center justify-center text-white shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
-        onClick={() => setShowPostModal(true)}
-      >
-        <Plus className="text-xl" />
-      </div>
-      
-      <PostModal open={showPostModal} onOpenChange={setShowPostModal} />
-    </>
+    <Button
+      onClick={handleCreatePost}
+      className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90"
+    >
+      <Plus className="h-4 w-4" />
+      Share Experience
+    </Button>
   );
 }

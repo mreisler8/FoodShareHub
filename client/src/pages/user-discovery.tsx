@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserSearchModal } from '@/components/search/UserSearchModal';
+import { OptimizedSearchModal } from '@/components/search/OptimizedSearchModal';
 import { CircleManagement } from '@/components/circles/CircleManagement';
 import { Users, Search, Plus, UserPlus, Settings } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
@@ -284,11 +284,13 @@ export default function UserDiscovery() {
         </Tabs>
 
         {/* User Search Modal */}
-        <UserSearchModal
-          isOpen={showUserSearch}
-          onClose={() => setShowUserSearch(false)}
-          showAddToCircle={managedCircles.length > 0}
-          availableCircles={managedCircles}
+        <OptimizedSearchModal
+          open={showUserSearch}
+          onOpenChange={setShowUserSearch}
+          searchType="users"
+          showLocationServices={false}
+          placeholder="Search for users to connect with..."
+          title="Find Users"
         />
       </div>
     </div>

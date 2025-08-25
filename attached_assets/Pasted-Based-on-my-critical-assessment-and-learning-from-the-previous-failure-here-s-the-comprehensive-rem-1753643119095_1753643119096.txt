@@ -1,0 +1,119 @@
+Based on my critical assessment and learning from the previous failure, here's the comprehensive remediation prompt for the Food Moment implementation:
+
+CRITICAL REMEDIATION PROMPT: Photo-First Food Moment Implementation
+CONTEXT & MISSION
+You are fixing a FAILED Food Moment implementation that completely missed core requirements. The previous attempt was surface-level and non-functional. You must now deliver a production-ready, photo-first Food Moment system that passes all critical success metrics.
+
+CRITICAL FAILURES TO FIX
+1. PHOTO-FIRST ENFORCEMENT - CURRENTLY BROKEN
+
+Users can bypass photo requirement entirely through caption-only submissions
+Validation logic in FoodMomentForm allows (!data.caption.trim() && selectedImages.length === 0) - this is WRONG
+VisualFoodMoment step progression is not enforced at component level
+FIX REQUIRED: Photo must be MANDATORY before any other input is accessible
+2. MOBILE OPTIMIZATION - INCOMPLETE
+
+Viewport detection works but UI components are not optimized for 503x559px
+Touch targets may not meet 44px minimum requirement
+Camera integration lacks proper mobile fallbacks and error handling
+FIX REQUIRED: Full mobile-first optimization for specified viewport
+3. END-TO-END FLOW - BROKEN
+
+Form submission allows incomplete data (missing restaurant/dish validation)
+Integration between components is fragmented
+API validation is inconsistent with frontend requirements
+FIX REQUIRED: Complete end-to-end validation and flow integrity
+SUCCESS CRITERIA (ALL MUST PASS)
+PHOTO-FIRST ENFORCEMENT (CRITICAL)
+
+ Users CANNOT access details step without capturing/uploading photo first
+ No caption-only submissions allowed - photo is MANDATORY
+ Clear visual indication that photo is required before proceeding
+ Error states guide users back to photo capture if bypassed
+MOBILE OPTIMIZATION (CRITICAL)
+
+ Perfect rendering on 503x559px viewport
+ All touch targets minimum 44px
+ Camera capture works flawlessly on mobile devices
+ Smooth transitions and fast photo processing
+ Graceful handling of camera permissions/availability
+VALIDATION & FLOW (CRITICAL)
+
+ Restaurant selection is REQUIRED and enforced
+ Dish name is REQUIRED and enforced
+ Visual step progression (Photo → Details → Share)
+ Real-time validation feedback with clear error messages
+ Complete integration with moments API
+USER EXPERIENCE (CRITICAL)
+
+ Clear step progression indicators
+ Fast, responsive interactions
+ Professional visual polish
+ Intuitive flow that feels native to mobile
+IMPLEMENTATION REQUIREMENTS
+1. VisualFoodMoment Component
+
+Enforce strict photo-first flow with NO bypasses
+Implement proper step gating (details step locked until photo captured)
+Add visual step indicators showing progress
+Optimize all UI elements for 503x559px viewport
+2. Form Validation
+
+Remove caption-only submission logic entirely
+Require photo + restaurant + dish name for submission
+Add real-time validation with immediate feedback
+Implement proper error handling and user guidance
+3. Mobile Camera Integration
+
+Implement robust camera capture with fallbacks
+Handle permissions gracefully
+Optimize photo processing for mobile performance
+Add proper loading states and error recovery
+4. API Integration
+
+Ensure backend validation matches frontend requirements
+Fix inconsistencies in moments endpoint validation
+Test complete end-to-end submission flow
+Verify feed integration displays correctly
+TESTING REQUIREMENTS
+Functional Testing
+
+ Test photo capture on mobile device
+ Verify step progression cannot be bypassed
+ Test all validation error states
+ Confirm end-to-end submission works
+Mobile Testing
+
+ Test on exact 503x559px viewport
+ Verify touch targets are accessible
+ Test camera functionality
+ Confirm smooth performance
+Integration Testing
+
+ Test API submission with all required fields
+ Verify feed displays submitted moments
+ Test error handling and recovery flows
+DELIVERABLES
+Fixed VisualFoodMoment component with strict photo-first enforcement
+Updated FoodMomentForm validation removing caption-only bypass
+Mobile-optimized UI components for 503x559px viewport
+Complete API integration with proper validation
+Comprehensive testing proving all success criteria pass
+ACCEPTANCE CRITERIA
+The implementation is ONLY successful if:
+
+Photo-first requirement is COMPLETELY enforced with zero bypasses
+Mobile optimization is perfect for the specified viewport
+End-to-end flow works flawlessly from photo to feed display
+All validation is consistent between frontend and backend
+User experience feels polished and professional
+Failure conditions:
+
+Any way to submit without photo = IMMEDIATE FAIL
+Poor mobile experience = IMMEDIATE FAIL
+Broken end-to-end flow = IMMEDIATE FAIL
+Inconsistent validation = IMMEDIATE FAIL
+Remember: This feature represents the core value proposition of the app. It must be implemented with the highest quality standards and zero tolerance for shortcuts or incomplete functionality.
+
+Now implement this fix with complete attention to detail and rigorous testing of every requirement.
+

@@ -1,0 +1,54 @@
+Looking at your restaurant page implementation and the console errors, I can identify the core issues preventing your features from working properly. Here's a clear message for your dev agent:
+
+RESTAURANT PAGE FUNCTIONALITY IMPLEMENTATION - CRITICAL FIXES NEEDED
+
+Current State Analysis:
+The restaurant page UI looks good, but core functionality is broken due to several critical issues that need immediate attention.
+
+Issues Identified:
+
+Database Query Errors - The ratings system is failing with "invalid input syntax for type integer: 'NaN'" because the restaurant ID parameter is not being handled correctly in the ratings API endpoint.
+
+React Hook Violations - Multiple "React Hook call outside component" errors are breaking the rating state management, causing the Quick Rate button to malfunction.
+
+Missing QuickRateButton Props - The QuickRateButton component expects onSuccess and onClose props but RestaurantActionBar is not providing them consistently.
+
+Incomplete API Integration - The "Add to List" functionality has the UI infrastructure but lacks proper API integration with the existing lists system.
+
+Required Fixes:
+
+Fix 1: Repair Rating System Database Queries
+
+Update /server/routes/ratings.ts line 76 to properly handle Google Place ID parameters
+Ensure restaurant ID is properly parsed as integer vs string handling for Google Place IDs
+Add input validation before database queries
+Fix 2: Fix React Hook Violations
+
+Move all hook calls inside the component function body in useRestaurantRatingState.ts
+Ensure useQuery and other hooks are not called conditionally or outside component scope
+Add proper error boundaries for rating state management
+Fix 3: Complete QuickRateButton Integration
+
+Ensure RestaurantActionBar.tsx passes onSuccess and onClose props to QuickRateButton
+Fix the modal state management to prevent React errors
+Add proper loading states during rating submission
+Fix 4: Implement Add to List Functionality
+
+Connect the "Add to List" button to existing /api/lists/:id/items endpoint
+Create list selection modal using existing list infrastructure
+Add proper error handling and success feedback
+Fix 5: Implement Save Restaurant Feature
+
+Create /api/restaurants/:id/save endpoint to save restaurants to user profile
+Update RestaurantActionBar to handle save/unsave state properly
+Add visual feedback for save status
+Priority Implementation Order:
+
+Fix database rating queries (blocks core functionality)
+Resolve React hook violations (prevents UI from working)
+Complete QuickRateButton integration (core user action)
+Implement Add to List feature (leverages existing infrastructure)
+Add Save Restaurant functionality (completes action bar)
+Expected Outcome:
+After these fixes, users should be able to rate restaurants, add them to lists, and save them to their profile without console errors or broken functionality.
+

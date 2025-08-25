@@ -1,0 +1,153 @@
+READ-ONLY Forensic Audit — Restaurant Page (Badiali & Sample)
+Do not modify behavior. No UX changes.
+Goal: Identify precisely why the page shows mismatched ratings, failing saves, and conflicting Circle Scores. Create a single source-of-truth wire map and mismatch report.
+
+Deliverables
+/docs/RESTAURANT_PAGE_WIREMAP.md
+
+/docs/RESTAURANT_PAGE_MISMATCHES.md (root causes table)
+
+/logs/restaurant-forensics.jsonl (structured traces)
+
+Debug panel visible only with ?debug=1 on the restaurant page showing live origins for each widget.
+
+Instrumentation (read-only)
+Server request tracing middleware (ratings, circle-score, restaurants):
+
+Log JSON per request:
+
+json
+Copy
+Edit
+{ "t":"trace","op":"ratings.read|ratings.write|circleScore.read|restaurant.read",
+  "path":"/api/...","restaurantId":123,"placeId":"ChIJ...","userId":7,
+  "cacheHit":false,"status":200,"ms":142,"note":"<free text>" }
+Write to /logs/restaurant-forensics.jsonl.
+
+Lightweight debug endpoint (aggregator, GET)
+
+GET /api/_debug/restaurant-snapshot?restaurantId=<id>&placeId=<pid>
+
+Read-only; returns:
+
+json
+Copy
+Edit
+{
+  "resolved": {"restaurantId":123,"placeId":"ChIJ..."},
+  "dbRow": { "id":123,"google_place_id":"ChIJ...", "name":"..." },
+  "userRatingByRestaurantId": {...} | null,
+  "userRatingByPlaceId": {...} | null,
+  "circleScore": {...} | null,
+  "featuredLists": {"source":"<endpoint or mock>","count":N},
+  "testDataPresent": {"ratings":N,"details":[]}
+}
+No writes. Only composes data from existing services with the current filtering settings.
+
+Client debug panel (only with ?debug=1)
+
+client/src/components/debug/RestaurantDebugPanel.tsx
+
+Displays next to each widget:
+
+Data source (endpoint)
+
+Query key
+
+restaurantId / placeId used
+
+Last fetch timestamp + status
+
+Wrap the following with a <DebugOrigin> label (debug-only):
+
+Top “Circle Score” tile
+
+“Your Circle’s Take” section
+
+“Your Rating” block
+
+“Update/Quick Rate” modal trigger
+
+“Featured in Lists” block
+
+Important: Do not alter normal rendering. Debug UI shows only when ?debug=1.
+
+Tests to Run (automated + manual)
+Badiali probe (automated): scripts/forensics/probe-badiali.ts
+
+Resolve by search → capture the route params used by the page.
+
+Call the debug endpoint with both the page’s restaurantId and placeId.
+
+Output a short table:
+
+Does userRatingByRestaurantId exist?
+
+Does userRatingByPlaceId exist?
+
+Are any notes containing “Villa di Roma”?
+
+Are circle scores from both widgets equal?
+
+Did any rating POST fail? (capture status & body)
+
+Sample sweep (automated): scripts/forensics/sample-25.ts
+
+For 25 random restaurants: record
+
+page IDs, per-widget endpoints, query keys
+
+score equality (tile vs section)
+
+duplicate “my rating” renders (count)
+
+featured lists source (real endpoint vs mock)
+
+presence of is_test=true records returned
+
+Append results to /docs/RESTAURANT_PAGE_MISMATCHES.md.
+
+Manual check with ?debug=1:
+
+Navigate to Pizzeria Badiali page.
+
+Screenshot showing each widget’s origin chip (endpoint + ids).
+
+Try “Update Rating” once; record network request payload and response.
+
+What to Prove / Questions to Answer
+Identity: Is every widget using the same restaurantId? If any use placeId, list file + line.
+
+Contamination: Is any widget still showing a rating fetched by placeId where the resolved restaurantId differs?
+
+Save failure: For “Update Rating,” what endpoint and body are used? If the server rejects, what’s the exact status & message?
+
+Circle Score: Do the top tile and “Your Circle’s Take” consume different endpoints/keys? If yes, list both and show their raw responses.
+
+Featured Lists: What’s the data source? If it’s mock/demo, call it out with the exact import path.
+
+Duped Rating UI: How many distinct places render “your rating”? List component names and file paths.
+
+Reports to Produce
+/docs/RESTAURANT_PAGE_WIREMAP.md
+
+A simple diagram of widgets → endpoints → ids → query keys.
+
+/docs/RESTAURANT_PAGE_MISMATCHES.md
+
+Tables:
+
+Widget vs Source (endpoint, ids, key)
+
+Circle Score Compare (tile vs section)
+
+Rating Origin (restaurantId vs placeId)
+
+Save Failures (path, payload, status, message)
+
+Featured Lists Source (real vs mock)
+
+Duplicate UI (components rendering your rating)
+
+Absolutely no code changes beyond the debug panel + tracing + aggregator endpoint. No business logic edits.
+

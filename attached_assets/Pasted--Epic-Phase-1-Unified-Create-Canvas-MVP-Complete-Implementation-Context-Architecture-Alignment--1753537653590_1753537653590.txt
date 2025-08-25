@@ -1,0 +1,128 @@
+
+Epic: Phase 1 Unified Create Canvas MVP - Complete Implementation
+Context & Architecture Alignment
+Your Circles app has a sophisticated infrastructure including smart polling, memory management, unified search, Circle Score system, and mobile-first design patterns. This implementation must integrate seamlessly with existing systems while maintaining sub-300ms performance targets.
+
+Core Objectives
+Unified Create Canvas: Full-screen modal with List Starter and Food Moment creation modes
+Feed Integration: Wire new content into Home Feed, Profile, Discovery with existing PostCard architecture
+Performance Compliance: Maintain memory management, smart caching, and mobile optimization standards
+Social Integration: Leverage Circle Score, search, and follow systems
+Implementation Requirements
+A. Frontend Components (React + TypeScript)
+1. Create Canvas Infrastructure
+File: client/src/components/create/CreateCanvas.tsx
+Full-screen modal with tab navigation (List Starter, Food Moment)
+Integrate with existing SmartPollingProvider for performance
+Use useMemoryManagement hook for cleanup
+Mobile-first responsive design with touch optimization
+2. Food Moment Creation
+File: client/src/components/create/FoodMomentForm.tsx
+Photo upload with compression and lazy loading
+Location integration using enhancedLocationService.ts
+Caption input with 140 character limit
+Privacy controls (Circle/Public/Private) matching existing patterns
+3. Feed Integration Enhancement
+Update: client/src/components/home/PostCard.tsx
+Add type === 'moment' handling
+Full-width image rendering with lazy loading
+Action bar integration (❤️, 💬, 🔖) with existing patterns
+Circle Score display for discovery ranking
+4. Profile Page Enhancement
+Update: client/src/pages/ProfilePage.tsx
+Add "Moments" tab to existing tab structure
+Grid layout component for photo moments
+Infinite scroll with pagination
+Touch-optimized grid interaction
+5. Discovery Feed Integration
+Update: client/src/pages/DiscoverFeed.tsx
+Integrate Food Moments into existing masonry layout
+Circle Score-based ranking for moments
+Search integration through searchService.ts
+B. Backend Implementation (Node.js + Express)
+1. Posts API Enhancement
+Update: server/routes/posts.ts
+Extend POST /api/posts to handle type: 'moment'
+Image upload handling with Cloudinary integration
+Location data processing
+Circle Score calculation trigger
+2. Feed Endpoint Updates
+Update: server/routes/discover.ts
+Include moments in unified feed responses
+Circle Score integration for ranking
+Performance optimization with proper indexing
+3. Search Integration
+Update: server/routes/search.ts
+Add moments to unified search results
+Image and caption text indexing
+Location-based search capability
+C. Database & Performance
+1. Schema Updates
+Add moment_data JSONB column to existing posts table
+Create performance indexes for moment queries
+Ensure Circle Score integration
+2. Caching Strategy
+Extend useSearchCache for moment results
+Image caching with CDN optimization
+Smart polling integration for real-time updates
+Non-Functional Requirements (NFRs)
+Performance NFRs
+Image Loading: Lazy loading with low-res placeholders, <100ms initial render
+Memory Management: Automatic cleanup using existing memoryManagement.ts
+API Response: Feed requests <300ms, image uploads <2s
+Cache Hit Rate: >80% for repeated moment views
+Mobile Optimization NFRs
+Touch Targets: Minimum 44px for all interactive elements
+Swipe Navigation: Native swipe gestures in grids
+Responsive Images: Adaptive sizing based on viewport
+Network Awareness: Reduced quality on slow connections
+Accessibility NFRs
+Image Alt Text: Auto-generated from captions with manual override
+Keyboard Navigation: Full keyboard accessibility in grids
+Screen Reader: ARIA labels for all action buttons
+Focus Management: Proper focus trapping in modal
+Scalability NFRs
+Image Storage: Automatic compression and format optimization
+Database Performance: Proper indexing for moment queries
+Cache Strategy: Redis integration for high-traffic scenarios
+CDN Integration: Global image delivery optimization
+Integration Points
+1. Smart Polling Integration
+Use useSmartPolling for real-time moment updates
+Reduce polling frequency for inactive users
+Memory-efficient update handling
+2. Circle Score Integration
+Calculate scores for moments based on engagement
+Display Circle Score badges on discovery moments
+Use scores for feed ranking algorithms
+3. Search System Integration
+Index moment captions and location data
+Include moments in unified search results
+Support hashtag and location-based searches
+4. Follow System Integration
+Show moments only from followed users in personal feed
+Circle-based visibility controls
+Privacy settings consistency
+Quality Assurance Requirements
+Testing Coverage
+Unit tests for all new components (>90% coverage)
+Integration tests for feed rendering
+Performance tests for image loading
+Accessibility compliance testing
+Error Handling
+Graceful image upload failures
+Network connectivity handling
+Memory cleanup on component unmount
+User-friendly error messages
+Success Metrics
+Performance: <300ms feed load times maintained
+Memory: Stable memory usage under 100MB
+Engagement: >70% completion rate for moment creation
+Accessibility: WCAG 2.1 AA compliance
+Implementation Priority
+Phase 1: CreateCanvas modal and FoodMomentForm
+Phase 2: PostCard integration and feed rendering
+Phase 3: Profile and Discovery integration
+Phase 4: Search and optimization enhancements
+This specification ensures seamless integration with your existing architecture while delivering the Instagram/Pinterest-inspired experience with zero performance regression and full mobile optimization.
+

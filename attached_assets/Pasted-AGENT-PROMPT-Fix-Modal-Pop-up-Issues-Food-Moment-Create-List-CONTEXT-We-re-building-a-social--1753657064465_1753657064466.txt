@@ -1,0 +1,59 @@
+AGENT PROMPT: Fix Modal Pop-up Issues - Food Moment & Create List
+
+CONTEXT:
+We're building a social network for trusted restaurant recommendations. We have two modal pop-ups that need immediate fixes:
+
+Food Moment Modal - For sharing photos/videos (Instagram-style)
+Create List Modal - For creating restaurant lists
+CURRENT PROBLEMS:
+
+Food Moment Modal Issues:
+
+Has unnecessary heading text "Create List and Share Experience"
+Should ONLY be for sharing photos/videos like Instagram
+Cannot scroll within the pop-up (overflow issue)
+UI has extra coloring that doesn't match our modern, simplistic design
+Not following our standard UI patterns
+Create List Modal Issues:
+
+Currently shows tabs, but we want NO tabs
+Should directly show the enhanced list creation functionality
+Currently goes to 404 instead of using our optimized list flow
+Should use the same functionality as our client/src/pages/create-list.tsx enhanced features
+REQUIREMENTS:
+
+Remove ALL tabs from both modals - no tab interface needed
+
+Food Moment Modal:
+
+Remove "Create List and Share Experience" heading
+Focus only on photo/video sharing (Instagram-style)
+Fix scrolling issues within the modal
+Align UI with our modern, clean design system
+Remove any extra coloring/styling that doesn't match our brand
+Create List Modal:
+
+Remove tab interface entirely
+Integrate the enhanced list creation functionality from client/src/pages/create-list.tsx
+Include features like: quick templates, auto-save drafts, progressive completion tracking, enhanced form validation
+Ensure it works as a modal popup, not navigation to separate page
+SUCCESS METRICS:
+
+Both modals open as clean, focused pop-ups
+Food Moment modal scrolls properly and has clean Instagram-like UI
+Create List modal shows full enhanced functionality without tabs
+No navigation errors or 404s
+UI follows our consistent design system
+Full QA testing passes
+TECHNICAL NOTES:
+
+Current modals likely in client/src/components/share/UnifiedShareModal.tsx
+Enhanced list functionality in client/src/pages/create-list.tsx
+Follow existing component patterns and design system
+Ensure mobile responsiveness
+DELIVER WITH:
+
+Precision and confidence
+Full QA validation
+Clear before/after functionality comparison
+No breaking changes to existing workflows

@@ -1,0 +1,168 @@
+✅ Sprint Brief: List Sharing, Reactions, and Discovery
+🎯 Epic: Lists Are Core – Build the Curated Trust Engine
+Lists should be:
+
+✍️ Expressive to create
+
+🫶 Delightful to share
+
+👀 Discoverable through feeds, profiles, and tags
+
+❤️ Socially engaging and actionable
+
+🧑‍💻 User Stories + Developer Acceptance Criteria
+✅ User Story 1: Create a Flexible, Expressive List
+Status: Already covered in previous sprint
+Dev Notes: Maintain ability to edit list title, description, items, drag/reorder (if ranked)
+
+✅ User Story 2: Share a List (Profile / Circle / Public)
+🧩 UI Component: ShareListPicker.tsx
+Visual card-based selector (not dropdown)
+
+Options: 👤 Profile, 🫶 Circle, 🌍 Public Feed, 🔒 Private
+
+If Circle selected → dropdown of joined Circles appears
+
+📦 Data Model
+ts
+Copy
+Edit
+shareDestination: "profile" | "circle" | "public" | "private"
+sharedToCircleId?: string
+🧠 UX Logic
+Required before publish
+
+Default: “Private”
+
+On publish: show confirmation modal:
+
+“🎉 Your list was shared to @torontofoodies”
+
+💡 Feed Display:
+In ListFeedCard.tsx, show:
+
+tsx
+Copy
+Edit
+<Tag>Shared to: @torontofoodies</Tag>
+✅ User Story 3: Edit, Unpublish, Re-share a List
+🧩 UI Component: ListEditToolbar.tsx
+Visible only to list creator
+
+Includes:
+
+✏️ Edit List
+
+🔁 Change Share Destination
+
+❌ Unpublish / Delete
+
+🧠 Behavior
+Re-sharing updates destination
+
+Unpublishing removes from feed but keeps in profile
+
+All edits sync to feed/profile/shared view
+
+🔐 Permissions
+list.createdBy === currentUser.id
+
+Disable edit/share/delete buttons if not creator
+
+✅ User Story 4: Save & React to Lists
+🧩 UI Component: ListCard.tsx (homepage / profile / circle)
+Feature	UI Element
+Save	🔖 Bookmark icon
+React	❤️ (or 👍) icon next to count
+
+🔁 Interaction Logic
+1-tap toggle for each action
+
+Show current user’s state
+
+Animate icon on action (scale-105, pulse)
+
+📦 Backend Fields
+ts
+Copy
+Edit
+reactionCount: number;
+saveCount: number;
+userHasSaved: boolean;
+userHasReacted: boolean;
+📂 Save Destination
+Saved lists appear in:
+
+tsx
+Copy
+Edit
+<ProfileTabs>
+  <Tab value="your-lists">Your Lists</Tab>
+  <Tab value="saved">Saved Lists</Tab>
+</ProfileTabs>
+✅ User Story 5: Discover Lists in Feed, Circle, Profile
+🧩 Where Lists Show Up
+Surface	Visibility Requirement
+Homepage Feed	If shareDestination === "public"
+Circle Feed	If shared to a Circle
+Creator’s Profile	Always
+“Saved Lists”	If user has bookmarked it
+
+🧩 Each List Card Shows:
+Creator handle
+
+Share destination (Shared to: @torontofoodies)
+
+Save + Reaction counts
+
+Tags (tap to filter)
+
+🧠 Tag UX
+Display 2–4 list tags
+
+On tap: route to /explore?tag=brunch (or tag-filtered feed)
+
+🧱 Component Inventory
+Component	Status
+✅ CreateListForm.tsx	Complete
+✅ AddListItemModal.tsx	Complete
+✅ ListItemPreview.tsx	Complete
+🆕 ShareListPicker.tsx	To Build
+🆕 ListFeedCard.tsx	Add tag, save, react, shareDest
+🆕 ListEditToolbar.tsx	For creator view
+🆕 SavedListsTab.tsx	Reuse existing Lists.tsx logic with savedOnly filter
+🆕 ReactionService.ts	Toggle save / reaction backend logic
+
+📐 Tailwind Design Guidance
+Element	Style
+Save/React Icons	w-5 h-5 text-muted hover:text-primary transition scale-100 active:scale-90
+Tags	text-sm bg-gray-100 rounded-full px-3 py-1 text-muted-foreground hover:bg-gray-200
+Feed Card	Reuse rounded-xl shadow-sm p-4 space-y-2 layout
+Share Picker	Replace dropdown with RadioCard layout, emoji + title
+
+🔐 Implementation Requirements
+Only list creators can edit or delete their lists
+
+Only published lists can be reacted to or saved
+
+All feed views must respect visibility
+
+Profile setting isPublic gates whether “Public Feed” option is allowed
+
+Must not impact feed scroll performance — paginate list data & counts
+
+🧪 Edge Cases
+Scenario	Behavior
+No share destination selected	Block publish with “Choose where to share” error
+Try to react as logged-out user	Prompt login modal
+Try to share to Circle but user has none	Show prompt: “Join a Circle to share there”
+List is edited and shared again	Update feed data immediately
+User saves same list twice	Toggle, don’t duplicate
+
+🏁 Optional Enhancements (Future)
+Re-share list with a message (like quote-retweet)
+
+Emoji reactions (🔥😋😢) with mini tallies
+
+Reorder list based on engagement (in profile)
+

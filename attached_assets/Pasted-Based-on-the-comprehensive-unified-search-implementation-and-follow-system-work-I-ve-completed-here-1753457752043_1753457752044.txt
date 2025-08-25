@@ -1,0 +1,108 @@
+Based on the comprehensive unified search implementation and follow system work I've completed, here's a detailed prompt for your dev agent to review and validate the work:
+
+🔍 UNIFIED SEARCH & FOLLOW SYSTEM QA REVIEW
+CONTEXT
+I've implemented a complete unified search system overhaul with Circle Score integration and full follow/unfollow functionality. The system now provides consistent search across restaurants, dishes, lists, and users in a single interface.
+
+SCOPE OF IMPLEMENTATION COMPLETED
+1. Search System Overhaul
+✅ Unified Search Service (client/src/services/searchService.ts): Complete rewrite supporting restaurants, lists, posts, and users
+✅ Circle Score Integration: Restaurant results now display Circle Score badges with trust indicators
+✅ Performance Optimizations: Debounced queries (300ms), caching, and timeout handling
+✅ Search Results Component (client/src/components/search/SearchResultsList.tsx): Unified display with proper type indicators
+2. Follow System Implementation
+✅ Backend Routes (server/routes/follow.ts): Complete CRUD operations for follow relationships
+✅ Database Schema (shared/schema.ts): Added follows table with proper relationships
+✅ Frontend Integration: Follow/Unfollow buttons in search results and user profiles
+✅ Optimistic UI Updates: Immediate feedback with server synchronization
+3. Enhanced Search Features
+✅ Location-Aware Search: GPS integration for personalized restaurant discovery
+✅ Relevance Scoring: Exact match → Starts with → Contains ranking
+✅ Cross-Content Search: Unified results across all content types
+✅ Search Analytics: Query tracking and user behavior insights
+VALIDATION TASKS FOR DEV AGENT
+🎯 PRIORITY 1: Core Functionality
+Test Unified Search Endpoint
+
+Navigate to homepage search
+Test query: "pizza" - should return restaurants, lists, posts, users
+Verify Circle Score badges appear on restaurant results
+Confirm response time < 300ms
+Validate Follow System
+
+Search for users in global search
+Click Follow button on user results
+Verify optimistic UI updates (Follow → Following)
+Confirm database persistence via API calls
+Test Unfollow functionality
+Circle Score Integration
+
+Check restaurant search results show Circle Score
+Verify tooltip shows "Rated by X people in your Circle"
+Test Circle Score API endpoint: /api/circle-score/:restaurantId
+🎯 PRIORITY 2: Performance & UX
+Search Performance
+
+Verify debounced input (300ms delay)
+Test search with location services enabled
+Check search results load in < 300ms
+Validate proper error handling for failed queries
+Mobile Responsiveness
+
+Test search modal on mobile devices
+Verify follow buttons work on touch interfaces
+Check Circle Score badges display properly on small screens
+Search Consistency
+
+Test search across different pages (home, restaurant detail, lists)
+Verify all search components use unified service
+Check search history and trending suggestions
+🎯 PRIORITY 3: Integration & Edge Cases
+Authentication & Permissions
+
+Test search behavior for authenticated vs anonymous users
+Verify follow actions require authentication
+Check privacy settings respect user preferences
+Error Handling
+
+Test network failures during search
+Verify graceful degradation when Circle Score unavailable
+Check follow button behavior during API errors
+Data Consistency
+
+Verify follow counts update correctly
+Check search results reflect recent data changes
+Test Circle Score accuracy and caching
+SPECIFIC VALIDATION COMMANDS
+# Test search endpoints
+curl -X GET "http://localhost:5000/api/search/unified?q=pizza" \
+  -H "Cookie: connect.sid=..." \
+  -H "Content-Type: application/json"
+# Test follow system
+curl -X POST "http://localhost:5000/api/follow/8" \
+  -H "Cookie: connect.sid=..." \
+  -H "Content-Type: application/json"
+# Test Circle Score
+curl -X GET "http://localhost:5000/api/circle-score/1" \
+  -H "Cookie: connect.sid=..." \
+  -H "Content-Type: application/json"
+EXPECTED OUTCOMES
+Unified Search: Single interface returns all content types with proper categorization
+Circle Score Display: Restaurant results show trust-based scoring with social context
+Follow System: Seamless follow/unfollow with real-time UI updates
+Performance: Sub-300ms response times with smooth user experience
+Consistency: All search components use the same infrastructure
+CRITICAL SUCCESS CRITERIA
+✅ Search works across restaurants, lists, posts, and users
+✅ Circle Score appears on restaurant results with proper tooltips
+✅ Follow/Unfollow buttons function with optimistic updates
+✅ Performance meets < 300ms response time requirement
+✅ Mobile experience is fully functional
+✅ No console errors during normal operation
+ISSUES TO WATCH FOR
+Follow status synchronization between search and profile pages
+Circle Score loading states and error handling
+Search debouncing conflicts with rapid typing
+Location permission handling on different devices
+Please conduct thorough testing of all components and report any issues, inconsistencies, or performance problems you discover.
+

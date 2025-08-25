@@ -1,0 +1,190 @@
+# 🎯 AGENT INSTRUCTION: Discover Feed Implementation
+
+## OBJECTIVE
+Build a personalized Discover feed that showcases high-signal content from trusted users and Circles. This feed must be fast, visually clean, and data-smart, leveraging existing Circle Score, lists, ratings, and follows infrastructure.
+
+## CRITICAL REQUIREMENTS
+
+### 1. TECHNICAL ARCHITECTURE
+- **Main Component**: `client/src/pages/DiscoverFeed.tsx`
+- **Tab Structure**: For You (default) | Trending | Near You
+- **API Endpoint Pattern**: `/api/discover/{tab}` where tab = for-you | trending | near-you
+- **Response Format**: Array of `DiscoverItem[]` with type, content, and score fields
+
+### 2. FEED ALGORITHM (MANDATORY)
+Use this exact scoring formula:
+```
+final_score = (circle_score × 0.4) + (recency_score × 0.3) + (engagement_score × 0.3)
++ (follow_bonus × 0.2 if from followed user)
++ (location_bonus × 0.1 if within radius for "Near You")
+```
+
+**Content Priority Weights:**
+- Lists: High priority (multiply by 1.3)
+- Quick Ratings: Medium-high priority (multiply by 1.1) 
+- Posts (Food Moments): Medium priority (multiply by 1.0)
+- Restaurants: Low priority (multiply by 0.8, only if trending)
+
+### 3. INTEGRATION REQUIREMENTS
+
+#### A. Use Existing Services (DO NOT REBUILD)
+- `SearchService.getInstance()` for restaurant data
+- Existing Circle Score API (`/api/circle-score/${restaurantId}`)
+- Current location services from `locationService.ts`
+- React Query with existing query keys pattern
+
+#### B. Reuse Existing Components
+- `CircleScoreCard` for displaying scores
+- `ListPreviewCard` for list items
+- `RatingDisplay` for rating items
+- `PostCard` for post items
+- `Button` and `Card` from UI library
+
+### 4. DISPLAY REQUIREMENTS
+
+#### Content Type Display Rules:
+| Type | Required Elements | Optional Elements |
+|------|------------------|-------------------|
+| List | Title, creator, 2 items preview, Circle Score badge, save button | Description, tags |
+| Rating | Star score, tags, who rated, restaurant name | Note/comment |
+| Post | Image, caption, author, timestamp | Location, tags |
+| Restaurant | Name, cuisine, Circle Score, action buttons | Address, hours |
+
+#### UI Standards:
+- Mobile-first design with `space-y-4` between items
+- `rounded-xl` cards with `shadow-sm`
+- Thumb-zone button placement
+- Trust signals visible (avatars, usernames, "X people you follow")
+- Type labels for each item ("List", "Rating", etc.)
+
+### 5. PERFORMANCE REQUIREMENTS
+
+#### Caching Strategy:
+- "For You": Real-time personalized (max 30 second cache)
+- "Trending": 5-minute cache
+- "Near You": 2-minute cache with location invalidation
+- Use React Query staleTime and cacheTime appropriately
+
+#### Loading Strategy:
+- Skeleton loaders for initial load
+- Infinite scroll with 20 items per page
+- Optimistic updates for save/follow actions
+- Empty state: "Follow foodies to personalize your feed" + follow suggestions
+
+### 6. DATA FILTERING (MANDATORY)
+
+#### Content Quality Gates:
+- Minimum Circle Score of 3.0 for restaurants
+- Content age limit: 30 days for "For You", 7 days for "Trending"
+- Exclude blocked users and private circles (unless member)
+- Minimum engagement threshold: 1 interaction
+
+#### Privacy & Permissions:
+- Respect circle privacy settings
+- Only show content user has permission to see
+- Filter by user's location preferences
+
+### 7. API IMPLEMENTATION REQUIREMENTS
+
+#### Backend Route Structure:
+```typescript
+// server/routes/discover.ts
+GET /api/discover/for-you?limit=20&offset=0
+GET /api/discover/trending?limit=20&offset=0  
+GET /api/discover/near-you?lat=X&lng=Y&radius=10000&limit=20&offset=0
+```
+
+#### Response Schema:
+```typescript
+type DiscoverItem = {
+  id: string;
+  type: "list" | "rating" | "post" | "restaurant";
+  content: ListData | RatingData | PostData | RestaurantData;
+  score: number;
+  metadata: {
+    author: { id: string; name: string; avatar?: string };
+    createdAt: string;
+    socialProof?: string; // "3 people you follow rated this"
+    circleScore?: number;
+    location?: { lat: number; lng: number };
+  };
+};
+```
+
+### 8. IMPLEMENTATION ORDER (FOLLOW EXACTLY)
+
+1. **Backend API Routes** (30 min)
+   - Create `/server/routes/discover.ts`
+   - Implement scoring algorithm
+   - Add caching layer
+
+2. **Frontend Page Structure** (20 min)
+   - Create `DiscoverFeed.tsx` with tab navigation
+   - Set up React Query hooks
+   - Add loading states
+
+3. **Content Rendering** (40 min)
+   - Create `DiscoverItemRenderer.tsx` component
+   - Implement type-specific display logic
+   - Add interaction handlers (save, follow, etc.)
+
+4. **Performance Optimization** (20 min)
+   - Add infinite scroll
+   - Implement caching strategy
+   - Add error boundaries
+
+### 9. TESTING REQUIREMENTS
+
+#### Acceptance Criteria:
+- [ ] All three tabs load within 2 seconds
+- [ ] Content is properly filtered by permissions
+- [ ] Circle Scores display correctly
+- [ ] Save/follow actions work optimistically
+- [ ] Empty states show with proper CTAs
+- [ ] Mobile responsive on all screen sizes
+- [ ] No console errors during normal operation
+
+#### Test Data Setup:
+- Ensure test user follows at least 3 other users
+- Create sample lists with Circle Scores
+- Add recent ratings and posts
+- Test with both empty and populated states
+
+### 10. ERROR HANDLING
+
+#### Required Error States:
+- Network failure: "Unable to load feed. Tap to retry."
+- Empty feed: "Follow foodies to see personalized content" + CTA
+- Permission errors: Gracefully filter out, don't show error
+- Location errors: Default to general content for "Near You"
+
+### 11. CONSTRAINTS & WARNINGS
+
+#### DO NOT:
+- Create new search endpoints (use existing unified search)
+- Rebuild Circle Score calculation (use existing API)
+- Modify existing component props without checking dependencies
+- Add new dependencies without approval
+- Change database schema without migration
+
+#### MUST:
+- Follow existing code patterns and naming conventions
+- Use TypeScript strictly with proper types
+- Maintain backward compatibility
+- Test on both desktop and mobile
+- Validate all user inputs
+- Handle loading and error states
+
+### 12. SUCCESS VALIDATION
+
+The implementation is complete when:
+1. All tabs load and display appropriate content
+2. Circle Scores show correctly with proper coloring
+3. Save/follow actions update optimistically
+4. Performance meets <2 second load times
+5. Mobile experience is smooth and thumb-friendly
+6. Empty states guide users to take action
+7. No regressions in existing functionality
+
+## FINAL NOTES
+This is a high-visibility feature that showcases the platform's recommendation engine. Focus on data quality, visual polish, and smooth interactions. Users should immediately understand why they're seeing specific content and feel confident in the recommendations.

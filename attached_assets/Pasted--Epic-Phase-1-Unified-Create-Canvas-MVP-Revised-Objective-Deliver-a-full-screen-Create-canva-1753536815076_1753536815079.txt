@@ -1,0 +1,130 @@
+🧩 Epic: Phase 1 Unified Create Canvas MVP (Revised)
+Objective: Deliver a full-screen “Create” canvas with List Starter and Food Moment modes, and wire those posts into the Home Feed, Profile, Discovery, and Follow features—drawing on best practices from Instagram, Pinterest, and Letterboxd.
+
+📋 User Stories & Impact
+1. List Starter
+(As before: create title + one item in two taps.)
+
+Propagation:
+
+Home Feed: New lists appear as List-cards (with preview, CTA to Save/Follow).
+
+Profile Page: In “Lists” tab immediately.
+
+Discovery Feed: Shown under “For You” & “Trending” sorted by Circle Score.
+
+2. Food Moment Quick Post
+As Taylor, I want to snap/upload a photo, add a caption, and share instantly—so my friends see my meal in their feeds.
+
+Propagation & UI:
+
+Home Feed:
+
+Renders as an Instagram-style card: full-width image, caption overlay, poster avatar, timestamp.
+
+Follow-only feed: users see moments from people they follow or in their Circles.
+
+Engagement CTAs: ❤️ (react), 💬 (comment), 🔖 (save to List) aligned in the thumb-zone.
+
+Profile Page:
+
+Adds a “Moments” tab (or merge with “Posts”) that shows a Pinterest-grid of photos.
+
+Tapping a cell expands into the full-card view.
+
+Discovery Page:
+
+Under “For You” and “Trending” tabs, interleave Food Moments with Lists and Ratings.
+
+Use masonry layout for a dynamic visual flow (Pinterest inspiration).
+
+Follow Alignment:
+
+Only moments from users you follow or Circle members appear—just like Instagram.
+
+When viewing a user’s profile, a “Follow” button sits sticky near the top.
+
+🔨 Revised Implementation Tasks
+A. Frontend
+CreateCanvas.tsx – same modal + tabs.
+
+Feed Integration
+
+components/feed/FeedCard.tsx: add handling for type === 'moment'
+
+jsx
+Copy
+Edit
+if (item.type === 'moment') {
+  return <MomentCard data={item} />;
+}
+components/feed/MomentCard.tsx:
+
+Full-width image, avatar & username overlay top-left
+
+Caption text below image
+
+Action bar: ❤️, 💬, 🔖 pinned under image
+
+Use smooth fade-in + lazy loading for performance
+
+Profile Page Update
+
+In pages/ProfilePage.tsx add a “Moments” tab next to “Lists” and “Ratings”
+
+Render MomentGrid.tsx that lays out photo cards in a 2-column responsive grid.
+
+Discovery Feed
+
+Update pages/DiscoverFeed.tsx logic to include MomentCard items
+
+Use CSS masonry or columns-2 on mobile, columns-3 on tablet
+
+B. Backend
+POST /api/posts – ensure it tags new posts with type: 'moment' and stores photo URL, caption, location, permissions.
+
+Feed Endpoint (GET /api/discover) – already returns mixed content; make sure moment items are included and paginated.
+
+C. State & Caching
+Use react-query to prefetch the new feed entries when returning from CreateCanvas.
+
+Invalidate discover and profilePosts queries on successful Food Moment post.
+
+D. QA & Accessibility
+Image Cards: alt text from captions; focusable
+
+Action buttons: ≥44px, ARIA labels
+
+Keyboard navigation: swipe/directional keys move between cards in grid
+
+🔒 Non-Functional Requirements
+Performance: image lazy-loading, low-res placeholders
+
+Reusability: reuse FeedCard abstractions for consistency
+
+Visual Standards: use existing Tailwind tokens (rounded corners, shadows) from home UI
+
+No Regression: ensure Lists & Ratings still render correctly in feed and profile
+
+✅ Acceptance Criteria Checklist
+Feature	✅
+CreateCanvas List Starter & Moment	
+MomentCard in Home Feed	
+Moment tab on Profile Grid	
+Masonry layout in Discovery Feed	
+Feed actions (react, comment, save)	
+Follow-only content filtering	
+Cache invalidation on post	
+Accessibility & performance	
+
+This makes it crystal-clear how Food Moments flow from creation into every consumer touchpoint, leverages Instagram/Pinterest patterns, and aligns with your Follow and Circle-based permissions. Let me know if you need any further tweaks before pushing to Replit!
+
+
+
+
+
+
+
+Sources
+
+Ask ChatGPT

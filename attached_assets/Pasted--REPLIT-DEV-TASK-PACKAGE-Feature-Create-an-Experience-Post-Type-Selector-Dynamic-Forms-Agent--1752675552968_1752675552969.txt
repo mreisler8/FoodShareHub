@@ -1,0 +1,116 @@
+✅ REPLIT DEV TASK PACKAGE
+Feature: Create an Experience – Post Type Selector & Dynamic Forms
+Agent: Full-Stack Dev Agent for Circles
+Goal: Upgrade the post creation flow to align with the Circles UX vision of sharing personalized food experiences. The flow must support multiple post types, maintain backend integrity, respect existing best-practice functionality, and use reusable UI logic introduced in the homepage and feed redesign.
+
+🧠 USER ENTRY POINT
+Update the current entry point from “Post an Experience” to:
+
+“What do you want to share?”
+
+📝 Share a List of Spots
+
+📸 Share a Food Moment
+
+🍽️ Recommend a Dish
+
+📌 Technical Flow:
+Post type selector must be top-level UI on /create-post
+
+Selection should update content dynamically on the same page (no routing change)
+
+Use component state or tab-style interaction to swap form layouts
+
+🧱 POST TYPES & BEHAVIOR
+1. 📝 List of Spots
+Title (required)
+
+Optional: description, cover image
+
+Rank toggle (enables drag/drop UI)
+
+Add multiple restaurant entries:
+
+Name (search-enabled)
+
+Optional: dish, tags, notes, photo
+
+Share destination (required): Profile, Circle, Public
+
+Live preview on scroll or side-by-side (mobile responsive)
+
+2. 📸 Food Moment
+Image upload (required)
+
+Caption (required)
+
+Restaurant (search-enabled)
+
+Optional: tags, emojis
+
+Share destination (required)
+
+Reuses Feed card preview format
+
+3. 🍽️ Recommend a Dish
+Dish name (required)
+
+Restaurant (search-enabled)
+
+Tags (e.g., brunch, spicy)
+
+Caption/notes
+
+Optional: photo
+
+Share destination (required)
+
+🔁 POST-ENTRY BEHAVIOR
+✅ Smart Nudges:
+If user is new or has no lists → default suggestion: Food Moment
+
+If user is in Circles and has shared before → suggest: List of Spots
+
+✅ After Submit:
+Show toast confirmation: “Your [Post Type] was shared to [Destination]”
+
+Auto-route to:
+
+“View Post”
+
+“Create Another”
+
+“Return Home”
+
+📁 STORAGE & VISIBILITY REQUIREMENTS
+Profile Integration:
+Each post must store:
+
+creator_id, post_type, share_destination, and timestamp
+
+Posts must show up in:
+
+Creator’s profile under a unified “Posts” tab
+
+Can filter: All | Lists | Moments | Dishes
+
+Feed Integration:
+Posts shared to:
+
+Profile → visible to followers
+
+Public → visible in Explore/Trending
+
+Circle → visible in Circle feed
+
+All post types must use consistent card rendering with reuse from homepage
+
+🧠 REUSABILITY & NFRS – DO NOT BREAK
+Guideline	Instruction
+♻️ Reuse Components	All UI elements (buttons, spacing, modals, list cards) must match homepage
+🧩 Reuse Search Logic	Restaurant and tag search must use global backend search
+🛠 Do Not Break	Existing list creation or feed visibility logic
+🌍 Location Support	Posts should respect geo filters (e.g. “Near You”) in feeds
+🧪 Post Visibility Logic	Maintain existing backend visibility controls (profile, Circle, public)
+✅ NFRs	Mobile-first, performant, screen-reader friendly, <500ms load time
+

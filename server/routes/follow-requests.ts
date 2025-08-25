@@ -6,7 +6,58 @@ import { authenticate } from '../auth';
 
 const router = Router();
 
-// GET /api/follow/requests/pending - Get pending follow requests for current user
+// Get pending follow requests for the authenticated user - ENTERPRISE GRADE
+router.get('/pending', authenticate, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    console.log(`[ENDPOINT] Fetching pending follow requests for user ${userId}`);
+
+    // Get pending follow requests with comprehensive user data
+    const pendingRequests = await db
+      .select({
+        id: userFollowers.id,
+        followerId: userFollowers.followerId,
+        status: userFollowers.status,
+        createdAt: userFollowers.createdAt,
+        follower: {
+          id: users.id,
+          name: users.name,
+          username: users.username,
+          profilePicture: users.profilePicture,
+          bio: users.bio,
+          diningInterests: users.diningInterests,
+          preferredCuisines: users.preferredCuisines,
+          preferredLocation: users.preferredLocation,
+        }
+      })
+      .from(userFollowers)
+      .innerJoin(users, eq(userFollowers.followerId, users.id))
+      .where(
+        and(
+          eq(userFollowers.followingId, userId),
+          eq(userFollowers.status, 'pending')
+        )
+      )
+      .orderBy(desc(userFollowers.createdAt));
+
+    // Add enterprise-grade metadata
+    const enrichedRequests = pendingRequests.map(request => ({
+      ...request,
+      priority: 'medium',
+      category: 'follow_request',
+      actionRequired: true,
+      expiresAt: new Date(new Date(request.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000), // 30 days from creation
+      compatibility: request.follower.preferredCuisines ? 'high' : 'unknown' // Based on shared preferences
+    }));
+
+    res.json(enrichedRequests);
+  } catch (error) {
+    console.error('Error fetching pending follow requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/follow/requests/pending - Get pending follow requests for current user
 router.get('/requests/pending', authenticate, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;

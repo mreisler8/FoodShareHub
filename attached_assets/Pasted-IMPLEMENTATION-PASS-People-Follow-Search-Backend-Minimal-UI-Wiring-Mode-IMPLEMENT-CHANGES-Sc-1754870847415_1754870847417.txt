@@ -1,0 +1,211 @@
+IMPLEMENTATION PASS — People/Follow Search (Backend + Minimal UI Wiring)
+Mode: IMPLEMENT CHANGES.
+Scope: Backend endpoint + minimal wiring in OptimizedSearchModal (Users tab). No visual redesign.
+Branch: feature/people-follow-search-mvp
+Success Metric: Endpoint returns ranked users (mutuals-first) and UI can surface “Suggested” users with P95 ≤ 300ms at 100 concurrent after cache warm-up.
+
+0) Guardrails (read carefully)
+Do not change global UI styles or redesign components.
+
+Do not alter existing API contracts already in use.
+
+Do add a new endpoint and wire it minimally into the Users tab.
+
+Auth stays enforced (401 if unauthenticated).
+
+If anything is ambiguous, add a QUESTIONS section and stop.
+
+1) Backend — New Endpoint /api/search/follow
+Files (typical):
+
+server/routes/search.ts (register route)
+
+server/services/searchService.ts (add followSearch service)
+
+server/lib/redis.ts (already exists)
+
+server/services/searchCache.ts (already exists)
+
+Route:
+
+sql
+Copy
+Edit
+GET /api/search/follow
+Auth: required (same middleware as other search endpoints).
+
+Query params:
+
+q (optional string) — if empty, return Suggested users
+
+mutualOnly (optional boolean, default false)
+
+nearby (optional boolean, default false)
+
+lat, lng (optional numbers; used only if nearby=true)
+
+radiusKm (optional number; default 25 if nearby)
+
+limit (optional int; default 20, max 50)
+
+offset (optional int; default 0)
+
+Response (standardized):
+
+json
+Copy
+Edit
+{
+  "results": [
+    {
+      "id": 123,
+      "username": "maria",
+      "name": "Maria Santos",
+      "avatar": "https://...",
+      "bio": "…",
+      "mutualsCount": 3,
+      "followersCount": 210,
+      "followingCount": 180,
+      "isFollowing": false
+    }
+  ],
+  "total": 42,
+  "entity": "user",
+  "meta": { "page": 1, "hasMore": true }
+}
+Ranking logic (MVP):
+
+mutualsCount DESC (people you share the most connections with)
+
+text relevance to q (if q provided; username/name/bio)
+
+recency/popularity proxy (followersCount DESC as a simple tie-breaker)
+
+Mutuals definition (MVP, simple & fast):
+
+mutualsCount = count of users that currentUser follows who also follow candidate user
+(intersection on follows table).
+
+If a simpler join is already available (e.g., mutual follow), use that; just document which one.
+
+Performance requirements:
+
+Use existing GIN / trigram indexes on users.username, users.name and any text fields used.
+
+Add index for follows table if missing (MVP only):
+
+sql
+Copy
+Edit
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows (follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON follows (following_id);
+Support pagination (limit/offset).
+
+Redis caching (TTL 60s) using key:
+
+ruby
+Copy
+Edit
+search:follow:q=<q|null>:mutualOnly=<0|1>:nearby=<0|1>:lat=<lat|->:lng=<lng|->:radius=<radius|->:limit=<n>:offset=<n>:uid=<currentUserId>
+Include uid because suggestions are personalized.
+
+Fallbacks:
+
+If nearby=true without lat/lng, ignore nearby and proceed (don’t error).
+
+If Redis disabled, function normally (graceful).
+
+2) Minimal UI Wiring — OptimizedSearchModal (Users tab)
+Files (typical):
+
+client/src/components/search/OptimizedSearchModal.tsx
+
+Behavior (Users tab only):
+
+When Users tab is active:
+
+If q is empty → call GET /api/search/follow (Suggested).
+
+If q has text → call GET /api/search/follow?q=<q> (so a single endpoint handles both Suggested & query).
+
+(If your previous path used /api/search/users, replace it only in this Users tab. Keep the response mapping identical.)
+
+Display mutualsCount if present (small badge or text in the existing card layout). No style changes beyond using existing slots/typography.
+
+Keep existing Follow/Unfollow CTA and logic exactly as-is.
+
+No other UI changes.
+No modal redesign, no extra filters UI. We’re just swapping the data source and showing mutualsCount if supplied.
+
+3) Tests & Validation
+Functional:
+
+Suggested users appear with empty q (no crash, paginated).
+
+Typing into Users tab still returns results via /api/search/follow?q=.
+
+Follow/Unfollow works from results.
+
+mutualsCount shows when >0 (no layout shift).
+
+Permissions & Safety:
+
+Endpoint requires auth (401 unauthenticated).
+
+Respects privacy/visibility (only return users allowed to be discovered per your existing rules).
+
+Performance:
+
+Warm cache for 30–60s with authenticated requests.
+
+Load test /api/search/follow at 100 concurrent with mixed queries and empty q.
+
+Targets:
+
+P95 ≤ 300ms (post warm-up)
+
+Error rate ≤ 1%
+
+Cache hit rate ≥ 60% on repeated empty-q “Suggested” calls
+
+Deliverables:
+
+One PR on feature/people-follow-search-mvp containing:
+
+New route & service code
+
+Minimal changes in OptimizedSearchModal (Users tab wiring only)
+
+/docs/PEOPLE_SEARCH_VALIDATION.md:
+
+Endpoint contract (params, response)
+
+Query plan summary (index usage)
+
+Before/after latency (P50/P95/P99)
+
+Cache hit/miss rates
+
+Screenshots or notes proving UI wiring (Users tab behavior)
+
+Any QUESTIONS/assumptions recorded
+
+4) Rollback
+All changes are isolated to the new route/service and Users tab wiring.
+
+If any regression is detected, revert the Users tab call back to the prior endpoint and keep the new backend endpoint available for later use.
+
+Notes for reviewer
+This is intentionally minimal: one new endpoint + tiny wiring change. No redesign, no contract breakage, no UI churn. It gives you Suggested People + mutuals-first ranking immediately, while keeping risk low and performance high.
+
+If anything in the data model (e.g., follows table names/columns) differs, add a short QUESTIONS section instead of guessing and stop.
+
+
+
+
+
+
+
+
+
+Ask ChatGPT

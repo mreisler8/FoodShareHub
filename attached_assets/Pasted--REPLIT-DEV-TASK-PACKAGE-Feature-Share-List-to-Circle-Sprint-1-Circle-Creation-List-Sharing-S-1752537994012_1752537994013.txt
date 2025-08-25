@@ -1,0 +1,129 @@
+✅ REPLIT DEV TASK PACKAGE
+Feature: Share List to Circle
+Sprint: 1 — Circle Creation & List Sharing
+Story Slice: 4 of 6
+Goal: Allow users to select where they want to share their list — to their profile, publicly, or into one of their Circles.
+
+🧩 TASK OVERVIEW
+📁 File to Create:
+/components/circles/ShareToDestinationDropdown.tsx
+📁 File to Update:
+/components/CreateListForm.tsx
+
+🎯 Acceptance Criteria
+Show dropdown or selector during list creation
+
+User can choose: Profile (default), Public, or a specific Circle
+
+Selected audience determines list visibility and optional circle_id
+
+These values are sent with the POST /api/lists request
+
+Lists shared to Circles appear only for members of that Circle
+
+🧩 FILE: ShareToDestinationDropdown.tsx
+tsx
+Copy
+Edit
+import { useEffect, useState } from "react";
+
+interface Circle {
+  id: string;
+  name: string;
+}
+
+interface Props {
+  value: { visibility: string; circleId?: string };
+  onChange: (val: { visibility: string; circleId?: string }) => void;
+}
+
+export function ShareToDestinationDropdown({ value, onChange }: Props) {
+  const [circles, setCircles] = useState<Circle[]>([]);
+
+  useEffect(() => {
+    const fetchCircles = async () => {
+      const res = await fetch("/api/circles/mine");
+      const data = await res.json();
+      setCircles(data);
+    };
+    fetchCircles();
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium">Share this list to:</label>
+
+      <select
+        className="border px-2 py-1 rounded w-full"
+        value={value.circleId || value.visibility}
+        onChange={(e) => {
+          const val = e.target.value;
+          if (val === "profile" || val === "public") {
+            onChange({ visibility: val });
+          } else {
+            onChange({ visibility: "circle", circleId: val });
+          }
+        }}
+      >
+        <option value="profile">Your Profile</option>
+        <option value="public">Public Feed</option>
+        {circles.map((c) => (
+          <option key={c.id} value={c.id}>
+            Circle: {c.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+🧩 INTEGRATE INTO CreateListForm.tsx
+Add state:
+
+tsx
+Copy
+Edit
+const [shareTarget, setShareTarget] = useState<{ visibility: string; circleId?: string }>({
+  visibility: "profile",
+});
+Render dropdown:
+
+tsx
+Copy
+Edit
+<ShareToDestinationDropdown value={shareTarget} onChange={setShareTarget} />
+Include in payload:
+
+ts
+Copy
+Edit
+const payload = {
+  title,
+  type,
+  audience: shareTarget.visibility,
+  circle_id: shareTarget.circleId || null,
+  items,
+};
+🧩 BACKEND: Update /api/lists handler
+Ensure it stores circle_id and visibility:
+
+ts
+Copy
+Edit
+const { audience, circle_id } = req.body;
+
+await db.query(
+  `INSERT INTO lists (title, type, audience, circle_id, user_id)
+   VALUES ($1, $2, $3, $4, $5)`,
+  [title, type, audience, circle_id, userId]
+);
+✅ DEV COMPLETION CHECKLIST
+ User can select Profile, Public, or a Circle to share with
+
+ Selection updates audience and circle_id
+
+ POST includes those values when saving the list
+
+ Lists with visibility = circle are shown only to Circle members
+
+ Dropdown loads user’s Circles via /api/circles/mine
+

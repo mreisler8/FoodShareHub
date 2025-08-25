@@ -1,0 +1,129 @@
+Prompt for Replit Agent — Post-Implementation Search Validation (Read-Only)
+Scope: Validate that the unified search system meets MVP performance, UI/UX, and backend contract requirements without making any code modifications. The output must be a structured report, not code changes.
+
+Goal
+Run comprehensive validation tests on the unified search system for all entity types (restaurant, user, list, theme), focusing on:
+
+Performance (meets P95 ≤ 300 ms under 100 concurrent users)
+
+UI/UX consistency across all search entry points
+
+Backend API contract compliance (parameters, responses, error handling)
+
+Database optimization (indexes in use, query times, caching status)
+
+Rules
+NO code changes allowed — validation only.
+
+Use existing staging/dev environment.
+
+Collect results, log metrics, and compile into a human-readable report.md file.
+
+Include screenshots or console output if available.
+
+Flag every failed validation with: ❌ and each pass with: ✅.
+
+Validation Checklist
+1. Functional Scope Coverage
+Confirm OptimizedSearchModal is the only search component in use.
+
+Verify location services toggle is ON for restaurant searches, OFF for other entity types.
+
+Confirm placeholder text, icons, spacing, and modal animations match the UI spec.
+
+2. Performance Benchmarks
+For each endpoint:
+
+/api/search/restaurants
+
+/api/search/users
+
+/api/search/lists
+
+/api/search/themes
+
+/api/search/unified
+
+/api/discover/:tab
+Run load tests at:
+
+50 concurrent users (baseline)
+
+100 concurrent users (target)
+Metrics to collect:
+
+P50, P95, P99 latency
+
+Error rate (%)
+
+Throughput (req/s)
+
+3. Backend/API Contract Validation
+Confirm all endpoints use standardized parameters:
+
+q (string, required)
+
+lat, lng (optional)
+
+filters (JSON string, optional)
+
+limit (integer, optional)
+
+Confirm standardized response format:
+
+json
+Copy
+Edit
+{
+  "results": [...],
+  "total": 42,
+  "entity": "restaurant",
+  "meta": { "page": 1, "hasMore": true }
+}
+Validate consistent error response handling.
+
+4. Database Optimization Check
+Run EXPLAIN ANALYZE on representative queries for each entity type.
+
+Confirm relevant indexes are in use.
+
+Record query times.
+
+Check if Redis caching is active and record hit/miss ratio.
+
+5. UI/UX Validation
+Validate:
+
+Consistent search bar styling
+
+Standardized result card layouts
+
+Loading states (spinner + text)
+
+Error states (AlertCircle + retry)
+
+300 ms debounce timing
+
+6. Pass/Fail Summary
+Produce a PASS/FAIL table:
+
+Category	Status	Notes
+Performance	❌ / ✅	...
+UI Consistency	❌ / ✅	...
+API Compliance	❌ / ✅	...
+DB Optimization	❌ / ✅	...
+Caching	❌ / ✅	...
+
+Deliverable
+One SEARCH_VALIDATION_REPORT.md file containing:
+
+Executive Summary (Go/No-Go decision)
+
+Test methodology & configuration
+
+Detailed metrics for each category
+
+Bottlenecks & recommendations
+
+Final readiness assessment
+

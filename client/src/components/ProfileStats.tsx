@@ -17,7 +17,14 @@ export function ProfileStats({
   onFollowersClick, 
   onFollowingClick 
 }: ProfileStatsProps) {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading } = useQuery<{
+    followers: string;
+    following: string;
+    lists: string;
+    reviewCount: number;
+    circleCount: number;
+    isFollowing: boolean;
+  }>({
     queryKey: [`/api/users/${userId}/stats`],
     enabled: !!userId,
   });
@@ -46,7 +53,7 @@ export function ProfileStats({
     },
     {
       label: 'Lists',
-      value: stats.listCount || 0,
+      value: parseInt(stats.lists) || 0,
       icon: Bookmark,
       onClick: undefined,
     },
@@ -58,13 +65,13 @@ export function ProfileStats({
     },
     {
       label: 'Followers',
-      value: stats.followers || 0,
+      value: parseInt(stats.followers) || 0,
       icon: UserCheck,
       onClick: onFollowersClick,
     },
     {
       label: 'Following',
-      value: stats.following || 0,
+      value: parseInt(stats.following) || 0,
       icon: Users,
       onClick: onFollowingClick,
     },

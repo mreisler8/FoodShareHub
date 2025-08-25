@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Search, MapPin, Star } from 'lucide-react';
-import { Button } from '@/components/Button';
+import { Search, MapPin, Star, FileText, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/Card';
 import { PostModal } from '@/components/post/PostModal';
 import { useRestaurantSearch } from '@/hooks/useRestaurantSearch';
@@ -21,7 +21,9 @@ export function QuickAddPanel() {
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  const { restaurants, isLoading } = useRestaurantSearch(searchTerm);
+  const searchResult = useRestaurantSearch(searchTerm);
+  const restaurants = searchResult?.data || [];
+  const isLoading = searchResult?.isLoading || false;
 
   const handleRestaurantSelect = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
@@ -98,7 +100,7 @@ export function QuickAddPanel() {
         <div className="quick-add-actions">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             onClick={() => setIsPostModalOpen(true)}
             className="quick-add-btn"
           >
@@ -106,13 +108,41 @@ export function QuickAddPanel() {
             Write Review
           </Button>
           <Button
-            variant="primary"
-            size="md"
+            variant="default"
+            size="sm"
             onClick={() => setIsPostModalOpen(true)}
             className="quick-add-btn"
             disabled={!selectedRestaurant && searchTerm.length === 0}
           >
             Create Post
+          </Button>
+        </div>
+      </Card>
+
+      {/* My Lists Quick Action */}
+      <Card className="quick-add-panel" variant="elevated" padding="lg">
+        <div className="quick-add-header">
+          <h3 className="quick-add-title">My Lists</h3>
+          <p className="quick-add-subtitle">Manage your curated restaurant collections</p>
+        </div>
+        <div className="quick-add-actions">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.href = '/lists'}
+            className="quick-add-btn"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            View Lists
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => window.location.href = '/lists/create'}
+            className="quick-add-btn"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create List
           </Button>
         </div>
       </Card>

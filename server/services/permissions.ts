@@ -8,19 +8,28 @@ export class PermissionService {
    */
   static async canAccessList(userId: number, listId: number): Promise<boolean> {
     try {
+      // Validate input parameters
+      if (!userId || !listId || typeof userId !== 'number' || typeof listId !== 'number') {
+        return false;
+      }
+
+      // Use optimized raw SQL for better performance
       const result = await db.execute(sql`
         SELECT 1 FROM restaurant_lists rl
-        LEFT JOIN circle_members cm ON rl.circle_id = cm.circle_id
         WHERE rl.id = ${listId} AND (
           -- User owns the list
           rl.created_by_id = ${userId} OR
           -- List is public
           rl.make_public = true OR
           -- List is shared with circle and user is member
-          (rl.share_with_circle = true AND cm.user_id = ${userId})
+          (rl.share_with_circle = true AND EXISTS (
+            SELECT 1 FROM circle_members cm 
+            WHERE cm.circle_id = rl.circle_id AND cm.user_id = ${userId}
+          ))
         )
         LIMIT 1
       `);
+
       return result.rows.length > 0;
     } catch (error) {
       console.error('Error checking list access:', error);

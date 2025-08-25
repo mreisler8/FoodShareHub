@@ -1,0 +1,50 @@
+Based on your analysis and the MVP Phase 1 requirements, here's a prompt to solve the AppHeader logo fallback issue and ensure all MVP polish components are properly integrated:
+
+Prompt: Fix MVP Phase 1 Integration Issues - AppHeader Logo Fallback & Component Adoption
+CONTEXT:
+MVP Phase 1 "Bolt-On Polishes" components exist in the codebase but have critical integration issues. The AppHeader logo fallback is broken due to DOM traversal errors, and the new polish components (SkeletonFeedCard, InlineError, OfflineBanner) aren't being used in actual page renders.
+
+CRITICAL ISSUES TO FIX:
+
+AppHeader Logo Fallback Bug
+
+Current implementation uses nextElementSibling but the fallback span is actually a child, not sibling
+sr-only class makes fallback text invisible to visual users
+Fallback mechanism fundamentally broken
+Missing Component Integration
+
+SkeletonFeedCard exists but feed pages still show default loading
+InlineError component created but not integrated into error boundaries
+OfflineBanner implemented but not displayed on network failures
+EmptyState polishes not being used where needed
+REQUIREMENTS:
+
+Fix AppHeader Logo Fallback:
+
+Correct DOM structure: logo image and fallback text should be siblings, not parent-child
+Remove sr-only class conflict - fallback text must be visible when logo fails
+Implement proper error handling that shows "Circles" text when /logo.svg doesn't exist
+Maintain centering and styling consistency
+Integrate MVP Polish Components:
+
+Replace existing loading states with SkeletonFeedCard in feed.tsx
+Add InlineError components with retry functionality where API calls can fail
+Display OfflineBanner when network connectivity is lost
+Use enhanced EmptyState component throughout the app
+Ensure all interactive elements meet 44px minimum touch target requirement
+SUCCESS CRITERIA:
+
+Logo fallback displays "Circles" text when logo.svg fails to load
+Feed page shows skeleton loading states instead of blank content
+Error retry buttons appear when API calls fail
+Offline banner shows when network is disconnected
+No console errors related to MVP polish components
+All accessibility requirements met (ARIA labels, focus rings, touch targets)
+PRESERVE EXISTING FUNCTIONALITY:
+
+Don't break current navigation, search, or content display
+Maintain all existing API integrations
+Keep current styling and branding consistent
+Preserve mobile responsiveness
+This prompt will guide the implementation to fix the core integration issues while maintaining the existing application functionality.
+

@@ -1,0 +1,38 @@
+Your task is to enhance the full user flow for list creation and management in our application to ensure a seamless experience that encourages user engagement.
+
+1. **Objectives**:
+   - Optimize the list creation interface to be intuitive and visually appealing, while clearly guiding users through the process.
+   - Ensure that the tagging system allows for easy selection with a maximum of 3 suggested tags to keep the interface clean.
+
+2. **User Flow Considerations**:
+   - Start from the **home or dashboard page**, where users can easily identify the **"Create List"** button located at the bottom navigation.
+   - Redirect users to the `/create-list` page upon clicking, featuring a **clear form** for list name, description, tag suggestions, and sharing options.
+   - Include a **real-time preview** of the list during creation to enhance user interaction.
+
+3. **Post-Submission Handling**:
+   - After submission, notify users with a success message and give them options to:
+     - View the newly created list
+     - Create another list
+     - Share the list socially
+
+4. **List Management**:
+   - Implement a **dedicated "My Lists" section** in the bottom navigation, allowing users easy access to edit, delete, and view individual lists.
+   - Display metrics in the "My Lists" section, such as item counts and engagement metrics.
+
+5. **Discoverability and Engagement**:
+   - Create a **Discover** feed where lists shared by friends or trending lists can be accessed, enhancing community engagement.
+   - Utilize notifications for interactions on user-generated lists.
+
+6. **Accessibility and Mobile Optimization**:
+   - Ensure the form and management screens meet accessibility standards.
+   - Optimize all elements for mobile devices, ensuring a smooth experience regardless of device.
+
+7. **Success Metrics**:
+   - Reduce the drop-off rate during the list creation process to below 5%.
+   - Increase weekly engagement metrics of lists created by at least 20%.
+
+8. **Deliverables**:
+   - Update UI components in `client/src/pages/create-list.tsx`, ensuring all outlined requirements are met.
+   - Perform a QA evaluation to verify functionality aligns with improvements.
+
+Ensure that each task is completed with precision, leading to a streamlined and engaging list creation and management process.

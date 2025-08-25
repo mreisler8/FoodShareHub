@@ -1,0 +1,125 @@
+🏁 Phase 2 MVP Sprint: Systematic Component Consolidation & Codebase Cleanup
+Context: Phase 1 delivered polished components but revealed a critical pattern - we're accumulating component duplication without systematic cleanup. Phase 2 must enforce ruthless consolidation with explicit deletion of obsolete code.
+
+Core Problem Identified: Multiple button implementations, modal variations, and scattered typography patterns exist simultaneously, creating maintenance debt and UI inconsistency. The agent must audit first, consolidate second, delete third.
+
+A. Mandatory Pre-Implementation Audit Process
+Step 1: Component Inventory & Deletion Strategy
+Before building anything new, the agent must:
+
+Audit Existing Components: Scan the entire codebase for all button, modal, typography, and search implementations
+Create Deletion List: Identify every obsolete component, duplicate file, and redundant implementation
+Migration Map: Document exactly which existing components will be replaced and which files will be deleted
+Breaking Change Analysis: Identify all pages/components that import the old implementations
+Step 2: Systematic Replacement Protocol
+Enforcement Rules:
+
+No new components without explicit deletion of old ones
+All imports must be updated in a single pass
+Unused files must be deleted immediately after migration
+No "backup" or "legacy" files allowed to remain
+B. Core Consolidation Targets (Global Implementation Required)
+1. Button System Unification - GLOBAL SCOPE
+Problem: Multiple button implementations across /client/src/components/, /components/, and scattered individual files
+Solution: Single source of truth that replaces ALL existing button patterns
+
+Pre-Work: Audit and list every existing button component/implementation
+Build: /client/src/components/ui/Button.tsx with comprehensive API
+Global Migration: Update ALL pages simultaneously - no incremental rollout
+Cleanup: Delete all old button components, CSS files, and imports
+Validation: Zero remaining references to old button implementations
+2. Modal Standardization - COMPLETE REPLACEMENT
+Problem: Inconsistent modal implementations creating UX fragmentation
+Solution: Universal modal system that handles all use cases
+
+Pre-Work: Identify every modal component, wrapper, and custom implementation
+Build: /client/src/components/ui/ModalWrapper.tsx with extensible API
+Mass Migration: Replace ALL modals in single deployment
+Cleanup: Delete duplicate modal files and CSS
+Validation: All modals use identical close behavior, focus management, responsive handling
+3. Typography Scale - SYSTEMATIC REPLACEMENT
+Problem: Hardcoded text styles scattered throughout components
+Solution: Semantic typography system with automated migration
+
+Pre-Work: Scan for all hardcoded font sizes, weights, and text classes
+Build: /client/src/styles/typography.ts with complete scale
+Mass Replace: Update ALL text elements across entire codebase
+Cleanup: Remove hardcoded typography from all CSS files
+Validation: Visual hierarchy is consistent on every single page
+4. Search Consolidation - ELIMINATE DUPLICATES
+Problem: Multiple search components with different APIs and behaviors
+Solution: Unified search system replacing all existing implementations
+
+Pre-Work: Map every search input, modal, and result component
+Build: Consolidated search components with consistent API
+Complete Migration: Replace all search patterns simultaneously
+Cleanup: Delete redundant search files and components
+Validation: Identical search behavior across all contexts
+C. Implementation Strategy - Anti-Fragmentation Protocol
+Systematic Approach:
+AUDIT FIRST: Complete inventory of existing implementations
+BUILD ONCE: Create comprehensive replacement component
+MIGRATE GLOBALLY: Update all usage simultaneously, not incrementally
+DELETE RUTHLESSLY: Remove all obsolete files and imports immediately
+VALIDATE COMPLETELY: Ensure zero references to old implementations remain
+File Management Rules:
+No component duplication allowed
+No "legacy" or "backup" files
+No gradual migration - all or nothing
+Explicit deletion of replaced files
+Import cleanup across entire codebase
+Quality Gates:
+Zero console errors after migration
+No unused imports in any file
+No duplicate component definitions
+Consistent behavior across ALL pages
+Complete file cleanup verification
+D. Global Consistency Enforcement
+Universal Application Requirements:
+Every page must use the new components - no exceptions
+All existing implementations must be deleted - no remnants
+Import statements must be updated globally - no mixed usage
+CSS cleanup must be comprehensive - no orphaned styles
+Page-by-Page Validation Checklist:
+ Home page uses new button/modal/typography system
+ Discover page fully migrated to new components
+ Profile pages use consolidated implementations
+ Restaurant detail pages updated completely
+ Create flows use unified components
+ Settings pages migrated to new system
+ All other pages verified for consistency
+E. Anti-Confusion Measures
+Clear Component Ownership:
+Single source of truth for each component type
+Explicit file structure with no ambiguous names
+Clear migration documentation showing what was replaced
+Comprehensive deletion log of removed files
+Development Guidelines:
+Before adding ANY component: Check if replacement exists
+Before modifying styling: Use design system tokens only
+Before creating modals: Use ModalWrapper exclusively
+Before implementing search: Use unified search components
+F. Success Metrics & Validation
+Quantitative Measures:
+Reduced file count: Eliminate duplicate components
+Consolidated CSS: Single design system implementation
+Zero dead code: No unused components or imports
+Consistent bundle size: Optimized through deduplication
+Qualitative Validation:
+Visual consistency: Identical patterns across all pages
+Behavioral consistency: Same interactions everywhere
+Developer experience: Single API for each component type
+Maintenance simplicity: One place to change each pattern
+G. Failure Prevention
+Common Pitfalls to Avoid:
+❌ Building new components without deleting old ones
+❌ Partial migration leaving mixed implementations
+❌ Keeping "backup" files that create confusion
+❌ Incremental rollout that maintains inconsistency
+Enforcement Mechanisms:
+✅ Pre-implementation audit requirements
+✅ Complete migration in single pass
+✅ Systematic file deletion process
+✅ Global validation before completion
+Final Directive: This phase succeeds only when the entire application uses a single, consistent set of components. Half-measures and partial implementations are considered failures. The agent must be ruthless in consolidation and systematic in cleanup to achieve true consistency across ALL pages.
+

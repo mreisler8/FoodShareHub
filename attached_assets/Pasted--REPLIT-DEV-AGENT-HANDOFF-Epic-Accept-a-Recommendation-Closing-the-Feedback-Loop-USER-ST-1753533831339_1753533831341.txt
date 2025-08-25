@@ -1,0 +1,121 @@
+🧠 REPLIT DEV AGENT HANDOFF
+📦 Epic: Accept a Recommendation – Closing the Feedback Loop
+
+👤 USER STORY
+As a Circles user, I want to acknowledge when I act on a friend’s recommendation (list, rating, or post), so that they get credit and I feel part of a trusted food community.
+
+🎯 GOAL
+Implement a Tried It / Accept Recommendation flow that:
+
+Lets users easily confirm when they follow a recommendation.
+
+Notifies the original recommender and increments their “tried by X people” tally.
+
+Optionally prompts the user to leave a quick rating.
+
+Stores all data for future influencer scoring and analytics.
+
+🔨 SCOPE OF WORK
+1. Backend
+a) Data Model
+Create accepted_recommendations table with:
+
+id
+
+actor_user_id (who tried it)
+
+recommender_user_id
+
+entity_type ("list" | "rating" | "post")
+
+entity_id
+
+restaurant_id
+
+created_at timestamp
+
+b) API Endpoints
+POST /api/recommendations/accept → records acceptance (prevent duplicates per actor+entity)
+
+GET /api/recommendations/accepted → fetch accepted recs for logged-in user
+
+GET /api/recommendations/impact → count how many times each user’s recs were accepted (for future influencer badges)
+
+c) Notifications (Phase 2)
+Notify recommender_user_id: “@alex tried Giulietta from your Date Night list!”
+
+2. Frontend Components
+a) TriedItButton.tsx
+Toggle button state:
+
+Default → “Tried It”
+
+After click → “✅ Tried It”
+
+Small micro-animation (pulse/checkmark).
+
+b) RecCreditBadge.tsx
+Appears on lists, posts, and ratings:
+
+“🔥 Tried by 3 people” (increments when accepted).
+
+c) TriedItPromptModal.tsx (Optional)
+After clicking “Tried It,” if user has not rated this restaurant yet:
+
+Show modal: “Leave a quick rating?” (Stars + optional note).
+
+3. Placement & UX Behavior
+Context	Placement
+Lists	Inline next to each restaurant item (beside Save icon)
+Quick Rating	Confirmation toast: “Did you try this based on @riley’s rec?” → One-tap CTA
+Restaurant Page	Add “Tried It” button in the Action Bar (secondary CTA)
+
+4. Copy & Microinteractions
+State	Copy/Action
+Button (default)	“Tried It”
+Button (after)	“✅ Tried It”
+Confirmation Toast	“Nice! @riley will know you tried their rec.”
+Recommender Badge	“🔥 Tried by 3 people”
+
+Animations:
+
+Small checkmark pop + pulse on button state change
+
+Pulse animation on tally increment for recommender’s side
+
+🔒 NON-FUNCTIONAL REQUIREMENTS
+Never remove or break existing list, rating, or post functionality.
+
+All buttons must have minimum 44px tap area for accessibility.
+
+Use ARIA labels for screen readers.
+
+Optimistic UI updates (state changes before server confirm, then revalidate).
+
+Ensure data integrity (1 acceptance per user per recommendation).
+
+✅ ACCEPTANCE CRITERIA
+Feature	Requirement
+Tried It button	Appears inline on lists, ratings, posts, and restaurant page
+State change	Button toggles to ✅ Tried It with animation
+Backend tracking	Actor/recommender stored in accepted_recommendations
+Recommender tally	Updates in real time (“🔥 Tried by X people”)
+Optional rating prompt	Shows only if user has not yet rated this restaurant
+No regressions	Lists, ratings, posts remain fully functional
+
+🧱 FUTURE-PROOFING
+All data will later power influencer badges and trust-based reputation metrics.
+
+The tally can appear in user profiles (“Your recs have been tried X times”).
+
+Design allows extending to external shares or “accept rec from friend” notifications.
+
+This implementation ensures seamless UI integration, full data capture, and no loss of existing functionality, while laying the foundation for influencer scoring and richer social dynamics.
+
+
+
+
+
+
+
+Ask ChatGPT

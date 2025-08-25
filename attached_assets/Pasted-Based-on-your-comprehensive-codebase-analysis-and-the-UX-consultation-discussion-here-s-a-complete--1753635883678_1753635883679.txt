@@ -1,0 +1,131 @@
+Based on your comprehensive codebase analysis and the UX consultation discussion, here's a complete prompt to successfully transform Food Moment into a modern, visual-first quick share experience:
+
+REPLIT DEV AGENT PROMPT: Transform Food Moment into Visual-First Quick Share
+OBJECTIVE
+Replace the complex Food Moment forms with an Instagram Stories-inspired visual-first sharing experience that drives engagement and integrates seamlessly with your existing social infrastructure.
+
+CONTEXT & CURRENT STATE
+Problems Identified:
+
+Multiple fragmented FoodMomentForm components across /client/src/components/create/FoodMomentForm.tsx and /client/src/components/create-post/FoodMomentForm.tsx
+Complex validation requiring caption OR images instead of visual-first approach
+Separate /api/moments endpoint instead of unified post creation
+Current form feels like work rather than spontaneous sharing
+Missing the quick-capture experience users expect
+Integration Points:
+
+Your existing MediaUploader component
+Unified /api/posts system with postType: 'moment'
+Circle sharing system with privacy controls
+Feed display in ProfilePage.tsx and feed.tsx
+Restaurant tagging and location services
+IMPLEMENTATION REQUIREMENTS
+Phase 1: Visual-First Creation Interface
+1. Replace Complex Forms with Camera-First UI
+
+Transform FoodMomentForm into camera-first capture interface
+Default to camera capture with gallery backup option
+Support multiple photos (up to 4) and short videos (15-30 seconds)
+Add one-tap filters and basic editing (brightness, contrast, saturation)
+Remove caption requirements - make it purely visual with optional text overlay
+2. Smart Auto-Tagging System
+
+Location auto-detection with restaurant search integration using your existing RestaurantSearch component
+One-tap mood/occasion tagging (celebrating, trying, craving, etc.)
+Smart hashtag suggestions based on restaurant/location context
+Auto-suggest up to 3 relevant tags to keep interface clean
+3. Streamlined Sharing Flow
+
+Step 1: Visual capture (camera/gallery selection)
+Step 2: Quick enhancement (filters, text overlay)
+Step 3: Smart tagging (location, restaurant, mood)
+Step 4: Circle sharing (using existing Circle privacy system)
+Target: Complete flow in under 10 seconds
+Phase 2: Backend Integration & Unification
+4. Migrate to Unified Posts System
+
+Remove separate /server/routes/moments.ts endpoint complexity
+Use existing /api/posts with postType: 'moment'
+Ensure full compatibility with your feed, reactions, and Circle sharing
+Integrate with existing MediaUploader for consistency
+Support your current visibility system (public, circle, private)
+5. Enhanced Metadata Structure
+
+metadata: {
+  captureType: 'camera' | 'gallery',
+  filters: string[],
+  textOverlay?: string,
+  quickTags: string[],
+  location?: LocationData,
+  isQuickShare: true
+}
+Phase 3: Feed & Discovery Integration
+6. Enhanced Feed Presence
+
+Design moment cards that stand out in your existing feed
+Add "Recent Moments" section to feed.tsx Quick Actions area
+Show moments prominently on RestaurantDetailPage.tsx
+Create moment-specific interaction patterns (quick reactions, "want to try this")
+7. Profile & Social Features
+
+Enhance ProfilePage.tsx moments section with visual grid layout
+Create moment highlights/stories format
+Enable moment-to-list conversion ("Add to List" from moment)
+Support Circle sharing with proper privacy controls
+Phase 4: Advanced Engagement Features
+8. Discovery & Social Amplification
+
+Surface moments in restaurant discovery
+Add location-based moment exploration to DiscoverFeed.tsx
+"Send Moment to Friend" functionality using existing sharing system
+Integration with your recommendation acceptance flow
+9. Cross-Platform Integration
+
+Rich preview generation for external sharing
+Integration with your existing Circle Score system
+Restaurant follow-up prompts for return visits
+TECHNICAL SPECIFICATIONS
+UI/UX Requirements:
+Mobile-First Design: Touch-optimized camera interface with gesture-based editing
+One-Handed Operation: All controls accessible with thumb navigation
+Progressive Disclosure: Show options as needed, not all at once
+Visual Feedback: Real-time preview of filters and effects
+Accessibility: Voice-over support, high contrast options
+Performance Requirements:
+< 10 seconds: Complete capture-to-share flow
+< 3 seconds: Camera initialization
+Offline Support: Capture offline, sync when online
+Memory Management: Use your existing useMemoryManagement hook
+Integration Points:
+MediaUploader: Use existing component for consistency
+LocationService: Integrate with useLocationService hook
+RestaurantSearch: Connect to existing restaurant search
+Circle System: Full Circle privacy and sharing integration
+Feed System: Seamless display in existing feed components
+FILES TO MODIFY/CREATE:
+Primary Components:
+
+Replace /client/src/components/create/FoodMomentForm.tsx
+Update /client/src/components/create/CreateCanvas.tsx tab interface
+Modify /client/src/pages/feed.tsx Quick Actions section
+Enhance /client/src/pages/ProfilePage.tsx moments display
+Backend Updates:
+
+Simplify /server/routes/moments.ts to use unified posts system
+Update post creation flow in /server/routes/posts.ts
+Integration Updates:
+
+Update /client/src/pages/RestaurantDetailPage.tsx for moment display
+Modify /client/src/components/feed/ModernPostCard.tsx for moment rendering
+SUCCESS METRICS:
+60% increase in daily moment creation
+40% faster creation time (target: under 10 seconds)
+80% of moments include location/restaurant tags
+50% increase in restaurant page engagement from moments
+IMPLEMENTATION PRIORITY:
+Phase 1: Visual-first interface (Week 1)
+Phase 2: Backend unification (Week 1-2)
+Phase 3: Feed integration (Week 2)
+Phase 4: Advanced features (Week 3)
+Key Focus: Transform Food Moment from a complex posting feature into an engaging, visual-first social experience that feels natural and drives authentic sharing while maintaining full integration with your existing social ecosystem.
+

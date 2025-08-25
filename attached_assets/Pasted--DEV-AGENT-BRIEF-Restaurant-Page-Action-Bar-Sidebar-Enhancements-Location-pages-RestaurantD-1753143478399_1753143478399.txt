@@ -1,0 +1,101 @@
+✅ DEV AGENT BRIEF: Restaurant Page Action Bar & Sidebar Enhancements
+📍 Location: /pages/RestaurantDetailPage.tsx
+🧩 Goal: Refactor and reorganize the interactive UI components (Save, Rate, Add to List, Share, Reservation) for clarity, structure, and user priority, without breaking any existing working logic.
+
+🧱 PART 1: Update the Top Horizontal Action Bar
+🔧 File: /components/RestaurantActionBar.tsx (create this file if it doesn’t exist)
+
+🎯 Functionality
+Replace the existing top-level Save/Rate/Add buttons with this layout:
+
+tsx
+Copy
+Edit
+<div className="flex flex-wrap gap-3 justify-start items-center px-4 py-3 border rounded-lg bg-white shadow-sm">
+  <ActionButton icon="bookmark" label={isSaved ? "Saved" : "Save"} active={isSaved} />
+  <ActionButton icon="zap" label={hasRated ? `Rated ${rating}⭐` : "Quick Rate"} primary />
+  <ActionButton icon="plus" label="Add to List" />
+  <ActionButton icon="send" label="Send to Friend" />
+  <ActionButton icon="share-2" label="Share Restaurant" />
+</div>
+🔐 Behavior
+✅ Clicking "Quick Rate" opens the QuickRatingModal
+
+✅ "Save" toggles state and triggers toast
+
+✅ "Add to List" opens AddToListModal
+
+✅ "Send to Friend" opens share-to-user flow (use fallback toast if not built)
+
+✅ "Share Restaurant" uses native navigator.share() (mobile) or copies to clipboard (desktop)
+
+🔁 PART 2: Sidebar Cards – Refactor & Reorganize
+These should appear below the main action bar in the following order:
+
+🧭 1. “Make a Reservation”
+🔧 Component: /components/ReservationCard.tsx
+
+tsx
+Copy
+Edit
+<Card title="Make a Reservation">
+  <Button variant="outline" onClick={handleOpenTable}>OpenTable</Button>
+  <Button variant="outline" onClick={handleResy}>Resy</Button>
+</Card>
+✅ This section stays exactly as is — just move it below the action bar.
+
+💬 2. “More Actions” (New Sidebar Card)
+🔧 Component: /components/MoreRestaurantActions.tsx
+
+Group less frequent features into a single modular section.
+
+tsx
+Copy
+Edit
+<Card title="More Actions">
+  <Button variant="outline" onClick={openReviewForm}>✍️ Write Review</Button>
+  <Button variant="outline" onClick={openPhotoUpload}>📸 Add Photos</Button>
+</Card>
+✅ Preserve Write Review and Add Photos — just relocate them here for clarity.
+✅ If no photo or review system is ready yet, stub with toast: “Feature coming soon.”
+
+🧹 PART 3: Clean Up Old Elements
+Please remove or comment out the following if still active:
+
+❌ Old inline “Share to Circle” button — replace with “Send to Friend”
+
+❌ Duplicate “Share Restaurant” in sidebar — use the single top version
+
+❌ Redundant “Save for Later” button in sidebar — already in top bar
+
+✅ ✅ Reuse the logic if needed — just don’t show them twice
+
+🧪 TOAST & STATE FEEDBACK
+Use /components/ui/use-toast.ts for inline feedback. Add:
+
+Action	Toast Message
+Saved	“Saved to your profile”
+Rated	“Thanks! Your rating was saved.”
+Shared	“Link copied” or “Shared successfully”
+Added to List	“Added to your list”
+Write Review	“Review posted” or “Coming soon”
+
+✅ COMPONENTS TO BUILD / UPDATE
+Component	Action
+RestaurantActionBar.tsx	Build new horizontal button row
+ActionButton.tsx	Reusable icon/label button with primary/active props
+ReservationCard.tsx	Move/reslot as needed
+MoreRestaurantActions.tsx	New sidebar grouping Write Review, Add Photos
+
+✅ FINAL CHECKLIST
+ Mobile and desktop responsive layout works
+
+ Buttons have clear labels and state changes
+
+ Actions do not duplicate
+
+ “Write Review” and “Add Photos” remain functional
+
+ All visual elements conform to home page UI style (rounded-lg, text-sm, shadow-sm)
+
+ No working functionality is removed

@@ -1,0 +1,39 @@
+Based on your extensive conversation history and the critical issues you've identified, here's a specific prompt to fix the fundamental problems:
+
+CRITICAL BUG FIX: Feed Page Quick Actions - Restore Intended UX Flow
+CONTEXT: Our feed page has broken UX due to incorrect implementation that violates our agreed-upon user experience design and routing architecture.
+
+CRITICAL ISSUES TO FIX:
+
+1. Broken Create List Routing
+"Create List" button currently routes to non-existent /create-list
+Should route to /create-list-enhanced (our optimized page with templates, auto-save, progressive completion)
+This bypasses ALL the sophisticated list creation features we built
+2. Wrong UX Pattern Implementation
+Both "Food Moment" and "Create List" incorrectly open modals
+CORRECT BEHAVIOR:
+Food Moment: Modal with unified share system ✓ (correct)
+Create List: Navigate to /create-list-enhanced page ❌ (broken)
+3. Aggressive Hover Triggers
+Hover activation interferes with normal page scrolling
+Users can't scroll near buttons without triggering actions
+Poor mobile UX (hover events don't work on touch)
+SPECIFIC FIXES NEEDED:
+
+Fix Route Configuration: Update "Create List" button to navigate to /create-list-enhanced instead of opening modal
+Adjust Hover Sensitivity: Make hover triggers less aggressive, add proper touch handling for mobile
+Preserve Food Moment Modal: Keep the unified share modal working for Food Moment (this is correct)
+FILES TO MODIFY:
+
+client/src/pages/feed.tsx - Fix the routing and hover behavior
+Ensure client/src/pages/create-list.tsx (create-list-enhanced) is properly accessible
+CRITICAL: We spent significant time building the enhanced list creation page with templates, auto-save, and smart UX. The current implementation completely bypasses this work and sends users to broken routes.
+
+VALIDATION: After fixing, verify:
+
+"Create List" navigates to working enhanced page
+"Food Moment" opens unified share modal
+Hover triggers don't interfere with normal scrolling
+Mobile touch interactions work properly
+This fixes the core disconnect between our UX planning and implementation.
+

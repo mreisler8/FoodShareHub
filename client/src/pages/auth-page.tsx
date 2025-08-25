@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -166,7 +166,7 @@ function LoginForm({ onRegisterClick }: LoginFormProps) {
               <span className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <Button
-                  variant="link"
+                  variant="ghost"
                   className="p-0 h-auto"
                   onClick={onRegisterClick}
                 >
@@ -258,7 +258,7 @@ function RegisterForm({ onLoginClick }: RegisterFormProps) {
                 <FormItem>
                   <FormLabel>Bio (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Tell us about yourself" {...field} />
+                    <Input placeholder="Tell us about yourself" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -271,7 +271,7 @@ function RegisterForm({ onLoginClick }: RegisterFormProps) {
                 <FormItem>
                   <FormLabel>Profile Picture URL (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="URL to your profile picture" {...field} />
+                    <Input placeholder="URL to your profile picture" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -295,7 +295,7 @@ function RegisterForm({ onLoginClick }: RegisterFormProps) {
               <span className="text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Button
-                  variant="link"
+                  variant="ghost"
                   className="p-0 h-auto"
                   onClick={onLoginClick}
                 >

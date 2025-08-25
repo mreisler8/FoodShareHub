@@ -1,0 +1,123 @@
+Pasted--Component-Restaurant-Detail-Page-Goal-Deliver-a-mobile-first-redesign-that-elevates-this-pag-1753126024001_1753126024001.txt
+📌 Component: Restaurant Detail Page
+🎯 Goal: Deliver a mobile-first redesign that elevates this page into a trusted content hub—surfacing social data, boosting engagement, and aligning with the brand’s expressive, modular style.
+
+✅ CORE LAYOUT MODULES & UX LOGIC
+Each module should follow a card-based, mobile-first layout, consistent with homepage/feed/list cards. Use Tailwind tokens already in place: rounded-xl, shadow-sm, text-muted-foreground, p-4, space-y-*.
+
+1. 🔝 Header (Name, Cuisine, Location)
+Element	Style
+Name	text-xl font-semibold
+Subtext	“Italian · Toronto” → text-sm text-muted-foreground
+Optional: Neighborhood tag	Tapable for explore filter
+Pin Icon	Add map link / marker if GPS is enabled (future)
+
+2. 🧮 Circle Score + Contributor Context
+Element	Behavior
+Circle Score badge	CircleScoreBadge.tsx + info icon
+Tooltip / Modal	Expandable to show breakdown:
+“89 from 12 friends — @jules, @riley, @lee”	
+Visuals	Avatars inline (SocialProofAvatars.tsx) below badge
+
+“Rated by 4 people you follow” (tap expands) |
+
+3. 👥 Social Activity: Posts & Mentions
+Section	Behavior
+Title	“💬 Mentioned in Posts” (text-lg font-medium)
+Display	Horizontally scrollable PostSnippetCard or 1–2 visible with "See all"
+Post content	User avatar, comment snippet, photo (if present)
+
+Empty state:
+
+“None of your Circles have posted yet — be the first!”
+
+4. 📋 List Mentions
+Element	Behavior
+Header	“📋 Appears in 3 Lists”
+List cards	ListMiniCard.tsx → title, owner, thumbnail
+Layout	Horizontally scrollable OR 1-stack with expand
+
+Empty state:
+
+“Not on any lists yet — add it to yours!”
+
+5. ⭐ Your Rating (if exists)
+| Display | Inline below score |
+| Behavior | Shows previous rating, note, tags |
+| CTA | “Edit Rating” button → opens QuickRatingModal.tsx pre-filled |
+
+If not rated:
+
+Show “⭐ Rate this place” button in Action Bar
+
+6. 🛠️ Action Bar: Save, Rate, Add to List, Share
+| Placement | Mobile: fixed bottom bar
+Desktop: inline under header |
+| Buttons | Icons with labels:
+
+🔖 Save
+
+⭐ Rate
+
+➕ Add to List
+
+📤 Share
+| Behavior | Thumb-optimized buttons (min-w-[72px], min-h-[48px])
+Use hover/focus effects consistent with homepage |
+
+📱 BREAKPOINT CONSIDERATIONS
+Mobile	Desktop
+Full-width cards	Grid layout (2 cols for posts/lists)
+Action bar fixed to bottom	Inline CTA bar
+Scrollable sections	All vertically scrollable
+Avatar row wraps	Horizontal row under Circle Score
+
+✨ VISUAL SYSTEM ALIGNMENT
+Token / Style	Matches
+Font sizes	Homepage, feed, post modal
+Spacing	space-y-4, gap-3, p-4 containers
+Cards	Reuse from ListCard, FeedCard → rounded-xl, shadow-sm, border, white bg
+Reactions	Animate Save/Rate icons on tap (scale-105, active:scale-95)
+Avatars	Use consistent Avatar.tsx pattern from feed/profile
+
+📭 EMPTY STATES
+Section	Copy
+No Circle Score	“Not yet rated by your Circles”
+No Lists	“Not on any lists — add it to yours!”
+No Posts	“No posts yet from your friends”
+No Rating	“⭐ Rate this place to help others in your Circle”
+
+🧱 COMPONENTS TO LINK OR REUSE
+Component	Use
+CircleScoreBadge.tsx	Visual score UI
+SocialProofAvatars.tsx	Avatar row w/ expand
+QuickRatingModal.tsx	Reuse for “Rate” CTA
+ListMiniCard.tsx	Lists this place appears in
+PostMentionSnippet.tsx	Short post previews
+RestaurantActionBar.tsx	Save / Rate / List / Share
+RestaurantPageLayout.tsx	New wrapper container with vertical module rendering
+
+✅ Figma Spec Guidance
+Ask your designer to deliver:
+
+Mobile and desktop layouts for Restaurant Detail Page
+
+Fixed action bar or inline CTA row
+
+Modules:
+
+Circle Score + Avatars
+
+List Mentions
+
+Post Mentions
+
+Your Activity
+
+Light/dark mode preview if applicable
+
+Hover/focus states for each interactive icon
+
+Empty states for each section
+
+System preview for “Share to Circle” modal or share dropdown

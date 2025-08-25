@@ -1,0 +1,85 @@
+Prompt:
+You are working in a React (TypeScript, Vite) frontend and a Node.js/Express backend with PostgreSQL.
+The goal is to fully audit and map search functionality across the entire application, ensuring consistency in behavior, results, and UI for restaurants, users, lists, themes, and any other searchable entities.
+Additionally, include performance profiling to assess readiness for our 100-user MVP.
+
+Audit Instructions
+1. Component & Page Mapping
+Identify all frontend components and pages that implement search (e.g., home feed, discovery, circles, profile, list creation).
+
+Note differences in UI/UX between these search implementations (search bar position, filters, result display).
+
+Record file paths for each.
+
+2. Backend/API Mapping
+Identify all API routes that power search functionality.
+
+Document query parameters, expected payloads, and response formats for each.
+
+Map which API endpoints are used by each frontend search component.
+
+3. Database Mapping
+List all DB tables and fields used for search queries.
+
+Note any indexing, full-text search usage, or joins.
+
+Identify inconsistencies (e.g., searching restaurants uses fuzzy match but lists use exact match).
+
+4. Functional Validation
+Test search for:
+
+Restaurants
+
+Users
+
+Lists
+
+Themes/Tags
+
+For each type, confirm:
+
+Case-insensitivity
+
+Partial match support
+
+Relevance ranking
+
+Pagination or infinite scroll
+
+Error handling for no results
+
+Record PASS/FAIL for each case.
+
+5. Cross-Page Consistency
+Compare behavior and results for the same query across different pages.
+
+Identify if results differ due to inconsistent API usage or query logic.
+
+6. UI/UX Consistency
+Compare placement, styling, and interaction of search bars.
+
+Note if filters, sorting, and clear buttons work consistently.
+
+7. Known Issues / Pain Points
+Identify slow queries, mismatched data, or missing search capabilities.
+Check for cases where one search type works but others fail or return incomplete results.
+
+Highlight duplicate code or logic that could be unified.
+
+8. Performance Profiling
+Measure average search query response times (backend) for each entity type with realistic dataset sizes.
+
+Identify slowest queries and their SQL execution plans.
+
+Confirm indexes exist for high-frequency search columns.
+
+Stress-test with 100 concurrent search requests to simulate MVP load.
+
+Report P95 latency for each search type.
+
+9. Success Criteria for MVP
+✅ Search returns consistent, accurate results across all pages and entities.
+✅ All search experiences use a unified, well-documented API contract.
+✅ Response time ≤ 300ms for 95% of requests under 100 concurrent users.
+✅ Full-text or indexed search implemented for primary entity fields.
+✅ UI/UX consistency across all search components.

@@ -1,0 +1,226 @@
+Audit Prompt — Restaurant Page Data Integrity & Consistency (Read-Only + Debug Mode)
+Mode: Audit & Instrumentation only.
+Do NOT change product behavior for normal users.
+Allow only: server logging, debug-only UI (behind ?debug=true), sampling scripts, and reports.
+
+Objectives
+Prove or disprove any cross-restaurant contamination of ratings.
+
+Explain Circle Score inconsistency (e.g., 89 vs 0 on the same page).
+
+Detect redundant “my rating” render paths that cause duplicate fetches/race conditions.
+
+Verify search → detail handoff (Google Place ID → canonical restaurantId) is correct for all restaurants, not just one.
+
+Produce a clear, actionable report with file paths, lines, and minimal code changes needed to fix.
+
+Part A — Server-side tracing (no behavioral change)
+A1. Identity + Ratings + CircleScore trace middleware
+Files: server/middleware/trace.ts, wire in server/index.ts before routes.
+
+Log a single JSON line per request touching restaurants/ratings/circle score:
+
+ts
+Copy
+Edit
+// Pseudocode shape
+{
+  t: "trace",
+  path: req.path,
+  method: req.method,
+  rid: <restaurantId|null>,
+  placeId: <googlePlaceId|null>,
+  userId: <id|null>,
+  op: "ratings.read" | "ratings.write" | "circleScore.read" | "restaurant.detail",
+  cacheHit: <true|false|null>,
+  source: "db" | "places" | "cache" | "fallback",
+  ms: <duration>,
+  note: <string> // mismatches, “fallback used”, etc.
+}
+Where to insert trace calls:
+
+GET /api/restaurants/:id
+
+GET /api/restaurants?googlePlaceId=...
+
+GET/POST /api/ratings/restaurant/:id
+
+GET /api/restaurant/:restaurantId/circle-score
+
+Any internal resolver converting placeId → restaurantId
+
+A2. Mismatch sentinels (no throw, just log)
+If a rating payload references a different restaurantId than the request → log note:"RATINGS_MISMATCH".
+
+If two different circle score values are calculated/returned for the same restaurantId during the same request → log note:"CIRCLE_SCORE_INCONSISTENT".
+
+Do NOT change responses; this is observability.
+
+Part B — Debug UI (dev-only, behind ?debug=true)
+B1. Tiny debug panel (non-interactive)
+File: client/src/pages/RestaurantDetailPage.tsx (or wrapper component used on that page)
+
+If URL includes debug=true, render a collapsible panel at the top (position: sticky, z-index high) showing:
+
+page.restaurantId and page.googlePlaceId (from identity hook/props)
+
+Active components rendered on the page that show/compute ratings/score (component names)
+
+Data snapshot (read-only):
+
+Rating block → rating.restaurantId, rating.restaurantName, source, fetchedVia
+
+Circle Score (both widgets) → values + queryKey used
+
+Fetch dedupe info: how many ratings/circle score requests fired on mount
+
+No debug UI unless ?debug=true.
+
+Part C — Crawl & sample (systemic proof, no enumeration dump)
+C1. Create a node script to sample real restaurants
+File: scripts/audit/restaurants-sampler.ts
+
+Fetch 100 search results (mix of popular + random queries).
+
+For each result:
+
+Hit detail via placeId path (same way the app navigates).
+
+Read the server traces for that request (capture last N lines via a trace log file or a trace endpoint).
+
+Record:
+
+resolved restaurantId
+
+any RATINGS_MISMATCH notes
+
+any circle score inconsistencies
+
+counts of how many rating/circle requests were made for a single page view
+
+Write a summarized CSV + markdown report.
+
+Output:
+
+/docs/AUDIT_RESTAURANTS_SAMPLE.md (findings, top issues, exact endpoints involved)
+
+/docs/AUDIT_RESTAURANTS_SAMPLE.csv (one row per restaurant sampled)
+
+C2. Focus probes for Badiali (repro of your screenshots)
+Add a small probe script scripts/audit/probe-badiali.ts that:
+
+Loads the exact Badiali route you use (placeId path + id path if available).
+
+Captures and prints the trace lines (above JSON).
+
+Confirms:
+
+rating payload belongs to page.restaurantId
+
+both circle score widgets read the same React Query key (['circleScore', restaurantId])
+
+Outputs /docs/PROBE_BADIALI.md
+
+Part D — Redundant “my rating” render inventory
+D1. Static scan
+Grep/scan the codebase for components that render user rating on restaurant pages:
+
+e.g., YourRating, YourCircleTake, CircleScoreCard, RecentActivity, etc.
+
+Build a list: file path, component name, props, and how they fetch data.
+
+D2. Runtime detect (debug)
+In the debug panel, count how many rating components mount, and list their component names.
+
+Output /docs/AUDIT_DUPLICATE_RATING_BLOCKS.md with:
+
+Where duplicates occur
+
+Which fetch function each uses
+
+Suggested consolidation (one source of truth)
+
+Part E — DB spot checks (counts + up to 20 samples)
+Create /docs/AUDIT_DB_COUNTS.md with results of:
+
+sql
+Copy
+Edit
+-- PlaceId uniqueness (should be no duplicates)
+SELECT google_place_id, COUNT(*) c
+FROM restaurants
+WHERE google_place_id IS NOT NULL
+GROUP BY google_place_id
+HAVING COUNT(*) > 1
+ORDER BY c DESC
+LIMIT 20;
+
+-- Ratings rows that still lack restaurant_id (should be 0)
+SELECT COUNT(*) AS ratings_missing_restaurant_id
+FROM ratings
+WHERE restaurant_id IS NULL;
+
+-- Obvious seed/test contamination (sample)
+SELECT id, restaurant_id, note
+FROM ratings
+WHERE is_test = TRUE OR note ILIKE '%Universal system test%'
+LIMIT 20;
+Part F — Circle Score consistency check
+F1. Hook/API usage survey
+Find all components that display Circle Score. List file paths + the query key they use.
+
+They must all use exactly ['circleScore', restaurantId].
+
+Output: /docs/AUDIT_CIRCLE_SCORE_CALLERS.md
+
+F2. Live comparison (debug)
+Under ?debug=true, show the two values side-by-side (the big “Your Circle’s Take” and the small box next to Google Score) and the fetch keys used.
+
+If values diverge or keys differ → write a line in the trace: note:"CIRCLE_SCORE_WIDGET_DIVERGENCE".
+
+Deliverables (all required)
+/docs/AUDIT_RESTAURANTS_SAMPLE.md (with per-issue counts, not a giant dump)
+
+/docs/AUDIT_RESTAURANTS_SAMPLE.csv
+
+/docs/PROBE_BADIALI.md
+
+/docs/AUDIT_DB_COUNTS.md
+
+/docs/AUDIT_DUPLICATE_RATING_BLOCKS.md
+
+/docs/AUDIT_CIRCLE_SCORE_CALLERS.md
+
+Trace logs (file path noted in docs) with JSON lines
+
+Acceptance criteria (audit)
+We can explain the “Villa di Roma on Badiali” issue with concrete traces (which endpoint, what fallback, which ID mismatch).
+
+We can explain the Circle Score 89 vs 0 with either:
+
+two different endpoints/keys, or
+
+timing/race + cache difference.
+
+We know exactly how many pages render duplicate “my rating” blocks and where.
+
+We have systemic counts (not per-restaurant lists) proving whether contamination exists elsewhere.
+
+Notes / Guardrails
+No user-visible changes unless ?debug=true.
+
+Don’t delete data or rewrite schemas in this audit pass.
+
+Minimize noise: one JSON trace per request; aggregate in the docs.
+
+What you’ll do after this audit
+With the reports in hand, we’ll cut a tiny, surgical fix prompt:
+
+unify rating fetch to one component + one hook on the page,
+
+ensure both Circle Score widgets call the same hook + key,
+
+kill any fallback that can serve ratings by placeId after identity resolution,
+
+and add a single cache invalidation path.
+

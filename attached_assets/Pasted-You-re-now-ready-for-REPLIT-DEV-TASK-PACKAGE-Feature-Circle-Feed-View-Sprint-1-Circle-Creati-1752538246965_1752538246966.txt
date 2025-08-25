@@ -1,0 +1,266 @@
+You're now ready for:
+
+✅ REPLIT DEV TASK PACKAGE
+Feature: Circle Feed View
+Sprint: 1 — Circle Creation & List Sharing
+Story Slice: 5 of 6
+Goal: Render a feed view that shows all lists shared to a specific Circle. This is the main content view for Circle-based discovery.
+
+🧩 TASK OVERVIEW
+📁 File to Create:
+/components/circles/CircleFeed.tsx
+📁 Route to Add:
+/circles/:circleId/feed
+
+🎯 Acceptance Criteria
+User visits /circles/:circleId/feed
+
+Sees list of content shared to that Circle
+
+Includes metadata like name, description, visibility, creator, and member count
+
+Uses existing ListCard for rendering each list
+
+Only visible to members if the Circle is private (Slice 6 will gate this)
+
+🧩 FILE: CircleFeed.tsx
+tsx
+Copy
+Edit
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom"; // Or your route lib
+import { ListCard } from "@/components/ListCard";
+import { CircleMetadata } from "./CircleMetadata";
+
+export function CircleFeed() {
+  const { circleId } = useParams();
+  const [circle, setCircle] = useState(null);
+  const [lists, setLists] = useState([]);
+
+  useEffect(() => {
+    const fetchFeed = async () => {
+      const res1 = await fetch(`/api/circles/${circleId}`);
+      const res2 = await fetch(`/api/circles/${circleId}/feed`);
+      const c = await res1.json();
+      const l = await res2.json();
+      setCircle(c);
+      setLists(l);
+    };
+    fetchFeed();
+  }, [circleId]);
+
+  if (!circle) return <p>Loading...</p>;
+
+  return (
+    <div className="p-4 space-y-6">
+      <CircleMetadata {...circle} />
+
+      {lists.length === 0 ? (
+        <p className="text-muted-foreground">No lists have been shared yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {lists.map((list) => (
+            <ListCard key={list.id} {...list} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+🧩 FILE: CircleMetadata.tsx
+tsx
+Copy
+Edit
+export function CircleMetadata({ name, description, is_private, member_count, creator_username }) {
+  return (
+    <div className="space-y-1 border-b pb-4">
+      <h1 className="text-xl font-bold">{name}</h1>
+      <p className="text-muted-foreground text-sm">{description}</p>
+      <p className="text-xs text-muted-foreground">
+        👥 {member_count} members • {is_private ? "Private" : "Public"} Circle • Created by @{creator_username}
+      </p>
+    </div>
+  );
+}
+🧩 BACKEND: Required Endpoints
+1. GET /api/circles/:id
+Returns:
+
+json
+Copy
+Edit
+{
+  "id": "uuid",
+  "name": "Toronto Bites",
+  "description": "Pizza, ramen, and late-night snacks.",
+  "is_private": true,
+  "creator_username": "riley",
+  "member_count": 42
+}
+2. GET /api/circles/:id/feed
+Returns all lists:
+
+json
+Copy
+Edit
+[
+  {
+    "id": "list_id",
+    "title": "Best ramen in Toronto",
+    "creator": "riley",
+    "cover_image": "...",
+    "items": [...]
+  },
+  ...
+]
+🛑 Must only include lists where:
+
+visibility = 'circle'
+
+circle_id = :id
+
+(Enforce membership in Slice 6)
+
+✅ DEV COMPLETION CHECKLIST
+ /circles/:id/feed loads via route
+
+ Feed lists Circle metadata and lists
+
+ Uses ListCard for rendering
+
+ Filters only lists for that Circle
+
+ Feels performant and mobile-friendly
+
+Say “next” when ready for the final slice in this sprint:
+✅ Slice 6: Basic Permission Gating for Private Circles.
+
+
+
+
+
+
+You said:
+next
+
+
+ChatGPT said:
+You're now ready for the final task in Sprint 1:
+
+✅ REPLIT DEV TASK PACKAGE
+Feature: Circle Permissions (Basic)
+Sprint: 1 — Circle Creation & List Sharing
+Story Slice: 6 of 6
+Goal: Restrict access to private Circle content so only members can view it.
+
+🧩 TASK OVERVIEW
+📁 File to Create:
+
+components/circles/PermissionGuard.tsx
+
+components/circles/AccessDeniedView.tsx
+
+📁 File to Update:
+
+Wrap CircleFeed.tsx with PermissionGuard to enforce access control.
+
+🎯 Acceptance Criteria
+If the Circle is private, only members should be able to view the feed
+
+Unauthorized users see a friendly denied message
+
+Authenticated users who are not members of the Circle are blocked
+
+Public Circles remain open
+
+🧩 FILE: PermissionGuard.tsx
+tsx
+Copy
+Edit
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { AccessDeniedView } from "./AccessDeniedView";
+
+export function PermissionGuard({ children }: { children: React.ReactNode }) {
+  const { circleId } = useParams();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      const res = await fetch(`/api/circles/${circleId}/access`);
+      const data = await res.json();
+      setAllowed(data.allowed);
+    };
+    checkAccess();
+  }, [circleId]);
+
+  if (allowed === null) return <p>Loading...</p>;
+  if (!allowed) return <AccessDeniedView />;
+
+  return <>{children}</>;
+}
+🧩 FILE: AccessDeniedView.tsx
+tsx
+Copy
+Edit
+export function AccessDeniedView() {
+  return (
+    <div className="text-center p-6 space-y-2 text-muted-foreground">
+      <h2 className="text-lg font-semibold">Access Denied</h2>
+      <p>You’re not a member of this Circle.</p>
+      <p>If this Circle is private, you’ll need an invite to join.</p>
+    </div>
+  );
+}
+🧩 UPDATE: CircleFeed.tsx
+Wrap your component like this:
+
+tsx
+Copy
+Edit
+import { PermissionGuard } from "./PermissionGuard";
+
+export function CircleFeed() {
+  return (
+    <PermissionGuard>
+      {/* everything inside this is only shown to allowed users */}
+      <CircleFeedContent />
+    </PermissionGuard>
+  );
+}
+🧩 BACKEND: GET /api/circles/:id/access
+Returns:
+
+json
+Copy
+Edit
+{ "allowed": true }
+Implementation logic:
+
+ts
+Copy
+Edit
+const userId = req.user?.id;
+const { id } = req.params;
+
+const { rows: [circle] } = await db.query(`SELECT is_private FROM circles WHERE id = $1`, [id]);
+
+if (!circle) return res.status(404).json({ allowed: false });
+
+if (!circle.is_private) return res.json({ allowed: true });
+
+const result = await db.query(
+  `SELECT 1 FROM circle_members WHERE circle_id = $1 AND user_id = $2`,
+  [id, userId]
+);
+
+res.json({ allowed: result.rowCount > 0 });
+✅ DEV COMPLETION CHECKLIST
+ Users can’t access private Circles unless a member
+
+ Public Circles are open
+
+ AccessDeniedView is shown for unauthorized users
+
+ PermissionGuard wraps CircleFeed
+

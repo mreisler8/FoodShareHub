@@ -1,4 +1,3 @@
-// Adding the settings route to the router using lazy loading for the settings page.
 import { Switch, Route } from "wouter";
 import { useEffect, lazy } from "react";
 import { addNativeAppClass } from "../lib/nativeAppBridge";
@@ -8,15 +7,19 @@ import Home from "../pages/home";
 import CreatePost from "../pages/create-post";
 import FeedPage from "../pages/feed";
 import TopPicksPage from "../pages/top-picks";
-import CircleDetails from "../pages/circle-details-v2";
-import Circles from "../pages/circles-v2";
+import CircleDetails from "../pages/circle-details";
+import Circles from "../pages/circles";
 import CircleMembers from "../pages/circle-members";
-import Profile from "../pages/profile";
+import ProfilePage from "../pages/ProfilePage";
 import Settings from "../pages/settings";
-import Discover from "../pages/discover";
+import DiscoverFeed from "../pages/DiscoverFeed";
 import DiscoverByLocation from "../pages/discover-by-location";
 import ListDetails from "../pages/list-details";
 import CreateList from "../pages/create-list";
+import CreateListSimple from "../pages/create-list-simple";
+import CreateListDebug from "../pages/create-list-debug";
+import CreateListMinimal from "../pages/create-list-minimal";
+import { CreateMomentPage } from "../pages/create-moment";
 import CreateCircle from "../pages/create-circle";
 import CreateCircleAdvanced from "../pages/create-circle-advanced";
 import PostDetails from "../pages/post-details";
@@ -24,8 +27,12 @@ import JoinPage from "../pages/join";
 import JoinCirclePage from "../pages/join/[inviteCode]";
 import AuthPage from "../pages/auth-page";
 import Lists from "./Lists";
+import MyLists from "../pages/my-lists";
 import RestaurantDetailPage from "../pages/RestaurantDetailPage";
 import UserDiscovery from "../pages/user-discovery";
+import SocialDashboardPage from "../pages/social-dashboard";
+import QuickRatingsPage from "../pages/quick-ratings";
+import SearchPage from '@/pages/SearchPage';
 
 function Router() {
   // Add native app class to body for CSS targeting if running in native app
@@ -35,29 +42,37 @@ function Router() {
 
   return (
     <Switch>
-      <ProtectedRoute path="/" component={Home} />
+      <ProtectedRoute path="/" component={() => <FeedPage scope="feed" />} />
+      <ProtectedRoute path="/home" component={Home} />
       <ProtectedRoute path="/feed" component={() => <FeedPage scope="feed" />} />
       <ProtectedRoute path="/feed/circle/:circleId" component={({ params }: any) => <FeedPage scope="circle" circleId={params?.circleId} />} />
       <ProtectedRoute path="/top-picks" component={TopPicksPage} />
       <ProtectedRoute path="/create-post" component={CreatePost} />
+      <ProtectedRoute path="/create-moment" component={CreateMomentPage} />
       <ProtectedRoute path="/circles" component={Circles} />
       <ProtectedRoute path="/create-circle" component={CreateCircle} />
       <ProtectedRoute path="/circles/:id" component={CircleDetails} />
       <ProtectedRoute path="/circles/:id/members" component={CircleMembers} />
-      <ProtectedRoute path="/profile/:id?" component={Profile} />
-      <ProtectedRoute path="/discover" component={Discover} />
+      <ProtectedRoute path="/profile/:id?" component={ProfilePage} />
+      <ProtectedRoute path="/discover" component={DiscoverFeed} />
       <ProtectedRoute path="/discover-by-location" component={DiscoverByLocation} />
-      <ProtectedRoute path="/lists" component={Lists} />
+      <ProtectedRoute path="/lists" component={MyLists} />
       <ProtectedRoute path="/lists/create" component={CreateList} />
+      <ProtectedRoute path="/create-list" component={CreateListMinimal} />
       <ProtectedRoute path="/lists/:id" component={ListDetails} />
+      <ProtectedRoute path="/my-lists" component={MyLists} />
       <ProtectedRoute path="/posts/:id" component={PostDetails} />
       <ProtectedRoute path="/join" component={JoinPage} />
       <ProtectedRoute path="/join/:inviteCode" component={JoinCirclePage} />
+      <Route path="/restaurants/google/:placeId" component={RestaurantDetailPage} />
       <Route path="/restaurants/:id" component={RestaurantDetailPage} />
-        <Route path="/restaurants/google/:placeId" component={RestaurantDetailPage} />
+      <Route path="/restaurant/google/:placeId" component={RestaurantDetailPage} />
+      <Route path="/restaurant/:id" component={RestaurantDetailPage} />
       <ProtectedRoute path="/user-discovery" component={UserDiscovery} />
+      <ProtectedRoute path="/social-dashboard" component={SocialDashboardPage} />
+      <ProtectedRoute path="/quick-ratings" component={QuickRatingsPage} />
+      <Route path="/search" component={SearchPage} />
 
-      <Route path="/discover-by-location" component={DiscoverByLocation} />
       <ProtectedRoute path="/settings" component={Settings} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />

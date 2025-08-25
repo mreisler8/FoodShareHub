@@ -1,0 +1,92 @@
+Pasted--REPLIT-DEV-AGENT-HANDOFF-Epic-Restaurant-Page-Overhaul-Trust-Interaction-and-Data-Surfaci-1753125999737_1753125999739.txt
+🧠 REPLIT DEV AGENT HANDOFF
+📦 Epic: Restaurant Page Overhaul — Trust, Interaction, and Data Surfacing
+🎯 Goal:
+Redesign and rebuild the RestaurantDetailPage.tsx to serve as the social trust centerpiece of the app. This is not just a static info page—it must activate the data you’ve already collected (ratings, lists, posts, circles), and turn that into meaningful action for the user.
+
+🧠 Key Product Principle
+The page should answer:
+
+"Do people I trust like this place—and how should I engage with it?"
+
+Your system already tracks Quick Ratings, Circle Score, Lists, and social posts. This page must visually and functionally unlock that data—encouraging discovery, participation, and network-based decision-making.
+
+🔨 DEV TASK SCOPE
+1. ✅ Build a Modular Page Layout
+File: pages/RestaurantDetailPage.tsx
+
+Break the page into reusable, modular blocks:
+
+pgsql
+Copy
+Edit
+📌 Header Section
+  - Restaurant name, cuisine, location, Google/Yelp ratings
+
+🔁 Trust Score Summary
+  - Circle Score component (with contributor tooltip & confidence)
+  - “Rated by X in your Circle” display
+
+✨ Action Bar
+  - CTA buttons: Rate, Add to List, Save, Share
+  - Stickied or thumb-zone optimized on mobile
+
+💬 Circle Activity
+  - Recent Quick Ratings from friends or Circle members
+  - List of Posts mentioning this restaurant (if any)
+
+🗂️ Lists This Appears In
+  - Horizontal scroll or expandable cards
+  - Show list name + owner + ranking position if available
+
+🌟 Your Rating (if exists)
+  - Uses existing `RatingDisplay` component
+  - Edit in-place with `QuickRatingModal`
+
+📤 Sharing affordances
+  - “Share to Circle”, “Send to Friend”, “Save to List”
+Use vertical cards or sections for clear separation and mobile-first UX.
+
+2. 🔗 Data Activation Requirements
+Section	Data to Surface	Source
+Trust Score	Circle Score, contributors, confidence	/api/circle-score/:restaurantId
+Ratings	User's own rating + ratings in your network	/api/ratings, Quick Ratings model
+Lists	All lists this restaurant appears in	lists table with metadata + rank
+Posts	Circle/shared posts about this spot	posts or shared feed content
+CTA State	Save/Add-to-list toggles	user_actions, bookmarks, etc.
+
+Avoid overfetching. Use react-query cache for Circle Score, user ratings, and list mentions.
+
+3. ✨ UI Expectations
+Use shared design system from home page and Quick Rating rollout
+
+Align typography, shadows, spacing, and button styles
+
+Ensure consistent RatingButton, ListItemCard, CircleScoreCard, and PostPreviewCard components across pages
+
+🔒 NFRs
+Score and social data shown only to logged-in users
+
+“Empty state” UX if no ratings, lists, or posts exist
+
+Avoid regression of existing functionality (e.g., Quick Rate, rating editing)
+
+Reuse backend API and frontend components where possible
+
+Mobile-first design (thumb-zone CTA bar, stackable blocks)
+
+✅ Acceptance Criteria
+Feature	Requirement
+🧠 Circle Score	Rendered clearly, with confidence + contributors
+👥 Social Proof	“Rated by friends” with avatars or handles
+🗂️ List Mentions	Lists shown with preview + optional rank
+💬 Posts	Show if user’s Circle has shared or posted
+⭐ Quick Rate	Reuse modal; show user’s rating inline
+🛠️ Modular	Page broken into reusable, maintainable blocks
+📱 Mobile UX	Layout optimized for tap, scroll, and fixed CTAs
+📊 Data Integrity	All surfaced data accurate and scoped to user trust graph
+
+🧬 BONUS: Extendable for Future
+Future-ready sections for dish ratings or influencer callouts
+
+Easy to plug into Discover logic or AI-powered recommendations

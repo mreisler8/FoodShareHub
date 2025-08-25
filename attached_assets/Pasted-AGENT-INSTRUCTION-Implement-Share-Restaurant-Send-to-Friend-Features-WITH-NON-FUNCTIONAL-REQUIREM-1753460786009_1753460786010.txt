@@ -1,0 +1,147 @@
+AGENT INSTRUCTION: Implement Share Restaurant & Send to Friend Features
+WITH NON-FUNCTIONAL REQUIREMENTS
+OBJECTIVE
+Add two sharing features to restaurant and list pages: internal "Send to Friend" and external "Share Restaurant" functionality, integrated into existing Action Bar components.
+
+NON-FUNCTIONAL REQUIREMENTS
+Performance Requirements
+Response Time: All share operations must complete within 2 seconds
+Search Performance: User search results must appear within 300ms of typing
+Link Generation: External share links must generate within 1 second
+Database Operations: Share record creation must complete within 500ms
+Concurrent Users: System must handle 100 simultaneous share operations without degradation
+Security Requirements
+Rate Limiting: Maximum 10 shares per user per hour to prevent spam
+Access Control: Users can only share to followers or circle members they have connections with
+Link Security: External share links expire after 7 days automatically
+Privacy Enforcement: Respect existing privacy settings - only public content can be shared externally
+Input Validation: All user inputs sanitized and validated server-side
+CSRF Protection: All share endpoints protected against cross-site request forgery
+Scalability Requirements
+Database Indexing: Proper indexes on sender_id, receiver_id, entity_id for query optimization
+Caching Strategy: User search results cached for 5 minutes to reduce API calls
+Pagination: Share history paginated with maximum 20 items per page
+Connection Pooling: Database connections efficiently managed for share operations
+Reliability Requirements
+Error Handling: Graceful degradation when share services are unavailable
+Retry Logic: Failed share operations retry up to 3 times with exponential backoff
+Data Consistency: Share operations are atomic - either fully succeed or fully fail
+Monitoring: All share operations logged for debugging and analytics
+Failover: External link generation falls back to basic sharing if advanced features fail
+Usability Requirements
+Mobile Optimization: All modals work seamlessly on mobile devices with touch interactions
+Accessibility: WCAG 2.1 AA compliance for keyboard navigation and screen readers
+Loading States: Clear visual feedback during all share operations
+Error Messages: User-friendly error messages for all failure scenarios
+Offline Support: Basic error handling when network connectivity is poor
+Maintainability Requirements
+Code Structure: Reuse existing UI patterns and component architecture
+API Consistency: Follow established API naming conventions and response formats
+Testing Coverage: Minimum 80% test coverage for all share-related functionality
+Documentation: All new endpoints documented with examples
+Backward Compatibility: No breaking changes to existing action bar functionality
+BACKEND IMPLEMENTATION
+1. Database Schema
+Create shared_recommendations table with these fields:
+
+id (primary key)
+sender_id (foreign key to users, indexed)
+receiver_id (foreign key to users, nullable for external shares, indexed)
+entity_type (enum: "restaurant" | "list")
+entity_id (string, indexed)
+share_type (enum: "internal" | "external")
+message (text, optional, 140 char limit)
+expires_at (timestamp, for external links)
+read (boolean, default false)
+click_count (integer, default 0)
+created_at (timestamp, indexed)
+Required Indexes:
+
+CREATE INDEX idx_shared_recommendations_receiver ON shared_recommendations(receiver_id, read, created_at);
+CREATE INDEX idx_shared_recommendations_sender ON shared_recommendations(sender_id, created_at);
+CREATE INDEX idx_shared_recommendations_entity ON shared_recommendations(entity_type, entity_id);
+CREATE INDEX idx_shared_recommendations_expires ON shared_recommendations(expires_at) WHERE expires_at IS NOT NULL;
+2. API Endpoints
+Implement these routes in server/routes/:
+
+POST /api/recommendations/share-internal
+- Rate Limited: 10 requests per hour per user
+- Body: { receiverId, entityType, entityId, message? }
+- Validates sender follows receiver or shares circle membership
+- Creates internal share record
+- Returns success/error status
+- Response time SLA: < 2 seconds
+GET /api/recommendations/received
+- Paginated: 20 items max per page
+- Returns paginated list of items shared with authenticated user
+- Include sender info, entity details, read status
+- Response time SLA: < 1 second
+PATCH /api/recommendations/:id/mark-read
+- Marks specific share as read
+- Only allows user to mark their own received shares
+- Response time SLA: < 500ms
+POST /api/share/generate-public-link
+- Rate Limited: 20 requests per hour per user
+- Body: { entityType, entityId }
+- Generates secure short URL with 7-day expiration
+- Returns shareable link
+- Respects privacy settings (public lists/restaurants only)
+- Response time SLA: < 1 second
+FRONTEND IMPLEMENTATION
+3. Action Bar Integration
+Update RestaurantActionBar.tsx and create/update list action bar:
+
+Add two new buttons:
+
+📤 "Send to Friend" - opens SendToFriendModal
+🔗 "Share" - opens ShareLinkModal
+Performance Requirements:
+
+Modal open time: < 200ms
+Button responsiveness: < 100ms tap response
+4. Component Creation
+A. SendToFriendModal Component:
+
+User search with 300ms debounce (performance requirement)
+Results cached for 5 minutes (scalability requirement)
+Maximum 50 search results displayed (performance requirement)
+Loading state during search and send operations (usability requirement)
+Error handling with retry mechanism (reliability requirement)
+B. ShareLinkModal Component:
+
+Link generation with 1-second timeout (performance requirement)
+Copy to clipboard with toast feedback (usability requirement)
+Fallback for older browsers (reliability requirement)
+Mobile-optimized touch interactions (usability requirement)
+QUALITY GATES & SUCCESS CRITERIA
+Performance Gates
+✅ Share operations complete within 2 seconds
+✅ User search responds within 300ms
+✅ Link generation completes within 1 second
+✅ Page interactions respond within 100ms
+
+Security Gates
+✅ Rate limiting prevents spam (10 shares/hour limit)
+✅ Privacy settings respected throughout
+✅ External links expire after 7 days
+✅ Input validation prevents injection attacks
+
+Reliability Gates
+✅ Error handling covers all failure scenarios
+✅ Share operations are atomic and consistent
+✅ Retry logic handles temporary failures
+✅ System gracefully degrades when services unavailable
+
+Usability Gates
+✅ Mobile-first responsive design maintained
+✅ WCAG 2.1 AA accessibility compliance
+✅ Clear loading states and error messages
+✅ Consistent with existing UI patterns
+
+Performance Monitoring
+Log all operations exceeding performance thresholds
+Monitor database query performance for optimization
+Track user engagement with share features
+Alert on failure rates exceeding 1%
+PRIORITY: Implement with strict adherence to NFRs. Performance and security gates must pass before deployment.
+

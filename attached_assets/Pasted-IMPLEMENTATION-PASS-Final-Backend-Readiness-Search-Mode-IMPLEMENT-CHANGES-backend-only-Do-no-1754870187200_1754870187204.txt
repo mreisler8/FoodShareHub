@@ -1,0 +1,165 @@
+IMPLEMENTATION PASS — Final Backend Readiness (Search)
+Mode: IMPLEMENT CHANGES (backend only).
+Do not modify frontend files. Do not change API contracts or response shapes.
+Branch: release/search-mvp-final
+Goal: Close remaining gaps to hit P95 ≤ 300ms @ 100 concurrent users, with caching enabled and all search endpoints available & authenticated.
+
+0) Guardrails (read carefully)
+Do not touch UI, styles, components, or client code.
+
+Do not change existing endpoint paths, params, or response shapes.
+
+Do not alter auth logic; all search endpoints must remain protected (401 when unauthenticated).
+
+Keep scope strictly to items below. If anything is ambiguous, add a QUESTIONS section and stop.
+
+1) Fix /api/search/lists (404) — minimal, contract-safe
+Objective: Ensure a dedicated lists search endpoint exists, is registered, authenticated, and returns the standardized search payload already used by other search endpoints.
+
+Steps:
+
+If a lists search handler already exists (e.g., searchService.searchLists), register the route:
+
+File (route registration): server/routes/search.ts (or equivalent central search router)
+
+Path: GET /api/search/lists
+
+Auth: use the same auth middleware as other search routes.
+
+If no handler exists, create a thin handler that:
+
+Accepts: q (required), filters (JSON string, optional), limit (optional), and optional lat/lng if your lists can be geotagged.
+
+Calls the existing lists query logic (reuse search service already powering unified search).
+
+Enforces visibility rules (public / followers / circle-based / private) for the current user.
+
+Returns your standard format:
+
+json
+Copy
+Edit
+{
+  "results": [...],
+  "total": <number>,
+  "entity": "list",
+  "meta": { "page": 1, "hasMore": false }
+}
+Confirm:
+
+401 when unauthenticated.
+
+200 with results when authenticated.
+
+No breaking changes to unified search.
+
+Do not refactor anything beyond what’s required for this route to work and match the standard format.
+
+2) Enable Redis caching (no code changes to contract)
+Objective: Turn caching ON so production/staging can hit latency targets.
+
+Steps:
+
+Ensure Redis client is already implemented with graceful fallback.
+
+In the staging/production env, set:
+
+ini
+Copy
+Edit
+REDIS_URL=redis://<your-host>:6379
+SEARCH_CACHE_TTL_S=60
+PLACES_CACHE_TTL_S=300
+ENABLE_PLACES=true
+Confirm connection success in logs (no ECONNREFUSED).
+
+Verify cache keys populate for hot queries (no code changes; just observe logs).
+
+If infra access is not available from this task, create /docs/REDIS_ENABLE_CHECKLIST.md with exact env steps and verification commands.
+
+3) Authenticated load-test setup (no repo changes)
+Objective: Produce authenticated tokens/sessions for load tests without altering auth code.
+
+Steps:
+
+Use the existing login flow to obtain a valid session (e.g., POST /api/auth/login or your project’s existing route).
+
+Save cookie/token to use in load tests.
+
+Do not modify auth or add dependencies to the repo.
+
+If exact auth endpoint name differs, document the real one in the report.
+
+4) Performance validation (prove P95 ≤ 300ms)
+Objective: Run authenticated load tests against search endpoints with cache warm-up, measure P50/P95/P99, error rate, and throughput.
+
+Endpoints:
+
+GET /api/search/restaurants?q=pizza (with and without lat/lng)
+
+GET /api/search/users?q=test
+
+GET /api/search/lists?q=brunch
+
+GET /api/search/unified?q=food
+
+Method:
+
+Warm cache: 30–60s of repeated queries (authenticated).
+
+Test runs:
+
+50 concurrent users (baseline)
+
+100 concurrent users (target)
+
+Collect:
+
+P50 / P95 / P99 latencies
+
+Error rate (%)
+
+Throughput (req/s)
+
+Cache hit rate (from logs/metrics)
+
+Note if Places timed out or hit cache (from middleware logs)
+
+Use existing tools; if none exist, you may use npx autocannon without committing any files.
+
+5) Acceptance criteria (all must pass)
+/api/search/lists responds with 401 (unauthenticated) and 200 (authenticated), standard format, and correct visibility filtering.
+
+Redis enabled (no connection errors); cache hit rate ≥ 60% on hot queries after warm-up.
+
+P95 ≤ 300ms on all listed endpoints at 100 concurrent users (post warm-up).
+
+Error rate ≤ 1%.
+
+No frontend diffs. No API contract changes. No auth changes.
+
+6) Deliverables
+One PR to release/search-mvp-final with only backend diffs (route registration and any minimal glue).
+
+/docs/FINAL_BACKEND_VALIDATION.md including:
+
+Auth method used (endpoint + sample request)
+
+Before/After metrics: P50/P95/P99, error rate, throughput
+
+Cache hit rate and Redis connection confirmation
+
+Example lines from timing middleware (showing cache hits and Places timeouts not impacting latency)
+
+Confirmation that endpoint contracts & auth behavior are unchanged
+
+If infra prevented Redis enablement or auth load testing, include /docs/BLOCKERS.md with what’s needed to proceed (env var, hostname, credential).
+
+7) Rollback plan
+All changes live only in release/search-mvp-final.
+
+If /api/search/lists registration causes any regression, revert the route registration file in the PR and document in /docs/BLOCKERS.md.
+
+Notes for reviewer
+This task is intentionally minimal: register/repair only the lists search endpoint, enable caching, and prove performance under auth. No UI changes, no contract changes, and no unrelated refactors.
+

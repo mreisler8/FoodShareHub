@@ -11,20 +11,21 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CircleWithStats } from "@/lib/types";
 import { useLocation } from "wouter";
-import { AlertTriangle, Eye } from "lucide-react";
+import { AlertTriangle, Eye, Utensils, X, Plus, Tag, Check } from "lucide-react";
+import { queryKeys, useListCacheHelpers } from "@/lib/queryKeys";
+// Note: PrivacySelector will be implemented in next phase
 
-// Form Schema based on Robust List Creation user story
+// V2 form schema with visibility system
 const formSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Name is required").max(100, "Name too long"),
   description: z.string().optional(),
-  tags: z.string().optional(),
-  shareWithCircle: z.boolean().default(false),
-  makePublic: z.boolean().default(false),
-  circleId: z.string().optional(),
+  visibility: z.enum(['private', 'public', 'followers', 'circle']).default('private'),
+  visibilityCircleIds: z.array(z.number()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -35,9 +36,18 @@ interface CreateListModalProps {
   onSuccess?: (listId: number) => void;
 }
 
+// Predefined tag suggestions
+const PREDEFINED_TAGS = [
+  "pizza", "italian", "date-night", "family-friendly", "cheap-eats", 
+  "brunch", "happy-hour", "rooftop", "takeout", "delivery",
+  "vegetarian", "vegan", "seafood", "steakhouse", "sushi",
+  "coffee", "dessert", "bakery", "bar", "cocktails"
+];
+
 export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListModalProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { invalidateAfterCreate } = useListCacheHelpers();
   const [duplicateInfo, setDuplicateInfo] = useState<{id: number, name: string} | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [continueAnyway, setContinueAnyway] = useState(false);
@@ -53,15 +63,13 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
     defaultValues: {
       name: "",
       description: "",
-      tags: "",
-      shareWithCircle: false,
-      makePublic: false,
-      circleId: undefined,
+      visibility: 'private',
+      visibilityCircleIds: [],
     },
   });
 
-  // Watch the sharing fields to show/hide circle selection
-  const shareWithCircle = form.watch("shareWithCircle");
+  // Watch the visibility field to show/hide circle selection
+  const visibility = form.watch("visibility");
   const currentName = form.watch("name");
 
   // Debounced duplicate checking function
@@ -111,56 +119,47 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
     }
   }, [open]);
 
-  // Create list mutation
+  // Create list mutation with V2 visibility system
   const createList = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Apply default sharing rules if neither option is selected
-      let shareWithCircle = values.shareWithCircle;
-      let makePublic = values.makePublic;
-      
-      if (!shareWithCircle && !makePublic) {
-        shareWithCircle = true; // Default to circle sharing
+      // Validate circle selection for circle visibility
+      if (values.visibility === 'circle' && (!values.visibilityCircleIds || values.visibilityCircleIds.length === 0)) {
+        throw new Error("Please select at least one circle to share with");
       }
 
-      // Convert circleId to number if provided
-      const circleId = values.circleId && values.circleId !== "none" ? parseInt(values.circleId) : null;
-
-      // Parse tags into array
-      const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
-
       const payload = {
-        name: values.name,
-        description: values.description || null,
-        tags: tags,
-        circleId: circleId,
-        isPublic: makePublic,
-        visibility: makePublic ? "public" : "circle",
+        name: values.name.trim(),
+        description: values.description?.trim() || null,
+        visibility: values.visibility,
+        visibilityCircleIds: values.visibility === 'circle' ? values.visibilityCircleIds : null,
       };
 
-      const response = await apiRequest("POST", "/api/lists", payload);
+      const response = await apiRequest("/api/lists", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      
       return await response.json();
     },
     onSuccess: (data) => {
-      // Invalidate relevant caches
-      queryClient.invalidateQueries({ queryKey: ["/api/restaurant-lists"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      // Use centralized cache invalidation
+      invalidateAfterCreate();
 
       toast({
-        title: "Success!",
-        description: "Your restaurant list has been created.",
+        title: "List created successfully!",
+        description: "Your new list is ready for you to add restaurants.",
       });
 
       // Reset form and close modal
       form.reset();
       onOpenChange(false);
 
-      // Navigate directly to the list - handle different response structures
-      const listId = data?.id || (data as any)?.id;
-      if (listId) {
+      // Navigate to the new list
+      if (data?.id) {
         try {
-          navigate(`/lists/${listId}`);
+          navigate(`/lists/${data.id}`);
           if (onSuccess) {
-            onSuccess(Number(listId));
+            onSuccess(Number(data.id));
           }
         } catch (error) {
           console.error("Navigation failed:", error);
@@ -207,10 +206,13 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Create New List</DialogTitle>
-          <DialogDescription>
-            Create a themed list of restaurant recommendations to share with your circles.
+        <DialogHeader className="text-center pb-6">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
+            <Utensils className="h-6 w-6 text-white" />
+          </div>
+          <DialogTitle className="text-2xl font-heading font-bold text-neutral-900">Create New List</DialogTitle>
+          <DialogDescription className="text-neutral-600 text-base leading-relaxed">
+            Create a themed list of restaurant recommendations to share with your circles and help others discover amazing places.
           </DialogDescription>
         </DialogHeader>
 
@@ -309,23 +311,24 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
               )}
             />
 
-            <div className="space-y-3">
-                  <FormLabel>Sharing Settings</FormLabel>
+            <div className="space-y-4 p-4 bg-neutral-50 rounded-xl border border-neutral-200">
+                  <FormLabel className="text-base font-medium text-neutral-900">Sharing Settings</FormLabel>
                   
                   <FormField
                     control={form.control}
                     name="shareWithCircle"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 bg-white rounded-lg border border-neutral-200 hover:border-blue-300 transition-colors">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            className="mt-1"
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>Share with Circle</FormLabel>
-                          <p className="text-xs text-muted-foreground">
+                          <FormLabel className="font-medium text-neutral-900">Share with Circle</FormLabel>
+                          <p className="text-sm text-neutral-600">
                             Allow members of your circles to view this list
                           </p>
                         </div>
@@ -337,16 +340,17 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                     control={form.control}
                     name="makePublic"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 bg-white rounded-lg border border-neutral-200 hover:border-blue-300 transition-colors">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            className="mt-1"
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>Make Public</FormLabel>
-                          <p className="text-xs text-muted-foreground">
+                          <FormLabel className="font-medium text-neutral-900">Make Public</FormLabel>
+                          <p className="text-sm text-neutral-600">
                             Anyone can view and share this list
                           </p>
                         </div>
@@ -355,7 +359,7 @@ export function CreateListModal({ open, onOpenChange, onSuccess }: CreateListMod
                   />
                 </div>
 
-            {shareWithCircle && (
+            {form.watch("visibility") === "circle" && (
               <FormField
                 control={form.control}
                 name="circleId"

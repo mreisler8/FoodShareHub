@@ -1,0 +1,39 @@
+Based on my comprehensive audit, I've identified significant component duplication across the codebase. Here's my consolidation plan for Phase 2:
+
+Component Inventory & Consolidation Plan
+1. Button Components - Multiple implementations found:
+/client/src/components/ui/button.tsx (Shadcn base)
+/client/src/components/restaurant/ActionButton.tsx (Custom wrapper)
+Multiple inline button implementations with custom classes
+Button validation utilities scattered in utils
+2. Modal Components - Numerous variations:
+Various modal implementations (QuickRateModal, AddToListModal, SaveRestaurantModal, etc.)
+Custom CSS implementations (CircleWizardModal.css)
+Mix of Dialog components from Radix UI and custom modals
+Inconsistent close behaviors and focus management
+3. Typography - Hardcoded styles everywhere:
+Inline text classes (text-xl, text-2xl, font-bold, etc.)
+Custom CSS in index.css with typography utilities
+No consistent semantic system
+Different font sizes and weights scattered across components
+4. Search Components - Multiple implementations:
+UnifiedSearchModal
+SearchInput component
+RestaurantSearch variations
+Different search behaviors and APIs
+Questions before proceeding:
+Button Consolidation: Should I preserve the existing shadcn button.tsx as the base and enhance it, or create a completely new unified button system? The current button.tsx already has good variant support.
+
+Modal Strategy: Do you want me to standardize on Radix UI Dialog components (which are already used in some places) or create a custom modal wrapper? Radix provides good accessibility out of the box.
+
+Typography Scale: Should I implement the typography system as:
+
+CSS utility classes only (like Tailwind)
+React components (like <Heading>, <Text>)
+Or a hybrid approach with both?
+Search Priority: The search system seems most complex with multiple specialized implementations. Should I focus on the other three first and tackle search in a separate phase?
+
+Migration Approach: For the global migration, do you want me to update ALL files at once, or would you prefer I do one component type at a time (e.g., all buttons first, then all modals)?
+
+Please advise on these decisions so I can proceed with the systematic consolidation and cleanup.
+

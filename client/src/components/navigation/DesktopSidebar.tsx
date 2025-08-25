@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings, TrendingUp } from "lucide-react";
+import { Home, Search, PlusCircle, Users, Bookmark, User as UserIcon, LogIn, LogOut, List, Settings, TrendingUp, Activity, Bell } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -6,22 +6,46 @@ import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { UnifiedSearchModal } from '@/components/search/UnifiedSearchModal';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
 
 export function DesktopSidebar() {
   const [location] = useLocation();
   const { logoutMutation } = useAuth();
-  
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Get current user
   const { data: currentUser, isLoading } = useQuery<User | undefined>({
     queryKey: ["/api/me"],
   });
-  
+
+  // Get activity indicators data
+  const { data: pendingInvites } = useQuery({
+    queryKey: ['/api/circles/invites/pending'],
+    enabled: !!currentUser,
+  });
+
+  const { data: pendingRequests } = useQuery({
+    queryKey: ['/api/circles/requests/pending'],
+    enabled: !!currentUser,
+  });
+
+  const { data: followRequests } = useQuery({
+    queryKey: ['/api/follow/requests/pending'],
+    enabled: !!currentUser,
+  });
+
   const isAuthenticated = !!currentUser;
-  
+
+  // Calculate total notifications
+  const totalNotifications = (Array.isArray(pendingInvites) ? pendingInvites.length : 0) + (Array.isArray(pendingRequests) ? pendingRequests.length : 0) + (Array.isArray(followRequests) ? followRequests.length : 0);
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
-  
+
   // Function to check if a path is active
   const isActive = (path: string) => {
     if (path === "/" && location === "/") {
@@ -39,7 +63,23 @@ export function DesktopSidebar() {
   };
 
   return (
-    <div className="nav-desktop md:flex-col md:w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-4 h-screen sticky top-0 border-r border-soft-sand-30">
+    <div className="desktop-sidebar hidden lg:flex flex-col w-56 lg:w-64 bg-background/95 backdrop-blur-sm p-4 lg:p-4 h-screen sticky top-0 border-r border-soft-sand-30">
+
+      {/* Persistent Search Bar */}
+      {isAuthenticated && (
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search restaurants, users, lists..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchOpen(true)}
+              className="pl-10 bg-background/50 border-border/50 focus:bg-background"
+            />
+          </div>
+        </div>
+      )}
       <Link href="/" className="flex items-center mb-6 hover:opacity-80 transition-opacity" aria-label="Go to home page">
         <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
           <svg 
@@ -62,24 +102,31 @@ export function DesktopSidebar() {
             <path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"></path>
           </svg>
         </div>
-        <h1 className="ml-3 text-2xl font-heading font-bold text-neutral-900">Circles</h1>
+        <div className="ml-3">
+          <h1 className="text-2xl font-heading font-bold text-neutral-900">Circles</h1>
+          <p className="text-xs text-neutral-600 mt-0.5">Trusted restaurant recommendations from your inner circle</p>
+        </div>
       </Link>
-      
+
       <nav className="flex-1" role="navigation" aria-label="Main navigation">
         <ul className="space-y-2">
+          {/* Search - elevated to top like Instagram */}
           <li>
-            <Link href="/" aria-label="View your feed">
-              <div className={getNavItemClasses("/")} role="menuitem" tabIndex={0}>
-                <Home className="w-6 mr-2" aria-hidden="true" />
-                <span>Feed</span>
-              </div>
-            </Link>
+            <button 
+              onClick={() => setIsSearchOpen(true)}
+              className={`w-full ${getNavItemClasses('/search')} bg-gray-50 hover:bg-gray-100 transition-colors`}
+              aria-label="Search restaurants and users"
+            >
+              <Search className="w-6 mr-2" aria-hidden="true" />
+              <span>Search</span>
+            </button>
           </li>
+
           <li>
-            <Link href="/discover" aria-label="Discover new restaurants">
-              <div className={getNavItemClasses("/discover")} role="menuitem" tabIndex={0}>
-                <Search className="w-6 mr-2" aria-hidden="true" />
-                <span>Discover</span>
+            <Link href={isAuthenticated ? "/feed" : "/"} aria-label="View your feed">
+              <div className={getNavItemClasses(isAuthenticated ? "/feed" : "/")} role="menuitem" tabIndex={0}>
+                <Home className="w-6 mr-2" aria-hidden="true" />
+                <span>{isAuthenticated ? "Feed" : "Home"}</span>
               </div>
             </Link>
           </li>
@@ -91,18 +138,26 @@ export function DesktopSidebar() {
               </div>
             </Link>
           </li>
+          {/* Enhanced Create Post with prominence */}
           <li>
             <Link href="/create-post" aria-label="Create a new post">
-              <div className={getNavItemClasses("/create-post")} role="menuitem" tabIndex={0}>
-                <PlusCircle className="w-6 mr-2" aria-hidden="true" />
-                <span>Create Post</span>
+              <div className={`${getNavItemClasses("/create-post")} bg-primary/5 border-primary/20 font-semibold`} role="menuitem" tabIndex={0}>
+                <PlusCircle className="w-6 mr-2 text-primary" aria-hidden="true" />
+                <span className="text-primary">Create Post</span>
               </div>
             </Link>
           </li>
           <li>
             <Link href="/circles" aria-label="View your circles">
               <div className={getNavItemClasses("/circles")} role="menuitem" tabIndex={0}>
-                <Users className="w-6 mr-2" aria-hidden="true" />
+                <div className="relative">
+                  <Users className="w-6 mr-2" aria-hidden="true" />
+                  {totalNotifications > 0 && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {totalNotifications > 9 ? '9+' : totalNotifications}
+                    </div>
+                  )}
+                </div>
                 <span>Circles</span>
               </div>
             </Link>
@@ -124,6 +179,14 @@ export function DesktopSidebar() {
             </Link>
           </li>
           <li>
+            <Link href="/social-dashboard" aria-label="Social network dashboard">
+              <div className={getNavItemClasses("/social-dashboard")} role="menuitem" tabIndex={0}>
+                <Activity className="w-6 mr-2" aria-hidden="true" />
+                <span>Social Dashboard</span>
+              </div>
+            </Link>
+          </li>
+          <li>
             <Link href="/settings" aria-label="Account settings">
               <div className={getNavItemClasses("/settings")} role="menuitem" tabIndex={0}>
                 <Settings className="w-6 mr-2" aria-hidden="true" />
@@ -141,7 +204,24 @@ export function DesktopSidebar() {
           </li>
         </ul>
       </nav>
-      
+
+      {/* Activity/Notifications Section */}
+      {isAuthenticated && totalNotifications > 0 && (
+        <div className="border-t border-neutral-200 pt-4 mt-4">
+          <Link href="/circles" aria-label="View notifications">
+            <div className={`${getNavItemClasses("/notifications")} bg-blue-50 border-blue-200`} role="menuitem" tabIndex={0}>
+              <div className="relative">
+                <Bell className="w-6 mr-2 text-blue-600" aria-hidden="true" />
+                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalNotifications > 9 ? '9+' : totalNotifications}
+                </div>
+              </div>
+              <span className="text-blue-700 font-medium">Activity</span>
+            </div>
+          </Link>
+        </div>
+      )}
+
       <div className="mt-auto pt-5 border-t border-neutral-200">
         <Link href="/profile">
           <div className="flex items-center p-3 rounded-lg hover:bg-neutral-100 cursor-pointer">
@@ -163,6 +243,12 @@ export function DesktopSidebar() {
           <span>Logout</span>
         </div>
       </div>
+
+      {/* Optimized Search Modal */}
+      <UnifiedSearchModal
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+      />
     </div>
   );
 }

@@ -1,0 +1,104 @@
+💻 DEV AGENT PROMPT
+📌 Component: RestaurantDetailPage.tsx
+🎯 Objective: Upgrade the existing Restaurant Detail Page layout to a modular, mobile-first format that highlights social trust, Circle activity, and key user actions without removing any current functionality.
+
+✅ IMPLEMENTATION SCOPE
+You are not re-building from scratch. You are enhancing the layout and visibility of existing data, while aligning to our homepage/list visual system.
+
+🔨 REQUIRED STRUCTURE (Modular, Top-to-Bottom)
+Header Section (HeaderCard)
+
+Restaurant name (H1), cuisine, city
+
+Optional location pin / tag link
+
+Circle Score Section (CircleScoreCard)
+
+Score badge with color logic
+
+Inline text: “Rated by 6 people you follow”
+
+Tap to expand contributor modal (CircleScoreBreakdownModal)
+
+Quick Action Bar (RestaurantActionBar)
+
+Mobile: fixed at bottom
+
+Desktop: inline below Circle Score
+
+Buttons: 🔖 Save, ⭐ Rate, ➕ Add to List, 📤 Share
+
+Use min-h-[48px], gap-3, responsive spacing
+
+Your Activity (YourRatingCard)
+
+If user has rated → show editable star rating, note, tags
+
+Else: CTA to rate
+
+Lists Mentioned In (ListMentionsCard)
+
+Show horizontally scrollable ListMiniCards
+
+Include badges if ranked (#1, #2)
+
+Post Mentions (PostMentionsCard)
+
+Show avatar, username, text snippet, image (if exists)
+
+Tap → expands modal or drawer
+
+Empty States for all above if no data
+
+e.g. “No posts yet from your Circles — be the first!”
+
+🎯 FUNCTIONAL BEHAVIOR
+Show only sections with data
+
+All actions (save, rate, list, share) must persist across sessions
+
+Avatars link to user profiles (or future profile view)
+
+Respect current permissions & Circle privacy logic
+
+Reuse:
+
+QuickRatingModal.tsx
+
+CircleScoreBadge.tsx
+
+PostMentionSnippet.tsx
+
+ListMiniCard.tsx
+
+🎨 UI RULES
+Use tailwind layout: rounded-xl shadow-sm bg-white p-4 space-y-4
+
+Section headers: text-lg font-medium
+
+Micro-copy: text-sm text-muted-foreground
+
+Save/Rate buttons: scale-105 transition active:scale-95
+
+Match home/list styles for spacing, icons, shadows
+
+📱 MOBILE CONSIDERATIONS
+Use fixed bottom CTA bar on mobile (sticky bottom-0 z-50 bg-white)
+
+Collapsible or scrollable sections (Lists, Posts)
+
+Keep entire page performant and chunked vertically
+
+🧪 TEST CASES
+☐ User lands on restaurant with no ratings → shows Circle Score placeholder
+
+☐ User with rating sees YourRatingCard pre-filled
+
+☐ Action bar always visible on mobile
+
+☐ Each module collapses or hides if empty
+
+☐ Tap to expand Posts, Lists works smoothly
+
+☐ Rating, Save, Share buttons persist and animate
+

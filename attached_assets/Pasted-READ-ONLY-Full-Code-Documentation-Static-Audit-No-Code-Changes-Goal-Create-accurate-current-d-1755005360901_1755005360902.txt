@@ -1,0 +1,104 @@
+READ-ONLY: Full Code Documentation & Static Audit (No Code Changes)
+Goal: Create accurate, current documentation + a static code audit that explains how the app is wired (frontend + backend), where data contracts live, and where risks exist—especially around the Restaurant Page, Ratings, Circle Score, Featured Lists, and Search.
+Absolutely no behavior changes. No refactors. Generate docs & findings only.
+
+Deliverables (write files only)
+/docs/ARCHITECTURE_OVERVIEW.md
+
+High-level system diagram (text/mermaid) for: Web (React TS), API (Express), DB (Postgres), external (Google Places), Redis (if present).
+
+Data contracts glossary: restaurantId, googlePlaceId, circleId, userId—who owns each, where they’re converted, how they’re passed.
+
+Request lifecycle examples:
+
+Restaurant page load (both DB id and placeId routes)
+
+User rating fetch + save
+
+Circle Score fetch (all code paths)
+
+Featured Lists data flow
+
+Search → navigate → detail
+
+/docs/FRONTEND_COMPONENT_MAP.md
+
+For each relevant page/component (RestaurantDetailPage, YourRatingCard, CircleScore widgets, Save/AddToList, FeaturedLists, QuickRateModal, Search entry points):
+
+File path, purpose, main hooks, query keys, route params used, outbound endpoints.
+
+Note duplicate responsibilities (e.g., multiple components fetching the same rating).
+
+/docs/API_SURFACE.md
+
+All routes related to restaurants/ratings/circle-score/lists/search:
+
+Method, path, auth required, validated params/body, canonical response shapes.
+
+Which identifier is authoritative (restaurantId vs googlePlaceId), and how the other maps to it.
+
+/docs/DATA_CONTRACTS.md
+
+Type shapes (as implemented) for Restaurant, UserRating, CircleScore, ListSummary.
+
+Known optional/nullable fields and where null checks exist in UI.
+
+Indexes & FKs used to maintain identity.
+
+/docs/QUERY_KEYS_AND_CACHING.md
+
+One table with every React Query key touching restaurant detail, rating, circle score, lists, and search.
+
+For each: fetcher, staleTime, cacheTime, IDs used in key, and deduping behavior.
+
+/docs/CODE_AUDIT_FINDINGS.md
+
+No code edits; findings only. Categorize:
+
+Identity risks (id vs placeId drift; cross-contamination risk points)
+
+Redundant fetches / missing memoization
+
+Error handling & a11y gaps (dialogs need titles/desc)
+
+Test coverage gaps for critical flows
+
+Performance smells (N+1 calls, missing indexes actually used)
+
+Each finding: file:line, why it matters, risk level, suggested fix (1–2 sentences), estimated blast radius.
+
+/docs/DEFINITION_OF_DONE_CONTRACTS.md
+
+Guardrails we’ll enforce going forward (read-only doc):
+
+Single source of truth: restaurant identity must be restaurantId at render; placeId can be used only for resolution → then discarded.
+
+One hook per concern: useRestaurantIdentity(…), useUserRating(…), useCircleScore(…).
+
+One React Query key schema per entity.
+
+All dialogs must include <DialogTitle> and <DialogDescription>.
+
+Any “Featured in Lists” must be real endpoint data or hidden by feature flag—no demo/mocks.
+
+Exact Tasks (read-only)
+Build a dependency map (static) of modules that import rating/circle-score/list/search services.
+
+Enumerate all code paths that construct a rating POST body; capture the actual field names used.
+
+List every place that reads googlePlaceId on the client and whether it converts to restaurantId.
+
+Identify any mock/demo data sources imported by the Restaurant page or its children.
+
+Extract Zod/TS types used on API inputs/outputs (where present) and note gaps.
+
+Non-goals
+No refactors. No file moves. No behavior changes.
+
+No “cleanup” PRs. Output documentation and a findings list only.
+
+Validation
+Include 3–5 short trace excerpts in /docs/CODE_AUDIT_FINDINGS.md to demonstrate how you verified identity flow (restaurant detail → rating save → circle score).
+
+Link each critical finding to at least one concrete file/line.
+

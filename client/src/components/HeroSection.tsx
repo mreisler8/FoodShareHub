@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, Plus } from "lucide-react";
-import { Button } from "./Button";
+import { Button } from "@/components/ui/button";
 import { UnifiedSearchModal } from "./search/UnifiedSearchModal";
 import { useLocation } from "wouter";
 import "./HeroSection.css";
@@ -21,9 +21,16 @@ export function HeroSection() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           console.log('Location obtained for search:', position.coords);
+          // Store in session storage for quick access
+          sessionStorage.setItem('lastKnownLocation', JSON.stringify({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            timestamp: Date.now()
+          }));
         },
         (error) => {
-          console.log('Location access denied or failed:', error);
+          console.log('Location access failed:', error.message);
+          // Don't block the search modal from opening
         },
         {
           enableHighAccuracy: false,

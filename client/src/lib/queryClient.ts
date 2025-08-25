@@ -7,22 +7,20 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(method: string, url: string, data?: any) {
-  const options: RequestInit = {
-    method,
+export async function apiRequest(url: string, options: RequestInit = {}) {
+  const finalOptions: RequestInit = {
+    method: 'GET',
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       "Cache-Control": "no-cache",
+      ...options.headers,
     },
     credentials: 'include',
   };
 
-  if (data) {
-    options.body = JSON.stringify(data);
-  }
-
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(url, finalOptions);
 
     if (!response.ok) {
       let errorMessage = `HTTP error! status: ${response.status}`;
@@ -36,7 +34,7 @@ export async function apiRequest(method: string, url: string, data?: any) {
     }
 
     // Invalidate queries after successful mutations
-    if (response.ok && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
+    if (response.ok && (finalOptions.method === 'POST' || finalOptions.method === 'PUT' || finalOptions.method === 'DELETE')) {
       setTimeout(() => {
         queryClient.invalidateQueries({ 
           predicate: (query) => {
@@ -49,7 +47,7 @@ export async function apiRequest(method: string, url: string, data?: any) {
 
     return response;
   } catch (error) {
-    console.error(`API request failed: ${method} ${url}`, error);
+    console.error(`API request failed: ${finalOptions.method} ${url}`, error);
     throw error;
   }
 }
@@ -82,7 +80,7 @@ export const getQueryFn: <T>(options: {
       console.log(`Query response data:`, data);
       return data;
     } catch (error) {
-      console.error("Query function error:", error);
+      console.error("Query function error:", error instanceof Error ? error.message : JSON.stringify(error));
       throw error;
     }
   };
@@ -113,31 +111,26 @@ export const queryClient = new QueryClient({
           console.log("Query response data:", data);
           return data;
         } catch (error) {
-          console.error("Query function error:", error);
+          console.error("Query function error:", error instanceof Error ? error.message : JSON.stringify(error));
           throw error;
         }
       },
-      retry: (failureCount, error) => {
-        // Don't retry on 401 (authentication) or 404 (not found) errors
-        if (error.message.includes('401')) {
-           queryClient.setQueryData(["/api/user"], null);
-           queryClient.setQueryData(["/api/me"], null);
-          return false;
-        }
-        if (error.message.includes('404')) {
+      retry: (failureCount, error: any) => {
+        // Don't retry on 4xx errors
+        if (error?.status >= 400 && error?.status < 500) {
           return false;
         }
         return failureCount < 3;
       },
       staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (TanStack Query v5)
       refetchOnWindowFocus: false,
       refetchOnMount: true,
       refetchOnReconnect: true,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
-      retry: 1,
+      retry: false,
       onError: (error) => {
         console.error('Mutation error:', error);
       },
@@ -151,5 +144,32 @@ export const queryClient = new QueryClient({
         });
       },
     },
+  },
+});
+
+// Make queryClient globally available for cache invalidation
+declare global {
+  interface Window {
+    queryClient: typeof queryClient;
+    gtag?: (...args: any[]) => void;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.queryClient = queryClient;
+}
+
+// Add global error handling for queries
+queryClient.setMutationDefaults(['post', 'put', 'patch', 'delete'], {
+  onError: (error: any) => {
+    console.error('Mutation error:', error);
+
+    // Log to analytics
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'exception', {
+        description: `API Error: ${error.message}`,
+        fatal: false,
+      });
+    }
   },
 });

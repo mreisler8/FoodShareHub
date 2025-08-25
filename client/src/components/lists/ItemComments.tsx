@@ -39,8 +39,11 @@ export function ItemComments({ itemId, restaurantName }: ItemCommentsProps) {
   // Add comment mutation
   const addCommentMutation = useMutation({
     mutationFn: async (content: string) => {
-      return await apiRequest('POST', `/api/list-items/${itemId}/comments`, {
-        content,
+      return await apiRequest(`/api/list-items/${itemId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          content,
+        }),
       });
     },
     onSuccess: () => {

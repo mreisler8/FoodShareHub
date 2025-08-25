@@ -1,0 +1,128 @@
+🏁 Phase 2: Global Header System - Enterprise-Grade Consistency & Navigation
+
+Context: You're building the Circles MVP (food social network). The current header implementation is fragmented across pages with inconsistent logo placement, missing back buttons, and accessibility issues. Reference the existing AppHeader.tsx component that needs systematic enhancement and universal adoption.
+
+Critical Success Factor: Every page must render the same header component with consistent behavior. No exceptions, no custom implementations.
+
+Part A: Enhanced AppHeader Component
+Goal: Transform the existing /client/src/components/ui/AppHeader.tsx into a production-ready, universally adopted header.
+
+1. Core AppHeader Improvements
+Implementation:
+
+Enhanced the existing AppHeader.tsx (don't create new) with these exact specifications:
+Fixed header: fixed top-0 inset-x-0 z-50 (higher z-index than current z-10)
+Height: exactly h-14 (56px) with min-h-[56px] for safety
+Background: bg-white/95 backdrop-blur-sm border-b border-gray-100
+Container: flex items-center justify-between px-4 py-3
+2. Logo System Standardization
+Implementation:
+
+Primary logo path: /logo.svg (exists in public folder)
+Fallback system: When image fails, show "Circles" text immediately
+Logo specifications:
+Size: h-8 w-auto for optimal visibility
+Link wrapper: href="/" with aria-label="Circles Home"
+Error handling: Hide broken image, show text fallback instantly
+3. Back Button Consistency
+Implementation:
+
+Touch target: minimum 44x44px with min-h-[44px] min-w-[44px]
+Visual design: p-2 rounded-full hover:bg-gray-100 transition-colors
+Accessibility: aria-label="Go back" with visible focus ring
+Behavior: window.history.back() as fallback, custom onBack when provided
+4. Title Positioning
+Implementation:
+
+Semantic markup: <h1> element for SEO and accessibility
+Visual centering: text-center flex-1 approach (avoid absolute positioning)
+Typography: text-lg font-semibold text-gray-900
+Responsive: Maintains centering on all screen sizes
+Part B: Universal Page Integration
+Goal: Ensure every single page uses AppHeader consistently.
+
+1. Page-Specific Header Rules
+Root Pages (showBackButton={false}):
+
+Home (/) - Show logo only
+Feed (/feed) - Show logo only
+Discover (/discover) - Show logo only
+Detail Pages (showBackButton={true}):
+
+Restaurant Detail (/restaurants/:id) - Show back button + restaurant name
+Profile (/profile/:id) - Show back button + user name
+List Detail (/lists/:id) - Show back button + list name
+Create forms - Show back button + "Create [Type]"
+2. Layout Integration Strategy
+Implementation:
+
+Header placement: First element in page JSX, before all content
+Content spacing: Add pt-14 (56px) to main content containers
+Mobile considerations: Ensure header doesn't conflict with mobile navigation
+Safe area handling: Header respects iOS notch via supports-[backdrop-filter]
+3. Navigation State Management
+Implementation:
+
+Back navigation: Use window.history.back() for browser consistency
+Custom navigation: Support onBack prop for special cases
+Route detection: Automatically show/hide back button based on route depth
+Part C: Systematic Quality Validation
+Critical: After implementation, perform these validation steps:
+
+1. Visual Consistency Testing
+ Navigate to every page type (Home, Feed, Restaurant Detail, Profile, Create Canvas)
+ Verify logo appears consistently (<img src="/logo.svg"> or "Circles" fallback)
+ Verify back button appears only on non-root pages
+ Verify header height and padding identical across all pages
+ Test logo fallback by temporarily breaking image src
+2. Interactive Behavior Testing
+ Click logo from any page → navigates to home
+ Click back button → goes to previous page in history
+ Tab navigation → back button → logo → next focusable element
+ Test on mobile viewport (503px width based on your logs)
+ Verify touch targets are ≥44px for mobile accessibility
+3. Layout Integration Testing
+ Scroll any page → header stays fixed at top
+ Content doesn't hide behind header (proper pt-14 spacing)
+ FAB and bottom navigation don't conflict with header
+ Safe area respected on iOS simulator/device
+4. Cross-Page Consistency Audit
+ Create checklist of ALL pages in your app
+ Visit each page and verify AppHeader renders identically
+ Document any pages that don't use AppHeader (fix immediately)
+ Test navigation flow: Home → Restaurant → List → Back → Back → Home
+Part D: Implementation Priority
+Priority 1: Core Header Enhancement
+Update existing AppHeader.tsx with enhanced specifications
+Test logo display and fallback behavior
+Ensure back button meets accessibility standards
+Priority 2: Universal Integration
+Audit all pages in /client/src/pages/ directory
+Add AppHeader to any page missing it
+Standardize showBackButton prop usage
+Add proper pt-14 spacing to page containers
+Priority 3: Quality Validation
+Test on both desktop and mobile viewports
+Run accessibility audit (check focus management)
+Verify navigation flows work correctly
+Document any edge cases or exceptions
+Technical Specifications
+AppHeader Props Interface:
+interface AppHeaderProps {
+  title: string;           // Page title for display and SEO
+  showBackButton?: boolean; // Default true except for root pages
+  onBack?: () => void;     // Custom back handler (optional)
+}
+CSS Classes (must match existing design system):
+Header container: fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100
+Inner container: flex items-center justify-between px-4 py-3 h-14
+Back button: p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary min-h-[44px] min-w-[44px]
+Logo: h-8 w-auto
+Title: text-lg font-semibold text-gray-900 flex-1 text-center
+Deliverables
+Enhanced AppHeader component - fully functional with all specifications
+Universal page integration - every page uses AppHeader correctly
+Validation report - checklist with screenshots confirming header works on all pages
+Navigation flow testing - document that all navigation patterns work correctly
+Quality Gate: Header must render identically on every single page with proper navigation, accessibility, and visual consistency before considering this task complete.
+

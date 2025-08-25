@@ -3,6 +3,10 @@ import { db } from '../db';
 import { circleMembers, circles, users, circleInvites } from '@shared/schema';
 import { eq, and, or, desc, inArray } from 'drizzle-orm';
 import { authenticate } from '../auth';
+import { asyncHandler, createApiError } from '../middleware/errorHandler';
+import { circleDataCache } from '../middleware/caching';
+import { generalRateLimit } from '../middleware/rateLimit';
+import { databaseCircuitBreaker } from '../middleware/circuitBreaker';
 
 const router = Router();
 
@@ -110,15 +114,26 @@ router.post('/:circleId/request', authenticate, async (req: Request, res: Respon
   }
 });
 
-// GET /api/circles/requests/pending - Get all pending requests for circles user manages
-router.get('/requests/pending', authenticate, async (req: Request, res: Response) => {
+// GET /api/circles/requests/pending - Get all pending requests for circles user manages - OPTIMIZED FOR PERFORMANCE
+router.get('/requests/pending', authenticate, circleDataCache, asyncHandler(async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
+    console.log(`[ENDPOINT] Fetching pending circle requests for user ${userId}`);
 
-    // Get circles where user is owner/admin
+    // Get circles where user is owner/admin with enhanced security
     const managedCircles = await db
-      .select({ circleId: circleMembers.circleId })
+      .select({ 
+        circleId: circleMembers.circleId,
+        role: circleMembers.role,
+        circleData: {
+          id: circles.id,
+          name: circles.name,
+          memberCount: circles.memberCount,
+          isPrivate: circles.isPrivate,
+        }
+      })
       .from(circleMembers)
+      .innerJoin(circles, eq(circleMembers.circleId, circles.id))
       .where(
         and(
           eq(circleMembers.userId, userId),
@@ -136,7 +151,7 @@ router.get('/requests/pending', authenticate, async (req: Request, res: Response
 
     const circleIds = managedCircles.map(c => c.circleId);
 
-    // Get pending requests for these circles
+    // Get pending requests for these circles with comprehensive data
     const requests = await db
       .select({
         id: circleMembers.id,
@@ -148,6 +163,10 @@ router.get('/requests/pending', authenticate, async (req: Request, res: Response
           id: circles.id,
           name: circles.name,
           description: circles.description,
+          memberCount: circles.memberCount,
+          primaryCuisine: circles.primaryCuisine,
+          location: circles.location,
+          isPrivate: circles.isPrivate,
         },
         user: {
           id: users.id,
@@ -170,10 +189,9 @@ router.get('/requests/pending', authenticate, async (req: Request, res: Response
 
     res.json(requests);
   } catch (error) {
-    console.error('Error fetching pending requests:', error);
-    res.status(500).json({ error: 'Failed to fetch requests' });
+    throw createApiError("Failed to fetch pending circle requests", 500, "CIRCLE_REQUESTS_FETCH_ERROR");
   }
-});
+}));
 
 // POST /api/circles/requests/:requestId/respond - Approve or reject a member request
 router.post('/requests/:requestId/respond', authenticate, async (req: Request, res: Response) => {

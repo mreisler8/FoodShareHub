@@ -1,0 +1,104 @@
+Looking at your console logs and codebase, I can see multiple rating entry points causing confusion and the critical /api/list-reactions/ errors. Based on your UX/UI analysis, here's a comprehensive prompt for your dev agent:
+
+AGENT PROMPT: Unified Rating System Overhaul - Circle Score Integration with Enhanced Rating Precision
+
+OBJECTIVE: Consolidate multiple confusing rating entry points into one streamlined system that feeds directly into Circle Score calculations, while upgrading to decimal precision ratings (0.1-10.0) for enhanced granularity.
+
+CURRENT PROBLEMS:
+
+Multiple Confusing Entry Points: Circle Score "Rate This Place", Quick Rating, and "Share Your Experience" create user confusion
+Broken API Integration: Repeated 400 errors for /api/list-reactions/ without list IDs
+Limited Rating Precision: Current 1-5 star system lacks granularity (Dave Portnoy style 4.7 ratings needed)
+Inconsistent Circle Score Flow: Ratings don't properly feed into trust-based calculations
+REQUIRED CHANGES:
+
+1. Rating System Redesign (1-10 Scale with Decimals)
+
+Upgrade from 1-5 stars to 0.1-10.0 decimal rating system
+UI: Interactive slider with half-point precision (like 8.7, 6.3, 9.2)
+Visual: 10-star display with partial star fills for decimal precision
+Backend: Update ratings schema to support decimal(3,1) for rating values
+2. Consolidate Rating Entry Points
+
+REMOVE: Circle Score "Rate This Place" button - make Circle Score purely informational
+KEEP: Single "Quick Rate" system as primary rating mechanism
+REPOSITION: "Share Experience" as separate detailed post creation, NOT rating
+3. Direct Circle Score Integration
+
+All ratings flow immediately to Circle Score calculations via existing circleScore.ts
+Update weight calculation for 10-point scale in calculateCircleScore()
+Ensure rating persistence triggers onNewRating() for cache invalidation
+4. Fix Critical API Infrastructure
+
+Resolve /api/list-reactions/ 400 errors by ensuring list IDs in all calls
+Update React Query keys: ['/api/list-reactions', listId] format
+Fix component API integration in ListFeedCard.tsx and SaveListButton.tsx
+IMPLEMENTATION SPECIFICATIONS:
+
+Frontend Changes:
+
+// QuickRateModal.tsx - Upgrade to 10-point decimal system
+interface RatingValue {
+  value: number; // 0.1 to 10.0
+  display: string; // "8.7", "6.3", etc.
+}
+// Rating input: Interactive slider + star display
+// Visual feedback: 10 stars with partial fills
+// Validation: min 0.1, max 10.0, step 0.1
+Backend Changes:
+
+-- Update ratings table for decimal precision
+ALTER TABLE ratings 
+MODIFY COLUMN ratingValue DECIMAL(3,1) NOT NULL;
+-- Update Circle Score weight calculations for 10-point scale
+-- Adjust weightedScore = rating.ratingValue * 0.3 * recencyDecay (scaled down from 3x)
+Circle Score Trust Flow:
+
+Rating submission → Immediate Circle Score recalculation
+Trust network weighting: Circle members (1.0x), Followers (0.8x)
+Decimal precision maintained through entire calculation chain
+Display format: "8.7 Circle Score" with confidence indicators
+NON-FUNCTIONAL REQUIREMENTS:
+
+Performance:
+
+Rating submission response time: <500ms
+Circle Score calculation: <1000ms for popular restaurants
+API error rate: <1% (fix current 400 errors)
+Cache hit rate: >80% for Circle Score queries
+Accessibility:
+
+ARIA labels for decimal rating slider
+Keyboard navigation for rating input
+Screen reader support: "Rating 8.7 out of 10"
+High contrast mode compatibility
+Mobile Optimization:
+
+Touch-friendly rating slider (minimum 44px touch targets)
+Haptic feedback on rating selection
+Responsive decimal display for all screen sizes
+Fast tap-to-rate interaction patterns
+Data Integrity:
+
+Decimal precision preserved in all calculations
+Rating validation: 0.1 ≤ value ≤ 10.0
+Circle Score consistency across user sessions
+Proper error handling for invalid ratings
+SUCCESS CRITERIA:
+
+✅ Single, clear rating entry point (Quick Rate only)
+✅ Decimal ratings (0.1-10.0) working end-to-end
+✅ No more /api/list-reactions/ 400 errors
+✅ Ratings immediately reflect in Circle Score calculations
+✅ Performance targets met (response times <500ms)
+✅ Mobile-optimized decimal rating experience
+✅ Trust-based scoring working with 10-point scale
+VALIDATION FLOW:
+
+User visits restaurant page → sees single "Rate" button
+Clicks rate → decimal slider (0.1-10.0) with star visualization
+Selects 8.7 → rating saves and Circle Score updates immediately
+Other users see updated Circle Score reflecting decimal precision
+No console errors, all API calls successful
+This consolidates the rating experience while enabling the precision and trust-based calculations your platform needs.
+

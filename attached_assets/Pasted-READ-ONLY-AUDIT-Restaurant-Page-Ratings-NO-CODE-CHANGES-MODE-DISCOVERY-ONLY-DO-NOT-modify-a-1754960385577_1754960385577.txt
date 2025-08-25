@@ -1,0 +1,148 @@
+READ-ONLY AUDIT — Restaurant Page & Ratings (NO CODE CHANGES)
+MODE: DISCOVERY ONLY.
+DO NOT modify, add, delete, rename, or format source files. No dependency changes. No PRs.
+Output = docs only.
+
+Objective
+Create a complete, actionable map of the Restaurant Detail experience and all connected flows to determine exact gaps vs. MVP and produce a minimal, safe Fix Plan.
+
+Scope includes:
+
+Navigation from search → restaurant detail
+
+Quick Ratings (create/edit/delete) and display
+
+Circle Score (aggregate per circle, strict privacy)
+
+Action Bar: Save, Quick Rate, Add to List, Send to Friend (stub OK), Share Restaurant
+
+Social context (“Rated by people you follow” / “Popular in [Circle]”)
+
+Google Places integration (fallbacks, timeouts, caching)
+
+Performance & error states
+
+Accessibility & mobile behavior
+
+What to produce (two docs)
+/docs/RESTAURANT_PAGE_AUDIT.md
+Include:
+
+1. Route & Component Map
+All routes that lead to a restaurant detail view (e.g., /restaurants/:id, /restaurants/google/:placeId, any deep links).
+
+Primary component files with line hints (detail page, subcomponents, hooks, providers).
+
+Entry points that link here: search results, lists, feed, circles, profile.
+
+2. Data Flow (End-to-End)
+Frontend queries/mutations (React Query keys, hooks, where called).
+
+Backend endpoints (paths, params, response shapes).
+
+DB tables/fields used (restaurants, ratings, circles, circle memberships, list items, etc.).
+
+External: Google Places calls (what/where), cache/circuit-breaker usage.
+
+Include diagrams or bullet data flow from UI → API → DB (and Places where relevant).
+
+3. Ratings
+UI elements for rating (quick rating widget, edit/delete, validation).
+
+API contract(s) for ratings create/update/delete + read (own rating + aggregate).
+
+Optimistic update usage and rollback behavior.
+
+Edge cases (double submit, offline, network errors).
+
+4. Circle Score (Privacy-Critical)
+Exact aggregation logic: which ratings count, per-circle buckets, averaging, sample size display.
+
+Privacy checks: where circle membership is enforced (backend), what is returned to non-members.
+
+Current UI states: member sees score; non-member sees “Locked / Join to view.”
+
+Any leaks (counts, averages, circle names) where viewer is not a member.
+
+5. Action Bar
+Save/Unsave, Quick Rate, Add to List (modal flow), Share (copy link), Send to Friend (stub).
+
+For each: component + handler + API, optimistic update, error handling.
+
+6. Performance Profile
+Current timings (P50/P95/P99) for:
+
+Detail page first load (DB only)
+
+Detail page when Places involved
+
+Rating submit/edit/delete
+
+Save/Unsave, Add to List
+
+Identify bottlenecks (Places latency, N+1 DB queries, missing indexes).
+
+Note caching layers in play (Redis keys/TTLs).
+
+7. Error, Loading, Empty States
+For each sub-section (core details, photos, ratings, circle score, action bar):
+
+Loading skeleton? Inline error with retry? Empty state?
+
+Confirm no global error boundary trips in expected failures.
+
+8. UI/UX Consistency & Accessibility
+Consistency with unified search & global header.
+
+Mobile readiness (small/medium breakpoints, no overflow).
+
+Keyboard navigation, focus states, labels/roles on interactive elements.
+
+9. Gaps vs. MVP (checklist)
+List every missing/incomplete item preventing MVP (functional, privacy, performance, polish).
+
+For each: severity (P0/P1/P2), suggested fix footprint (file paths), and risk.
+
+/docs/RESTAURANT_PAGE_FIX_PLAN.md
+A minimal-change, ordered implementation plan with:
+
+P0: Must-fix for MVP (privacy, crashes, hard blockers)
+
+P1: Important (performance/polish that affect first 100 users)
+
+P2: Nice-to-have (post-MVP)
+For each task:
+
+Files + line hints to touch only
+
+Exact change description (one-liner), acceptance criteria, manual test steps
+
+Performance target if relevant
+
+Rollback note (how to revert safely)
+
+Constraints
+No source code changes in this pass — docs only.
+
+Use concrete references (file paths, route names, query keys, line hints). No generic statements.
+
+If anything is ambiguous, add a QUESTIONS section in the Fix Plan (do not guess).
+
+Acceptance Criteria
+Both docs created with the sections above.
+
+All routes/components/endpoints relevant to restaurant detail are mapped.
+
+Circle Score privacy checks are explicitly traced (backend enforcement points documented).
+
+Clear PASS/FAIL matrix for MVP requirements inside the audit doc.
+
+Fix Plan is small-scoped, sequenced, and testable (no broad refactors).
+
+Success Metrics (for the next implementation phase)
+P95 ≤ 500ms for: detail load (post-warm), rating submit/edit/delete, save/unsave, add-to-list.
+
+Zero privacy leaks for Circle Score (non-members never see aggregates/metrics/names).
+
+Zero error boundary falls for expected failure paths (use inline fallbacks).
+

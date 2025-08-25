@@ -1,0 +1,474 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { 
+  Bookmark, 
+  Star, 
+  Plus, 
+  Share2, 
+  Heart,
+  MessageCircle,
+  Copy,
+  ExternalLink,
+  Send,
+  Zap
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import QuickRateModal from '@/components/ratings/QuickRateModal';
+import AddToListModal from './AddToListModal';
+import SaveRestaurantModal from './SaveRestaurantModal';
+// ActionButton removed - using Button directly
+import { SendToFriendModal } from '@/components/sharing/SendToFriendModal';
+import { ShareLinkModal } from '@/components/sharing/ShareLinkModal';
+import { useRestaurantRatingState } from '@/hooks/useRestaurantRatingState';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { TriedItButton } from '@/components/recommendations';
+
+interface Restaurant {
+  id?: number;
+  googlePlaceId?: string;
+  name: string;
+  location: string;
+  address: string;
+}
+
+interface Circle {
+  id: number;
+  name: string;
+  memberCount: number;
+  isPublic: boolean;
+}
+
+interface RestaurantActionBarProps {
+  restaurant: Restaurant;
+  isSaved?: boolean;
+  onSave?: () => void;
+  onAddToList?: () => void;
+  className?: string;
+  variant?: 'mobile' | 'desktop';
+  // Recommendation tracking props (optional)
+  isRecommendation?: boolean;
+  recommenderUserId?: number;
+  recommendationEntityType?: 'list' | 'rating' | 'post';
+  recommendationEntityId?: number;
+}
+
+export default function RestaurantActionBar({
+  restaurant,
+  isSaved = false,
+  onSave,
+  onAddToList,
+  className,
+  variant = 'mobile',
+  isRecommendation = false,
+  recommenderUserId,
+  recommendationEntityType = 'rating',
+  recommendationEntityId
+}: RestaurantActionBarProps) {
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showCircleShare, setShowCircleShare] = useState(false);
+  const [showQuickRateModal, setShowQuickRateModal] = useState(false);
+  const [showAddToListModal, setShowAddToListModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showSendToFriend, setShowSendToFriend] = useState(false);
+  const [showShareLink, setShowShareLink] = useState(false);
+  const [localSaved, setLocalSaved] = useState(isSaved);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  // Get restaurant ID for rating state
+  const { rating, hasRated, label, isLoading, error } = useRestaurantRatingState(restaurant);
+
+  // Mock circles data - in real app, fetch from API
+  const userCircles: Circle[] = [
+    { id: 1, name: "Foodie Friends", memberCount: 12, isPublic: false },
+    { id: 2, name: "Toronto Eats", memberCount: 45, isPublic: true },
+    { id: 3, name: "Date Night Spots", memberCount: 8, isPublic: false },
+  ];
+
+  const handleNativeShare = async () => {
+    try {
+      const shareData = {
+        title: restaurant.name,
+        text: `Check out ${restaurant.name} in ${restaurant.location}`,
+        url: window.location.href
+      };
+
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+          toast({
+            title: "Shared successfully",
+            description: "Restaurant shared via native share sheet"
+          });
+        } catch (shareError) {
+          console.log('Native share cancelled or failed:', shareError);
+          fallbackShare();
+        }
+      } else {
+        fallbackShare();
+      }
+    } catch (error) {
+      console.error('Share action failed:', error);
+      toast({
+        title: "Share failed",
+        description: "Unable to share restaurant. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fallbackShare = () => {
+    setShowShareLink(true);
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link copied",
+        description: "Restaurant link copied to clipboard"
+      });
+      setShowShareDialog(false);
+    } catch (error) {
+      console.error('Copy link failed:', error);
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy link to clipboard",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSave = () => {
+    setShowSaveModal(true);
+    onSave?.();
+  };
+
+  const handleQuickRate = () => {
+    setShowQuickRateModal(true);
+  };
+
+  const handleAddToList = () => {
+    setShowAddToListModal(true);
+    onAddToList?.();
+  };
+
+  const handleSendToFriend = () => {
+    setShowSendToFriend(true);
+  };
+
+  const handleShareToCircle = (circleId: number, circleName: string) => {
+    // In real app, make API call to share to circle
+    toast({
+      title: "Shared to circle",
+      description: `Restaurant shared to ${circleName}`
+    });
+    setShowCircleShare(false);
+  };
+
+  const handleRatingSuccess = (newRating: any) => {
+    toast({
+      title: "Thanks! Your rating was saved",
+      description: `You rated ${restaurant.name} ${newRating.ratingValue}⭐`
+    });
+    setShowQuickRateModal(false);
+  };
+
+  if (variant === 'mobile') {
+    return (
+      <>
+        {/* Mobile: Fixed bottom action bar */}
+        <div className={cn(
+          "fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-50",
+          "safe-area-inset-bottom", // Handle iPhone home indicator
+          className
+        )}>
+          <div className="flex gap-2 max-w-sm mx-auto">
+            <Button 
+              variant={localSaved ? "secondary" : "outline"}
+              size="sm"
+              onClick={handleSave}
+              className={cn(localSaved && "bg-blue-50 text-blue-700 border-blue-200")}
+            >
+              <Bookmark className="h-4 w-4" />
+              {localSaved ? "Saved" : "Save"}
+            </Button>
+            <Button 
+              variant="primary"
+              size="sm"
+              disabled={isLoading}
+              onClick={handleQuickRate}
+              className={cn(
+                hasRated && "bg-blue-50 text-blue-700 border-blue-200",
+                error && "border-red-200 text-red-600"
+              )}
+            >
+              <Zap className="h-4 w-4" />
+              {label}
+            </Button>
+            {isRecommendation && recommenderUserId && recommendationEntityId && restaurant.id && (
+              <TriedItButton
+                entityType={recommendationEntityType}
+                entityId={recommendationEntityId}
+                restaurantId={restaurant.id}
+                recommenderUserId={recommenderUserId}
+                sourceContext="restaurant_action_bar_mobile"
+                size="sm"
+                variant="outline"
+              />
+            )}
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleAddToList}
+            >
+              <Plus className="h-4 w-4" />
+              Add to List
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleSendToFriend}
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleNativeShare}
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
+          </div>
+        </div>
+        
+        {/* Quick Rate Modal */}
+        <QuickRateModal
+          isOpen={showQuickRateModal}
+          onClose={() => setShowQuickRateModal(false)}
+          restaurant={restaurant}
+          existingRating={rating}
+        />
+
+        {/* Add to List Modal */}
+        <AddToListModal
+          isOpen={showAddToListModal}
+          onClose={() => setShowAddToListModal(false)}
+          restaurant={restaurant}
+        />
+
+        {/* Save Restaurant Modal */}
+        <SaveRestaurantModal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          restaurant={restaurant}
+          isSaved={localSaved}
+        />
+
+        {/* Send to Friend Modal */}
+        <SendToFriendModal
+          isOpen={showSendToFriend}
+          onClose={() => setShowSendToFriend(false)}
+          entityType="restaurant"
+          entityId={restaurant.id || restaurant.googlePlaceId || ""}
+          entityName={restaurant.name}
+        />
+
+        {/* Share Link Modal */}
+        <ShareLinkModal
+          isOpen={showShareLink}
+          onClose={() => setShowShareLink(false)}
+          entityType="restaurant"
+          entityId={restaurant.id || restaurant.googlePlaceId || ""}
+          entityName={restaurant.name}
+        />
+        
+        {/* Add bottom padding to page content to avoid action bar overlap */}
+        <div className="h-20" />
+      </>
+    );
+  }
+
+  // Desktop: Horizontal action bar
+  return (
+    <>
+      <div className={cn(
+        "flex flex-wrap gap-3 justify-start items-center px-4 py-3 border rounded-lg bg-white shadow-sm",
+        className
+      )}>
+        <Button 
+          variant={localSaved ? "secondary" : "outline"}
+          size="default"
+          onClick={handleSave}
+          className={cn(localSaved && "bg-blue-50 text-blue-700 border-blue-200")}
+        >
+          <Bookmark className="h-4 w-4" />
+          {localSaved ? "Saved" : "Save"}
+        </Button>
+        <Button 
+          variant="primary"
+          size="default"
+          disabled={isLoading}
+          onClick={handleQuickRate}
+          className={cn(hasRated && "bg-blue-50 text-blue-700 border-blue-200")}
+        >
+          <Zap className="h-4 w-4" />
+          {label}
+        </Button>
+        {isRecommendation && recommenderUserId && recommendationEntityId && restaurant.id && (
+          <TriedItButton
+            entityType={recommendationEntityType}
+            entityId={recommendationEntityId}
+            restaurantId={restaurant.id}
+            recommenderUserId={recommenderUserId}
+            sourceContext="restaurant_action_bar_desktop"
+            size="default"
+            variant="outline"
+          />
+        )}
+        <Button 
+          variant="outline"
+          size="default"
+          onClick={handleAddToList}
+        >
+          <Plus className="h-4 w-4" />
+          Add to List
+        </Button>
+        <Button 
+          variant="outline"
+          size="default"
+          onClick={handleSendToFriend}
+        >
+          <Send className="h-4 w-4" />
+          Send to Friend
+        </Button>
+        <Button 
+          variant="outline"
+          size="default"
+          onClick={handleNativeShare}
+        >
+          <Share2 className="h-4 w-4" />
+          Share Restaurant
+        </Button>
+      </div>
+
+      {/* Quick Rate Modal */}
+      <QuickRateModal
+        isOpen={showQuickRateModal}
+        onClose={() => setShowQuickRateModal(false)}
+        restaurant={restaurant}
+        existingRating={rating}
+      />
+
+      {/* Add to List Modal */}
+      <AddToListModal
+        isOpen={showAddToListModal}
+        onClose={() => setShowAddToListModal(false)}
+        restaurant={restaurant}
+      />
+
+      {/* Save Restaurant Modal */}
+      <SaveRestaurantModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        restaurant={restaurant}
+        isSaved={localSaved}
+      />
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share {restaurant.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                🍽️
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold">{restaurant.name}</h3>
+                <p className="text-sm text-muted-foreground">{restaurant.location}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" onClick={handleCopyLink}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Link
+              </Button>
+              
+              <Button variant="outline" onClick={() => setShowCircleShare(true)}>
+                <Send className="h-4 w-4 mr-2" />
+                Share to Circle
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send to Friend Modal */}
+      <SendToFriendModal
+        isOpen={showSendToFriend}
+        onClose={() => setShowSendToFriend(false)}
+        entityType="restaurant"
+        entityId={restaurant.id || restaurant.googlePlaceId || ""}
+        entityName={restaurant.name}
+      />
+
+      {/* Share Link Modal */}
+      <ShareLinkModal
+        isOpen={showShareLink}
+        onClose={() => setShowShareLink(false)}
+        entityType="restaurant"
+        entityId={restaurant.id || restaurant.googlePlaceId || ""}
+        entityName={restaurant.name}
+      />
+
+      {/* Circle Share Dialog */}
+      <Dialog open={showCircleShare} onOpenChange={setShowCircleShare}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share to Circle</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {userCircles.map((circle) => (
+              <div
+                key={circle.id}
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleShareToCircle(circle.id, circle.name)}
+              >
+                <div className="flex-1">
+                  <h3 className="font-medium">{circle.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {circle.memberCount} members • {circle.isPublic ? 'Public' : 'Private'}
+                  </p>
+                </div>
+                <Button size="sm" variant="ghost">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            
+            {userCircles.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">You're not in any circles yet</p>
+                <Button variant="outline" size="sm" className="mt-2">
+                  Explore Circles
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

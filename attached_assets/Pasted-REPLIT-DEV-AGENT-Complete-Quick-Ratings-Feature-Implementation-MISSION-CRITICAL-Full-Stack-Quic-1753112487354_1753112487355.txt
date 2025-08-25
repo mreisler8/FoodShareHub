@@ -1,0 +1,1192 @@
+REPLIT DEV AGENT: Complete Quick Ratings Feature Implementation
+🎯 MISSION CRITICAL: Full-Stack Quick Ratings System
+Based on your EPIC: Quick Ratings user story and UX brief, implement a comprehensive lightweight restaurant feedback system that integrates seamlessly with your existing Circles architecture.
+
+PHASE 1: Database Schema & API Infrastructure
+1.1 Database Schema - Add Ratings Table
+File: shared/schema.ts
+
+Add the complete ratings model after the existing insertUserSearchPreferencesSchema export:
+
+// Quick Ratings model for lightweight restaurant feedback
+export const ratings = pgTable("ratings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  restaurantId: integer("restaurant_id")
+    .references(() => restaurants.id),
+  googlePlaceId: text("google_place_id"), // For Google Places restaurants not in our DB
+  restaurantName: text("restaurant_name").notNull(), // Store name for reference
+  ratingValue: integer("rating_value").notNull(), // 1-5 star rating
+  note: text("note"), // Optional 140-char note
+  tags: text("tags").array().default([]), // Quick tags like "Perfect for brunch", "Great value"
+  sharedWithCircle: boolean("shared_with_circle").default(false),
+  circleIds: integer("circle_ids").array().default([]), // Which circles to share with
+  isPrivate: boolean("is_private").default(true), // Default private
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+// Unique constraint: one rating per user per restaurant/place
+export const ratingsUserRestaurantIndex = uniqueIndex("ratings_user_restaurant_idx")
+  .on(ratings.userId, ratings.restaurantId, ratings.googlePlaceId);
+export const insertRatingSchema = createInsertSchema(ratings).pick({
+  userId: true,
+  restaurantId: true,
+  googlePlaceId: true,
+  restaurantName: true,
+  ratingValue: true,
+  note: true,
+  tags: true,
+  sharedWithCircle: true,
+  circleIds: true,
+  isPrivate: true,
+});
+export type Rating = typeof ratings.$inferSelect;
+export type InsertRating = z.infer<typeof insertRatingSchema>;
+1.2 Database Migration
+File: Create migrations/0007_add_ratings_table.sql
+
+-- Add ratings table for Quick Ratings feature
+CREATE TABLE IF NOT EXISTS "ratings" (
+  "id" serial PRIMARY KEY NOT NULL,
+  "user_id" integer NOT NULL,
+  "restaurant_id" integer,
+  "google_place_id" text,
+  "restaurant_name" text NOT NULL,
+  "rating_value" integer NOT NULL,
+  "note" text,
+  "tags" text[] DEFAULT '{}',
+  "shared_with_circle" boolean DEFAULT false,
+  "circle_ids" integer[] DEFAULT '{}',
+  "is_private" boolean DEFAULT true,
+  "created_at" timestamp DEFAULT now() NOT NULL,
+  "updated_at" timestamp DEFAULT now() NOT NULL
+);
+-- Add foreign key constraints
+ALTER TABLE "ratings" ADD CONSTRAINT "ratings_user_id_users_id_fk" 
+FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "ratings" ADD CONSTRAINT "ratings_restaurant_id_restaurants_id_fk" 
+FOREIGN KEY ("restaurant_id") REFERENCES "restaurants"("id") ON DELETE no action ON UPDATE no action;
+-- Add unique constraint to prevent duplicate ratings
+CREATE UNIQUE INDEX IF NOT EXISTS "ratings_user_restaurant_idx" 
+ON "ratings" ("user_id","restaurant_id","google_place_id");
+-- Add performance indexes
+CREATE INDEX IF NOT EXISTS "ratings_user_id_idx" ON "ratings" ("user_id");
+CREATE INDEX IF NOT EXISTS "ratings_restaurant_id_idx" ON "ratings" ("restaurant_id");
+CREATE INDEX IF NOT EXISTS "ratings_google_place_id_idx" ON "ratings" ("google_place_id");
+CREATE INDEX IF NOT EXISTS "ratings_shared_with_circle_idx" ON "ratings" ("shared_with_circle");
+CREATE INDEX IF NOT EXISTS "ratings_created_at_idx" ON "ratings" ("created_at" DESC);
+1.3 API Routes - Ratings CRUD
+File: Create server/routes/ratings.ts
+
+import { Router } from 'express';
+import { z } from 'zod';
+import { db } from '../db';
+import { ratings, insertRatingSchema, restaurants, circles, circleMembers } from '../../shared/schema';
+import { eq, and, desc, asc, inArray } from 'drizzle-orm';
+const router = Router();
+// Validation schemas
+const createRatingSchema = insertRatingSchema.extend({
+  ratingValue: z.number().min(1).max(5),
+  note: z.string().max(140).optional(),
+  tags: z.array(z.string()).max(5).optional(),
+});
+const updateRatingSchema = createRatingSchema.partial().extend({
+  id: z.number()
+});
+// GET /api/ratings - Get user's ratings with filters
+router.get('/', async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const { restaurantId, googlePlaceId, sharedOnly, limit = 50, offset = 0 } = req.query;
+    
+    let query = db.select().from(ratings).where(eq(ratings.userId, req.user.id));
+    
+    if (restaurantId) {
+      query = query.where(eq(ratings.restaurantId, parseInt(restaurantId as string)));
+    }
+    
+    if (googlePlaceId) {
+      query = query.where(eq(ratings.googlePlaceId, googlePlaceId as string));
+    }
+    
+    if (sharedOnly === 'true') {
+      query = query.where(eq(ratings.sharedWithCircle, true));
+    }
+    
+    query = query
+      .orderBy(desc(ratings.createdAt))
+      .limit(parseInt(limit as string))
+      .offset(parseInt(offset as string));
+    const userRatings = await query;
+    res.json(userRatings);
+  } catch (error) {
+    console.error('Get ratings error:', error);
+    res.status(500).json({ error: 'Failed to fetch ratings' });
+  }
+});
+// GET /api/ratings/restaurant/:id - Get user's rating for specific restaurant
+router.get('/restaurant/:id', async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const { id } = req.params;
+    const { type = 'restaurant' } = req.query; // 'restaurant' or 'google_place'
+    
+    let rating;
+    if (type === 'google_place') {
+      rating = await db.select().from(ratings)
+        .where(and(
+          eq(ratings.userId, req.user.id),
+          eq(ratings.googlePlaceId, id)
+        ))
+        .limit(1);
+    } else {
+      rating = await db.select().from(ratings)
+        .where(and(
+          eq(ratings.userId, req.user.id),
+          eq(ratings.restaurantId, parseInt(id))
+        ))
+        .limit(1);
+    }
+    if (rating.length === 0) {
+      return res.status(404).json({ error: 'Rating not found' });
+    }
+    res.json(rating[0]);
+  } catch (error) {
+    console.error('Get restaurant rating error:', error);
+    res.status(500).json({ error: 'Failed to fetch rating' });
+  }
+});
+// POST /api/ratings - Create or update rating
+router.post('/', async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const validatedData = createRatingSchema.parse(req.body);
+    
+    // Validate circle access if sharing with circles
+    if (validatedData.sharedWithCircle && validatedData.circleIds?.length) {
+      const userCircles = await db.select()
+        .from(circleMembers)
+        .where(eq(circleMembers.userId, req.user.id));
+      
+      const userCircleIds = userCircles.map(cm => cm.circleId);
+      const invalidCircles = validatedData.circleIds.filter(cId => !userCircleIds.includes(cId));
+      
+      if (invalidCircles.length > 0) {
+        return res.status(403).json({ 
+          error: 'Cannot share to circles you are not a member of' 
+        });
+      }
+    }
+    const ratingData = {
+      ...validatedData,
+      userId: req.user.id,
+      updatedAt: new Date(),
+    };
+    // Check if rating already exists (upsert logic)
+    let existingRating;
+    if (validatedData.restaurantId) {
+      existingRating = await db.select().from(ratings)
+        .where(and(
+          eq(ratings.userId, req.user.id),
+          eq(ratings.restaurantId, validatedData.restaurantId)
+        ))
+        .limit(1);
+    } else if (validatedData.googlePlaceId) {
+      existingRating = await db.select().from(ratings)
+        .where(and(
+          eq(ratings.userId, req.user.id),
+          eq(ratings.googlePlaceId, validatedData.googlePlaceId)
+        ))
+        .limit(1);
+    }
+    let rating;
+    if (existingRating && existingRating.length > 0) {
+      // Update existing rating
+      rating = await db.update(ratings)
+        .set(ratingData)
+        .where(eq(ratings.id, existingRating[0].id))
+        .returning();
+    } else {
+      // Create new rating
+      rating = await db.insert(ratings)
+        .values(ratingData)
+        .returning();
+    }
+    res.status(201).json(rating[0]);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors 
+      });
+    }
+    
+    console.error('Create rating error:', error);
+    res.status(500).json({ error: 'Failed to create rating' });
+  }
+});
+// PUT /api/ratings/:id - Update existing rating
+router.put('/:id', async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const ratingId = parseInt(req.params.id);
+    const validatedData = updateRatingSchema.parse({ ...req.body, id: ratingId });
+    // Verify ownership
+    const existingRating = await db.select().from(ratings)
+      .where(and(
+        eq(ratings.id, ratingId),
+        eq(ratings.userId, req.user.id)
+      ))
+      .limit(1);
+    if (existingRating.length === 0) {
+      return res.status(404).json({ error: 'Rating not found or access denied' });
+    }
+    // Validate circle access if updating circle sharing
+    if (validatedData.sharedWithCircle && validatedData.circleIds?.length) {
+      const userCircles = await db.select()
+        .from(circleMembers)
+        .where(eq(circleMembers.userId, req.user.id));
+      
+      const userCircleIds = userCircles.map(cm => cm.circleId);
+      const invalidCircles = validatedData.circleIds.filter(cId => !userCircleIds.includes(cId));
+      
+      if (invalidCircles.length > 0) {
+        return res.status(403).json({ 
+          error: 'Cannot share to circles you are not a member of' 
+        });
+      }
+    }
+    const updateData = {
+      ...validatedData,
+      updatedAt: new Date(),
+    };
+    delete updateData.id; // Remove id from update data
+    const updatedRating = await db.update(ratings)
+      .set(updateData)
+      .where(eq(ratings.id, ratingId))
+      .returning();
+    res.json(updatedRating[0]);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors 
+      });
+    }
+    
+    console.error('Update rating error:', error);
+    res.status(500).json({ error: 'Failed to update rating' });
+  }
+});
+// DELETE /api/ratings/:id - Delete rating
+router.delete('/:id', async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const ratingId = parseInt(req.params.id);
+    // Verify ownership
+    const existingRating = await db.select().from(ratings)
+      .where(and(
+        eq(ratings.id, ratingId),
+        eq(ratings.userId, req.user.id)
+      ))
+      .limit(1);
+    if (existingRating.length === 0) {
+      return res.status(404).json({ error: 'Rating not found or access denied' });
+    }
+    await db.delete(ratings).where(eq(ratings.id, ratingId));
+    
+    res.json({ message: 'Rating deleted successfully' });
+  } catch (error) {
+    console.error('Delete rating error:', error);
+    res.status(500).json({ error: 'Failed to delete rating' });
+  }
+});
+// GET /api/ratings/circle/:circleId - Get ratings shared with specific circle
+router.get('/circle/:circleId', async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const circleId = parseInt(req.params.circleId);
+    // Verify circle membership
+    const membership = await db.select().from(circleMembers)
+      .where(and(
+        eq(circleMembers.circleId, circleId),
+        eq(circleMembers.userId, req.user.id),
+        eq(circleMembers.status, 'active')
+      ))
+      .limit(1);
+    if (membership.length === 0) {
+      return res.status(403).json({ error: 'Access denied to this circle' });
+    }
+    // Get ratings shared with this circle
+    const circleRatings = await db.select()
+      .from(ratings)
+      .where(and(
+        eq(ratings.sharedWithCircle, true),
+        inArray(ratings.circleIds, [circleId])
+      ))
+      .orderBy(desc(ratings.createdAt));
+    res.json(circleRatings);
+  } catch (error) {
+    console.error('Get circle ratings error:', error);
+    res.status(500).json({ error: 'Failed to fetch circle ratings' });
+  }
+});
+export default router;
+1.4 Register API Routes
+File: server/routes.ts
+
+Add the ratings route import and registration:
+
+import ratingsRouter from './routes/ratings';
+// Add this line with other route registrations
+app.use('/api/ratings', ratingsRouter);
+PHASE 2: Frontend Components & UI
+2.1 Quick Rating Modal Component
+File: Create client/src/components/rating/QuickRatingModal.tsx
+
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Rating } from "@/components/ui/rating";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Star, Heart, Coffee, Users, Clock, DollarSign, X } from 'lucide-react';
+import { cn } from "@/lib/utils";
+interface QuickRatingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  restaurant: {
+    id?: number;
+    googlePlaceId?: string;
+    name: string;
+    cuisine?: string;
+    priceRange?: string;
+    address?: string;
+  };
+  existingRating?: any;
+}
+const QUICK_TAGS = [
+  { value: 'great-value', label: 'Great Value', icon: DollarSign },
+  { value: 'perfect-date-spot', label: 'Perfect Date Spot', icon: Heart },
+  { value: 'quick-bite', label: 'Quick Bite', icon: Clock },
+  { value: 'group-friendly', label: 'Group Friendly', icon: Users },
+  { value: 'coffee-spot', label: 'Coffee Spot', icon: Coffee },
+  { value: 'hidden-gem', label: 'Hidden Gem', icon: Star },
+];
+export function QuickRatingModal({ isOpen, onClose, restaurant, existingRating }: QuickRatingModalProps) {
+  const [ratingValue, setRatingValue] = useState(existingRating?.ratingValue || 0);
+  const [note, setNote] = useState(existingRating?.note || '');
+  const [selectedTags, setSelectedTags] = useState<string[]>(existingRating?.tags || []);
+  const [sharedWithCircle, setSharedWithCircle] = useState(existingRating?.sharedWithCircle || false);
+  const [selectedCircles, setSelectedCircles] = useState<number[]>(existingRating?.circleIds || []);
+  const queryClient = useQueryClient();
+  // Fetch user's circles
+  const { data: circles } = useQuery({
+    queryKey: ['/api/circles'],
+    queryFn: async () => {
+      const response = await fetch('/api/circles');
+      if (!response.ok) throw new Error('Failed to fetch circles');
+      return response.json();
+    },
+  });
+  const circleOptions = circles?.map((circle: any) => ({
+    value: circle.id.toString(),
+    label: circle.name,
+  })) || [];
+  // Create/Update rating mutation
+  const createRatingMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const url = existingRating ? `/api/ratings/${existingRating.id}` : '/api/ratings';
+      const method = existingRating ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save rating');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/ratings/restaurant/${restaurant.id || restaurant.googlePlaceId}`] });
+      onClose();
+    },
+  });
+  const handleSubmit = async () => {
+    if (ratingValue === 0) return;
+    const ratingData = {
+      restaurantId: restaurant.id || null,
+      googlePlaceId: restaurant.googlePlaceId || null,
+      restaurantName: restaurant.name,
+      ratingValue,
+      note: note.trim() || null,
+      tags: selectedTags,
+      sharedWithCircle,
+      circleIds: sharedWithCircle ? selectedCircles : [],
+      isPrivate: !sharedWithCircle,
+    };
+    createRatingMutation.mutate(ratingData);
+  };
+  const handleTagToggle = (tagValue: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tagValue) 
+        ? prev.filter(t => t !== tagValue)
+        : [...prev, tagValue].slice(0, 3) // Max 3 tags
+    );
+  };
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-yellow-500" />
+            Rate {restaurant.name}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Restaurant Info */}
+          <div className="bg-gray-50 rounded-lg p-3">
+            <h3 className="font-medium">{restaurant.name}</h3>
+            {restaurant.cuisine && (
+              <p className="text-sm text-gray-600">{restaurant.cuisine}</p>
+            )}
+            {restaurant.address && (
+              <p className="text-xs text-gray-500 mt-1">{restaurant.address}</p>
+            )}
+          </div>
+          {/* Star Rating */}
+          <div className="text-center">
+            <Label className="block text-sm font-medium mb-3">Your Rating</Label>
+            <div className="flex justify-center">
+              <Rating
+                value={ratingValue}
+                onChange={setRatingValue}
+                size="lg"
+                readonly={false}
+                showValue={false}
+              />
+            </div>
+            {ratingValue > 0 && (
+              <p className="text-sm text-gray-600 mt-2">
+                {ratingValue === 5 ? 'Amazing!' : 
+                 ratingValue === 4 ? 'Really good' : 
+                 ratingValue === 3 ? 'Good' : 
+                 ratingValue === 2 ? 'Okay' : 'Not great'}
+              </p>
+            )}
+          </div>
+          {/* Quick Tags */}
+          <div>
+            <Label className="block text-sm font-medium mb-3">Quick Tags (up to 3)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {QUICK_TAGS.map((tag) => {
+                const Icon = tag.icon;
+                const isSelected = selectedTags.includes(tag.value);
+                
+                return (
+                  <button
+                    key={tag.value}
+                    onClick={() => handleTagToggle(tag.value)}
+                    disabled={!isSelected && selectedTags.length >= 3}
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded-lg border text-sm transition-colors",
+                      isSelected
+                        ? "bg-primary/10 border-primary text-primary"
+                        : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50",
+                      !isSelected && selectedTags.length >= 3 && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{tag.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {/* Optional Note */}
+          <div>
+            <Label className="block text-sm font-medium mb-2">
+              Note (optional)
+              <span className="text-xs text-gray-500 ml-2">{note.length}/140</span>
+            </Label>
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value.slice(0, 140))}
+              placeholder="What did you think? Any specific dishes to recommend?"
+              rows={2}
+              className="resize-none"
+            />
+          </div>
+          {/* Share with Circle */}
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="share-circle"
+                checked={sharedWithCircle}
+                onCheckedChange={(checked) => {
+                  setSharedWithCircle(checked as boolean);
+                  if (!checked) setSelectedCircles([]);
+                }}
+              />
+              <Label htmlFor="share-circle" className="text-sm font-medium">
+                Share with my Circles
+              </Label>
+            </div>
+            
+            {sharedWithCircle && circles && circles.length > 0 && (
+              <div className="ml-6">
+                <MultiSelect
+                  options={circleOptions}
+                  onValueChange={(values) => setSelectedCircles(values.map(v => parseInt(v)))}
+                  defaultValue={selectedCircles.map(id => id.toString())}
+                  placeholder="Select circles to share with..."
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+              disabled={createRatingMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={ratingValue === 0 || createRatingMutation.isPending}
+              className="flex-1"
+            >
+              {createRatingMutation.isPending
+                ? (existingRating ? 'Updating...' : 'Saving...')
+                : (existingRating ? 'Update Rating' : 'Save Rating')
+              }
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+2.2 Rating Trigger Button Component
+File: Create client/src/components/rating/RatingButton.tsx
+
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Star } from 'lucide-react';
+import { QuickRatingModal } from './QuickRatingModal';
+import { useQuery } from '@tanstack/react-query';
+import { cn } from "@/lib/utils";
+interface RatingButtonProps {
+  restaurant: {
+    id?: number;
+    googlePlaceId?: string;
+    name: string;
+    cuisine?: string;
+    priceRange?: string;
+    address?: string;
+  };
+  variant?: 'default' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  showRating?: boolean;
+  className?: string;
+}
+export function RatingButton({ 
+  restaurant, 
+  variant = 'outline', 
+  size = 'sm',
+  showRating = true,
+  className 
+}: RatingButtonProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Fetch existing rating
+  const { data: existingRating, isLoading } = useQuery({
+    queryKey: [`/api/ratings/restaurant/${restaurant.id || restaurant.googlePlaceId}`],
+    queryFn: async () => {
+      const id = restaurant.id || restaurant.googlePlaceId;
+      const type = restaurant.id ? 'restaurant' : 'google_place';
+      
+      const response = await fetch(`/api/ratings/restaurant/${id}?type=${type}`);
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch rating');
+      return response.json();
+    },
+    enabled: !!(restaurant.id || restaurant.googlePlaceId),
+  });
+  const hasRating = !!existingRating;
+  const ratingValue = existingRating?.ratingValue || 0;
+  const getSizeStyles = () => {
+    switch (size) {
+      case 'sm': return 'h-8 px-3 text-xs';
+      case 'lg': return 'h-12 px-6 text-base';
+      default: return 'h-10 px-4 text-sm';
+    }
+  };
+  const getIconSize = () => {
+    switch (size) {
+      case 'sm': return 'h-3 w-3';
+      case 'lg': return 'h-5 w-5';
+      default: return 'h-4 w-4';
+    }
+  };
+  return (
+    <>
+      <Button
+        variant={hasRating ? 'default' : variant}
+        onClick={() => setIsModalOpen(true)}
+        disabled={isLoading}
+        className={cn(
+          getSizeStyles(),
+          hasRating && 'bg-yellow-500 hover:bg-yellow-600 text-white',
+          className
+        )}
+      >
+        <Star 
+          className={cn(
+            getIconSize(),
+            'mr-1.5',
+            hasRating && 'fill-current'
+          )} 
+        />
+        {hasRating ? (
+          showRating ? (
+            <span>{ratingValue}/5</span>
+          ) : (
+            <span>Rated</span>
+          )
+        ) : (
+          <span>Rate</span>
+        )}
+      </Button>
+      <QuickRatingModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        restaurant={restaurant}
+        existingRating={existingRating}
+      />
+    </>
+  );
+}
+2.3 Rating Display Component
+File: Create client/src/components/rating/RatingDisplay.tsx
+
+import React from 'react';
+import { Badge } from "@/components/ui/badge";
+import { Rating } from "@/components/ui/rating";
+import { Star, Clock } from 'lucide-react';
+import { cn } from "@/lib/utils";
+interface RatingDisplayProps {
+  rating: {
+    id: number;
+    ratingValue: number;
+    note?: string;
+    tags?: string[];
+    createdAt: string;
+    updatedAt: string;
+    sharedWithCircle: boolean;
+  };
+  showNote?: boolean;
+  showTags?: boolean;
+  showTimestamp?: boolean;
+  compact?: boolean;
+  className?: string;
+}
+const TAG_LABELS: Record<string, string> = {
+  'great-value': 'Great Value',
+  'perfect-date-spot': 'Perfect Date Spot',
+  'quick-bite': 'Quick Bite',
+  'group-friendly': 'Group Friendly',
+  'coffee-spot': 'Coffee Spot',
+  'hidden-gem': 'Hidden Gem',
+};
+export function RatingDisplay({ 
+  rating, 
+  showNote = true, 
+  showTags = true, 
+  showTimestamp = false,
+  compact = false,
+  className 
+}: RatingDisplayProps) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
+  if (compact) {
+    return (
+      <div className={cn("flex items-center gap-2", className)}>
+        <div className="flex items-center gap-1">
+          <Star className="h-4 w-4 text-yellow-500 fill-current" />
+          <span className="text-sm font-medium">{rating.ratingValue}/5</span>
+        </div>
+        {rating.sharedWithCircle && (
+          <Badge variant="secondary" className="text-xs">
+            Shared
+          </Badge>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className={cn("space-y-3", className)}>
+      {/* Rating Value */}
+      <div className="flex items-center justify-between">
+        <Rating 
+          value={rating.ratingValue} 
+          size="md" 
+          showValue={true}
+          readonly={true}
+        />
+        {rating.sharedWithCircle && (
+          <Badge variant="secondary">
+            Shared with Circles
+          </Badge>
+        )}
+      </div>
+      {/* Tags */}
+      {showTags && rating.tags && rating.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {rating.tags.map((tag, index) => (
+            <Badge key={index} variant="outline" className="text-xs">
+              {TAG_LABELS[tag] || tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+      {/* Note */}
+      {showNote && rating.note && (
+        <div className="bg-gray-50 rounded-lg p-3">
+          <p className="text-sm text-gray-700">{rating.note}</p>
+        </div>
+      )}
+      {/* Timestamp */}
+      {showTimestamp && (
+        <div className="flex items-center gap-1 text-xs text-gray-500">
+          <Clock className="h-3 w-3" />
+          <span>Rated {formatDate(rating.createdAt)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+2.4 My Ratings List Component
+File: Create client/src/components/rating/MyRatingsList.tsx
+
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { RatingDisplay } from './RatingDisplay';
+import { QuickRatingModal } from './QuickRatingModal';
+import { Star, Edit, Filter, SortDesc } from 'lucide-react';
+import { cn } from "@/lib/utils";
+interface MyRatingsListProps {
+  limit?: number;
+  showFilters?: boolean;
+  className?: string;
+}
+export function MyRatingsList({ 
+  limit = 20, 
+  showFilters = false,
+  className 
+}: MyRatingsListProps) {
+  const [editingRating, setEditingRating] = useState<any>(null);
+  const [filter, setFilter] = useState<'all' | 'shared' | 'private'>('all');
+  // Fetch user's ratings
+  const { data: ratings, isLoading, error } = useQuery({
+    queryKey: ['/api/ratings', { limit, sharedOnly: filter === 'shared' }],
+    queryFn: async () => {
+      let url = `/api/ratings?limit=${limit}`;
+      if (filter === 'shared') url += '&sharedOnly=true';
+      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch ratings');
+      return response.json();
+    },
+  });
+  if (isLoading) {
+    return (
+      <Card className={className}>
+        <CardContent className="p-6">
+          <div className="animate-pulse space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-lg" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  if (error) {
+    return (
+      <Card className={className}>
+        <CardContent className="p-6 text-center text-gray-500">
+          Failed to load your ratings
+        </CardContent>
+      </Card>
+    );
+  }
+  const filteredRatings = ratings?.filter((rating: any) => {
+    if (filter === 'all') return true;
+    if (filter === 'shared') return rating.sharedWithCircle;
+    if (filter === 'private') return !rating.sharedWithCircle;
+    return true;
+  }) || [];
+  return (
+    <>
+      <Card className={className}>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-500" />
+              My Ratings
+            </CardTitle>
+            {showFilters && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={filter === 'all' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setFilter('all')}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={filter === 'shared' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setFilter('shared')}
+                >
+                  Shared
+                </Button>
+                <Button
+                  variant={filter === 'private' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setFilter('private')}
+                >
+                  Private
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          {filteredRatings.length === 0 ? (
+            <div className="text-center py-8">
+              <Star className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 mb-2">No ratings yet</p>
+              <p className="text-sm text-gray-400">
+                Start rating restaurants to see them here
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredRatings.map((rating: any) => (
+                <div 
+                  key={rating.id} 
+                  className="bg-gray-50 rounded-lg p-4 space-y-3"
+                >
+                  {/* Restaurant Info */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">
+                        {rating.restaurantName}
+                      </h3>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingRating(rating)}
+                      className="ml-2 shrink-0"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {/* Rating Display */}
+                  <RatingDisplay 
+                    rating={rating}
+                    showTimestamp={true}
+                    compact={false}
+                  />
+                </div>
+              ))}
+              
+              {filteredRatings.length === limit && (
+                <div className="text-center pt-4">
+                  <Button variant="outline" size="sm">
+                    Load More
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      {/* Edit Rating Modal */}
+      {editingRating && (
+        <QuickRatingModal
+          isOpen={!!editingRating}
+          onClose={() => setEditingRating(null)}
+          restaurant={{
+            id: editingRating.restaurantId,
+            googlePlaceId: editingRating.googlePlaceId,
+            name: editingRating.restaurantName,
+          }}
+          existingRating={editingRating}
+        />
+      )}
+    </>
+  );
+}
+PHASE 3: Integration Points
+3.1 Enhance SearchResultsList with Rating Buttons
+File: client/src/components/search/SearchResultsList.tsx
+
+Add RatingButton import and integration:
+
+import { RatingButton } from "@/components/rating/RatingButton";
+// Inside the restaurant result rendering:
+<div className="flex items-center gap-2">
+  <Button variant="outline" size="sm" onClick={() => handleSelect(result)}>
+    Select
+  </Button>
+  <RatingButton 
+    restaurant={{
+      id: result.metadata?.id,
+      googlePlaceId: result.googlePlaceId,
+      name: result.name,
+      cuisine: result.cuisine,
+      address: result.metadata?.address,
+    }}
+    size="sm"
+    showRating={true}
+  />
+</div>
+3.2 Enhance RestaurantDetailPage with Rating
+File: client/src/pages/RestaurantDetailPage.tsx
+
+Add RatingButton and RatingDisplay imports and integration:
+
+import { RatingButton } from "@/components/rating/RatingButton";
+import { RatingDisplay } from "@/components/rating/RatingDisplay";
+import { useQuery } from '@tanstack/react-query';
+// Add inside the restaurant details section:
+<div className="mb-6">
+  <div className="flex items-center gap-4 mb-4">
+    <RatingButton 
+      restaurant={{
+        id: restaurant.id,
+        name: restaurant.name,
+        cuisine: restaurant.cuisine,
+        address: restaurant.address,
+      }}
+      variant="default"
+      size="md"
+      showRating={true}
+    />
+  </div>
+  {/* Show user's rating if exists */}
+  {userRating && (
+    <div className="bg-blue-50 rounded-lg p-4">
+      <h4 className="font-medium mb-2">Your Rating</h4>
+      <RatingDisplay 
+        rating={userRating}
+        showNote={true}
+        showTags={true}
+        showTimestamp={true}
+        compact={false}
+      />
+    </div>
+  )}
+</div>
+3.3 Add Rating Tab to Profile Page
+File: client/src/pages/profile.tsx
+
+Add MyRatingsList import and new tab:
+
+import { MyRatingsList } from "@/components/rating/MyRatingsList";
+// Add "Ratings" tab to the existing tabs:
+<Tabs defaultValue="posts" className="w-full">
+  <TabsList className="grid w-full grid-cols-4">
+    <TabsTrigger value="posts">Posts</TabsTrigger>
+    <TabsTrigger value="lists">Lists</TabsTrigger>
+    <TabsTrigger value="ratings">Ratings</TabsTrigger>
+    <TabsTrigger value="followers">Network</TabsTrigger>
+  </TabsList>
+  {/* Add ratings tab content */}
+  <TabsContent value="ratings">
+    <MyRatingsList 
+      limit={20}
+      showFilters={true}
+      className="w-full"
+    />
+  </TabsContent>
+</Tabs>
+3.4 Enhance Home Page Quick Actions
+File: client/src/pages/home.tsx
+
+Add quick rating functionality to home page:
+
+import { RatingButton } from "@/components/rating/RatingButton";
+// Add to Quick Actions section:
+<div className="bg-card rounded-lg p-3 shadow-sm border">
+  <div className="flex items-center gap-2 mb-2">
+    <div className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+      <Star className="h-4 w-4 text-yellow-500" />
+    </div>
+    <div className="min-w-0 flex-1">
+      <h3 className="font-medium text-sm text-foreground truncate">Quick Rate</h3>
+      <p className="text-xs text-muted-foreground truncate">Rate your last meal</p>
+    </div>
+  </div>
+  <Button 
+    onClick={() => setShowSearchModal(true)}
+    variant="outline" 
+    size="sm" 
+    className="w-full text-xs"
+  >
+    Find & Rate Restaurant
+  </Button>
+</div>
+PHASE 4: SearchService Integration
+4.1 Enhance SearchService with Rating Data
+File: client/src/services/searchService.ts
+
+Add rating information to search results:
+
+// Add to SearchResult interface:
+export interface SearchResult {
+  // ... existing fields
+  userRating?: {
+    id: number;
+    ratingValue: number;
+    note?: string;
+    tags?: string[];
+  };
+  avgRating?: number;
+  ratingCount?: number;
+}
+PHASE 5: Database Migration & Testing
+5.1 Run Database Migration
+Terminal Command:
+
+npm run db:migrate
+5.2 Seed Test Data (Optional)
+File: Create scripts/seed-ratings.ts
+
+import { db } from '../server/db';
+import { ratings } from '../shared/schema';
+const seedRatings = async () => {
+  // Add sample ratings for testing
+  const testRatings = [
+    {
+      userId: 1,
+      restaurantId: 1,
+      restaurantName: "Joe's Pizza",
+      ratingValue: 5,
+      note: "Amazing slice! Perfect late-night spot.",
+      tags: ["great-value", "quick-bite"],
+      sharedWithCircle: true,
+      circleIds: [1],
+      isPrivate: false,
+    },
+    // Add more test data as needed
+  ];
+  await db.insert(ratings).values(testRatings);
+  console.log('✅ Ratings seeded successfully');
+};
+seedRatings().catch(console.error);
+PHASE 6: UI/UX Polish & Mobile Optimization
+6.1 Mobile-First Rating Modal
+Ensure the QuickRatingModal is fully responsive:
+
+Touch-friendly star rating
+Mobile-optimized keyboard
+Proper viewport handling
+Swipe gestures for tags
+6.2 Accessibility Features
+ARIA labels for star ratings
+Keyboard navigation for all interactions
+Screen reader support
+High contrast mode support
+6.3 Performance Optimizations
+Lazy load rating components
+Debounced search in rating modal
+Optimistic UI updates
+Image lazy loading for restaurant photos
+PHASE 7: Analytics & Success Metrics
+7.1 Add Rating Analytics
+File: Create server/routes/rating-analytics.ts
+
+Track rating creation, updates, and sharing patterns for product insights.
+
+7.2 Success Metrics
+Monitor these key metrics:
+
+Daily active raters
+Rating completion rate
+Circle sharing percentage
+Average time to rate after restaurant visit
+🎯 CRITICAL SUCCESS FACTORS
+Data Integrity: Unique constraints prevent duplicate ratings
+Circle Integration: Seamless sharing with existing Circle system
+Mobile UX: Touch-optimized rating interface
+Performance: Fast rating lookups with proper indexing
+Privacy: Default private with opt-in sharing
+Engagement: Quick 3-tap rating flow (Rate → Stars → Save)
+🚀 DEPLOYMENT CHECKLIST
+ Database migration applied
+ API routes registered
+ Frontend components tested
+ Integration points updated
+ Mobile responsiveness verified
+ Search integration working
+ Circle sharing functional
+ Performance optimized
+ Analytics tracking active
+ Error handling complete
+This implementation creates a lightweight, engaging rating system that reduces friction while building valuable data for your Circle Score recommendation engine. The 3-second rating flow encourages daily usage while the Circle integration maintains your trust-based social model.
+
+Execute this implementation in phases for easier debugging and user feedback integration.
+
+
+Scroll to latest
+Assistant mode
+
+advanced
+Claude 4.0 Sonnet
+

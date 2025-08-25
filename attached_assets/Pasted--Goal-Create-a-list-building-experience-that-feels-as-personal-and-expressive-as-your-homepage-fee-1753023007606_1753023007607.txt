@@ -1,0 +1,153 @@
+🎯 Goal
+Create a list-building experience that feels as personal and expressive as your homepage feed, not like a form submission. This UI should feel lightweight, inspiring, and fluid — a continuation of the social, trust-based experience Circles stands for.
+
+🧱 OVERALL DESIGN PRINCIPLES
+Principle	Implementation
+🧭 Clarity	One h1 at the top (“✨ Let’s build your list”), no subtext redundancy, no tabs or stepper
+✍️ Low Friction	Let users add just one dish/restaurant to start; form auto-saves and previews immediately
+👁 Live Feedback	Real-time list preview using feed-style cards as items are added
+🎨 Homepage-Consistent Aesthetic	Soft shadows, clean cards, emoji accents, inline actions, muted helper text
+🔘 Expressive Sharing	Replace dropdowns with card-style radio buttons for where to share (👤 Profile, 🫶 Circle, 🌍 Public, 🔒 Private)
+
+🧩 SECTION-BY-SECTION UI DIRECTION
+1. 📝 LIST DETAILS
+Design Goal: Start simply. Inspire, don’t overwhelm.
+
+tsx
+Copy
+Edit
+<div className="space-y-4 p-4">
+  <h1 className="text-xl font-semibold">✨ Let’s build your list</h1>
+  <p className="text-sm text-muted-foreground">Start with one place or dish — you can always add more later.</p>
+
+  <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+    <Input placeholder="List title (e.g. Toronto Date Night)" />
+    <Textarea placeholder="Optional: What’s this list about?" />
+    <Toggle label="Rank this list?" />
+    <Button variant="default" className="w-full">Add your first item</Button>
+  </div>
+</div>
+UX Notes:
+
+Remove “Step 1 of 3”
+
+No tabs or stepper bar — just progressive disclosure
+
+Tap “Add your first item” opens modal or drawer with item entry
+
+2. ➕ ADD ITEM FLOW (Modal/Sheet)
+Design Goal: Keep it lightweight, like composing a tweet or a BeReal caption
+
+Card Modal Header:
+
+tsx
+Copy
+Edit
+<h2 className="text-lg font-semibold">🍽 What are you adding?</h2>
+<Tabs>
+  <Tab value="restaurant">🏙 Restaurant</Tab>
+  <Tab value="dish">🍽 Dish @ Restaurant</Tab>
+</Tabs>
+Dish Form:
+
+Dish name (required)
+
+Restaurant name (searchable)
+
+Tags, notes, optional photo
+
+Restaurant Form:
+
+Name (required)
+
+City (optional)
+
+Tags, notes, optional photo
+
+✅ After save → inline preview appears below form
+
+3. 📋 LIST ITEM PREVIEW (Below Form)
+Each item shows up like a card in the homepage feed:
+
+tsx
+Copy
+Edit
+<ListItemPreview
+  type="dish"
+  title="Smash Burger"
+  restaurant="Burger Drops"
+  city="Toronto"
+  notes="Best smash patty in the city"
+  image="/uploads/burger.jpg"
+/>
+✨ Inline actions on each card:
+
+✏️ Edit
+
+❌ Delete
+
+↕️ Drag handle (if ranking is enabled)
+
+4. 📤 SHARE DESTINATION
+Design Goal: Visual clarity + emotional cues
+
+tsx
+Copy
+Edit
+<h2 className="text-lg font-semibold">📤 Where should this list go?</h2>
+<RadioGroup>
+  <RadioCard icon="🔒" value="private" label="Keep Private" />
+  <RadioCard icon="👤" value="profile" label="My Profile" />
+  <RadioCard icon="🫶" value="circle" label="Share to a Circle" />
+  <RadioCard icon="🌍" value="public" label="Public Feed" />
+</RadioGroup>
+Use visual icons to mirror homepage tone
+
+Show friendly error if user tries to publish without choosing:
+
+“Please pick where to share your list first.”
+
+5. 👁 LIST PREVIEW (Final State)
+Below the list title/description:
+
+tsx
+Copy
+Edit
+<ListFeedCard
+  title="Toronto Date Night Spots"
+  items={[listItems]}
+  coverImage="/uploads/pasta.jpg"
+  creator="@riley"
+  destination="Profile"
+  isRanked={true}
+/>
+✅ Use this as the “preview before post”
+✅ Show Post button below it
+✅ On post success: show modal with CTA buttons
+
+6. ✅ POST SUCCESS MODAL
+tsx
+Copy
+Edit
+🎉 Your list was shared to [destination]
+
+[View List]  [Create Another]  [Return Home]
+💡 MICROINTERACTIONS TO INCLUDE
+Action	Interaction
+Add Item	List item card animates into place (scale, fade)
+Rank List Toggle	Show/hide drag handles w/ slide animation
+Share Destination Select	Highlighted card with emoji icon grows slightly
+Publish	Show full-screen modal or toast with success + destination
+Tap List Title	Allow inline edit after publish (future-friendly)
+
+📁 SUGGESTED COMPONENT STRUCTURE (REUSABLE)
+bash
+Copy
+Edit
+/components/lists/
+  CreateListForm.tsx
+  AddListItemDrawer.tsx
+  ListItemPreview.tsx
+  ListFeedPreview.tsx
+  ShareDestinationCards.tsx
+  PostSuccessModal.tsx

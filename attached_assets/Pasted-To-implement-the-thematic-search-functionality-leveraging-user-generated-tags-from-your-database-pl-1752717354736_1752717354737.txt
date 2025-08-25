@@ -1,0 +1,71 @@
+To implement the thematic search functionality leveraging user-generated tags from your database, please follow these detailed instructions to ensure clarity and correctness, while avoiding previous mistakes that impacted functionality.
+
+Instructions for Implementing Thematic Search Using User-Generated Tags
+Database Structure:
+Ensure you have a database table for user-generated tags that links to restaurants, meals, or dishes. This structure will support querying by tags. For example:
+
+Table tags with fields: id, name, restaurant_id, and possibly a reference to the user who created the tag.
+Modify the Search Endpoint:
+Update your server/routes/search.ts to account for user-generated tags. Add a new parameter to filter results by tags.
+
+router.get('/search', authenticate, async (req, res) => {
+  try {
+    const { q: query, tags } = req.query; // Accept tags from query
+   
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'Query must be a valid string' });
+    }
+    const results = await searchService.searchUnified(query, { tags });
+    return res.json(results);
+  } catch (error) {
+    console.error('Search error:', error);
+    return res.status(500).json({ error: 'Search failed' });
+  }
+});
+Enhance the Search Logic:
+Update your searchUnified method in client/src/services/searchService.ts to leverage these tags in the search logic.
+
+async searchUnified(query: string, options: SearchOptions = {}): Promise<UnifiedSearchResults> {
+  if (query.length < 2) {
+    throw new Error('Search query must be at least 2 characters');
+  }
+  let searchUrl = `/api/search/unified?q=${encodeURIComponent(query)}`;
+  // Add tags if provided
+  if (options.tags) {
+    searchUrl += `&tags=${encodeURIComponent(options.tags.join(','))}`;
+  }
+  // Existing location parameters...
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(8000),
+  });
+  // Handle response...
+  const results = await response.json();
+  // Sort by relevance considering both title and tags
+  if (results.restaurants) {
+    results.restaurants.sort((a: SearchResult, b: SearchResult) => {
+      const aTags = a.tags || [];
+      const bTags = b.tags || [];
+      const aTagMatch = aTags.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
+      const bTagMatch = bTags.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
+      // Prioritize tag match over names, then by ratings
+      return (bTagMatch ? 1 : 0) - (aTagMatch ? 1 : 0) || (b.avgRating || 0) - (a.avgRating || 0);
+    });
+  }
+  return results;
+}
+Frontend Integration:
+Ensure that the frontend (where users initiate searches) sends the tags as part of the search request. Update your search component to include a way to select tags that users want to filter by.
+
+Testing:
+After implementing the changes, thoroughly test the search functionality, focusing on:
+
+Searching by restaurant name and by tags.
+Ensuring that results respect the order of relevance based on both tags and ratings.
+Deploy and Monitor:
+Deploy the changes on Replit using port 5000. Monitor for any errors or feedback to ensure the functionality is working as expected:
+
+npm run start -- -p 5000
+By following these steps clearly, your agent should be able to implement the thematic search feature effectively, leveraging your existing user-generated tags and ensuring that functionality aligns with user expectations.
+

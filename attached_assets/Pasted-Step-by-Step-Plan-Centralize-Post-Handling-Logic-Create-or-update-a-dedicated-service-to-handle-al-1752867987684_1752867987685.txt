@@ -1,0 +1,52 @@
+Step-by-Step Plan
+Centralize Post Handling Logic:
+
+Create or update a dedicated service to handle all post-related functionalities, including creating, fetching, and managing posts. This helps keep the post logic modular.
+Refactor PostModal Component:
+
+Ensure that the PostModal component (likely found in [PostModal](rag://rag_source_9)) is structured to utilize the new post handling service for creating posts. This keeps the modal's internal logic clean and focused on UI concerns.
+Define API Endpoint:
+
+Ensure your API endpoint for creating posts (e.g., /api/posts) is well-defined within your backend service to accept data structured as per your requirements. Update the insertPostSchema in [shared/schema.ts](rag://rag_source_5) to ensure it matches the necessary attributes for a post:
+export const insertPostSchema = createInsertSchema(posts).pick({
+  userId: true,
+  restaurantId: true,
+  content: true,
+  rating: true,
+  visibility: true,
+  dishesTried: true,
+  images: true,
+  videos: true,
+  imageTags: true,
+  tags: true,
+  priceAssessment: true,
+  atmosphere: true,
+  serviceRating: true,
+  dietaryOptions: true,
+  postType: true,
+  metadata: true,
+});
+Implement Post Logic in PostModal:
+
+const handlePostSubmit = async (postData) => {
+  try {
+    const response = await fetch('/api/posts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(postData),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create post');
+    }
+    // Handle success (e.g., notify user, close modal, refresh feed)
+  } catch (error) {
+    console.error('Error creating post:', error);
+    // Handle error (e.g., show error message to user)
+  }
+};
+Plan for Post Display:
+
+Once the posting logic is in place, decide where the posts will be displayed (e.g., in a feed, user profile, or dedicated list).
+Create a PostsFeed component to fetch and display recent posts. Use the backend endpoint that retrieves posts (e.g., /api/posts).

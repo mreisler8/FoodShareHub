@@ -1,0 +1,230 @@
+/* Modern Shimmer Loader Styles */
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Base shimmer effect */
+.modern-shimmer-card {
+  @apply bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.modern-shimmer-card--list {
+  @apply w-full max-w-full mb-6;
+}
+
+.modern-shimmer-card--grid {
+  @apply w-full break-inside-avoid;
+  min-height: 400px;
+}
+
+.modern-shimmer-card--masonry {
+  @apply w-full mb-4 break-inside-avoid;
+  min-height: 350px;
+}
+
+/* Header shimmer */
+.modern-shimmer-header {
+  @apply p-4 flex items-center gap-3;
+}
+
+.modern-shimmer-avatar {
+  @apply w-10 h-10 rounded-full;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.modern-shimmer-author-info {
+  @apply flex-1 space-y-2;
+}
+
+.modern-shimmer-name {
+  @apply h-4 rounded;
+  width: 120px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.modern-shimmer-time {
+  @apply h-3 rounded;
+  width: 80px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Image shimmer - responsive to view mode */
+.modern-shimmer-image {
+  @apply relative;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.modern-shimmer-image--list {
+  @apply w-full;
+  height: 300px;
+}
+
+.modern-shimmer-image--grid {
+  @apply w-full;
+  height: 250px;
+}
+
+.modern-shimmer-image--masonry {
+  @apply w-full;
+  height: 200px;
+}
+
+.modern-shimmer-overlay {
+  @apply absolute inset-0;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(255, 255, 255, 0.5) 50%, 
+    transparent 70%
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* Content shimmer */
+.modern-shimmer-content {
+  @apply p-4 space-y-3;
+}
+
+.modern-shimmer-text-line {
+  @apply h-4 rounded;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.modern-shimmer-text-line--full {
+  width: 100%;
+}
+
+.modern-shimmer-text-line--partial {
+  width: 75%;
+}
+
+/* Actions shimmer */
+.modern-shimmer-actions {
+  @apply px-4 pb-4 flex items-center gap-4;
+}
+
+.modern-shimmer-action-button {
+  @apply w-8 h-8 rounded-full;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.modern-shimmer-action-spacer {
+  @apply flex-1;
+}
+
+/* Stories Shimmer */
+.stories-shimmer-container {
+  @apply flex gap-4 px-4 py-6 overflow-x-auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.stories-shimmer-container::-webkit-scrollbar {
+  display: none;
+}
+
+.story-shimmer-item {
+  @apply flex flex-col items-center gap-2 min-w-0;
+  flex: 0 0 auto;
+}
+
+.story-shimmer-ring {
+  @apply w-16 h-16 rounded-full p-0.5;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffd93d, #ff6b6b);
+  background-size: 300% 300%;
+  animation: shimmer 2s infinite;
+}
+
+.story-shimmer-avatar {
+  @apply w-full h-full rounded-full;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.story-shimmer-username {
+  @apply h-3 rounded;
+  width: 60px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Enhanced Feed Loading Container */
+.feed-loading-container {
+  @apply w-full;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .modern-shimmer-card--grid {
+    min-height: 300px;
+  }
+  
+  .modern-shimmer-image--grid {
+    height: 200px;
+  }
+  
+  .modern-shimmer-card--masonry {
+    min-height: 250px;
+  }
+}
+
+/* Premium effects for different themes */
+@media (prefers-color-scheme: dark) {
+  .modern-shimmer-card {
+    @apply bg-gray-900 border-gray-800;
+  }
+  
+  .modern-shimmer-avatar,
+  .modern-shimmer-name,
+  .modern-shimmer-time,
+  .modern-shimmer-image,
+  .modern-shimmer-text-line,
+  .modern-shimmer-action-button,
+  .story-shimmer-avatar,
+  .story-shimmer-username {
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 1000px 100%;
+  }
+}
+
+/* Performance optimizations */
+.modern-shimmer-card,
+.modern-shimmer-avatar,
+.modern-shimmer-name,
+.modern-shimmer-time,
+.modern-shimmer-image,
+.modern-shimmer-text-line,
+.modern-shimmer-action-button {
+  will-change: background-position;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}

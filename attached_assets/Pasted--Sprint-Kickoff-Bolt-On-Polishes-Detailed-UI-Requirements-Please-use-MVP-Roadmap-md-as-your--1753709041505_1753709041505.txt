@@ -1,0 +1,109 @@
+🏁 Sprint Kickoff: Bolt-On Polishes – Detailed UI Requirements
+
+Please use `MVP_Roadmap.md` as your spec. This sprint we’re focusing on Phase 1 “Bolt-On Polishes,” but you must follow these UI requirements exactly.
+
+---
+
+1. AppHeader (`/components/ui/AppHeader.tsx`)
+   - **Structure**:  
+     ```jsx
+     <header className="flex items-center justify-between bg-white p-4 shadow-sm">
+       <button 
+         onClick={goBack} 
+         aria-label="Back" 
+         className="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+       >
+         <ChevronLeftIcon className="h-6 w-6 text-foreground"/>
+       </button>
+       <div className="flex-1 text-center">
+         <img src="/logo.svg" alt="Circles" className="h-6 mx-auto" />
+         <span className="sr-only">Circles</span>
+       </div>
+       <h1 className="absolute left-1/2 transform -translate-x-1/2 text-lg font-semibold">Page Title</h1>
+       <div className="w-10" /> {/* spacer for symmetry */}
+     </header>
+     ```
+   - **Notes**:  
+     - Logo: `/logo.svg` or fallback text “Circles” with `text-xl font-bold`.  
+     - Back button: tap target ≥44×44 px, focus ring as above.
+
+---
+
+2. Skeleton & Empty States
+   - **FeedCard Skeleton** (`/components/ui/SkeletonFeedCard.tsx`):
+     ```jsx
+     <div className="animate-pulse p-4 bg-white rounded-xl shadow-sm space-y-2">
+       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+       <div className="h-4 bg-gray-200 rounded w-full"></div>
+       <div className="h-48 bg-gray-200 rounded"></div>
+     </div>
+     ```
+   - **Empty State Component** (`/components/ui/EmptyState.tsx`):
+     ```jsx
+     <div className="flex flex-col items-center justify-center p-8 text-center">
+       <EmptyIcon className="h-12 w-12 text-muted-foreground mb-4"/>
+       <p className="text-lg font-medium">Nothing here yet</p>
+       <p className="text-sm text-muted-foreground mb-4">Start by tapping the + button below</p>
+       <Button onClick={onCreate} variant="primary">Create Something</Button>
+     </div>
+     ```
+
+---
+
+3. Error & Offline Banners
+   - **Inline Error** (e.g. in `Feed.tsx`):
+     ```jsx
+     {error && (
+       <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-2 rounded mb-4">
+         <p>Couldn’t load content.</p>
+         <Button variant="outline" onClick={retry}>Try Again</Button>
+       </div>
+     )}
+     ```
+   - **Offline Banner** (`/components/ui/OfflineBanner.tsx`):
+     ```jsx
+     <div className="fixed top-0 inset-x-0 bg-yellow-100 text-yellow-900 text-center py-2 z-50">
+       You’re offline—some features may be unavailable.
+     </div>
+     ```
+
+---
+
+4. Safe-Area & Tab Highlight
+   - **Bottom Nav Container** (`/components/ui/BottomNav.tsx`):
+     ```jsx
+     <nav className="fixed bottom-0 inset-x-0 bg-white pb-safe pt-2 shadow-inner flex justify-around">
+       {tabs.map(tab => (
+         <button
+           key={tab.key}
+           aria-label={tab.label}
+           className={`flex flex-col items-center ${
+             activeTab === tab.key ? 'text-primary' : 'text-muted-foreground'
+           }`}
+         >
+           <tab.Icon className="h-6 w-6"/>
+           <span className="text-xs">{tab.label}</span>
+         </button>
+       ))}
+     </nav>
+     ```
+   - **Floating Create Button** (`/components/ui/FloatingCreateButton.tsx`) should also use `bottom-safe` and sit above this nav.
+
+---
+
+5. Accessibility Quick Wins
+   - **Tap Targets**: Validate every `<button>` has `min-h-[44px] min-w-[44px]` (use Tailwind utilities).  
+   - **ARIA Labels**: Every icon-only button must have `aria-label="..."`.  
+   - **Focus Styles**: Ensure `focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary` is applied to all interactive elements.  
+   - **Keyboard**: Popovers and modals must trap focus and close on `Esc`.
+
+---
+
+### Deliverables
+- **One PR per feature** above, each with:
+  - Code implementing *exactly* the snippets & class names described.
+  - Storybook or Replit UI preview link.
+  - QA notes detailing manual steps & accessibility checks.
+  - `CHANGELOG.md` updated under “MVP Polishes”.
+
+Thank you! Let’s keep this **systemic**, **consistent**, and **fully traceable** to our audit.  
